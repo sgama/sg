@@ -6,8 +6,8 @@ before_script:
   - curl --silent -L https://github.com/gohugoio/hugo/releases/download/v0.36/hugo_0.36_Linux-64bit.tar.gz | tar zxf -
 script:
   - GIT_COMMIT_SHA=`git rev-parse --verify HEAD` GIT_COMMIT_SHA_SHORT=`git rev-parse --short HEAD` ./hugo
-# after_success:
-#   - echo "samsongama.com" >> public/CNAME
+after_success:
+  - echo "samsongama.com" >> public/CNAME
 
 # Deploy to GitHub pages
 deploy:
