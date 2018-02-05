@@ -1,9 +1,13 @@
+language: generic
+env:
+  - HUGO_VERSION=0.36
 addons:
   apt:
     packages:
     - python-pygments
 before_script:
-  - curl --silent -L https://github.com/gohugoio/hugo/releases/download/v0.36/hugo_0.36_Linux-64bit.tar.gz | tar zxf -
+  - git submodule update --remote
+  - curl --silent -L https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_Linux-64bit.tar.gz | tar zxf -
 script:
   - GIT_COMMIT_SHA=`git rev-parse --verify HEAD` GIT_COMMIT_SHA_SHORT=`git rev-parse --short HEAD` ./hugo
 after_success:
