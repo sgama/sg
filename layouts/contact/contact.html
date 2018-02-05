@@ -1,0 +1,46 @@
+{{ define "main" }}
+<div role="main" class="container">
+
+    <!-- row -->
+    <div class="row">
+        <!-- column 12/12 -->
+        <div class="col-md-12">
+            <h2 class="section-title"><span><i class="fa fa-paper-plane"></i>DROP ME A LINE</span></h2>
+            <!-- .contact-form -->
+            <div class="contact-form">
+                <form id="contact-form" action="https://formspree.io/f0rm5p33@samsongama.com" method="post">
+                    <!-- enter mail subject here -->
+                    <input type="hidden" name="_subject" id="subject" value="New Message From Contact Form!">
+
+                    <div class="col-md-6">
+                        <label for="name">NAME</label>
+                        <input type="text" name="name" id="name" class="required" placeholder="Your name">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="email">EMAIL</label>
+                        <input type="text" name="email" id="email" class="required email" placeholder="Your email">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label for="message">MESSAGE</label>
+                        <textarea name="message" id="message" class="required" placeholder="Your message"></textarea>
+                    </div>
+
+                    <input type="text" name="_gotcha" style="display:none">
+
+                    <div class="col-md-12">
+                        <input type="submit" class="submit button primary" value="SEND">
+                    </div>
+
+                </form>
+
+            </div>
+            <!-- .contact-form -->
+
+        </div>
+        <!-- column 12/12 -->
+    </div>
+    <!-- row -->
+</div>
+{{ end }}

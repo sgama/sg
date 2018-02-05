@@ -1,0 +1,9 @@
+{{ define "main" }}
+<div role="main" class="container">
+    {{ with .Content }}
+    <div class="well">
+        {{ partial "project0.html" . }}
+    </div>
+    {{ end }}
+</div>
+{{ end }}

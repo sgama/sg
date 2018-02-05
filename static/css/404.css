@@ -1,0 +1,36 @@
+/**** TERMINAL CODE ****/
+
+.bgterminal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    color: #233143!important;
+    white-space: pre-wrap;
+    white-space: -moz-pre-wrap;
+    white-space: -o-pre-wrap;
+    font: 16px'Inconsolata', monospace;
+    font-size: 16px;
+    z-index: -1;
+    text-align: left;
+    -webkit-transition-property: color;
+    -moz-transition-property: color;
+    -o-transition-property: color;
+    transition-property: color;
+    -webkit-transition-duration: 2s;
+    transition-duration: 2s;
+    -webkit-transition-delay: 2s;
+    transition-delay: 0;
+}
+
+.bgterminal-glow {
+    animation: glow 5s;
+    -webkit-animation: glow 5s;
+    animation-direction: normal;
+    -webkit-animation-direction: normal;
+    animation-iteration-count: infinite;
+    -webkit-animation-iteration-count: infinite;
+}
+
+.bgterminal .cursor {
+    background: #233143;
+}

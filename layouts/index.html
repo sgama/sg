@@ -1,0 +1,16 @@
+{{ define "main" }}
+<div role="main" class="container">
+  <div class="row">
+    <div class="col-sm-4">
+      <img class="img-rounded" src="{{ .Params.left_image }}" alt="Profile">
+    </div>
+    <div class="col-sm-8">
+      {{ with .Content }}
+        <div class="well">
+          {{.}}
+        </div>
+      {{ end }}
+    </div>
+  </div>
+</div>
+{{ end }}

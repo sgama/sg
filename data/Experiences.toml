@@ -1,0 +1,69 @@
+[[Experience]]
+  title = "Software Developer"
+  company = "Absolute Software"
+  location = "Vancouver, Canada"
+  start = "June, 2017"
+  end = "Now"
+  summary= """
+    -	Developed microservices in Golang and Python to process incoming data from customer devices
+    <br>
+    - Improved existing microservices and infrastructure utilization by redesigning key data pipelines 
+    <br>
+    - Improved visibility into operations by adding several metrics, graphs, and alerts into Prometheus and Grafana
+    <br>
+    - Created several internal tools for load testing, build verification tests, and development
+    <br>
+    -	Debugged infrastructure issues within Kubernetes and Hypervisors to minimize other developers down time
+    <br>
+    - Wrote Mongo migration scripts to deduplicate/migrate data and increase performance in prod. environments
+    <br>
+    - Rewrote various microservices which needed more throughput and less latency from Python to Golang and achieved a 2000% increase in throughput and 90% reduction in memory usage while passing all tests
+    <br>
+    -	Assisted other developers in following best practices for Docker, Python, Golang, and infrastructure needs
+  """
+
+[[Experience]]
+  title = "Software Developer"
+  company = "Prizm Media Inc."
+  location = "Vancouver, Canada"
+  start = "December, 2015"
+  end = "2016"
+  summary= """
+    - Developed Android and iOS applications for a fitness-orientated social network
+    <br>
+    -	Improved on existing backend implementation by implementing caching, queueing, and pagination
+    <br>
+    - Developed solutions to problems using Machine Learning tools such as SVMs and Neural Networks
+    <br>
+    - Database/Web Server optimization and server management tasks such as backups and security audits
+    <br>
+    - Took on a leadership role where I trained junior devs to grasp the whole picture of the system piece by piece
+  """
+
+[[Experience]]
+  title = "Software Engineering Intern"
+  company = "Ericsson Silicon Valley"
+  location = "Bay Area, USA"
+  start = "September, 2015"
+  end = "2015"
+  summary= """
+    - Developed an OpenStack Neutron plugin for managing virtual Ericsson routers in the cloud
+    <br>
+    - Investigated and implemented secure methods of communication between multiple virtual machines without reconfiguring Linux interfaces at runtime
+    <br>
+    - Used Docker within OpenStack to debug containers and to automate tests
+  """
+
+[[Experience]]
+  title = "Software Developer"
+  company = "Grin Technologies"
+  location = "Vancouver, Canada"
+  start = "May, 2014"
+  end = "2014"
+  summary= """
+    - Developed two web applications which allowed electric vehicle enthusiasts to visualize their trips plotted from raw data and rendered custom wheel builds from custom values and backend values
+    <br>
+    - Programmed the Texas Instruments CC2540 SoC for Bluetooth low energy applications to communicate with the Grin Technologies Cycle Analyst to advance Bluetooth development for consumer products
+    <br>
+    - Currently administrating a large electric vehicle forum with 5000+ daily users – endless-sphere.com
+  """

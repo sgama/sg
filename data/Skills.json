@@ -1,0 +1,59 @@
+[
+    {
+        "skill": "Go"
+    },
+    {
+        "skill": "Python"
+    },
+    {
+        "skill": "Javascript"
+    },
+    {
+        "skill": "Java"
+    },
+    {
+        "skill": "Objective-C"
+    },
+    {
+        "skill": "PHP"
+    },
+    {
+        "skill": "C/C++"
+    },
+    {
+        "skill": "Docker, Docker-Compose"
+    },
+    {
+        "skill": "REST API/gRPC Design"
+    },
+    {
+        "skill": "HA System Architecture"
+    },
+    {
+        "skill": "MySQL, MongoDB, PostgreSQL"
+    },
+    {
+        "skill": "Kubernetes, Rancher, Openshift, Openstack"
+    },
+    {
+        "skill": "Machine Learning (SVM, Neural Network, Tensorflow)"
+    },
+    {
+        "skill": "Cybersecurity (Pentesting, reconnaissance and defense)"
+    },
+    {
+        "skill": "AWS/Azure/GCE/VPS experience"
+    },
+    {
+        "skill": "Xen/Hyper-V experience"
+    },
+    {
+        "skill": "Electric Bicycle Assembly and Repairs"
+    },
+    {
+        "skill": "FL Studio Production Experience"
+    },
+    {
+        "skill": "Amateur Photoshop Skills"
+    }
+]

@@ -1,0 +1,17 @@
+{{ define "main" }}
+<div role="main" class="container">
+    {{ with .Content }}
+    <div class="well">
+        {{.}}
+    </div>
+    {{ end }}
+    {{ range where .Site.RegularPages "Type" "project" }}
+        <a href={{ .Permalink }}>
+        <div class="col-lg-4 col-sm-6">
+            <img class="img-rounded" src={{ .Params.Thumbnail }}>
+            <h4>{{ .Title }}</h4>
+        </div>
+        </a>
+    {{ end }}
+</div>
+{{ end }}
