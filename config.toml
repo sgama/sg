@@ -13,7 +13,7 @@ googleAnalytics = "UA-40665364-1"
     extensions = ["hardLineBreak"]
 
 [Params]
-    commit = "https://github.com/sgama/sgama.github.io/tree/"
+    commit = "https://github.com/sgama/sg/tree/"
     subtitle = "Software Engineer (EIT)"
     logo = "img/nav-icon.jpg"
     favicon = "img/favicon.ico"
