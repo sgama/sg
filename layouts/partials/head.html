@@ -42,37 +42,44 @@
     {{- else }}
     <link rel="alternate" href="{{ .Site.RSSLink }}" type="application/rss+xml" title="{{ .Site.Title }}">
     {{- end }}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
     <link rel="stylesheet" href="{{ "css/main.css" | absURL }}" />
+    <!-- <link rel="stylesheet" href="{{ "css/codeblock.css" | absURL }}" /> -->
+    <!-- Added into contact.css -->
+
+    {{- if .Site.Params.staticman.recaptcha -}}
+    <script src='https://www.google.com/recaptcha/api.js'></script>
+    {{- end -}}
+
     {{- if .Site.Params.staticman -}}
     <link rel="stylesheet" href="{{ "css/staticman.css" | absURL }}" />
     {{- end -}}
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
-    <link rel="stylesheet" href="{{ "css/codeblock.css" | absURL }}" />
+
     {{- if (not ( .Site.Params.UseChroma )) }}
     <link rel="stylesheet" href="{{ "css/highlight.min.css" | absURL }}" />
     {{- else -}}
+
     <link rel="stylesheet" href="{{ "css/syntax.css" | absURL }}" />
     {{- end -}}
 
     {{- if eq .Params.Stylesheet "timeline" -}}
     <link rel="stylesheet" href="{{ "css/timeline.css" | absURL }}" />
     {{- end -}}
+
     {{- if eq .Params.Stylesheet "contact" -}}
     <link rel="stylesheet" href="{{ "css/contact.css" | absURL }}" />
     {{- end -}}
+
     {{- if eq .Params.Stylesheet "404" -}}
     <link rel="stylesheet" href="{{ "css/404.css" | absURL }}" />
     {{- end -}}
     
-    {{- if .Site.Params.staticman.recaptcha -}}
-    <script src='https://www.google.com/recaptcha/api.js'></script>
-    {{- end -}}
-    
     {{- partial "head_custom.html" . }}
-    {{- partial "load-photoswipe-theme.html" . }}
+    
     {{ template "_internal/google_analytics_async.html" . }}
 </head>
