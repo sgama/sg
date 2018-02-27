@@ -30,3 +30,8 @@ deploy:
   target_branch: gh-pages
   on:
     branch: develop
+
+# blocklist
+branches:
+  except:
+    - gh-pages
