@@ -35,3 +35,4 @@ deploy:
 branches:
   except:
     - gh-pages
+    - master
