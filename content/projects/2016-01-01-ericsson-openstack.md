@@ -11,5 +11,7 @@ date: 2016-01-01
 
 •	Investigated and implemented secure methods of communication between multiple VMs without reconfiguring Linux interfaces during runtime
 
+•	Used Docker within OpenStack to debug containers and to automate tests 
+
 Find out more about the project here: <a href="https://www.ericsson.com/ourportfolio/products/virtual-router?nav=productcategory004">https://www.ericsson.com/</a>
 

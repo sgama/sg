@@ -1,6 +1,6 @@
 language: generic
 env:
-  - HUGO_VERSION=0.36 MINIFY_VERSION=2.3.4
+  - HUGO_VERSION=0.40.1 MINIFY_VERSION=2.3.4
 # addons:
 #   apt:
 #     packages:
