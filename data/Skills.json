@@ -21,34 +21,46 @@
         "skill": "C/C++"
     },
     {
-        "skill": "Docker, Docker-Compose"
+        "skill": "Bash"
     },
     {
-        "skill": "REST API/gRPC Design"
+        "skill": "Git"
     },
     {
-        "skill": "HA System Architecture"
+        "skill": "Linux"
+    },
+    {
+        "skill": "Docker, Docker-Compose, Kubernetes, HELM"
+    },
+    {
+        "skill": "Apache, Nginx, HAProxy, Traefik"
     },
     {
         "skill": "MySQL, MongoDB, PostgreSQL"
     },
     {
-        "skill": "Kubernetes, Rancher, Openshift, Openstack"
+        "skill": "Redis, Varnish, Squid"
     },
     {
-        "skill": "Machine Learning (SVM, Neural Network, Tensorflow)"
+        "skill": "Prometheus, Datadog, ELK"
     },
     {
-        "skill": "Cybersecurity (Pentesting, reconnaissance and defense)"
+        "skill": "CI/CD Jenkins, TravisCI, CircleCI"
     },
     {
-        "skill": "AWS/Azure/GCE/VPS experience"
+        "skill": "Ansible, Vagrant, Terraform"
     },
     {
-        "skill": "Xen/Hyper-V experience"
+        "skill": "Experience with Amazon AWS, Micosoft Azure, Google Cloud Services (GCS), Rackspace"
     },
     {
-        "skill": "CI/CD Jenkins, TravisCI"
+        "skill": "REST API/gRPC Design"
+    },
+    {
+        "skill": "Artifical Intelligence/Machine Learning (SVM, Neural Network, Tensorflow)"
+    },
+    {
+        "skill": "Agile/Scrum development, Kanban"
     },
     {
         "skill": "Electric Bicycle Assembly and Repairs"

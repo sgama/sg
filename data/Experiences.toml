@@ -5,21 +5,33 @@
   start = "June, 2017"
   end = "Now"
   summary= """
-    -	Developed microservices in Golang and Python to process incoming data from customer devices
+    -	Developed various microservices running in a Kubernetes cluster to process incoming data from secured devices
     <br>
-    - Improved existing microservices and infrastructure utilization by redesigning key data pipelines 
+    - Wrote Mongo migration scripts to migrate data and increase performance in production by 20% 
     <br>
-    - Improved visibility into operations by adding several metrics, graphs, and alerts into Prometheus and Grafana
+    - Rewrote various microservices which needed more throughput and less latency from Python to Golang and achieved a 2000% throughput increase and 90% reduction in CPU/memory while passing all integration tests
     <br>
-    - Created several internal tools for load testing, build verification tests, and development
+    - Created multiple internal testing tools to solve the challenges of replicating and simulating hundreds of thousands of devices within our development environments
     <br>
-    -	Debugged infrastructure issues within Kubernetes and Hypervisors to minimize other developers down time
+    -	Added metrics through Prometheus and StatsD and graphed them with Grafana to enable other developers to verify that their services are not failing to meet the acceptance criteria of throughput and resource allocation
     <br>
-    - Wrote Mongo migration scripts to deduplicate/migrate data and increase performance in prod. environments
+    - Assisted other developers in following best practices for Docker, Python, Golang, and infrastructure needs 
     <br>
-    - Rewrote various microservices which needed more throughput and less latency from Python to Golang and achieved a 2000% increase in throughput and 90% reduction in memory usage while passing all tests
+    - Added tedious and repetitive deployment tasks to Jenkins to increase team productivity by approximately 30%
+  """
+
+[[Experience]]
+  title = "Co-Founder"
+  company = "FingerTipDeals"
+  location = "Vancouver, Canada"
+  start = "March, 2016"
+  end = "March, 2017"
+  summary= """
+    -	Created Android and iOS applications to serve the SaaS product in four countries hosted on AWS 
     <br>
-    -	Assisted other developers in following best practices for Docker, Python, Golang, and infrastructure needs
+    - Wrote various backend services to serve specific client functionality and to provide analytics for customers
+    <br>
+    - Helped guide the view of the company to focus on less served markets while establishing a brand
   """
 
 [[Experience]]
@@ -29,15 +41,13 @@
   start = "December, 2015"
   end = "2016"
   summary= """
-    - Developed Android and iOS applications for a fitness-orientated social network
+    - Developed Android and iOS applications for a fitness-orientated social network application hosted on AWS
     <br>
-    -	Improved on existing backend implementation by implementing caching, queueing, and pagination
-    <br>
-    - Developed solutions to problems using Machine Learning tools such as SVMs and Neural Networks
+    -	Developed solutions to problems using Machine Learning tools such as SVMs and Neural Networks
     <br>
     - Database/Web Server optimization and server management tasks such as backups and security audits
     <br>
-    - Took on a leadership role where I trained junior devs to grasp the whole picture of the system piece by piece
+    - Decreased the response time of frequently used APIs by up to 90% through optimizing queries and caching
   """
 
 [[Experience]]
@@ -47,11 +57,11 @@
   start = "September, 2015"
   end = "2015"
   summary= """
-    - Developed an OpenStack Neutron plugin for managing virtual Ericsson routers in the cloud
+    - Developed an OpenStack Neutron plugin for managing virtual Ericsson routers in Python
     <br>
     - Investigated and implemented secure methods of communication between multiple virtual machines without reconfiguring Linux interfaces at runtime
     <br>
-    - Used Docker within OpenStack to debug containers and to automate tests
+    - Used Docker within OpenStack to debug containers and to automate tests on Mirantis Openstack
   """
 
 [[Experience]]
