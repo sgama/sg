@@ -3,7 +3,7 @@
   company = "Absolute Software"
   location = "Vancouver, Canada"
   start = "June, 2017"
-  end = "Now"
+  end = "2018"
   summary= """
     -	Developed various microservices running in a Kubernetes cluster to process incoming data from secured devices
     <br>

@@ -14,20 +14,31 @@ googleAnalytics = "UA-40665364-1"
 
 [Params]
     commit = "https://github.com/sgama/sg/tree/"
-    subtitle = "Software Engineer (EIT)"
+    subtitle = "Blog - WIP from Sept 16, Content incoming"
     logo = "img/nav-icon.jpg"
     favicon = "img/favicon.ico"
     dateFormat = "January 2, 2006"
     rss = true
     comments = true
     readingTime = true
+    gcse = "015123895069075366687:449fwtixz80"
+
+[[Params.bigimg]]
+ src = "img/sphere.jpg"
+ desc = "Sphere"
+ # position: see values of CSS background-position.
+ position = "center top"
 
 [Author]
     name = "Samson Gama"
     website = "https://samsongama.com"
+    googleplus = "+SamsonGama"
     github = "sgama"
+    gitlab = "sgama"
+    bitbucket = "sgama"
     linkedin = "samsongama"
     spotify = "+sam"
+    youtube = "samsongama"
 
 [[menu.main]]
     name = "Home"
@@ -35,16 +46,21 @@ googleAnalytics = "UA-40665364-1"
     weight = 1
 
 [[menu.main]]
+    name = "About"
+    url = "about/"
+    weight = 2
+
+[[menu.main]]
     name = "Portfolio"
     url = "portfolio/"
-    weight = 2
+    weight = 3
 
 [[menu.main]]
     name = "Resume"
     url = "resume/"
-    weight = 3
+    weight = 4
 
 [[menu.main]]
     name = "Contact"
     url = "contact/"
-    weight = 4
+    weight = 5

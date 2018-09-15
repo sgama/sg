@@ -36,10 +36,10 @@
         "skill": "Apache, Nginx, HAProxy, Traefik"
     },
     {
-        "skill": "MySQL, MongoDB, PostgreSQL"
+        "skill": "MySQL, MongoDB, PostgreSQL, Redis, DynamoDB"
     },
     {
-        "skill": "Redis, Varnish, Squid"
+        "skill": "Varnish, Squid"
     },
     {
         "skill": "Prometheus, Datadog, ELK"
