@@ -14,7 +14,7 @@ googleAnalytics = "UA-40665364-1"
 
 [Params]
     commit = "https://github.com/sgama/sg/tree/"
-    subtitle = "Blog - WIP from Sept 16, Content incoming"
+    subtitle = "Wishes his bank had a REST API"
     logo = "img/nav-icon.jpg"
     favicon = "img/favicon.ico"
     dateFormat = "January 2, 2006"
