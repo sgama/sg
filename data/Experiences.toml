@@ -1,9 +1,19 @@
 [[Experience]]
+  title = "Senior Software Engineer"
+  company = "Mastercard"
+  location = "Vancouver, Canada"
+  start = "Oct, 2018"
+  end = "Now"
+  summary= """
+    - TBD
+  """
+
+[[Experience]]
   title = "Software Developer"
   company = "Absolute Software"
   location = "Vancouver, Canada"
   start = "June, 2017"
-  end = "2018"
+  end = "Sept, 2018"
   summary= """
     -	Developed various microservices running in a Kubernetes cluster to process incoming data from secured devices
     <br>
