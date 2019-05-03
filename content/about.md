@@ -1,6 +1,6 @@
 ---
 title: Samson Gama
-subtitle: Software Engineer(EIT)
+subtitle: Software Engineer
 left_image: /img/samson-1.png
 layout: about
 type: about
