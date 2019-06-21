@@ -5,13 +5,19 @@
   start = "Oct, 2018"
   end = "Now"
   summary= """
-    - TBD
+    - Implemented Infrastructure as Code templates for new projects through AWS Cloudformation and Saltstack
     <br>
+    - Promoted CI/CD practices and automation by automating tedious manual processes
     <br>
+    - Worked with operations to help developers gain more visibility into their projects in production
     <br>
+    - Took on operational duties and deployed new software to on-prem and cloud datacenters which serves 100s of millions of users
     <br>
+    - Created various in-house tools to accomodate the needs of different groups
     <br>
+    - Investigated and contributed to the development on the Platform 2.0 project which moves from a more monolithic approach to more flexible solutions (Lambda, Fargate, ECS...)
     <br>
+    - Onboarded new DevOps team members on existing processes
   """
 
 [[Experience]]
