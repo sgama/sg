@@ -36,3 +36,5 @@ branches:
   except:
     - gh-pages
     - master
+    - release/2019
+    - develop/2020
