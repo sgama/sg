@@ -36,3 +36,4 @@ branches:
   except:
     - gh-pages
     - master
+    - feature/darktheme
