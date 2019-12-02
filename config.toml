@@ -1,66 +1,64 @@
 baseURL = "https://samsongama.com/"
-languageCode = "en"
+languageCode = "en-us"
 title = "Samson Gama"
-theme = "beautifulhugo"
+theme = "hugo-theme-hello-friend-ng"
 
-DefaultContentLanguage = "en"
-metaDataFormat = "yaml"
-pygmentsUseClasses = false
-pygmentCodeFences = true
-googleAnalytics = "UA-40665364-1"
+min_version = "0.41"
 
-[blackfriday]
-    extensions = ["hardLineBreak"]
+[author]
+  name = "sgama"
+  homepage = "https://github.com/sgama/sg.git"
 
-[Params]
-    commit = "https://github.com/sgama/sg/tree/"
-    subtitle = "Wishes his bank had a REST API"
-    logo = "img/nav-icon.jpg"
-    favicon = "img/favicon.ico"
-    dateFormat = "January 2, 2006"
-    rss = true
-    comments = true
-    readingTime = true
-    gcse = "015123895069075366687:449fwtixz80"
+[params]
+  dateform        = "Jan 2, 2006"
+  dateformShort   = "Jan 2"
+  dateformNum     = "2006-01-02"
+  dateformNumTime = "2006-01-02 15:04 -0700"
 
-[[Params.bigimg]]
- src = "img/sphere.jpg"
- desc = "Sphere"
- # position: see values of CSS background-position.
- position = "center top"
+  # Set disableReadOtherPosts to true in order to hide the links to other posts.
+  disableReadOtherPosts = false
 
-[Author]
-    name = "Samson Gama"
-    website = "https://samsongama.com"
-    googleplus = "+SamsonGama"
-    github = "sgama"
-    gitlab = "sgama"
-    bitbucket = "sgama"
-    linkedin = "samsongama"
-    spotify = "+sam"
-    youtube = "samsongama"
+  # Metadata mostly used in document's head
+  description = "Homepage and blog"
+  keywords = "homepage, blog, science, informatics, development, programming"
+  images = [""]
 
-[[menu.main]]
-    name = "Home"
-    url = ""
-    weight = 1
+  # Directory name of your blog content (default is `content/posts`)
+  contentTypeName = "posts"
 
-[[menu.main]]
-    name = "About"
-    url = "about/"
-    weight = 2
+  # Default theme "light" or "dark"
+  defaultTheme = "dark"
 
-[[menu.main]]
-    name = "Portfolio"
-    url = "portfolio/"
-    weight = 3
+[languages]
+  [languages.en]
+    title = "Samson Gama"
+    subtitle = "A simple blog"
+    keywords = ""
+    copyright = "Samson Gama"
+    readOtherPosts = "Read other posts"
 
-[[menu.main]]
-    name = "Resume"
-    url = "resume/"
-    weight = 4
+    [languages.en.params.logo]
+      logoText = "Samson Gama"
+      logoHomeLink = "/"
+    # or
+    #
+    # path = "/img/your-example-logo.svg"
+    # alt = "Your example logo alt text"
 
-[[menu.main]]
-    name = "Contact"
-    url = "contact/"
-    weight = 5
+  # And you can even create generic menu
+  [[menu.main]]
+    identifier = "about"
+    name       = "About"
+    url        = "/posts"
+  [[menu.main]]
+    identifier = "blog"
+    name       = "Blog"
+    url        = "/posts"
+  [[menu.main]]
+    identifier = "portfolio"
+    name       = "Portfolio"
+    url        = "/posts"
+  [[menu.main]]
+    identifier = "contact"
+    name       = "Contact"
+    url        = "/posts"
