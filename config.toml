@@ -45,20 +45,28 @@ min_version = "0.41"
     # path = "/img/your-example-logo.svg"
     # alt = "Your example logo alt text"
 
-  # And you can even create generic menu
   [[menu.main]]
     identifier = "about"
     name       = "About"
-    url        = "/posts"
+    url        = "/about"
+    weight     = 1
   [[menu.main]]
     identifier = "blog"
     name       = "Blog"
     url        = "/posts"
+    weight     = 2
   [[menu.main]]
     identifier = "portfolio"
     name       = "Portfolio"
-    url        = "/posts"
+    url        = "/portfolio"
+    weight     = 3
+  [[menu.main]]
+    identifier = "resume"
+    name       = "Resume"
+    url        = "/resume"
+    weight     = 4
   [[menu.main]]
     identifier = "contact"
     name       = "Contact"
-    url        = "/posts"
+    url        = "/contact"
+    weight     = 5
