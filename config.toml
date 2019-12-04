@@ -1,19 +1,43 @@
 baseURL = "https://samsongama.com/"
 languageCode = "en-us"
 title = "Samson Gama"
-theme = "hugo-theme-hello-friend-ng"
+theme = "hugo-theme-hello-friend-extras"
 
-min_version = "0.41"
+min_version = "0.55"
+enableRobotsTXT = true
+enableGitInfo   = true
+enableEmoji     = true
+
+[markup.goldmark.renderer]
+unsafe= true
+
+[taxonomies]
+  tag      = "tags"
+  category = "categories"
 
 [author]
   name = "sgama"
   homepage = "https://github.com/sgama/sg.git"
 
+[Author]
+    name = "Samson Gama"
+    website = "https://samsongama.com"
+    googleplus = "+SamsonGama"
+    github = "sgama"
+    gitlab = "sgama"
+    bitbucket = "sgama"
+    linkedin = "samsongama"
+    spotify = "+sam"
+    youtube = "samsongama"
+
 [params]
+  commit = "https://github.com/sgama/sg/tree/"
+  subtitle = "Wishes his bank had a REST API"
   dateform        = "Jan 2, 2006"
   dateformShort   = "Jan 2"
   dateformNum     = "2006-01-02"
   dateformNumTime = "2006-01-02 15:04 -0700"
+  mainSections = ["post","posts"]
 
   # Set disableReadOtherPosts to true in order to hide the links to other posts.
   disableReadOtherPosts = false
@@ -28,6 +52,23 @@ min_version = "0.41"
 
   # Default theme "light" or "dark"
   defaultTheme = "dark"
+
+[[Params.bigimg]]
+  src = "img/sphere.jpg"
+  desc = "Sphere"
+  # position: see values of CSS background-position.
+  position = "center top"
+
+[Params]
+    commit = "https://github.com/sgama/sg/tree/"
+    subtitle = "Wishes his bank had a REST API"
+    logo = "img/nav-icon.jpg"
+    dateFormat = "January 2, 2006"
+    rss = true
+    comments = true
+    readingTime = true
+    gcse = "015123895069075366687:449fwtixz80"
+    mainSections = ["posts"]
 
 [languages]
   [languages.en]
@@ -46,27 +87,32 @@ min_version = "0.41"
     # alt = "Your example logo alt text"
 
   [[menu.main]]
+    identifier = "home"
+    name       = "Home"
+    url        = ""
+    weight     = 1
+  [[menu.main]]
     identifier = "about"
     name       = "About"
     url        = "/about"
-    weight     = 1
+    weight     = 2
   [[menu.main]]
     identifier = "blog"
     name       = "Blog"
     url        = "/posts"
-    weight     = 2
+    weight     = 3
   [[menu.main]]
     identifier = "portfolio"
     name       = "Portfolio"
     url        = "/portfolio"
-    weight     = 3
+    weight     = 4
   [[menu.main]]
     identifier = "resume"
     name       = "Resume"
     url        = "/resume"
-    weight     = 4
+    weight     = 5
   [[menu.main]]
     identifier = "contact"
     name       = "Contact"
     url        = "/contact"
-    weight     = 5
+    weight     = 6

@@ -1,0 +1,77 @@
+[
+    {
+        "skill": "Rust"
+    },
+    {
+        "skill": "Go"
+    },
+    {
+        "skill": "Python"
+    },
+    {
+        "skill": "Javascript"
+    },
+    {
+        "skill": "Java"
+    },
+    {
+        "skill": "Objective-C"
+    },
+    {
+        "skill": "PHP"
+    },
+    {
+        "skill": "C/C++"
+    },
+    {
+        "skill": "Bash"
+    },
+    {
+        "skill": "Git"
+    },
+    {
+        "skill": "Linux"
+    },
+    {
+        "skill": "Docker, Docker-Compose, Kubernetes, HELM"
+    },
+    {
+        "skill": "Apache, Nginx, HAProxy, Traefik"
+    },
+    {
+        "skill": "MySQL, MongoDB, PostgreSQL, Redis, DynamoDB"
+    },
+    {
+        "skill": "Varnish, Squid"
+    },
+    {
+        "skill": "Prometheus, Datadog, ELK"
+    },
+    {
+        "skill": "CI/CD Jenkins, TravisCI, CircleCI"
+    },
+    {
+        "skill": "Ansible, Vagrant, Terraform"
+    },
+    {
+        "skill": "Experience with Amazon AWS, Micosoft Azure, Google Cloud Services (GCS), Rackspace"
+    },
+    {
+        "skill": "REST API/gRPC Design"
+    },
+    {
+        "skill": "Artifical Intelligence/Machine Learning (SVM, Neural Network, Tensorflow)"
+    },
+    {
+        "skill": "Agile/Scrum development, Kanban"
+    },
+    {
+        "skill": "Electric Bicycle Assembly and Repairs"
+    },
+    {
+        "skill": "FL Studio Production Experience"
+    },
+    {
+        "skill": "Amateur Photoshop Skills"
+    }
+]
