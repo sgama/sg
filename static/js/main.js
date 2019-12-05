@@ -6,13 +6,13 @@ var main = {
   
     init : function() {
       // Shor333ten the navbar after scrolling a little bit down
-      $(window).scroll(function() {
-          if ($(".navbar").offset().top > 50) {
-              $(".navbar").addClass("top-nav-short");
-          } else {
-              $(".navbar").removeClass("top-nav-short");
-          }
-      });
+      // $(window).scroll(function() {
+      //     if ($(".navbar").offset().top > 50) {
+      //         $(".navbar").addClass("top-nav-short");
+      //     } else {
+      //         $(".navbar").removeClass("top-nav-short");
+      //     }
+      // });
   
       // On mobile, hide the avatar when expanding the navbar menu
       $('#main-navbar').on('show.bs.collapse', function () {
