@@ -1,1 +1,162 @@
-.contact-form{margin:1.6em 0 3em;overflow:auto}.contact-form p{margin:0 0 1.8em;width:50%;float:left}.contact-form p:nth-of-type(1){padding-right:32px}.contact-form p:nth-of-type(3),.contact-form p:nth-of-type(4){width:100%}.contact-form input:not([type=submit]):not([type=button]):not([type=file]):not([type=radio]):not([type=checkbox]),.contact-form textarea{width:100%;padding:1.4em;display:block;-moz-box-sizing:border-box;-webkit-box-sizing:border-box;-ms-box-sizing:border-box;box-sizing:border-box;border-color:darkgrey}.contact-form textarea{height:100px;border-color:darkgrey}input[type=submit]{background-color:#4caf50;border:none;width:100%;color:#fff;padding:16px 32px;text-decoration:none;margin:4px 2px;cursor:pointer}.clearfix:before,.clearfix:after{content:" ";display:table}.clearfix:after{clear:both}.post{padding-top:10px;padding-bottom:10px}.post:hover{background-color:#f5f5f5}.post blockquote{margin:1.8em .8em;border-left:1px dotted #777;padding:.1em 1em;color:#777}.post .eyebrow{font-size:12px;line-height:30px;color:#777;padding-top:6px;margin-bottom:6px;border-top:1px solid #999}.post .comments{margin-top:10px}.post .small-link{font-size:11px;color:#999;display:block}.post .small-link:hover{color:#d42}.post .large-link{font-size:20px;color:#555;font-weight:500}.post .primary-link{color:#000;font-size:13px;font-weight:500}.post .spacer{padding-right:8px;margin-right:8px;border-right:1px solid #ccc}pre{font-size:16px;line-height:1.5em}pre code{white-space:pre}pre.highlight,.highlight>pre,td.code pre{background:#fafafa;background-image:linear-gradient(#F9F9F9 50%,#FDFDFD 50%);background-repeat:repeat;background-size:3em 3em;background-position:0 10px;border-left:7px solid #444}code table,code table td,code table th,code table tbody,code table tr,td.gutter pre{padding:0;border:none;background-color:#fff}.highlight>pre{padding:0}td.code pre{border-width:0 0 0 2px;border-style:solid;border-color:#444;border-radius:0}td.gutter{padding-top:3px}
+/* CONTACT FORM */
+
+.contact-form {
+    margin: 1.6em 0 3em 0;
+    overflow: auto;
+}
+
+.contact-form p {
+    margin: 0 0 1.8em 0;
+    width: 50%;
+    float: left;
+}
+
+.contact-form p:nth-of-type(1) {
+    padding-right: 32px;
+}
+
+.contact-form p:nth-of-type(3),
+.contact-form p:nth-of-type(4) {
+    width: 100%
+}
+
+.contact-form input:not([type=submit]):not([type=button]):not([type=file]):not([type=radio]):not([type=checkbox]),
+.contact-form textarea {
+    width: 100%;
+    padding: 1.4em;
+    display: block;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+    border-color: darkgrey;
+}
+
+.contact-form textarea {
+    height: 100px;
+    border-color: darkgrey;
+}
+
+input[type=submit] {
+    background-color: #4CAF50;
+    border: none;
+    width: 100%;
+    color: white;
+    padding: 16px 32px;
+    text-decoration: none;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+.clearfix:before,
+.clearfix:after {
+    content: " ";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
+}
+
+.post {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.post:hover {
+    background-color: #F5F5F5;
+}
+
+.post blockquote {
+    margin: 1.8em .8em;
+    border-left: 1px dotted #777;
+    padding: 0.1em 1em;
+    color: #777;
+}
+
+.post .eyebrow {
+    font-size: 12px;
+    line-height: 30px;
+    color: #777;
+    padding-top: 6px;
+    margin-bottom: 6px;
+    border-top: 1px solid #999;
+}
+
+.post .comments {
+    margin-top: 10px;
+}
+
+.post .small-link {
+    font-size: 11px;
+    color: #999;
+    display: block;
+}
+
+.post .small-link:hover {
+    color: #d42;
+}
+
+.post .large-link {
+    font-size: 20px;
+    color: #555;
+    font-weight: 500;
+}
+
+.post .primary-link {
+    color: #000;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.post .spacer {
+    padding-right: 8px;
+    margin-right: 8px;
+    border-right: 1px solid #ccc;
+}
+
+pre {
+    font-size: 16px;
+    line-height: 1.5em;
+}
+
+pre code {
+    white-space: pre;
+}
+
+pre.highlight,
+.highlight>pre,
+td.code pre {
+    background: #FAFAFA;
+    background-image: linear-gradient(#F9F9F9 50%, #FDFDFD 50%);
+    background-repeat: repeat;
+    background-size: 3em 3em;
+    background-position: 0px 10px;
+    border-left: 7px solid #444;
+}
+
+code table,
+code table td,
+code table th,
+code table tbody,
+code table tr,
+td.gutter pre {
+    padding: 0;
+    border: none;
+    background-color: #fff;
+}
+
+.highlight>pre {
+    padding: 0;
+}
+
+td.code pre {
+    border-width: 0 0 0 2px;
+    border-style: solid;
+    border-color: #444;
+    border-radius: 0;
+}
+
+td.gutter {
+    padding-top: 3px;
+}

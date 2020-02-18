@@ -1,1 +1,230 @@
-.timeline{position:relative}.timeline h2{position:relative}.timeline h2 [class^=icon-],.timeline h2 [class*=" icon-"],.timeline h2 .fa{display:block;font-size:30px;position:absolute;top:-24px;left:-100px;width:86px;line-height:78px;margin:0;z-index:120}.timeline h2 [class^=icon-]:before,.timeline h2 [class*=" icon-"]:before,.timeline h2 i.fa:before{margin:0}.timeline .event:first-of-type .date{background:#144288}.timeline .event:last-child p:before{display:None}.summary{font-size:14px;font-family:Open Sans}.event{position:relative;padding:10px 15px;margin-bottom:1em;background:#fff;border:3px solid #dde4e6;border-radius:6px}.event:after,.event:before{right:100%;top:50%;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}.event:after{border-right-color:#fff;border-width:10px;margin-top:-10px}.event:before{border-right-color:#dde4e6;border-width:15px;margin-top:-15px}.event .date{position:absolute;top:45%;margin-top:-24px;left:-94px;width:68px;line-height:65px;text-align:center;background:#5bcf80;display:block;z-index:120;color:#fff;border-radius:50%;border:0 solid #fff}.event h4{font-weight:400;margin:0;padding:0}.event h5{margin:0;text-transform:uppercase}.event p{margin:.6em 0 .2em}.event p:before{display:block;content:"";position:absolute;left:-62px;height:225%;width:5px;background:#dde4e6}.skillset{padding:0 0 3.2em}.skill-unit{padding-bottom:0}.skill-unit h4{margin-bottom:-30px;font-weight:800;color:#fff;position:relative;z-index:100;padding-left:14px;text-transform:uppercase}.skill-unit .bar{position:relative;width:100%;height:36px}.skill-unit .bar .progress{position:absolute;top:0;left:0;width:0;height:100%;border-radius:4px;background:#5bcf80}.testo-group{padding:1em 0 2em}.testo{position:relative;padding:1.4em 2.2em;margin:0 16px 40px 0;background:#eff4f5;border-radius:6px}.testo:before{display:block;content:"\f10d";line-height:1;font-size:14px;position:absolute;left:10px;top:12px;color:#fff;border:3px solid #fff;padding:4px 6px;border-radius:50%}.testo img{display:block;float:right;max-width:100px;border-radius:50%;margin:-40px -60px 10px 20px;border:8px solid #fff}.testo h4{position:relative;margin:0;text-transform:uppercase;font-weight:900;color:#6a7686}.testo h4 span{display:inline-block;margin-left:1em;font-size:.8em;color:#bfc5cd}.testo p{position:relative;margin:.6em 0 .2em;line-height:150%;color:#6a7686}h2 i[class^=icon-],h2 i[class*=" icon-"],h2 i.fa{font-size:22px;margin-right:16px;line-height:39px;text-align:center;color:#b7c6c9;background:#fff;border-radius:50%;border:4px solid #dde4e6;display:inline-block;width:47px}h2 i[class^=icon-]:before,h2 i[class*=" icon-"]:before,h2 i.fa:before{display:inline;margin-left:0;margin-right:0}
+.timeline {
+    position: relative;
+}
+
+.timeline h2 {
+    position: relative;
+}
+
+.timeline h2 [class^="icon-"], .timeline h2 [class*=" icon-"], .timeline h2 .fa {
+    display: block;
+    font-size: 30px;
+    position: absolute;
+    top: -24px;
+    left: -100px;
+    width: 86px;
+    line-height: 78px;
+    margin: 0;
+    z-index: 120;
+}
+
+.timeline h2 [class^="icon-"]:before, .timeline h2 [class*=" icon-"]:before, .timeline h2 i.fa:before {
+    margin: 0;
+}
+
+.timeline .event:first-of-type .date {
+    background: rgb(20, 66, 136);
+}
+
+.timeline .event:last-child p:before {
+    display: None
+}
+
+.summary {
+    font-size: 14px;
+    font-family: Open Sans; 
+}
+
+/* Chat box */
+.event {
+    position: relative;
+    padding: 10px 15px;
+    margin-bottom: 1em;
+    background: #ffffff;
+    border: 3px solid #DDE4E6;
+    border-radius: 6px;
+}
+
+/* Chat Box triangle */
+.event:after, .event:before {
+    right: 100%;
+    top: 50%;
+    border: solid transparent;
+    content: " ";
+    height: 0;
+    width: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+.event:after {
+    border-right-color: #ffffff;
+    border-width: 10px;
+    margin-top: -10px;
+}
+
+.event:before {
+    border-right-color: #DDE4E6;
+    border-width: 15px;
+    margin-top: -15px;
+}
+
+.event .date {
+    position: absolute;
+    top: 45%;
+    margin-top: -24px;
+    left: -94px;
+    width: 68px;
+    line-height: 65px;
+    text-align: center;
+    background: #5BCF80;
+    display: block;
+    z-index: 120;
+    color: #fff;
+    border-radius: 50%;
+    border: 0px solid #FFF;
+}
+
+.event h4 {
+    font-weight: 400;
+    margin: 0;
+    padding: 0;
+}
+
+.event h5 {
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.event p {
+    margin: .6em 0 .2em 0
+}
+
+.event p:before {
+    display: block;
+    content: "";
+    position: absolute;
+    left: -62px;
+    height: 225%;
+    width: 5px;
+    background: #DDE4E6;
+}
+
+/* SKILLS */
+
+.skillset {
+    padding: 0 0 3.2em 0
+}
+
+.skill-unit {
+    padding-bottom: 0
+}
+
+.skill-unit h4 {
+    margin-bottom: -30px;
+    font-weight: 800;
+    color: #fff;
+    position: relative;
+    z-index: 100;
+    padding-left: 14px;
+    text-transform: uppercase;
+}
+
+.skill-unit .bar {
+    position: relative;
+    width: 100%;
+    height: 36px;
+}
+
+.skill-unit .bar .progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    border-radius: 4px;
+    background: #5BCF80;
+    /*box-shadow: 4px 4px 0 #e7e7e7;*/
+}
+
+
+/* TESTIMONIAL */
+
+.testo-group {
+    padding: 1em 0 2em 0;
+}
+
+.testo {
+    position: relative;
+    padding: 1.4em 2.2em;
+    margin: 0 16px 40px 0;
+    background: #EFF4F5;
+    border-radius: 6px;
+}
+
+.testo:before {
+    display: block;
+    content: "\f10d";
+    line-height: 1;
+    font-size: 14px;
+    position: absolute;
+    left: 10px;
+    top: 12px;
+    color: #fff;
+    border: 3px solid #FFF;
+    padding: 4px 6px;
+    border-radius: 50%;
+}
+
+.testo img {
+    display: block;
+    float: right;
+    max-width: 100px;
+    border-radius: 50%;
+    margin: -40px -60px 10px 20px;
+    border: 8px solid #fff;
+}
+
+.testo h4 {
+    position: relative;
+    margin: 0;
+    text-transform: uppercase;
+    font-weight: 900;
+    color: #6A7686;
+}
+
+.testo h4 span {
+    display: inline-block;
+    margin-left: 1em;
+    font-size: .8em;
+    color: #BFC5CD;
+}
+
+.testo p {
+    position: relative;
+    margin: .6em 0 0.2em 0;
+    line-height: 150%;
+    color: #6A7686;
+}
+
+
+/* HEADING WITH ICON */
+
+h2 i[class^="icon-"], h2 i[class*=" icon-"], h2 i.fa {
+    font-size: 22px;
+    margin-right: 16px;
+    line-height: 39px;
+    text-align: center;
+    color: #B7C6C9;
+    background: #fff;
+    border-radius: 50%;
+    border: 4px solid #dde4e6;
+    display: inline-block;
+    width: 47px;
+}
+
+h2 i[class^="icon-"]:before, h2 i[class*=" icon-"]:before, h2 i.fa:before {
+    display: inline;
+    margin-left: 0;
+    margin-right: 0;
+}
