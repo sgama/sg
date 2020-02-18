@@ -14,8 +14,7 @@ jobs:
           with:
             ref: develop
 
-        - uses: actions/checkout@v2
-          name: Checkout submodules
+        - name: Checkout submodules
           shell: bash
           run: |
             git submodule update --init --recursive
