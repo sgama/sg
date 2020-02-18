@@ -1,4 +1,4 @@
-baseURL = "http://samsongama.com/"
+baseURL = "https://samsongama.com/"
 languageCode = "en"
 title = "Samson Gama"
 theme = "beautifulhugo"

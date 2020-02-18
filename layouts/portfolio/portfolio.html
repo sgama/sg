@@ -5,7 +5,7 @@
         {{.}}
     </div>
     {{ end }}
-    {{ range where .Site.RegularPages "Type" "project" }}
+    {{ range where .Site.RegularPages "Type" "portfolio" }}
         <a href={{ .Permalink }}>
         <div class="col-lg-4 col-sm-6">
             <img class="img-rounded" src={{ .Params.Thumbnail }}>
