@@ -5,7 +5,6 @@ left_image: /img/samson-1.png
 layout: about
 type: about
 ---
-
 ### Mission Statement
 Fueled by motivation, obsessed with perfection, I attempt to innovate the present day by providing society a glimpse of things to come.
 

@@ -4,5 +4,9 @@
 https://travis-ci.org/sgama/sg
 
 git submodule update --init --recursive
+
 git submodule update --recursive
+
 git submodule update --recursive --remote
+
+hugo server --gc --ignoreCache

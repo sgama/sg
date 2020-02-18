@@ -9,9 +9,6 @@ pygmentsUseClasses = false
 pygmentCodeFences = true
 googleAnalytics = "UA-40665364-1"
 
-[blackfriday]
-    extensions = ["hardLineBreak"]
-
 [Params]
     commit = "https://github.com/sgama/sg/tree/"
     subtitle = "Wishes his bank had a REST API"
@@ -24,10 +21,8 @@ googleAnalytics = "UA-40665364-1"
     gcse = "015123895069075366687:449fwtixz80"
 
 [[Params.bigimg]]
- src = "img/sphere.jpg"
- desc = "Sphere"
- # position: see values of CSS background-position.
- position = "center top"
+    src = "img/sphere.jpg"
+    desc = "Sphere"
 
 [Author]
     name = "Samson Gama"
