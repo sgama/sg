@@ -12,7 +12,7 @@ jobs:
         - name: Checkout
           uses: actions/checkout@v1
           with:
-            ref: master
+            ref: develop
             #submodules: recursive
 
         - name: Setup Hugo
