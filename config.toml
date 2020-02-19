@@ -5,23 +5,24 @@ theme = "beautifulhugo"
 
 DefaultContentLanguage = "en"
 metaDataFormat = "yaml"
-pygmentsUseClasses = false
-pygmentCodeFences = true
 googleAnalytics = "UA-40665364-1"
+pygmentsUseClasses = false
+pygmentCodeFences = false
 
 [Params]
     commit = "https://github.com/sgama/sg/tree/"
     subtitle = "Wishes his bank had a REST API"
-    logo = "img/nav-icon.jpg"
-    favicon = "img/favicon.ico"
+    logo = "img/nav-icon.webp"
+    favicon = "img/favicon.webp"
     dateFormat = "January 2, 2006"
     rss = true
     comments = true
     readingTime = true
     gcse = "015123895069075366687:449fwtixz80"
+    useHLJS = false
 
 [[Params.bigimg]]
-    src = "img/sphere.jpg"
+    src = "img/sphere.webp"
     desc = "Sphere"
 
 [Author]

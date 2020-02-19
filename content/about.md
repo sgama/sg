@@ -1,7 +1,7 @@
 ---
 title: Samson Gama
 subtitle: Software Engineer
-left_image: /img/samson-1.png
+left_image: /img/samson-1.webp
 layout: about
 type: about
 ---
