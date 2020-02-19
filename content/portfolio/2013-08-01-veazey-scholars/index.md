@@ -1,7 +1,7 @@
 ---
 title: Veazey Scholars
 subtitle: _
-thumbnail: /portfolio/2013-08-01-veazey-scholars/veazey-scholars-550x350.jpg
+thumbnail: /portfolio/2013-08-01-veazey-scholars/veazey-scholars-550x350.webp
 date: 2013-08-01
 ---
 

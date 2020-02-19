@@ -1,10 +1,10 @@
 ---
 title: Fleetaware
 subtitle: _
-thumbnail: /portfolio/2014-10-01-fleetaware/fleetaware-550x350.jpg
+thumbnail: /portfolio/2014-10-01-fleetaware/fleetaware-550x350.webp
 date: 2014-10-01
 ---
-{{< figure src="/portfolio/2014-10-01-fleetaware/fleetaware-post-0.png" title="FleetAware" >}}
+{{< figure src="/portfolio/2014-10-01-fleetaware/fleetaware-post-0.webp" title="FleetAware" >}}
 As first time Hackathon attendees, our team wanted to develop something that could not only help improve the way a demographic lives their lives or does their work, but also potentially improve on a piece of technology that already exists, adding functionality and configuring existing APIs to further enhance the overall impact the code can make.
 
 After speaking with representatives at the Mojio booth, we realized that the technology they created could be extended to enable management of large vehicle fleets. By using their existing API, we could extend their code to enhance the way vehicular fleet companies track their vehicles. A few benefits of this include:

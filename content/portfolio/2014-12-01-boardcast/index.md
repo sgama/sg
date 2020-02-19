@@ -1,7 +1,7 @@
 ---
 title: Boardcast for Android
 subtitle: _
-thumbnail: /portfolio/2014-12-01-boardcast/boardcast-550x350.jpg
+thumbnail: /portfolio/2014-12-01-boardcast/boardcast-550x350.webp
 date: 2014-12-01
 tags: ["."]
 ---

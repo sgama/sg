@@ -1,7 +1,7 @@
 ---
 title: Oven Controller
 subtitle: _
-thumbnail: /portfolio/2014-02-01-over-controller/oven-controller-550x350.jpg
+thumbnail: /portfolio/2014-02-01-over-controller/oven-controller-550x350.webp
 date: 2014-02-01
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Machine Learning & NLP Capstone
 subtitle: _
-thumbnail: /portfolio/2017-01-01-ubc-capstone/tensorflow-550x350.png
+thumbnail: /portfolio/2017-01-01-ubc-capstone/tensorflow-550x350.webp
 date: 2017-01-01
 tags: ["."]
 ---

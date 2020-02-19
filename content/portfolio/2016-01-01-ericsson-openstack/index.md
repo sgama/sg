@@ -1,7 +1,7 @@
 ---
 title: Ericsson Openstack
 subtitle: _
-thumbnail: /portfolio/2016-01-01-ericsson-openstack/ericsson-550x350.png
+thumbnail: /portfolio/2016-01-01-ericsson-openstack/ericsson-550x350.webp
 date: 2016-01-01
 tags: ["."]
 ---

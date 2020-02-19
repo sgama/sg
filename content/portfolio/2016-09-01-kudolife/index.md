@@ -1,7 +1,7 @@
 ---
 title: Kudolife
 subtitle: _
-thumbnail: /portfolio/2016-09-01-kudolife/kudolife-550x350.png
+thumbnail: /portfolio/2016-09-01-kudolife/kudolife-550x350.webp
 date: 2016-09-01
 tags: ["."]
 ---

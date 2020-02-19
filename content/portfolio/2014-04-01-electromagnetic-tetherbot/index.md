@@ -1,7 +1,7 @@
 ---
 title: Electromagnetic Tetherbot
 subtitle: _
-thumbnail: /portfolio/2014-04-01-electromagnetic-tetherbot/electromagnetic-tetherbot-550x350.jpg
+thumbnail: /portfolio/2014-04-01-electromagnetic-tetherbot/electromagnetic-tetherbot-550x350.webp
 date: 2014-04-01
 ---
 

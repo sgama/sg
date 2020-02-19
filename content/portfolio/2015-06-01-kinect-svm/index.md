@@ -1,7 +1,7 @@
 ---
 title: Kinect SVM
 subtitle: _
-thumbnail: /portfolio/2015-06-01-kinect-svm/kinect-svm-550x350.jpg
+thumbnail: /portfolio/2015-06-01-kinect-svm/kinect-svm-550x350.webp
 date: 2015-06-01
 tags: ["."]
 ---

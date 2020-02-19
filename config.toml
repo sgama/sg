@@ -12,7 +12,7 @@ pygmentCodeFences = false
 [Params]
     commit = "https://github.com/sgama/sg/tree/"
     subtitle = "Wishes his bank had a REST API"
-    logo = "img/nav-icon.webp"
+    logo = "img/nav-icon-small.webp"
     favicon = "img/favicon.webp"
     dateFormat = "January 2, 2006"
     rss = true

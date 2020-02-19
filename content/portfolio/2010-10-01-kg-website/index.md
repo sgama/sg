@@ -1,7 +1,7 @@
 ---
 title: King George Website
 subtitle: _
-thumbnail: /portfolio/2010-10-01-kg-website/king-george-550x350.jpg
+thumbnail: /portfolio/2010-10-01-kg-website/king-george-550x350.webp
 date: 2010-10-01
 ---
 

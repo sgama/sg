@@ -1,7 +1,7 @@
 ---
 title: Green Screen Projects
 subtitle: _
-thumbnail: /portfolio/2010-09-01-green-screen/green-screen-550x350.jpg
+thumbnail: /portfolio/2010-09-01-green-screen/green-screen-550x350.webp
 date: 2010-09-01
 ---
 

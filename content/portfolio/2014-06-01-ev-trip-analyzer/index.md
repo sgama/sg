@@ -1,7 +1,7 @@
 ---
 title: EV Trip Analyzer
 subtitle: _
-thumbnail: /portfolio/2014-06-01-ev-trip-analyzer/trip-analyzer-550x350.jpg
+thumbnail: /portfolio/2014-06-01-ev-trip-analyzer/trip-analyzer-550x350.webp
 date: 2014-06-01
 ---
 

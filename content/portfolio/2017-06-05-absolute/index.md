@@ -2,7 +2,7 @@
 title: Absolute Software
 subtitle: _
 date: 2017-06-05
-thumbnail: /portfolio/2017-06-05-absolute/absolute-550x350.png
+thumbnail: /portfolio/2017-06-05-absolute/absolute-550x350.webp
 tags: ["."]
 ---
 

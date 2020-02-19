@@ -1,10 +1,10 @@
 ---
 title: Electric Bicycle
 subtitle: _
-thumbnail: /portfolio/2014-07-01-electric-bicycle/electric-bicycle-550x350.jpg
+thumbnail: /portfolio/2014-07-01-electric-bicycle/electric-bicycle-550x350.webp
 date: 2014-07-01
 ---
-{{< figure src="/portfolio/2014-07-01-electric-bicycle/electric-bicycle-post-0.jpg" title="Electric Bicycle" >}}
+{{< figure src="/portfolio/2014-07-01-electric-bicycle/electric-bicycle-post-0.webp" title="Electric Bicycle" >}}
 Built with the help from Justin and Robbie over at Grin Technologies….
 <br>Note: Old Picture
 <br>Frame: Montague (so I think, bought on CL)

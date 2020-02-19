@@ -2,7 +2,7 @@
 title: HFT Bitcoin Bot
 subtitle: _
 date: 2018-01-01
-thumbnail: /portfolio/2017-11-01-hft-bot/hft-btc-550x350.png
+thumbnail: /portfolio/2017-11-01-hft-bot/hft-btc-550x350.webp
 tags: ["."]
 ---
 
@@ -12,7 +12,7 @@ I didn't think about it too much back then. I was only 17 years old at the time 
 
 It is now May 2017. Bitcoin just broke $2000. They are many high volume cryptocurrency exchanges around. This time, I notice even more bots on these exchanges. That's when it dawned on me....
 
-{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_bane.png" title="Bane robs Wall Street" >}}
+{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_bane.webp" title="Bane robs Wall Street" >}}
 
 This scene is from The Dark Knight Rises when Bane robs Gotham's version of Wall Street. The day trader assumes he wants physical cash so he says "There's no money for you to rob". To which Bane responds: "Oh really? Then why are you people here".
 
@@ -24,7 +24,7 @@ A few months went by and I've amassed a 40GB+ dataset. In the mean time, I've be
 
 In fact, without spoiling too much, here's a peek of my backtesting and visualization frontend I had created for this project. It interacted with my own custom REST API I created specifically to query and process both my raw and transformed data. The data plotted below is of one failed strategy.
 
-{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_cc_charts.png" >}}
+{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_cc_charts.webp" >}}
 
 My bot made 0.5% returns per week (Sept 2018) in USD after adjusting for volatility through the use of pattern matching, technical analysis, and machine learning. I continuously monitor its performance and signals through Grafana. The bot even tells me what it may do a few minutes ahead of time and what it has done on Slack.
 
@@ -32,7 +32,7 @@ I'm sure you're curious to know what my setup looks like so I'll give you a snea
 Note: I have not shown any of the graphs or slack notifications that actually give away my strategy or machine learning signals.
 
 Slack notifications from two of my nine microservices that make up my trading pipeline.
-{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_slack.png" title="Slack" >}}
+{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_slack.webp" title="Slack" >}}
 
 Grafana Dashboard which displays indicators as well as latencies from the exchange to processing on my servers. Trade and Candle latencies are in seconds, pipeline durations are in nanoseconds.
-{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_grafana.png" title="Grafana" >}}
+{{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_grafana.webp" title="Grafana" >}}

@@ -1,7 +1,7 @@
 ---
 title: Spoke Calculator
 subtitle: _
-thumbnail: /portfolio/2014-05-01-spoke-calculator/spoke-calculator-550x350.jpg
+thumbnail: /portfolio/2014-05-01-spoke-calculator/spoke-calculator-550x350.webp
 date: 2014-05-01
 ---
 

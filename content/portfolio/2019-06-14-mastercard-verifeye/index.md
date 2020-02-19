@@ -2,7 +2,7 @@
 title: Mastercard Verifeye
 subtitle: _
 date: 2019-06-14
-thumbnail: /portfolio/2019-06-14-mastercard-verifeye/verifeye-1.png
+thumbnail: /portfolio/2019-06-14-mastercard-verifeye/verifeye-1.webp
 tags: ["."]
 ---
 
@@ -12,8 +12,8 @@ The purpose of Verifeye was simple, dynamic biometrics for authentication, verif
 - Verify a user based on their approximate age, gender, and other facial features in addition to the CVV code of their credit card
 - Use sentiment analysis to determine and record how the user feels about the purchase and the flow of the transaction
 
-{{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-2.png" title="Initial Screen" >}}
+{{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-2.webp" title="Initial Screen" >}}
 
 For the purposes of simple visualization, the following image will have all the debug information printed on screen for your benefit
 
-{{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-0.png" title="Debug Screen" >}}
+{{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-0.webp" title="Debug Screen" >}}

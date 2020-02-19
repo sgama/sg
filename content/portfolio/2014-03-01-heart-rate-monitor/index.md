@@ -1,7 +1,7 @@
 ---
 title: Heart Rate Monitor
 subtitle: _
-thumbnail: /portfolio/2014-03-01-heart-rate-monitor/heart-rate-monitor-550x350.jpg
+thumbnail: /portfolio/2014-03-01-heart-rate-monitor/heart-rate-monitor-550x350.webp
 date: 2014-03-01
 ---
 

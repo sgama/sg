@@ -1,7 +1,7 @@
 ---
 title: UberNios
 subtitle: _
-thumbnail: /portfolio/2014-10-31-ubernios/ubernios-550x350.jpg
+thumbnail: /portfolio/2014-10-31-ubernios/ubernios-550x350.webp
 date: 2014-10-31
 ---
 
@@ -17,4 +17,4 @@ date: 2014-10-31
 
 • Created a Ethernet driver to facilitate communication between multiple systems to provide multiplayer support
 
-<img class="img-responsive" src="/img/projects/ubernios-post-0.png" alt="UberNIOS">
+{{< figure src="/portfolio/2014-10-31-ubernios/ubernios-post-0.webp" title="UberNIOS" >}}

@@ -1,7 +1,7 @@
 ---
 title: Elsie Roy iPad Project
 subtitle: _
-thumbnail: /portfolio/2012-01-01-er-ipad-project/er-ipad-project-550x350.jpg
+thumbnail: /portfolio/2012-01-01-er-ipad-project/er-ipad-project-550x350.webp
 date: 2012-01-01
 ---
 

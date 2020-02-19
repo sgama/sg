@@ -1,7 +1,7 @@
 ---
 title: Endless-Sphere
 subtitle: _
-thumbnail: /portfolio/2015-02-01-endless-sphere/endless-sphere-550x350.jpg
+thumbnail: /portfolio/2015-02-01-endless-sphere/endless-sphere-550x350.webp
 date: 2015-02-01
 tags: ["."]
 ---
