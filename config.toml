@@ -20,7 +20,6 @@ pygmentCodeFences = false
     readingTime = true
     gcse = "015123895069075366687:449fwtixz80"
     useHLJS = false
-    selfHosted = true
 
 [[Params.bigimg]]
     src = "img/sphere.webp"
