@@ -57,6 +57,12 @@
                 <li>{{ .skill }}</li>
                 {{ end }}
             </ul>
+            <h2 class="section-title"><span><i class="fa fa-running"></i>Participation</span></h2>
+            <ul>
+                {{ range .Site.Data.Participation }}
+                <li>{{ .title }} <span class="pull-right">{{ .date }}</span></li>
+                {{ end }}
+            </ul>
         </div>
     </div>
   </div>

@@ -5,7 +5,17 @@
   start = "Oct, 2018"
   end = "Now"
   summary= """
-    - TBD
+    - Implemented Infrastructure as Code templates for new projects through AWS Cloudformation and Saltstack
+    <br>
+    - Promoted CI/CD practices and automation by automating tedious manual processes
+    <br>
+    - Worked with operations to help developers gain more visibility into their projects in production
+    <br>
+    - Took on operational duties and deployed new software to on-prem and cloud datacenters which serves a major portion of internet users
+    <br>
+    - Created various in-house tools to accomodate the needs of different groups
+    <br>
+    - Onboarded new DevOps team members on existing processes
   """
 
 [[Experience]]
