@@ -75,7 +75,7 @@ Now CLI 18.0.0
 
 ![Dashboard](dashboard.png "Dashboard")
 
-7. Add the following to your repository's secrets for CICD here: [https://github.com/$USER/$REPO/settings/secrets](https://github.com/$USER/$REPO/settings/secrets)
+7. Add the following to your repository's secrets for CICD here: `https://github.com/$YOUR_USER/$YOUR_REPO/settings/secrets`
 
 |ORG_ID|`jq -r '.orgId' .now/project.json`|
 |---|---|
@@ -84,13 +84,13 @@ Now CLI 18.0.0
 
 8. Uncomment the contents of `.github/workflows/main.yml`
 
-9. Push your code and view the CICD pipeline run: [https://github.com/$USER/$REPO/actions](https://github.com/$USER/$REPO/actions)
+9. Push your code and view the CICD pipeline run: `https://github.com/$YOUR_USER/$YOUR_REPO/actions`
 
 ----------------------
 
 Now you can visit the following URLS:
 
-  - `https:/$REPO.now.sh/src/nodejs`
-  - `https:/$REPO.now.sh/src/python`
+  - `https:/$YOUR_REPO.now.sh/src/nodejs`
+  - `https:/$YOUR_REPO.now.sh/src/python`
 
 I'll let you figure the rest out now but in this repo, you will now have a fully integration continuous integration and continuous delivery system deploying functions for free.
