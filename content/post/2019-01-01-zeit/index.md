@@ -46,7 +46,7 @@ But let's also remember the [fair-use policy](https://zeit.co/docs/v2/platform/f
 
 1. Let's get started, install the [zeit/now-cli](https://github.com/zeit/now-cli).
 
-2. Clone/Fork my repository containing the example codebase [myuser/demo-zeit-now](https://github.com/myuser/demo-zeit-now).
+2. Clone/Fork my repository containing the example codebase [sgama/demo-zeit-now](https://github.com/sgama/demo-zeit-now).
 
 3. Import this project through the [ZEIT web portal](https://zeit.co/import).
 
