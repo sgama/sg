@@ -1,9 +1,23 @@
 [[Experience]]
+  title = "Service Reliability Engineer"
+  company = "Demonware / Activision"
+  location = "Vancouver, Canada"
+  start = "Aug, 2020"
+  end = "Now"
+  summary= """
+    - Contribute improvements to the availability, scalability, and efficiency of Demonware’s services
+    <br>
+    - Improve the infrastructure supporting Demonware’s services
+    <br>
+    - Troubleshoot issues with Demonware’s online services at scale
+  """
+
+[[Experience]]
   title = "Senior Software Engineer"
   company = "Mastercard"
   location = "Vancouver, Canada"
   start = "Oct, 2018"
-  end = "Now"
+  end = "2020"
   summary= """
     - Implemented Infrastructure as Code templates for new projects through AWS Cloudformation and Saltstack
     <br>
