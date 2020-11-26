@@ -9,39 +9,34 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
-        - name: Checkout
-          uses: actions/checkout@v2
-          with:
-            ref: develop
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: develop
+          submodules: recursive
 
-        - name: Checkout submodules
-          shell: bash
-          run: |
-            git submodule update --init --recursive
-            git submodule update --recursive
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: "latest"
+          extended: true
 
-        - name: Setup Hugo
-          uses: peaceiris/actions-hugo@v2.4.9
-          with:
-            hugo-version: "0.68.3"
-            extended: true
+      - name: Build
+        run: |
+          GIT_COMMIT_SHA=`git rev-parse --verify HEAD` GIT_COMMIT_SHA_SHORT=`git rev-parse --short HEAD` hugo --gc --minify --cleanDestinationDir
+          echo "samsongama.com" >> public/CNAME
 
-        - name: Build
-          run: |
-            GIT_COMMIT_SHA=`git rev-parse --verify HEAD` GIT_COMMIT_SHA_SHORT=`git rev-parse --short HEAD` hugo --gc --minify --cleanDestinationDir
-            echo "samsongama.com" >> public/CNAME
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v2
+        env:
+          PERSONAL_TOKEN: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          PUBLISH_BRANCH: gh-pages
+          PUBLISH_DIR: ./public
 
-        - name: Deploy to GitHub Pages
-          uses: peaceiris/actions-gh-pages@v2.5.1
-          env:
-            PERSONAL_TOKEN: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-            PUBLISH_BRANCH: gh-pages
-            PUBLISH_DIR: ./public
-
-        - name: Purge Cloudflare CDN Cache
-          run: |
-            curl -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE }}/purge_cache" \
-            -H "X-Auth-Email: ${{ secrets.CLOUDFLARE_AUTH_EMAIL }}" \
-            -H "X-Auth-Key: ${{ secrets.CLOUDFLARE_AUTH_KEY }}" \
-            -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}'
+      - name: Purge Cloudflare CDN Cache
+        run: |
+          curl -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE }}/purge_cache" \
+          -H "X-Auth-Email: ${{ secrets.CLOUDFLARE_AUTH_EMAIL }}" \
+          -H "X-Auth-Key: ${{ secrets.CLOUDFLARE_AUTH_KEY }}" \
+          -H "Content-Type: application/json" \
+          --data '{"purge_everything":true}'
