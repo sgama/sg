@@ -10,3 +10,10 @@ git submodule update --recursive
 git submodule update --recursive --remote
 
 hugo server --gc --ignoreCache
+
+
+### New Ideas
+
+Dark Theme - Transitions - Front Page
+https://vlad.gg/
+
