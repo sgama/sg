@@ -17,3 +17,4 @@ hugo.linux
 .env
 .vscode
 public
+.hugo_build.lock
