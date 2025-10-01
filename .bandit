@@ -1,0 +1,22 @@
+# Bandit configuration for Python security scanning
+[bandit]
+# Test IDs to skip (comma-separated)
+skips = B101,B601
+
+# Test IDs to run (comma-separated)
+tests = 
+
+# Paths to exclude from scanning
+exclude_dirs = /tests,/venv,/env,/.venv,/.env,/node_modules,/themes
+
+# Confidence levels: LOW, MEDIUM, HIGH
+confidence = MEDIUM
+
+# Severity levels: LOW, MEDIUM, HIGH  
+severity = MEDIUM
+
+# Report format
+format = txt
+
+# Include full file paths in report
+include_full_path = true

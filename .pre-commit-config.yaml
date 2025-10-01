@@ -1,0 +1,167 @@
+# Pre-commit configuration for Hugo static site
+# See https://pre-commit.com for more information
+repos:
+  # Basic file checks and formatting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # General file checks
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: check-json
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      # Security checks
+      - id: detect-private-key
+      - id: detect-aws-credentials
+      # File naming and structure
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # YAML linting and formatting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint.yml]
+
+  # TOML formatting
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.14.0
+    hooks:
+      - id: pretty-format-toml
+        args: [--autofix]
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        args: [--config=.markdownlint.yml]
+
+  # HTML validation for Hugo templates
+  - repo: https://github.com/Riverside-Healthcare/djLint
+    rev: v1.34.1
+    hooks:
+      - id: djlint-reformat-django
+        files: \.html$
+        args: [--profile=django, --max-line-length=120]
+      - id: djlint-django
+        files: \.html$
+        args: [--profile=django, --max-line-length=120]
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: package.lock.json
+
+  # Git security and best practices
+  - repo: https://github.com/gitguardian/ggshield
+    rev: v1.31.0
+    hooks:
+      - id: ggshield
+        language: python
+        stages: [commit]
+
+  # Additional security scanning with Bandit (for any Python scripts)
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        args: [--ini, .bandit]
+        files: \.py$
+
+  # License and copyright checks
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: insert-license
+        files: \.(js|css|html|md|toml|yaml|yml)$
+        args:
+          - --license-filepath
+          - LICENSE
+          - --comment-style
+          - /*| *| */
+
+  # File size and content validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-byte-order-marker
+      - id: check-docstring-first
+        files: \.py$
+      - id: debug-statements
+        files: \.py$
+      - id: name-tests-test
+        files: (^|/)tests/.+\.py$
+
+  # Hugo specific checks
+  - repo: local
+    hooks:
+      - id: hugo-build-check
+        name: Hugo build test
+        entry: hugo
+        args: [--minify, --destination, /tmp/hugo-build-test]
+        language: system
+        pass_filenames: false
+        stages: [commit]
+        
+      - id: hugo-front-matter-check
+        name: Check Hugo front matter syntax
+        entry: bash
+        args:
+          - -c
+          - |
+            for file in $(find content -name "*.md" -type f); do
+              if ! head -n 20 "$file" | grep -q "^---$"; then
+                echo "Missing front matter in $file"
+                exit 1
+              fi
+            done
+        language: system
+        files: ^content/.*\.md$
+        pass_filenames: false
+
+      - id: image-optimization-check
+        name: Check for unoptimized images
+        entry: bash
+        args:
+          - -c
+          - |
+            large_images=$(find static -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" | xargs ls -la | awk '$5 > 1048576 {print $9, $5}')
+            if [ -n "$large_images" ]; then
+              echo "Large images found (>1MB). Consider optimizing:"
+              echo "$large_images"
+              exit 1
+            fi
+        language: system
+        pass_filenames: false
+
+  # Spell checking
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.24.6
+    hooks:
+      - id: typos
+        args: [--config, .typos.toml]
+
+  # Final cleanup and validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-vcs-permalinks
+      - id: forbid-new-submodules
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]

@@ -1,13 +1,20 @@
 baseURL = "https://samsongama.com/"
 languageCode = "en"
 title = "Samson Gama"
-theme = "beautifulhugo"
+# Hugo allows theme composition (and inheritance). The precedence is from left to right.
+# theme = ["https://github.com/halogenica/beautifulhugo"]
 
 DefaultContentLanguage = "en"
 metaDataFormat = "yaml"
 googleAnalytics = "UA-40665364-1"
 pygmentsUseClasses = false
 pygmentCodeFences = false
+ignoreLogs = ['warning-goldmark-raw-html']
+
+# Hugo Modules configuration
+[module]
+  [[module.imports]]
+    path = "github.com/halogenica/beautifulhugo"
 
 [Params]
     commit = "https://github.com/sgama/sg/tree/"

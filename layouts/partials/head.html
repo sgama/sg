@@ -33,7 +33,7 @@
 {{- with ($.Scratch.Get "Description") }}
   <meta name="description" content="{{ . }}">
 {{- end }}
-{{- with .Site.Author.name }}
+{{- with .Site.Params.Author.name }}
   <meta name="author" content="{{ . }}"/>
 {{- end }}
 {{- partial "seo/main.html" . }}  
@@ -100,4 +100,4 @@
   {{- end -}}
 
 {{- partial "head_custom.html" . }}
-{{ template "_internal/google_analytics_async.html" . }}
+{{- template "_internal/google_analytics.html" . -}}

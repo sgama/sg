@@ -1,0 +1,62 @@
+# Typos configuration for spell checking
+# See: https://github.com/crate-ci/typos
+
+[default]
+# Check hidden files
+check-hidden = false
+
+# Check files in .gitignore
+check-gitignore = false
+
+[default.extend-words]
+# Hugo and web development specific terms
+hugo = "hugo"
+webp = "webp"
+ico = "ico"
+css = "css"
+js = "js"
+html = "html"
+toml = "toml"
+yaml = "yaml"
+yml = "yml"
+md = "md"
+svg = "svg"
+url = "url"
+urls = "urls"
+api = "api"
+apis = "apis"
+config = "config"
+configs = "configs"
+
+# Personal/project specific terms
+samsongama = "samsongama"
+samson = "samson"
+gama = "gama"
+
+[files]
+# Files to check
+extend-exclude = [
+    "*.min.js",
+    "*.min.css", 
+    "node_modules/",
+    "themes/",
+    ".git/",
+    "*.lock",
+    "*.log",
+    "static/css/",
+    "static/js/",
+    "public/",
+    "resources/"
+]
+
+[type.md]
+# Markdown specific configuration
+extend-glob = ["*.md"]
+
+[type.toml]
+# TOML specific configuration  
+extend-glob = ["*.toml"]
+
+[type.yaml]
+# YAML specific configuration
+extend-glob = ["*.yaml", "*.yml"]
