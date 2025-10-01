@@ -6,36 +6,36 @@ rules:
   line-length:
     max: 120
     level: warning
-  
+
   # Allow multiple documents in YAML files (common in Hugo)
   document-start:
     present: false
-  
+
   # Hugo config files might have trailing spaces
   trailing-spaces:
     level: warning
-  
+
   # Allow truthy values (common in Hugo front matter)
   truthy:
     allowed-values: ['true', 'false', 'yes', 'no']
     check-keys: false
-  
+
   # Indentation for Hugo configs
   indentation:
     spaces: 2
     indent-sequences: true
     check-multi-line-strings: false
-  
+
   # Comments configuration
   comments:
     min-spaces-from-content: 1
     require-starting-space: true
-  
+
   # Brackets and braces
   brackets:
     min-spaces-inside: 0
     max-spaces-inside: 1
-  
+
   braces:
     min-spaces-inside: 0
     max-spaces-inside: 1

@@ -48,6 +48,10 @@ input[type=submit] {
     cursor: pointer;
 }
 
+.hidden-input {
+    display: none;
+}
+
 .clearfix:before,
 .clearfix:after {
     content: " ";

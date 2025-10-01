@@ -1,24 +1,23 @@
 [[Experience]]
-  title = "Senior Service Reliability Engineer"
-  company = "Demonware / Activision"
-  location = "Vancouver, Canada"
-  start = "Aug, 2020"
-  end = "Now"
-  summary= """
+company = "Demonware / Activision"
+end = "Now"
+location = "Vancouver, Canada"
+start = "Aug, 2020"
+summary = """
     - Contribute improvements to the availability, scalability, and efficiency of Demonware’s services
     <br>
     - Improve the infrastructure supporting Demonware’s services
     <br>
     - Troubleshoot issues with Demonware’s online services at scale
   """
+title = "Senior Service Reliability Engineer"
 
 [[Experience]]
-  title = "Senior Software Engineer"
-  company = "Mastercard"
-  location = "Vancouver, Canada"
-  start = "Oct, 2018"
-  end = "2020"
-  summary= """
+company = "Mastercard"
+end = "2020"
+location = "Vancouver, Canada"
+start = "Oct, 2018"
+summary = """
     - Implemented Infrastructure as Code templates for new projects through AWS Cloudformation and Saltstack
     <br>
     - Promoted CI/CD practices and automation by automating tedious manual processes
@@ -31,17 +30,17 @@
     <br>
     - Onboarded new DevOps team members on existing processes
   """
+title = "Senior Software Engineer"
 
 [[Experience]]
-  title = "Software Developer"
-  company = "Absolute Software"
-  location = "Vancouver, Canada"
-  start = "June, 2017"
-  end = "2018"
-  summary= """
+company = "Absolute Software"
+end = "2018"
+location = "Vancouver, Canada"
+start = "June, 2017"
+summary = """
     -	Developed various microservices running in a Kubernetes cluster to process incoming data from secured devices
     <br>
-    - Wrote Mongo migration scripts to migrate data and increase performance in production by 20% 
+    - Wrote Mongo migration scripts to migrate data and increase performance in production by 20%
     <br>
     - Rewrote various microservices which needed more throughput and less latency from Python to Golang and achieved a 2000% throughput increase and 90% reduction in CPU/memory while passing all integration tests
     <br>
@@ -49,32 +48,32 @@
     <br>
     -	Added metrics through Prometheus and StatsD and graphed them with Grafana to enable other developers to verify that their services are not failing to meet the acceptance criteria of throughput and resource allocation
     <br>
-    - Assisted other developers in following best practices for Docker, Python, Golang, and infrastructure needs 
+    - Assisted other developers in following best practices for Docker, Python, Golang, and infrastructure needs
     <br>
     - Added tedious and repetitive deployment tasks to Jenkins to increase team productivity by approximately 30%
   """
+title = "Software Developer"
 
 [[Experience]]
-  title = "Co-Founder"
-  company = "FingerTipDeals"
-  location = "Vancouver, Canada"
-  start = "March, 2016"
-  end = "2017"
-  summary= """
-    -	Created Android and iOS applications to serve the SaaS product in four countries hosted on AWS 
+company = "FingerTipDeals"
+end = "2017"
+location = "Vancouver, Canada"
+start = "March, 2016"
+summary = """
+    -	Created Android and iOS applications to serve the SaaS product in four countries hosted on AWS
     <br>
     - Wrote various backend services to serve specific client functionality and to provide analytics for customers
     <br>
     - Helped guide the view of the company to focus on less served markets while establishing a brand
   """
+title = "Co-Founder"
 
 [[Experience]]
-  title = "Software Developer"
-  company = "Prizm Media Inc."
-  location = "Vancouver, Canada"
-  start = "December, 2015"
-  end = "2016"
-  summary= """
+company = "Prizm Media Inc."
+end = "2016"
+location = "Vancouver, Canada"
+start = "December, 2015"
+summary = """
     - Developed Android and iOS applications for a fitness-orientated social network application hosted on AWS
     <br>
     -	Developed solutions to problems using Machine Learning tools such as SVMs and Neural Networks
@@ -83,31 +82,32 @@
     <br>
     - Decreased the response time of frequently used APIs by up to 90% through optimizing queries and caching
   """
+title = "Software Developer"
 
 [[Experience]]
-  title = "Software Engineering Intern"
-  company = "Ericsson Silicon Valley"
-  location = "Bay Area, USA"
-  start = "September, 2015"
-  end = "2015"
-  summary= """
+company = "Ericsson Silicon Valley"
+end = "2015"
+location = "Bay Area, USA"
+start = "September, 2015"
+summary = """
     - Developed an OpenStack Neutron plugin for managing virtual Ericsson routers in Python
     <br>
     - Investigated and implemented secure methods of communication between multiple virtual machines without reconfiguring Linux interfaces at runtime
     <br>
     - Used Docker within OpenStack to debug containers and to automate tests on Mirantis Openstack
   """
+title = "Software Engineering Intern"
 
 [[Experience]]
-  title = "Software Developer"
-  company = "Grin Technologies"
-  location = "Vancouver, Canada"
-  start = "May, 2014"
-  end = "2014"
-  summary= """
+company = "Grin Technologies"
+end = "2014"
+location = "Vancouver, Canada"
+start = "May, 2014"
+summary = """
     - Developed two web applications which allowed electric vehicle enthusiasts to visualize their trips plotted from raw data and rendered custom wheel builds from custom values and backend values
     <br>
     - Programmed the Texas Instruments CC2540 SoC for Bluetooth low energy applications to communicate with the Grin Technologies Cycle Analyst to advance Bluetooth development for consumer products
     <br>
     - Currently administrating a large electric vehicle forum with 5000+ daily users – endless-sphere.com
   """
+title = "Software Developer"

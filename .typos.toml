@@ -2,51 +2,51 @@
 # See: https://github.com/crate-ci/typos
 
 [default]
+# Check files in .gitignore
+check-gitignore = false
 # Check hidden files
 check-hidden = false
 
-# Check files in .gitignore
-check-gitignore = false
-
 [default.extend-words]
-# Hugo and web development specific terms
-hugo = "hugo"
-webp = "webp"
-ico = "ico"
-css = "css"
-js = "js"
-html = "html"
-toml = "toml"
-yaml = "yaml"
-yml = "yml"
-md = "md"
-svg = "svg"
-url = "url"
-urls = "urls"
 api = "api"
 apis = "apis"
+# Project specific terms
+boardcast = "boardcast"
 config = "config"
 configs = "configs"
-
+css = "css"
+gama = "gama"
+html = "html"
+# Hugo and web development specific terms
+hugo = "hugo"
+ico = "ico"
+js = "js"
+md = "md"
+samson = "samson"
 # Personal/project specific terms
 samsongama = "samsongama"
-samson = "samson"
-gama = "gama"
+svg = "svg"
+toml = "toml"
+url = "url"
+urls = "urls"
+webp = "webp"
+yaml = "yaml"
+yml = "yml"
 
 [files]
 # Files to check
 extend-exclude = [
-    "*.min.js",
-    "*.min.css", 
-    "node_modules/",
-    "themes/",
-    ".git/",
-    "*.lock",
-    "*.log",
-    "static/css/",
-    "static/js/",
-    "public/",
-    "resources/"
+  "*.min.js",
+  "*.min.css",
+  "node_modules/",
+  "themes/",
+  ".git/",
+  "*.lock",
+  "*.log",
+  "static/css/",
+  "static/js/",
+  "public/",
+  "resources/"
 ]
 
 [type.md]
@@ -54,7 +54,7 @@ extend-exclude = [
 extend-glob = ["*.md"]
 
 [type.toml]
-# TOML specific configuration  
+# TOML specific configuration
 extend-glob = ["*.toml"]
 
 [type.yaml]

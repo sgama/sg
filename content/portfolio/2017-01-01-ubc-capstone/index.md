@@ -6,7 +6,7 @@ date: 2017-01-01
 tags: ["."]
 ---
 
-For my final year project at UBC, I built a SaaS service which will infer context from some textual or image input in order to better target advertisment parameters.
+For my final year project at UBC, I built a SaaS service which will infer context from some textual or image input in order to better target advertisement parameters.
 
 The service will infer the time window, place, and sentiment from the input and then suggest advertisement parameters.
 

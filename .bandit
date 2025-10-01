@@ -4,7 +4,7 @@
 skips = B101,B601
 
 # Test IDs to run (comma-separated)
-tests = 
+tests =
 
 # Paths to exclude from scanning
 exclude_dirs = /tests,/venv,/env,/.venv,/.env,/node_modules,/themes
@@ -12,7 +12,7 @@ exclude_dirs = /tests,/venv,/env,/.venv,/.env,/node_modules,/themes
 # Confidence levels: LOW, MEDIUM, HIGH
 confidence = MEDIUM
 
-# Severity levels: LOW, MEDIUM, HIGH  
+# Severity levels: LOW, MEDIUM, HIGH
 severity = MEDIUM
 
 # Report format

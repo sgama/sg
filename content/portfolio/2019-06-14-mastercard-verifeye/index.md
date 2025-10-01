@@ -9,6 +9,7 @@ tags: ["."]
 Verifeye was a POC done during #innovationweek with the goal of coming up with new ideas to solve existing problems. It is not an official Mastercard project, but it came to fruition during the #innovationweek competition.
 
 The purpose of Verifeye was simple, dynamic biometrics for authentication, verification and user engagement:
+
 - Verify a user based on their approximate age, gender, and other facial features in addition to the CVV code of their credit card
 - Use sentiment analysis to determine and record how the user feels about the purchase and the flow of the transaction
 

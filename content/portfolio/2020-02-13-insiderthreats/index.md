@@ -7,4 +7,3 @@ tags: ["."]
 ---
 
 I've recently started a CTF Team at the Mastercard office in Vancouver. We're all pretty new to CTFs so I'm leading tutorials on how to start learning concepts like binary reversal and computer forensics.
-

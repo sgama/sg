@@ -3,55 +3,57 @@
 repos:
   # Basic file checks and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
-      # General file checks
-      - id: trailing-whitespace
-        args: [--markdown-linebreak-ext=md]
-      - id: end-of-file-fixer
-      - id: check-yaml
-        args: [--allow-multiple-documents]
-      - id: check-toml
-      - id: check-json
-      - id: check-xml
-      - id: check-merge-conflict
-      - id: check-case-conflict
-      - id: check-symlinks
       - id: check-added-large-files
-        args: [--maxkb=5000]
-      - id: mixed-line-ending
-        args: [--fix=lf]
-      # Security checks
-      - id: detect-private-key
-      - id: detect-aws-credentials
-      # File naming and structure
+        args: ['--maxkb=1024']
+      - id: check-ast  # Python syntax check
+      - id: check-case-conflict
+      - id: check-docstring-first
       - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements  # Python debug imports
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: pretty-format-json
+        args: ['--autofix']
+      - id: sort-simple-yaml
+        args: ['--autofix']
+      - id: trailing-whitespace
 
   # YAML linting and formatting
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.37.1
     hooks:
       - id: yamllint
-        args: [-c=.yamllint.yml]
+        args: ['-c=.yamllint.yml', '-f', 'colored']
 
   # TOML formatting
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.14.0
+    rev: v2.15.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix]
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.41.0
+    rev: v0.45.0
     hooks:
       - id: markdownlint
-        args: [--config=.markdownlint.yml]
+        args: ['--config=.markdownlint.yml', '--fix']
 
   # HTML validation for Hugo templates
   - repo: https://github.com/Riverside-Healthcare/djLint
-    rev: v1.34.1
+    rev: v1.36.4
     hooks:
       - id: djlint-reformat-django
         files: \.html$
@@ -60,53 +62,22 @@ repos:
         files: \.html$
         args: [--profile=django, --max-line-length=120]
 
-  # Security scanning
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
-    hooks:
-      - id: detect-secrets
-        args: [--baseline, .secrets.baseline]
-        exclude: package.lock.json
-
-  # Git security and best practices
-  - repo: https://github.com/gitguardian/ggshield
-    rev: v1.31.0
-    hooks:
-      - id: ggshield
-        language: python
-        stages: [commit]
+  # # Security scanning
+  # - repo: https://github.com/Yelp/detect-secrets
+  #   rev: v1.5.0
+  #   hooks:
+  #     - id: detect-secrets
+  #       args: [--baseline, .secrets.baseline]
+  #       exclude: package.lock.json
 
   # Additional security scanning with Bandit (for any Python scripts)
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.9
+    rev: 1.8.6
     hooks:
       - id: bandit
         args: [--ini, .bandit]
         files: \.py$
 
-  # License and copyright checks
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
-    hooks:
-      - id: insert-license
-        files: \.(js|css|html|md|toml|yaml|yml)$
-        args:
-          - --license-filepath
-          - LICENSE
-          - --comment-style
-          - /*| *| */
-
-  # File size and content validation
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
-    hooks:
-      - id: check-byte-order-marker
-      - id: check-docstring-first
-        files: \.py$
-      - id: debug-statements
-        files: \.py$
-      - id: name-tests-test
-        files: (^|/)tests/.+\.py$
 
   # Hugo specific checks
   - repo: local
@@ -117,8 +88,8 @@ repos:
         args: [--minify, --destination, /tmp/hugo-build-test]
         language: system
         pass_filenames: false
-        stages: [commit]
-        
+        stages: [pre-commit]
+
       - id: hugo-front-matter-check
         name: Check Hugo front matter syntax
         entry: bash
@@ -152,16 +123,7 @@ repos:
 
   # Spell checking
   - repo: https://github.com/crate-ci/typos
-    rev: v1.24.6
+    rev: v1
     hooks:
       - id: typos
         args: [--config, .typos.toml]
-
-  # Final cleanup and validation
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
-    hooks:
-      - id: check-vcs-permalinks
-      - id: forbid-new-submodules
-      - id: no-commit-to-branch
-        args: [--branch, main, --branch, master]

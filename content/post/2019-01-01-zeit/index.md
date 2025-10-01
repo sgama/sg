@@ -14,9 +14,9 @@ Microservice sends a POST request to a function hosted on ZEIT NOW, and that fun
 
 I won't show you how to do that, but I'll show you how to get started with a full CICD pipeline.
 
----------------------
+---
 
-ZEIT NOW is self-described as a *All-in-one: Static and JAMstack deployment, Serverless Functions, and Global CDN.* 
+ZEIT NOW is self-described as a *All-in-one: Static and JAMstack deployment, Serverless Functions, and Global CDN.*
 
 In this post, I will be focusing on the *serverless functions* aspect as it is the most unique offering I know of.
 Serverless functions are not new. AWS Lambda has been doing it for a few years now, but the utility of Zeit NOW for me is derived from the fact that I did not have to enter any credit card information to get started.
@@ -42,7 +42,7 @@ But let's also remember the [fair-use policy](https://zeit.co/docs/v2/platform/f
 |Functions that query DBs or APIs|Crypto Mining|
 |Blogs, e-commerce, marketing|CPU-intensive APIs (e.g.: Machine Learning)|
 
----------------------
+---
 
 1. Let's get started, install the [zeit/now-cli](https://github.com/zeit/now-cli).
 
@@ -51,12 +51,14 @@ But let's also remember the [fair-use policy](https://zeit.co/docs/v2/platform/f
 3. Import this project through the [ZEIT web portal](https://zeit.co/import).
 
 4. Login to the now cli:
-```
-$ now login
+
+```bash
+now login
 ```
 
-5. Run and deploy with the CLI:
-```
+1. Run and deploy with the CLI:
+
+```bash
 /demo-zeit-now$ now
 Now CLI 18.0.0
 ? Set up and deploy “/mnt/c/Vcs/demo-zeit-now”? [Y/n] y
@@ -71,26 +73,26 @@ Now CLI 18.0.0
 �💡  To change the domain or build command, go to https://zeit.co/myuser/demo-zeit-now/settings
 ```
 
-6. Now you should see your deployment at [https://zeit.co/dashboard](https://zeit.co/dashboard)
+- you should see your deployment at [https://zeit.co/dashboard](https://zeit.co/dashboard)
 
 ![Dashboard](dashboard.png "Dashboard")
 
-7. Add the following to your repository's secrets for CICD here: `https://github.com/$YOUR_USER/$YOUR_REPO/settings/secrets`
+- Add the following to your repository's secrets for CICD here: `https://github.com/$YOUR_USER/$YOUR_REPO/settings/secrets`
 
 |ORG_ID|`jq -r '.orgId' .now/project.json`|
 |---|---|
 |PROJECT_ID|`jq -r '.projectId' .now/project.json`|
 |ZEIT_TOKEN|Get one from [https://zeit.co/account/tokens](https://zeit.co/account/tokens)|
 
-8. Uncomment the contents of `.github/workflows/main.yml`
+- Uncomment the contents of `.github/workflows/main.yml`
 
-9. Push your code and view the CICD pipeline run: `https://github.com/$YOUR_USER/$YOUR_REPO/actions`
+- Push your code and view the CICD pipeline run: `https://github.com/$YOUR_USER/$YOUR_REPO/actions`
 
-----------------------
+---
 
 Now you can visit the following URLS:
 
-  - `https:/$YOUR_REPO.now.sh/src/nodejs`
-  - `https:/$YOUR_REPO.now.sh/src/python`
+- `https:/$YOUR_REPO.now.sh/src/nodejs`
+- `https:/$YOUR_REPO.now.sh/src/python`
 
 I'll let you figure the rest out now but in this repo, you will now have a fully integration continuous integration and continuous delivery system deploying functions for free.

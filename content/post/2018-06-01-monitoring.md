@@ -6,6 +6,7 @@ tags: ["monitoring", "ops", "prometheus"]
 ---
 
 Monitoring is a big topic. I can attempt to simplify it into a few categories.
+
 - Passive Infrastructure Monitoring: Track CPU, Memory, Load, Uptime, Network, etc
 - Log shipping: This is where your services stream their logs and you set alerts or metrics on certain patterns
 - Active Monitoring: Ping your servers on a timer for aliveness/health, or a full verification of an API endpoint and its response

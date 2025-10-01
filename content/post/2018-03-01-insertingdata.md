@@ -8,6 +8,7 @@ tags: ["database", "influxdb", "mongo", "postgres"]
 Disclaimer: I haven't ran any benchmarks or ran any of these databases in HA mode for proof of concepts but this was my experience with trying to work with lots of data for my HFT Trading Bot.
 
 The Data: (all indexed on time)
+
 - 1 minute candle: {timestamp, instrument, high, low, open close, volume, trades}, 1 inserts per minute
 - Individual trade: {timestamp, instrument, price, side, type}, 0-2000 inserts per minute
 - Individual order: {timestamp, instrument, price, side, type, status}, 0-5000 inserts per minute
@@ -15,10 +16,12 @@ The Data: (all indexed on time)
 Note: There will exist one collection/database per exchange as certain exchanges provide more valuable information than others.
 
 How the data will be queried:
+
 - Between times x and y, on a certain instrument per exchange - hence two indexes on time and instrument
 - Last x elements on a certain instrument per exchange - hence two indexes on time and instrument
 
 Retention Policy:
+
 - candle data will need to be pruned every three days
 - trade and order data can be pruned every three hours. A longer retention policy would be preferred but that's a lot of data
 
@@ -33,7 +36,7 @@ Moving to a more powerful VPS with more memory allowed the dataset to grow bigge
 
 Postgres (SQL):
 
-Postgres was similar to Mongo where it was really simple to insert, query, and delete data. But it was also problematic when tables grew very large. Inserts got slower and slower causing data to be available to the system at a later time. Querying and deletion also got slower over time. Disk Space and memory also grew with the dataset size, however I did not notice any missing data this time. Given that this was meant to be a HFT bot, the slowdown caused by the larger datasets also meant that it was unacceptable for my use case. 
+Postgres was similar to Mongo where it was really simple to insert, query, and delete data. But it was also problematic when tables grew very large. Inserts got slower and slower causing data to be available to the system at a later time. Querying and deletion also got slower over time. Disk Space and memory also grew with the dataset size, however I did not notice any missing data this time. Given that this was meant to be a HFT bot, the slowdown caused by the larger datasets also meant that it was unacceptable for my use case.
 
 InfluxDB (NoSQL, TimeseriesDB):
 

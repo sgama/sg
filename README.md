@@ -1,7 +1,7 @@
 ## samsongama.com
 
 ![Build Status](https://api.travis-ci.org/sgama/sg.svg?branch=develop)
-https://travis-ci.org/sgama/sg
+<https://travis-ci.org/sgama/sg>
 
 git submodule update --init --recursive
 
@@ -15,5 +15,4 @@ hugo server --gc --ignoreCache
 ### New Ideas
 
 Dark Theme - Transitions - Front Page
-https://vlad.gg/
-
+<https://vlad.gg/>
