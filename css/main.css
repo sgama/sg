@@ -11,6 +11,10 @@ body {
   height: 100vh;
   font-display: swap;
 }
+
+.search-link {
+  outline: none;
+}
 .container[role=main] {
   margin-bottom:50px;
   flex: 1 0 auto;
@@ -776,7 +780,7 @@ div.splitbox div.right {
     padding: 15px 25px;
   }
 }
-.disqus-comments button:hover, 
+.disqus-comments button:hover,
 .disqus-comments button:focus {
   color: #FFF;
   background: #0085a1;
