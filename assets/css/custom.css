@@ -1,0 +1,45 @@
+html {
+    scroll-behavior: smooth;
+    font-family: sans-serif;
+    scroll-padding-top: 70px;
+    /* Adjust this value based on your header height */
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Moving stars background */
+html::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle at 65% 15%, rgba(255, 255, 255, 0.7) 1px, transparent 1px),
+        radial-gradient(circle at 90% 40%, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+        radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7) 1px, transparent 1px),
+        radial-gradient(circle at 85% 85%, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        radial-gradient(circle at 15% 60%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle at 55% 25%, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
+    background-size:
+        200px 200px, 300px 300px, 250px 250px, 400px 400px, 350px 350px,
+        180px 180px, 320px 320px, 280px 280px, 220px 220px, 380px 380px;
+    animation: starsMove 60s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes starsMove {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-100px);
+    }
+}

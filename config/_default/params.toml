@@ -1,0 +1,103 @@
+colorScheme = "catppuccin"
+defaultAppearance = "dark"
+autoSwitchAppearance = true
+enableSearch = true
+enableCodeCopy = true
+replyByEmail = false
+disableImageOptimization = false
+disableTextInHeader = false
+#giteaDefaultServer = "https://git.fsfe.org"
+#forgejoDefaultServer = "https://v8.next.forgejo.org"
+defaultBackgroundImage = "background.jpg"
+smartTOC = true
+smartTOCHideUnfocusedChildren = ""
+highlightCurrentMenuArea = true
+mainSections = [ "posts" ]
+
+[header]
+layout = "fixed-fill-blur"
+
+[footer]
+showMenu = true
+showCopyright = true
+showThemeAttribution = true
+showAppearanceSwitcher = false
+showScrollToTop = true
+
+[homepage]
+layout = "custom"
+#homepageImage = "background.jpg"
+showRecent = true
+showRecentItems = 3
+showMoreLink = true
+showMoreLinkDest = "/posts/"
+cardView = true
+cardViewScreenWidth = false
+layoutBackgroundBlur = true # only used when layout equals background
+disableHeroImageFilter = false # only used when layout equals hero
+
+[article]
+heroStyle = "background"
+showDate = true
+showViews = false
+showLikes = false
+showComments = false
+showDateOnlyInArticle = false
+showDateUpdated = false
+showAuthor = false
+showHero = true
+layoutBackgroundBlur = true
+layoutBackgroundHeaderSpace = true
+showBreadcrumbs = true
+showDraftLabel = true
+showEdit = false
+editAppendPath = true
+seriesOpened = false
+showHeadingAnchors = true
+showPagination = true
+invertPagination = false
+showReadingTime = true
+showTableOfContents = true
+showTaxonomies = true
+showAuthorsBadges = false
+showWordCount = true
+showZenMode = true
+
+[list]
+heroStyle = "background"
+showHero = true
+layoutBackgroundBlur = true
+layoutBackgroundHeaderSpace = false
+showBreadcrumbs = false
+showSummary = false
+showViews = false
+showLikes = false
+showTableOfContents = true
+showCards = true
+orderByWeight = true
+groupByYear = false
+cardView = true
+cardViewScreenWidth = false
+constrainItemsWidth = true
+
+[sitemap]
+excludedKinds = [ "taxonomy", "term" ]
+
+[taxonomy]
+showTermCount = true
+showHero = true
+showBreadcrumbs = false
+showViews = false
+showLikes = false
+showTableOfContents = true
+cardView = false
+
+[term]
+showHero = true
+showBreadcrumbs = false
+showViews = false
+showLikes = false
+showTableOfContents = true
+groupByYear = false
+cardView = ""
+cardViewScreenWidth = false
