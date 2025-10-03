@@ -39,7 +39,7 @@ image = "samson.jpg"
 name = "Samson Gama"
 
 [[languages.en.params.author.links]]
-email = "mailto:bahmanalta.ifc@protonmail.com"
+email = "mailto:sgama.ifc@protonmail.com"
 
 [[languages.en.params.author.links]]
 github = "https://github.com/sgama"
