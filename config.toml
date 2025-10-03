@@ -1,7 +1,7 @@
 # Hugo Configuration File
 # Consolidated configuration for samsongama.com
 
-baseURL = "sgama.github.io"
+baseURL = "https://samsongama.com"
 buildDrafts = false
 buildFuture = false
 defaultContentLanguage = "en"

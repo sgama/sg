@@ -9,28 +9,26 @@
                     {{ with .Site.Params.defaultBackgroundImage }}
                     {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
                     {{ $homepageImage = resources.GetRemote . }}
-                {{ else }}
+                    {{ else }}
                     {{ $homepageImage = resources.Get . }}
                     {{ end }}
                     {{ end }}
                     {{ with .Site.Params.homepage.homepageImage }}
                     {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
                     {{ $homepageImage = resources.GetRemote . }}
-                {{ else }}
+                    {{ else }}
                     {{ $homepageImage = resources.Get . }}
                     {{ end }}
                     {{ end }}
                     {{ if $homepageImage }}
-                    <img id="background-image"
-                         class="nozoom mt-0 mr-0 mb-0 ml-0 h-[1000px] w-full object-cover"
-                         src="{{ $homepageImage.RelPermalink }}"
-                         alt="Background image"
-                         width="1920"
-                         height="1000"
-                         role="presentation">
-                    <div class="from-neutral absolute inset-0 h-[1000px] bg-gradient-to-t to-transparent mix-blend-normal dark:from-neutral-800">
+                    <img id="background-image" class="nozoom mt-0 mr-0 mb-0 ml-0 h-[1000px] w-full object-cover"
+                        src="{{ $homepageImage.RelPermalink }}" alt="Background image" width="1920" height="1000"
+                        role="presentation">
+                    <div
+                        class="from-neutral absolute inset-0 h-[1000px] bg-gradient-to-t to-transparent mix-blend-normal dark:from-neutral-800">
                     </div>
-                    <div class="from-neutral absolute inset-0 h-[1000px] bg-gradient-to-t to-neutral-100 opacity-60 mix-blend-normal dark:from-neutral-800 dark:to-neutral-800">
+                    <div
+                        class="from-neutral absolute inset-0 h-[1000px] bg-gradient-to-t to-neutral-100 opacity-60 mix-blend-normal dark:from-neutral-800 dark:to-neutral-800">
                     </div>
                     {{ end }}
                 </div>
@@ -39,19 +37,16 @@
                     {{ $authorImage := "" }}
                     {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
                     {{ $authorImage = resources.GetRemote . }}
-                {{ else }}
+                    {{ else }}
                     {{ $authorImage = resources.Get . }}
                     {{ end }}
                     {{ if $authorImage }}
                     {{ if not $disableImageOptimization }}
-                    {{ $authorImage = $authorImage.Fill (print "288x288 q" ( $.Site.Params.Author.imagequality | default
-                    "96" )) }}
+                    {{ $authorImageQuality := $.Site.Params.Author.imagequality | default "96" }}
+                    {{ $authorImage = $authorImage.Fill (print "288x288 q" $authorImageQuality) }}
                     {{ end }}
-                    <img class="mb-2 h-36 w-36 rounded-full"
-                         width="144"
-                         height="144"
-                         alt="{{ $.Site.Params.Author.name | default " Author" }}"
-                         src="{{ $authorImage.RelPermalink }}">
+                    <img class="mb-2 h-36 w-36 rounded-full" width="144" height="144"
+                        alt="{{ $.Site.Params.Author.name | default " Author" }}" src="{{ $authorImage.RelPermalink }}">
                     {{ end }}
                     {{ end }}
                     <h1 class="mb-2 text-4xl font-extrabold text-neutral-800 dark:text-neutral-200">
@@ -66,12 +61,10 @@
                             {{ range $links := . }}
                             {{ range $name, $url := $links }}
                             <a class="hover:text-primary-400 text-primary-800 dark:text-primary-200 px-1"
-                               href="{{ $url }}"
-                               target="_blank"
-                               aria-label="{{ $name | title }}"
-                               rel="me noopener noreferrer">{{ partial
+                                href="{{ $url }}" target="_blank" aria-label="{{ $name | title }}"
+                                rel="me noopener noreferrer">{{ partial
                                 "icon.html" $name
-                            }}</a>
+                                }}</a>
                             {{ end }}
                             {{ end }}
                         </div>
@@ -90,12 +83,12 @@
 </section>
 {{ if .Site.Params.homepage.layoutBackgroundBlur | default false }}
 <div id="background-blur"
-     class="fixed opacity-0 inset-x-0 top-0 h-full single_hero_background nozoom backdrop-blur-2xl"></div>
+    class="fixed opacity-0 inset-x-0 top-0 h-full single_hero_background nozoom backdrop-blur-2xl"></div>
 {{ $backgroundBlur := resources.Get "js/background-blur.js" }}
 {{ $backgroundBlur = $backgroundBlur | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm |
 default "sha512") }}
 <script type="text/javascript" src="{{ $backgroundBlur.RelPermalink }}" integrity="{{ $backgroundBlur.Data.Integrity }}"
     data-blur-id="background-blur" data-image-id="background-image" {{ if $homepageImage
     }}data-image-url="{{ $homepageImage.RelPermalink }}" {{ end }}>
-</script>
+    </script>
 {{ end }}
