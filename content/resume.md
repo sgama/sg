@@ -12,13 +12,13 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 {{< timeline >}}
 
-{{< timelineItem icon="building" header="Senior Service Reliability Engineer" badge="Aug 2020 - Present" subheader="Demonware / Activision - Vancouver, Canada" >}}
+{{< timelineItem icon="globe" header="Senior Service Reliability Engineer" badge="08/2020 - now()" subheader="Demonware / Activision - Vancouver, Canada" >}}
 Contribute improvements to the availability, scalability, and efficiency of Demonware's services.<br>
 Improve the infrastructure supporting Demonware's services.<br>
 Troubleshoot issues with Demonware's online services at scale.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="code" header="Senior Software Engineer" badge="Oct 2018 - 2020" subheader="Mastercard - Vancouver, Canada" >}}
+{{< timelineItem icon="code" header="Senior Software Engineer" badge="10/2018 - 07/2020" subheader="Mastercard - Vancouver, Canada" >}}
 Implemented Infrastructure as Code templates for new projects through AWS CloudFormation and Saltstack.<br>
 Promoted CI/CD practices and automation by automating tedious manual processes.<br>
 Worked with operations to help developers gain more visibility into their projects in production.<br>
@@ -26,7 +26,7 @@ Took on operational duties and deployed new software to on-prem and cloud datace
 Created various in-house tools to accommodate the needs of different groups.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="laptop-code" header="Software Developer" badge="June 2017 - 2018" subheader="Absolute Software - Vancouver, Canada" >}}
+{{< timelineItem icon="github" header="Software Developer" badge="06/2017 - 10/2018" subheader="Absolute Software - Vancouver, Canada" >}}
 {{< alert "circle-info" >}}
 **Key Achievement:** Rewrote microservices from Python to Golang achieving **2000% throughput increase** and **90% reduction** in CPU/memory usage.
 {{< /alert >}}
@@ -38,25 +38,25 @@ Added metrics through Prometheus and StatsD and graphed them with Grafana.<br>
 Added deployment tasks to Jenkins to increase team productivity by approximately 30%.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="rocket" header="Co-Founder" badge="March 2016 - 2017" subheader="FingerTipDeals - Vancouver, Canada" >}}
+{{< timelineItem icon="lightbulb" header="Co-Founder" badge="03/2016 - 2017" subheader="FingerTipDeals - Vancouver, Canada" >}}
 Created Android and iOS applications to serve the SaaS product in four countries hosted on AWS.<br>
 Wrote various backend services to serve specific client functionality and provide analytics.<br>
 Helped guide the company vision to focus on less served markets while establishing a brand.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="mobile-alt" header="Software Developer" badge="Dec 2015 - 2016" subheader="Prizm Media Inc. - Vancouver, Canada" >}}
+{{< timelineItem icon="apple" header="Software Developer" badge="12/2015 - 09/2016" subheader="Prizm Media Inc. - Vancouver, Canada" >}}
 Developed Android and iOS applications for a fitness-oriented social network application.<br>
 Developed solutions using Machine Learning tools such as SVMs and Neural Networks.<br>
 Decreased response time of frequently used APIs by up to **90%** through optimizing queries and caching.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="network-wired" header="Software Engineering Intern" badge="Sep 2015" subheader="Ericsson Silicon Valley - Bay Area, USA" >}}
+{{< timelineItem icon="globe" header="Software Engineering Intern" badge="09/2015 - 12/2015" subheader="Ericsson Silicon Valley - Bay Area, USA" >}}
 Developed an OpenStack Neutron plugin for managing virtual Ericsson routers in Python.<br>
 Investigated secure methods of communication between multiple virtual machines.<br>
 Used Docker within OpenStack to debug containers and automate tests.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="microchip" header="Software Developer" badge="May 2014" subheader="Grin Technologies - Vancouver, Canada" >}}
+{{< timelineItem icon="github" header="Software Developer" badge="05/2014 - 08/2014" subheader="Grin Technologies - Vancouver, Canada" >}}
 Developed two web applications for electric vehicle enthusiasts to visualize trips and render custom wheel builds.<br>
 Programmed Texas Instruments CC2540 SoC for Bluetooth low energy applications.<br>
 Administered large electric vehicle forum with 5000+ daily users (endless-sphere.com).
@@ -68,7 +68,7 @@ Administered large electric vehicle forum with 5000+ daily users (endless-sphere
 
 {{< timeline >}}
 
-{{< timelineItem icon="user-graduate" header="B.A.Sc Computer Engineering" badge="2012 - 2017" subheader="University of British Columbia" >}}
+{{< timelineItem icon="graduation-cap" header="B.A.Sc Computer Engineering" badge="09/2012 - 05/2017" subheader="University of British Columbia" >}}
 {{< badge >}}
 With Distinction
 {{< /badge >}}
@@ -77,7 +77,7 @@ With Distinction
 **Notable Projects:** Too many to count - check out my portfolio for highlights including machine learning, embedded systems, and web development projects.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="mountain" header="M.Sc Computer Science Exchange" badge="Feb 2015" subheader="ETH Zürich" >}}
+{{< timelineItem icon="graduation-cap" header="M.Sc Computer Science Exchange" badge="02/2015" subheader="ETH Zürich" >}}
 
 **Focus:** Computer Vision and Machine Learning
 Check out my Computer Vision project in my portfolio.
@@ -89,11 +89,11 @@ Check out my Computer Vision project in my portfolio.
 
 {{< timeline >}}
 
-{{< timelineItem icon="shield-alt" header="Offensive Security Certified Professional (OSCP)" badge="2020" >}}
+{{< timelineItem icon="shield" header="Offensive Security Certified Professional (OSCP)" badge="2020" >}}
 Advanced penetration testing certification demonstrating hands-on offensive security skills.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="trophy" header="TrendMicroCTF 2019 Finalist" badge="2019" >}}
+{{< timelineItem icon="star" header="TrendMicroCTF 2019 Finalist" badge="2019" >}}
 {{< alert "star" >}}
 **12th place out of 800 teams** in international CTF competition finals in Tokyo with team "Maple Bacon"
 {{< /alert >}}
@@ -103,13 +103,7 @@ Advanced penetration testing certification demonstrating hands-on offensive secu
 Industry-standard certification in ethical hacking and penetration testing methodologies.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="chart-bar" header="Trading Bot Success" badge="2018" >}}
-{{< alert "check" >}}
-Developed high-frequency trading bot achieving **1% monthly returns** (September 2018)
-{{< /alert >}}
-{{< /timelineItem >}}
-
-{{< timelineItem icon="heartbeat" header="Occupation First Aid Level 2" badge="2018" >}}
+{{< timelineItem icon="heart" header="Occupation First Aid Level 2" badge="2018" >}}
 Occupational safety certification for workplace emergency response.
 {{< /timelineItem >}}
 
@@ -117,7 +111,7 @@ Occupational safety certification for workplace emergency response.
 **Computer Engineering with Distinction** - University of British Columbia
 {{< /timelineItem >}}
 
-{{< timelineItem icon="award" header="Veazey Scholarship" badge="2012" >}}
+{{< timelineItem icon="star" header="Veazey Scholarship" badge="2012" >}}
 Merit-based scholarship for academic achievement and community involvement.
 {{< /timelineItem >}}
 
@@ -138,42 +132,11 @@ Royal Conservatory of Music piano certification.
 
 ### Languages
 
-{{< button href="#" target="_self" >}}
-Rust
-{{< /button >}}
-{{< button href="#" target="_self" >}}
-Go
-{{< /button >}}
-{{< button href="#" target="_self" >}}
-Python
-{{< /button >}}
-{{< button href="#" target="_self" >}}
-JavaScript
-{{< /button >}}
-{{< button href="#" target="_self" >}}
-Java
-{{< /button >}}
-{{< button href="#" target="_self" >}}
-C/C++
-{{< /button >}}
+**Core Languages:** Rust • Go • Python • JavaScript • Java • C/C++
 
 ### Infrastructure & DevOps
 
-{{< badge >}}
-Docker
-{{< /badge >}}
-{{< badge >}}
-Kubernetes
-{{< /badge >}}
-{{< badge >}}
-AWS
-{{< /badge >}}
-{{< badge >}}
-Azure
-{{< /badge >}}
-{{< badge >}}
-GCP
-{{< /badge >}}
+**Cloud & Containers:** Docker • Kubernetes • AWS • Azure • GCP
 
 ### Databases & Monitoring
 
@@ -184,21 +147,7 @@ GCP
 
 ### Specialized Skills
 
-{{< badge >}}
-Machine Learning
-{{< /badge >}}
-{{< badge >}}
-Artificial Intelligence
-{{< /badge >}}
-{{< badge >}}
-REST API Design
-{{< /badge >}}
-{{< badge >}}
-gRPC
-{{< /badge >}}
-{{< badge >}}
-Agile/Scrum
-{{< /badge >}}
+**Advanced Technologies:** Machine Learning • AI • REST APIs • gRPC • Agile/Scrum
 
 ## CTF Competitions & Cybersecurity
 
@@ -210,7 +159,7 @@ Agile/Scrum
 
 {{< timeline >}}
 
-{{< timelineItem icon="flag" header="Devslop - Docker CTF 2020" badge="2020" subheader="#1 - Emergency Meeting" >}}
+{{< timelineItem icon="star" header="Devslop - Docker CTF 2020" badge="2020" subheader="#1 - Emergency Meeting" >}}
 {{< badge >}}
 1st Place
 {{< /badge >}}
@@ -220,17 +169,17 @@ Agile/Scrum
 High-ranking performance in prestigious European CTF competition.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="leaf" header="OverTheWire Advent Bonanza 2019" badge="2019" subheader="#3 - Maple Bacon" >}}
+{{< timelineItem icon="star" header="OverTheWire Advent Bonanza 2019" badge="2019" subheader="#3 - Maple Bacon" >}}
 {{< badge >}}
 3rd Place
 {{< /badge >}}
 {{< /timelineItem >}}
 
-{{< timelineItem icon="trophy" header="Trend Micro CTF 2019 Final" badge="2019" subheader="#12 - Maple Bacon" >}}
+{{< timelineItem icon="star" header="Trend Micro CTF 2019 Final" badge="2019" subheader="#12 - Maple Bacon" >}}
 **International Finals** - Tokyo, Japan
 {{< /timelineItem >}}
 
-{{< timelineItem icon="laptop" header="SECCON 2019 Online CTF" badge="2019" subheader="#19 - Maple Bacon" >}}
+{{< timelineItem icon="github" header="SECCON 2019 Online CTF" badge="2019" subheader="#19 - Maple Bacon" >}}
 Strong performance in prestigious Japanese cybersecurity competition.
 {{< /timelineItem >}}
 

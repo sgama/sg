@@ -11,22 +11,13 @@ hideColorSchemeToggle = true
 summaryLength = 0
 title = "Samson Gama"
 
-# Module configuration
-[module]
-[[module.imports]]
-disable = false
-path = "github.com/martignoni/hugo-notice"
-
-[[module.imports]]
-disable = false
-path = "github.com/nunocoracao/blowfish/v2"
-
-[module.hugoVersion]
-extended = false
-min = "0.87.0"
+# Imaging configuration
+[imaging]
+anchor = "Center"
 
 # Language configuration
 [languages]
+
 [languages.en]
 disabled = false
 languageCode = "en"
@@ -36,12 +27,11 @@ weight = 1
 
 [languages.en.params]
 dateFormat = "2 January 2006"
-description = "here for whatever sgama feels like placing here"
+description = "Lorem Ipsum Delor"
 displayName = "EN"
 isoCode = "en"
-logo = "primary_logo.svg"
+logo = "icon.png"
 rtl = false
-secondaryLogo = "secondary_logo.svg"
 
 [languages.en.params.author]
 bio = "bbb"
@@ -57,8 +47,23 @@ github = "https://github.com/sgama"
 [[languages.en.params.author.links]]
 steam = "https://steamcommunity.com/id/sgama/"
 
-# Menu configuration
+# Markup configuration
+[markup]
+
+[markup.goldmark]
+
+[markup.goldmark.renderer]
+unsafe = true
+
+[markup.highlight]
+noClasses = false
+
+[markup.tableOfContents]
+endLevel = 4
+startLevel = 1
+
 [menu]
+
 [[menu.main]]
 name = "About"
 pageRef = "about"
@@ -74,22 +79,25 @@ name = "Posts"
 pageRef = "posts"
 weight = 30
 
-# Markup configuration
-[markup]
-[markup.goldmark]
-[markup.goldmark.renderer]
-unsafe = true
+[[menu.main]]
+name = "Contact"
+pageRef = "contact"
+weight = 40
 
-[markup.highlight]
-noClasses = false
+[module]
 
-[markup.tableOfContents]
-endLevel = 4
-startLevel = 1
+[module.hugoVersion]
+extended = false
+min = "0.87.0"
 
-# Imaging configuration
-[imaging]
-anchor = "Center"
+# Module configuration
+[[module.imports]]
+disable = false
+path = "github.com/martignoni/hugo-notice"
+
+[[module.imports]]
+disable = false
+path = "github.com/nunocoracao/blowfish/v2"
 
 # Output formats
 [outputs]
@@ -98,32 +106,6 @@ home = ["HTML", "RSS", "JSON"]
 # Pagination
 [pagination]
 pagerSize = 100
-
-# Related content
-[related]
-indices = [
-  {name = "tags", weight = 100},
-  {name = "categories", weight = 100},
-  {name = "series", weight = 50},
-  {name = "authors", weight = 20},
-  {name = "date", weight = 10},
-  {applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10}
-]
-threshold = 0
-toLower = false
-
-# Sitemap configuration
-[sitemap]
-changefreq = "daily"
-filename = "sitemap.xml"
-priority = 0.5
-
-# Taxonomies
-[taxonomies]
-author = "authors"
-category = "categories"
-series = "series"
-tag = "tags"
 
 # Theme parameters
 [params]
@@ -182,7 +164,7 @@ layout = "fixed-fill-blur"
 cardView = true
 cardViewScreenWidth = false
 disableHeroImageFilter = false
-layout = "custom"
+layout = "background"
 layoutBackgroundBlur = true
 showMoreLink = true
 showMoreLinkDest = "/posts/"
@@ -227,3 +209,29 @@ showHero = true
 showLikes = false
 showTableOfContents = true
 showViews = false
+
+# Related content
+[related]
+indices = [
+  {name = "tags", weight = 100},
+  {name = "categories", weight = 100},
+  {name = "series", weight = 50},
+  {name = "authors", weight = 20},
+  {name = "date", weight = 10},
+  {applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10}
+]
+threshold = 0
+toLower = false
+
+# Sitemap configuration
+[sitemap]
+changefreq = "daily"
+filename = "sitemap.xml"
+priority = 0.5
+
+# Taxonomies
+[taxonomies]
+author = "authors"
+category = "categories"
+series = "series"
+tag = "tags"
