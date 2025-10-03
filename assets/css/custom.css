@@ -51,6 +51,74 @@ html::before {
     padding: 0;
 }
 
+/* Instagram Close Friends Style Halo for Profile Image - Homepage Only */
+main article img[src*="samson"].rounded-full,
+article img[src*="samson"].rounded-full {
+    position: relative;
+    border: 3px solid transparent;
+    background: linear-gradient(45deg,
+            #00d4aa 0%,
+            #00d4aa 25%,
+            #4caf50 50%,
+            #8bc34a 75%,
+            #00d4aa 100%);
+    background-clip: border-box;
+    border-radius: 50%;
+    padding: 3px;
+    animation: haloGlow 3s ease-in-out infinite alternate;
+    box-shadow:
+        0 0 20px rgba(0, 212, 170, 0.3),
+        0 0 40px rgba(0, 212, 170, 0.1),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Inner image styling to maintain proper border radius - Homepage Only */
+main article img[src*="samson"].rounded-full,
+article img[src*="samson"].rounded-full {
+    border-radius: 50%;
+    display: block;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+/* Animated halo glow effect */
+@keyframes haloGlow {
+    0% {
+        box-shadow:
+            0 0 20px rgba(0, 212, 170, 0.4),
+            0 0 40px rgba(0, 212, 170, 0.1),
+            inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+        transform: scale(1);
+    }
+
+    100% {
+        box-shadow:
+            0 0 30px rgba(0, 212, 170, 0.6),
+            0 0 60px rgba(0, 212, 170, 0.2),
+            inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+        transform: scale(1.02);
+    }
+}
+
+/* Hover effect for extra interactivity - Homepage Only */
+main article img[src*="samson"].rounded-full:hover,
+article img[src*="samson"].rounded-full:hover {
+    background: linear-gradient(45deg,
+            #00e6cc 0%,
+            #00e6cc 25%,
+            #66bb6a 50%,
+            #9ccc65 75%,
+            #00e6cc 100%);
+    box-shadow:
+        0 0 35px rgba(0, 212, 170, 0.7),
+        0 0 70px rgba(0, 212, 170, 0.3),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+/* End Instagram Close Friends Style Halo for Profile Image - Homepage Only */
+
 .contact-card {
     background: rgba(var(--color-neutral-50), 0.8);
     backdrop-filter: blur(10px);
