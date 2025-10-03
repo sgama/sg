@@ -39,11 +39,11 @@ strong, b {
 hr {
   border: none;
   height: 1px;
-  background-color: rgb(153, 156, 181); 
+  background-color: rgb(153, 156, 181);
 }
 
 @media (prefers-color-scheme: dark) {
   hr {
-    background-color: rgb(76, 79, 105); 
+    background-color: rgb(76, 79, 105);
   }
 }

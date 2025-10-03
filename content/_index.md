@@ -4,7 +4,7 @@ title: "Hi, I'm Samson :tada:"
 
 <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');
-        
+
         /* Modern CSS Custom Properties */
         :root {
             --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -25,7 +25,7 @@ title: "Hi, I'm Samson :tada:"
         .intro-container {
             display: grid;
             grid-template-columns: 1fr;
-            grid-template-areas: 
+            grid-template-areas:
                 "hero"
                 "content"
                 "skills"
@@ -53,11 +53,11 @@ title: "Hi, I'm Samson :tada:"
             font-weight: 900;
             font-size: clamp(2rem, 5vw, 3.5rem);
             margin: 0;
-            background: linear-gradient(135deg, 
-                #ffffff 0%, 
-                #e0e0e0 25%, 
-                #ffffff 50%, 
-                #d0d0d0 75%, 
+            background: linear-gradient(135deg,
+                #ffffff 0%,
+                #e0e0e0 25%,
+                #ffffff 50%,
+                #d0d0d0 75%,
                 #ffffff 100%);
             background-size: 200% 200%;
             -webkit-background-clip: text;
@@ -280,11 +280,11 @@ title: "Hi, I'm Samson :tada:"
         ::-webkit-scrollbar {
             width: 8px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(180deg, #4facfe, #00f2fe);
             border-radius: 4px;
@@ -317,4 +317,3 @@ title: "Hi, I'm Samson :tada:"
         </div>
     </section> -->
 </div>
-    

@@ -1,103 +1,103 @@
+autoSwitchAppearance = true
 colorScheme = "catppuccin"
 defaultAppearance = "dark"
-autoSwitchAppearance = true
-enableSearch = true
-enableCodeCopy = true
-replyByEmail = false
+# giteaDefaultServer = "https://git.fsfe.org"
+# forgejoDefaultServer = "https://v8.next.forgejo.org"
+defaultBackgroundImage = "background.jpg"
 disableImageOptimization = false
 disableTextInHeader = false
-#giteaDefaultServer = "https://git.fsfe.org"
-#forgejoDefaultServer = "https://v8.next.forgejo.org"
-defaultBackgroundImage = "background.jpg"
+enableCodeCopy = true
+enableSearch = true
+highlightCurrentMenuArea = true
+mainSections = ["posts"]
+replyByEmail = false
 smartTOC = true
 smartTOCHideUnfocusedChildren = ""
-highlightCurrentMenuArea = true
-mainSections = [ "posts" ]
+
+[article]
+editAppendPath = true
+heroStyle = "background"
+invertPagination = false
+layoutBackgroundBlur = true
+layoutBackgroundHeaderSpace = true
+seriesOpened = false
+showAuthor = false
+showAuthorsBadges = false
+showBreadcrumbs = true
+showComments = false
+showDate = true
+showDateOnlyInArticle = false
+showDateUpdated = false
+showDraftLabel = true
+showEdit = false
+showHeadingAnchors = true
+showHero = true
+showLikes = false
+showPagination = true
+showReadingTime = true
+showTableOfContents = true
+showTaxonomies = true
+showViews = false
+showWordCount = true
+showZenMode = true
+
+[footer]
+showAppearanceSwitcher = false
+showCopyright = true
+showMenu = true
+showScrollToTop = true
+showThemeAttribution = true
 
 [header]
 layout = "fixed-fill-blur"
 
-[footer]
-showMenu = true
-showCopyright = true
-showThemeAttribution = true
-showAppearanceSwitcher = false
-showScrollToTop = true
-
 [homepage]
-layout = "custom"
-#homepageImage = "background.jpg"
-showRecent = true
-showRecentItems = 3
-showMoreLink = true
-showMoreLinkDest = "/posts/"
 cardView = true
 cardViewScreenWidth = false
-layoutBackgroundBlur = true # only used when layout equals background
-disableHeroImageFilter = false # only used when layout equals hero
-
-[article]
-heroStyle = "background"
-showDate = true
-showViews = false
-showLikes = false
-showComments = false
-showDateOnlyInArticle = false
-showDateUpdated = false
-showAuthor = false
-showHero = true
-layoutBackgroundBlur = true
-layoutBackgroundHeaderSpace = true
-showBreadcrumbs = true
-showDraftLabel = true
-showEdit = false
-editAppendPath = true
-seriesOpened = false
-showHeadingAnchors = true
-showPagination = true
-invertPagination = false
-showReadingTime = true
-showTableOfContents = true
-showTaxonomies = true
-showAuthorsBadges = false
-showWordCount = true
-showZenMode = true
+disableHeroImageFilter = false  # only used when layout equals hero
+layout = "custom"
+layoutBackgroundBlur = true  # only used when layout equals background
+showMoreLink = true
+showMoreLinkDest = "/posts/"
+# homepageImage = "background.jpg"
+showRecent = true
+showRecentItems = 3
 
 [list]
-heroStyle = "background"
-showHero = true
-layoutBackgroundBlur = true
-layoutBackgroundHeaderSpace = false
-showBreadcrumbs = false
-showSummary = false
-showViews = false
-showLikes = false
-showTableOfContents = true
-showCards = true
-orderByWeight = true
-groupByYear = false
 cardView = true
 cardViewScreenWidth = false
 constrainItemsWidth = true
+groupByYear = false
+heroStyle = "background"
+layoutBackgroundBlur = true
+layoutBackgroundHeaderSpace = false
+orderByWeight = true
+showBreadcrumbs = false
+showCards = true
+showHero = true
+showLikes = false
+showSummary = false
+showTableOfContents = true
+showViews = false
 
 [sitemap]
-excludedKinds = [ "taxonomy", "term" ]
+excludedKinds = ["taxonomy", "term"]
 
 [taxonomy]
-showTermCount = true
-showHero = true
+cardView = false
 showBreadcrumbs = false
-showViews = false
+showHero = true
 showLikes = false
 showTableOfContents = true
-cardView = false
+showTermCount = true
+showViews = false
 
 [term]
-showHero = true
-showBreadcrumbs = false
-showViews = false
-showLikes = false
-showTableOfContents = true
-groupByYear = false
 cardView = ""
 cardViewScreenWidth = false
+groupByYear = false
+showBreadcrumbs = false
+showHero = true
+showLikes = false
+showTableOfContents = true
+showViews = false

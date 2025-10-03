@@ -1,5 +1,3 @@
 {{ $jsHome := resources.Get "js/home.js" | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm |
 default "sha512") }}
-<div id="background">
-    {{ partial "home/background.html" . }}
-</div>
+<div id="background">{{ partial "home/background.html" . }}</div>

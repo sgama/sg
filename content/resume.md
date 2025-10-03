@@ -73,13 +73,13 @@ Administered large electric vehicle forum with 5000+ daily users (endless-sphere
 With Distinction
 {{< /badge >}}
 
-**Concentration:** Software Engineering  
+**Concentration:** Software Engineering
 **Notable Projects:** Too many to count - check out my portfolio for highlights including machine learning, embedded systems, and web development projects.
 {{< /timelineItem >}}
 
 {{< timelineItem icon="mountain" header="M.Sc Computer Science Exchange" badge="Feb 2015" subheader="ETH Zürich" >}}
 
-**Focus:** Computer Vision and Machine Learning  
+**Focus:** Computer Vision and Machine Learning
 Check out my Computer Vision project in my portfolio.
 {{< /timelineItem >}}
 
@@ -137,6 +137,7 @@ Royal Conservatory of Music piano certification.
 {{< /alert >}}
 
 ### Languages
+
 {{< button href="#" target="_self" >}}
 Rust
 {{< /button >}}
@@ -157,6 +158,7 @@ C/C++
 {{< /button >}}
 
 ### Infrastructure & DevOps
+
 {{< badge >}}
 Docker
 {{< /badge >}}
@@ -174,12 +176,14 @@ GCP
 {{< /badge >}}
 
 ### Databases & Monitoring
+
 - **Databases:** MySQL, MongoDB, PostgreSQL, Redis, DynamoDB
 - **Monitoring:** Prometheus, Datadog, ELK Stack
 - **Web Servers:** Apache, Nginx, HAProxy, Traefik
 - **Caching:** Varnish, Squid
 
 ### Specialized Skills
+
 {{< badge >}}
 Machine Learning
 {{< /badge >}}

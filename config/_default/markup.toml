@@ -2,12 +2,13 @@
 # These settings are required for the theme to function.
 
 [goldmark]
+
 [goldmark.renderer]
-  unsafe = true
+unsafe = true
 
 [highlight]
-  noClasses = false
+noClasses = false
 
 [tableOfContents]
-  startLevel = 1
-  endLevel = 4
+endLevel = 4
+startLevel = 1

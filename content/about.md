@@ -51,22 +51,22 @@ Technology should serve people. Every line of code I write aims to make someone'
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
 
 {{< alert "server" >}}
-**Backend Engineering**  
+**Backend Engineering**
 Scalable systems, microservices, and infrastructure that powers millions of users.
 {{< /alert >}}
 
 {{< alert "brain" >}}
-**Machine Learning**  
+**Machine Learning**
 AI applications, pattern recognition, and intelligent automation solutions.
 {{< /alert >}}
 
 {{< alert "shield" >}}
-**Cybersecurity**  
+**Cybersecurity**
 CTF competitions, penetration testing, and security-first development practices.
 {{< /alert >}}
 
 {{< alert "gamepad2" >}}
-**Gaming Infrastructure**  
+**Gaming Infrastructure**
 High-availability systems for AAA game titles at Demonware/Activision.
 {{< /alert >}}
 

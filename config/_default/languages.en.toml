@@ -1,20 +1,20 @@
 disabled = false
 languageCode = "en"
 languageName = "English"
-weight = 1
 title = "Samson Gama"
+weight = 1
 
 [params]
+dateFormat = "2 January 2006"
+description = "here for whatever sgama feels like placing here"
 displayName = "EN"
 isoCode = "en"
-rtl = false
-dateFormat = "2 January 2006"
 logo = "primary_logo.svg"
+rtl = false
 secondaryLogo = "secondary_logo.svg"
-description = "here for whatever sgama feels like placing here"
 
 [params.author]
-name = "Hi, I'm Samson"
-links = [ { email = "mailto:bahmanalta.ifc@protonmail.com" }, { github = "https://github.com/sgama" }, { steam = "https://steamcommunity.com/id/sgama/" } ]
-image = "samson.jpg"
 bio = "Linguist, hobby author and programmer based in the UK. Currently, I have no projects that I'm working on right now."
+image = "samson.jpg"
+links = [{email = "mailto:bahmanalta.ifc@protonmail.com"}, {github = "https://github.com/sgama"}, {steam = "https://steamcommunity.com/id/sgama/"}]
+name = "Hi, I'm Samson"

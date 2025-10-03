@@ -20,7 +20,7 @@ function updateGiscusTheme() {
 // Run after window load to make sure iframe is present
 window.addEventListener("load", () => {
   setTimeout(updateGiscusTheme, 100);
-  
+
   const observer = new MutationObserver(updateGiscusTheme);
   observer.observe(document.documentElement, {
     attributes: true,

@@ -1,10 +1,11 @@
 [hugoVersion]
-    extended = false
-    min = "0.87.0"
-    
+extended = false
+min = "0.87.0"
+
 [[imports]]
-    disable = false
-    path = "github.com/martignoni/hugo-notice"
+disable = false
+path = "github.com/martignoni/hugo-notice"
+
 [[imports]]
-    disable = false
-    path = "github.com/nunocoracao/blowfish/v2"
+disable = false
+path = "github.com/nunocoracao/blowfish/v2"
