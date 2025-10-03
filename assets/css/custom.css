@@ -1,0 +1,258 @@
+html {
+    scroll-behavior: smooth;
+    font-family: sans-serif;
+    scroll-padding-top: 70px;
+    /* Adjust this value based on your header height */
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Moving stars background */
+html::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle at 65% 15%, rgba(255, 255, 255, 0.7) 1px, transparent 1px),
+        radial-gradient(circle at 90% 40%, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+        radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.7) 1px, transparent 1px),
+        radial-gradient(circle at 85% 85%, rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+        radial-gradient(circle at 15% 60%, rgba(255, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle at 55% 25%, rgba(255, 255, 255, 0.8) 1px, transparent 1px);
+    background-size:
+        200px 200px, 300px 300px, 250px 250px, 400px 400px, 350px 350px,
+        180px 180px, 320px 320px, 280px 280px, 220px 220px, 380px 380px;
+    animation: starsMove 60s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes starsMove {
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-100px);
+    }
+}
+
+/* Contact Form Styles */
+.contact-container {
+    width: 100%;
+    margin: 2rem 0;
+    padding: 0;
+}
+
+.contact-card {
+    background: rgba(var(--color-neutral-50), 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--color-neutral-200), 0.3);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+}
+
+.contact-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(var(--color-neutral-700));
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid rgb(var(--color-neutral-200));
+    border-radius: 8px;
+    font-size: 1rem;
+    background-color: rgb(var(--color-neutral-50));
+    color: rgb(var(--color-neutral-800));
+    transition: all 0.2s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: rgb(var(--color-primary-500));
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-500), 0.1);
+}
+
+.form-input:hover {
+    border-color: rgb(var(--color-neutral-300));
+}
+
+.form-input::placeholder {
+    color: rgb(var(--color-neutral-400));
+}
+
+.resize-vertical {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #ff00ff, #00ffff, #ff0080);
+    background-size: 200% 200%;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.6), 0 0 60px rgba(0, 255, 255, 0.4);
+    animation-duration: 1.5s;
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(var(--color-primary-600), 0.3);
+}
+
+.submit-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-500), 0.3);
+}
+
+/* Success Message Styles */
+.success-message {
+    width: 100%;
+    margin: 2rem 0;
+    padding: 0;
+}
+
+.success-card {
+    background-color: rgba(var(--color-secondary-50), 0.9);
+    border: 2px solid rgb(var(--color-secondary-200));
+    border-radius: 12px;
+    padding: 1.5rem;
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Dark Mode Styles */
+@media (prefers-color-scheme: dark) {
+    .contact-card {
+        background: rgba(var(--color-neutral-800), 0.8);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-color: rgba(var(--color-neutral-700), 0.3);
+    }
+
+    .form-label {
+        color: rgb(var(--color-neutral-200));
+    }
+
+    .form-input {
+        background-color: rgb(var(--color-neutral-700));
+        border-color: rgb(var(--color-neutral-600));
+        color: rgb(var(--color-neutral-100));
+    }
+
+    .form-input:focus {
+        border-color: rgb(var(--color-primary-400));
+        box-shadow: 0 0 0 3px rgba(var(--color-primary-400), 0.1);
+    }
+
+    .form-input:hover {
+        border-color: rgb(var(--color-neutral-500));
+    }
+
+    .form-input::placeholder {
+        color: rgb(var(--color-neutral-400));
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #ff00ff, #00ffff, #ff0080);
+        background-size: 200% 200%;
+        box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 0 30px rgba(255, 0, 255, 0.7), 0 0 60px rgba(0, 255, 255, 0.5);
+    }
+
+    .success-card {
+        background-color: rgba(var(--color-neutral-800), 0.95);
+        border-color: rgb(var(--color-secondary-600));
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+
+    .contact-container,
+    .success-message {
+        margin: 1rem 0;
+        padding: 0;
+    }
+
+    .contact-card,
+    .success-card {
+        padding: 1.5rem;
+    }
+
+    .form-input {
+        padding: 0.625rem 0.875rem;
+    }
+
+    .submit-btn {
+        padding: 0.75rem 1.25rem;
+    }
+}

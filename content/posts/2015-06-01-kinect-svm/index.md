@@ -1,0 +1,19 @@
+---
+title: 'Kinect SVM'
+summary: 'Support Vector Machine system using Kinect to detect hand-drawn shapes for computer tasks at 30FPS'
+showPagination: true
+invertPagination: true
+weight: 100
+showDate: false
+date: 2015-06-01
+tags: ["machine-learning"]
+---
+{{< youtube id="ZT-NPwJW3Mw" autoplay="false" >}}
+
+• Used SVMs to detect shapes drawn on a piece of paper which corresponded to a task on a host machine
+
+• Determined if a user was pressing a drawn button using the depth data from the Kinect
+
+• Implemented multithreading in order to maintain 1080P video capture and SVM detection simultaneously at 30FPS
+
+• Created a utility application which allowed us to rapidly train SVMs with new shapes for different OS tasks
