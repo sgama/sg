@@ -10,7 +10,7 @@ showPagination: false
 {{< lead >}}
 **Did we meet somewhere? lol**
 
-Whether you're looking to discuss a potential role, explore a partnership, or need technical expertise for your next venture, I'd welcome the conversation.
+I’d love to chat! Just fill out the form, and feel free to share how we met or what brought you to my site.
 {{< /lead >}}
 
 <div class="contact-container">

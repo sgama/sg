@@ -143,11 +143,11 @@ showHeadingAnchors = true
 showHero = true
 showLikes = false
 showPagination = true
-showReadingTime = true
+showReadingTime = false
 showTableOfContents = true
 showTaxonomies = true
 showViews = false
-showWordCount = true
+showWordCount = false
 showZenMode = true
 
 [params.footer]

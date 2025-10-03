@@ -36,11 +36,11 @@ Take a look at my work
 I'm constantly seeking new ways to solve old problems and create solutions that didn't exist before.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="cog" header="Optimization" badge="Daily Practice" >}}
+{{< timelineItem icon="wand-magic-sparkles" header="Optimization" badge="Daily Practice" >}}
 Finding inefficiencies and improving them is not just my job - it's my passion. From **2000% performance improvements** to seamless user experiences.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="users" header="Impact" badge="Purpose" >}}
+{{< timelineItem icon="heart" header="Impact" badge="Purpose" >}}
 Technology should serve people. Every line of code I write aims to make someone's life better, easier, or more productive.
 {{< /timelineItem >}}
 
@@ -50,22 +50,19 @@ Technology should serve people. Every line of code I write aims to make someone'
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
 
-{{< alert "server" >}}
+{{< alert "code" >}}
 **Backend Engineering**
 Scalable systems, microservices, and infrastructure that powers millions of users.
 {{< /alert >}}
-
-{{< alert "brain" >}}
+{{< alert "graduation-cap" >}}
 **Machine Learning**
 AI applications, pattern recognition, and intelligent automation solutions.
 {{< /alert >}}
-
 {{< alert "shield" >}}
 **Cybersecurity**
 CTF competitions, penetration testing, and security-first development practices.
 {{< /alert >}}
-
-{{< alert "gamepad2" >}}
+{{< alert "fire" >}}
 **Gaming Infrastructure**
 High-availability systems for AAA game titles at Demonware/Activision.
 {{< /alert >}}
@@ -85,15 +82,11 @@ High-availability systems for AAA game titles at Demonware/Activision.
 {{< badge >}}
 Emerging Technologies
 {{< /badge >}}
-{{< badge >}}
-Complex Challenges
-{{< /badge >}}
-{{< badge >}}
-Natural Beauty
-{{< /badge >}}
+<br>
 {{< badge >}}
 Human Connections
 {{< /badge >}}
+<br>
 {{< badge >}}
 Continuous Learning
 {{< /badge >}}
@@ -103,11 +96,11 @@ Continuous Learning
 When I'm not building the next generation of technology, you'll find me:
 
 <ul class="space-y-2">
-<li>🚴 <strong>Building electric bicycles</strong> - Combining my love for hardware and sustainable transportation</li>
-<li>🎵 <strong>Producing music</strong> - Creating beats and melodies in FL Studio</li>
-<li>📸 <strong>Photography</strong> - Capturing moments and experimenting with visual storytelling</li>
-<li>🔐 <strong>CTF competitions</strong> - Sharpening my cybersecurity skills with international teams</li>
-<li>🏔️ <strong>Exploring nature</strong> - Finding inspiration in Vancouver's beautiful landscapes</li>
+<li>{{< icon "fire" >}} <strong>Building electric bicycles</strong> - Combining my love for hardware and sustainable transportation</li>
+<li>{{< icon "music" >}} <strong>Producing music</strong> - Creating beats and melodies in FL Studio</li>
+<li>{{< icon "image" >}} <strong>Photography</strong> - Capturing moments and experimenting with visual storytelling</li>
+<li>{{< icon "shield" >}} <strong>CTF competitions</strong> - Sharpening my cybersecurity skills with international teams</li>
+<li>{{< icon "globe" >}} <strong>Exploring nature</strong> - Finding inspiration in Vancouver's beautiful landscapes</li>
 </ul>
 
 ---
@@ -132,6 +125,6 @@ Explore My Projects
 
 ---
 
-{{< alert "coffee" >}}
+{{< alert "mug-hot" >}}
 **Fun Fact**: This website itself is a project I'm passionate about - built with Hugo and constantly evolving with new features and content. Feel free to explore!
 {{< /alert >}}
