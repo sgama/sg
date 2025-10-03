@@ -11,11 +11,11 @@ hideColorSchemeToggle = true
 summaryLength = 0
 title = "Samson Gama"
 
-# Build configuration for optimized JavaScript
+# Asset processing and inlining
 [build]
 
 [build.buildStats]
-enable = true
+enable = false
 
 # Imaging configuration
 [imaging]
@@ -169,12 +169,16 @@ showZenMode = true
 [params.assets]
 bundle = true
 format = "esm"
+# Enable inlining for critical assets
+inline = true
+inlineThreshold = 65536  # Inline assets smaller than 64KB
 minify = true
 target = "es2018"
 
 # JavaScript processing - target modern browsers
 [params.build]
 target = "es2018"
+writeStats = false
 
 [params.footer]
 showAppearanceSwitcher = false
@@ -219,6 +223,14 @@ showLikes = false
 showSummary = false
 showTableOfContents = true
 showViews = false
+
+# Enable asset inlining
+[params.optimization]
+criticalCSS = true
+inlineCSS = true
+inlineJS = true
+# Inline threshold in bytes (64KB default)
+inlineThreshold = 65536
 
 [params.sitemap]
 excludedKinds = ["taxonomy", "term"]
