@@ -1,20 +1,13 @@
-
-# Created by https://www.gitignore.io/api/hugo
-# Edit at https://www.gitignore.io/?templates=hugo
-
-### Hugo ###
 # Generated files by hugo
 /public/
-/resources/_gen/
+/resources/
+.hugo_build.lock
 
-# Executable may be added to repository
+# Executable files may be added to repository
 hugo.exe
 hugo.darwin
 hugo.linux
 
-# End of https://www.gitignore.io/api/hugo
-
+# Development environment files
 .env
 .vscode
-public
-.hugo_build.lock

@@ -1,0 +1,229 @@
+# Hugo Configuration File
+# Consolidated configuration for samsongama.com
+
+baseURL = "sgama.github.io"
+buildDrafts = false
+buildFuture = false
+defaultContentLanguage = "en"
+enableEmoji = true
+enableRobotsTXT = true
+hideColorSchemeToggle = true
+summaryLength = 0
+title = "Samson Gama"
+
+# Module configuration
+[module]
+[[module.imports]]
+disable = false
+path = "github.com/martignoni/hugo-notice"
+
+[[module.imports]]
+disable = false
+path = "github.com/nunocoracao/blowfish/v2"
+
+[module.hugoVersion]
+extended = false
+min = "0.87.0"
+
+# Language configuration
+[languages]
+[languages.en]
+disabled = false
+languageCode = "en"
+languageName = "English"
+title = "Samson Gama"
+weight = 1
+
+[languages.en.params]
+dateFormat = "2 January 2006"
+description = "here for whatever sgama feels like placing here"
+displayName = "EN"
+isoCode = "en"
+logo = "primary_logo.svg"
+rtl = false
+secondaryLogo = "secondary_logo.svg"
+
+[languages.en.params.author]
+bio = "bbb"
+image = "samson.jpg"
+name = "Samson Gama"
+
+[[languages.en.params.author.links]]
+email = "mailto:bahmanalta.ifc@protonmail.com"
+
+[[languages.en.params.author.links]]
+github = "https://github.com/sgama"
+
+[[languages.en.params.author.links]]
+steam = "https://steamcommunity.com/id/sgama/"
+
+# Menu configuration
+[menu]
+[[menu.main]]
+name = "About"
+pageRef = "about"
+weight = 10
+
+[[menu.main]]
+name = "Resume"
+pageRef = "resume"
+weight = 20
+
+[[menu.main]]
+name = "Posts"
+pageRef = "posts"
+weight = 30
+
+# Markup configuration
+[markup]
+[markup.goldmark]
+[markup.goldmark.renderer]
+unsafe = true
+
+[markup.highlight]
+noClasses = false
+
+[markup.tableOfContents]
+endLevel = 4
+startLevel = 1
+
+# Imaging configuration
+[imaging]
+anchor = "Center"
+
+# Output formats
+[outputs]
+home = ["HTML", "RSS", "JSON"]
+
+# Pagination
+[pagination]
+pagerSize = 100
+
+# Related content
+[related]
+indices = [
+  {name = "tags", weight = 100},
+  {name = "categories", weight = 100},
+  {name = "series", weight = 50},
+  {name = "authors", weight = 20},
+  {name = "date", weight = 10},
+  {applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10}
+]
+threshold = 0
+toLower = false
+
+# Sitemap configuration
+[sitemap]
+changefreq = "daily"
+filename = "sitemap.xml"
+priority = 0.5
+
+# Taxonomies
+[taxonomies]
+author = "authors"
+category = "categories"
+series = "series"
+tag = "tags"
+
+# Theme parameters
+[params]
+autoSwitchAppearance = true
+colorScheme = "catppuccin"
+defaultAppearance = "dark"
+defaultBackgroundImage = "background.jpg"
+disableImageOptimization = false
+disableTextInHeader = false
+enableCodeCopy = true
+enableSearch = true
+highlightCurrentMenuArea = true
+mainSections = ["posts"]
+replyByEmail = false
+smartTOC = true
+smartTOCHideUnfocusedChildren = ""
+
+[params.article]
+editAppendPath = true
+heroStyle = "background"
+invertPagination = false
+layoutBackgroundBlur = true
+layoutBackgroundHeaderSpace = true
+seriesOpened = false
+showAuthor = false
+showAuthorsBadges = false
+showBreadcrumbs = true
+showComments = false
+showDate = true
+showDateOnlyInArticle = false
+showDateUpdated = false
+showDraftLabel = true
+showEdit = false
+showHeadingAnchors = true
+showHero = true
+showLikes = false
+showPagination = true
+showReadingTime = true
+showTableOfContents = true
+showTaxonomies = true
+showViews = false
+showWordCount = true
+showZenMode = true
+
+[params.footer]
+showAppearanceSwitcher = false
+showCopyright = true
+showMenu = true
+showScrollToTop = true
+showThemeAttribution = false
+
+[params.header]
+layout = "fixed-fill-blur"
+
+[params.homepage]
+cardView = true
+cardViewScreenWidth = false
+disableHeroImageFilter = false
+layout = "custom"
+layoutBackgroundBlur = true
+showMoreLink = true
+showMoreLinkDest = "/posts/"
+showRecent = true
+showRecentItems = 3
+
+[params.list]
+cardView = true
+cardViewScreenWidth = false
+constrainItemsWidth = true
+groupByYear = false
+heroStyle = "background"
+layoutBackgroundBlur = true
+layoutBackgroundHeaderSpace = false
+orderByWeight = true
+showBreadcrumbs = false
+showCards = true
+showHero = true
+showLikes = false
+showSummary = false
+showTableOfContents = true
+showViews = false
+
+[params.sitemap]
+excludedKinds = ["taxonomy", "term"]
+
+[params.taxonomy]
+cardView = false
+showBreadcrumbs = false
+showHero = true
+showLikes = false
+showTableOfContents = true
+showTermCount = true
+showViews = false
+
+[params.term]
+cardView = ""
+cardViewScreenWidth = false
+groupByYear = false
+showBreadcrumbs = false
+showHero = true
+showLikes = false
+showTableOfContents = true
+showViews = false
