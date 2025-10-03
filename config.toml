@@ -11,6 +11,12 @@ hideColorSchemeToggle = true
 summaryLength = 0
 title = "Samson Gama"
 
+# Build configuration for optimized JavaScript
+[build]
+
+[build.buildStats]
+enable = true
+
 # Imaging configuration
 [imaging]
 anchor = "Center"
@@ -84,6 +90,15 @@ name = "Contact"
 pageRef = "contact"
 weight = 40
 
+# Asset processing
+[minify]
+
+[minify.tdewolff]
+
+[minify.tdewolff.js]
+keepVarNames = true
+precision = 0
+
 [module]
 
 [module.hugoVersion]
@@ -150,6 +165,17 @@ showViews = false
 showWordCount = false
 showZenMode = true
 
+# JavaScript and asset optimization
+[params.assets]
+bundle = true
+format = "esm"
+minify = true
+target = "es2018"
+
+# JavaScript processing - target modern browsers
+[params.build]
+target = "es2018"
+
 [params.footer]
 showAppearanceSwitcher = false
 showCopyright = true
@@ -170,6 +196,12 @@ showMoreLink = true
 showMoreLinkDest = "/posts/"
 showRecent = true
 showRecentItems = 3
+
+# Disable legacy JavaScript features
+[params.js]
+enableLegacyBrowser = false
+enablePolyfills = false
+transpileTarget = "es2018"
 
 [params.list]
 cardView = true

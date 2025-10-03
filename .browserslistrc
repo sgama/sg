@@ -1,0 +1,23 @@
+# Browsers that we support
+# This helps build tools output modern JavaScript for supported browsers
+
+# Modern browsers (ES2018+ support)
+last 2 Chrome versions
+last 2 Firefox versions
+last 2 Safari versions
+last 2 Edge versions
+
+# Exclude legacy browsers to avoid unnecessary transpilation
+not IE 11
+not IE_Mob 11
+not op_mini all
+not Android 4.4.3-4.4.4
+not iOS < 12
+not Chrome < 73
+not Firefox < 67
+not Safari < 12
+not Edge < 79
+
+# Support 95% of users but exclude legacy browsers
+> 1%
+not dead

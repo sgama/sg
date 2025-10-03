@@ -7,11 +7,10 @@ showEdit: false
 showPagination: false
 ---
 
-{{< lead >}}
 **Did we meet somewhere? lol**
 
 I’d love to chat! Just fill out the form, and feel free to share how we met or what brought you to my site.
-{{< /lead >}}
+
 
 <div class="contact-container">
   <div class="contact-card">

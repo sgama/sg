@@ -5,7 +5,7 @@ showDate: false
 showPagination: false
 ---
 
-{{< figure src="/samson.jpg" alt="Samson Gama" caption="Samson Gama - Senior Software Engineer" class="rounded-full mx-auto" width="300" >}}
+{{< figure src="/samson.jpg" alt="Professional headshot photo" caption="Samson Gama - Senior Software Engineer" class="rounded-full mx-auto" width="300" >}}
 
 ## Mission Statement
 
