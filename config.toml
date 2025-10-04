@@ -33,10 +33,10 @@ weight = 1
 
 [languages.en.params]
 dateFormat = "2 January 2006"
-description = "Lorem Ipsum Delor"
+description = ""
 displayName = "EN"
 isoCode = "en"
-logo = "icon.png"
+#logo = "icon.svg"
 rtl = false
 
 [languages.en.params.author]
@@ -76,19 +76,24 @@ pageRef = "about"
 weight = 10
 
 [[menu.main]]
-name = "Resume"
-pageRef = "resume"
+name = "Posts"
+pageRef = "posts"
 weight = 20
 
 [[menu.main]]
-name = "Posts"
-pageRef = "posts"
+name = "Portfolio"
+pageRef = "portfolio"
 weight = 30
+
+[[menu.main]]
+name = "Resume"
+pageRef = "resume"
+weight = 40
 
 [[menu.main]]
 name = "Contact"
 pageRef = "contact"
-weight = 40
+weight = 50
 
 # Asset processing
 [minify]
@@ -134,7 +139,7 @@ enableCodeCopy = true
 enableSearch = true
 enableA11y = true
 highlightCurrentMenuArea = true
-mainSections = ["posts"]
+mainSections = ["portfolio", "posts"]
 replyByEmail = false
 smartTOC = true
 smartTOCHideUnfocusedChildren = ""
@@ -201,7 +206,7 @@ disableHeroImageFilter = false
 layout = "background"
 layoutBackgroundBlur = true
 showMoreLink = true
-showMoreLinkDest = "/posts/"
+showMoreLinkDest = "/portfolio/"
 showRecent = true
 showRecentItems = 3
 

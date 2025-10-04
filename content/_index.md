@@ -1,5 +1,5 @@
 ---
-title: "Hi, I'm Samson :tada:"
+title: "Samson Gama"
 ---
 
 <style>
