@@ -41,7 +41,7 @@ rtl = false
 
 [languages.en.params.author]
 bio = "bbb"
-image = "samson.jpg"
+image = "samson.webp"
 name = "Samson Gama"
 
 [[languages.en.params.author.links]]
@@ -124,14 +124,15 @@ pagerSize = 100
 
 # Theme parameters
 [params]
-autoSwitchAppearance = true
+autoSwitchAppearance = false
 colorScheme = "catppuccin"
 defaultAppearance = "dark"
-defaultBackgroundImage = "background.jpg"
+defaultBackgroundImage = "background.webp"
 disableImageOptimization = false
 disableTextInHeader = false
 enableCodeCopy = true
 enableSearch = true
+enableA11y = true
 highlightCurrentMenuArea = true
 mainSections = ["posts"]
 replyByEmail = false
@@ -145,6 +146,7 @@ invertPagination = false
 layoutBackgroundBlur = true
 layoutBackgroundHeaderSpace = true
 seriesOpened = false
+sharingLinks = ["linkedin", "mastodon", "whatsapp", "email", "facebook"]
 showAuthor = false
 showAuthorsBadges = false
 showBreadcrumbs = true
@@ -159,6 +161,8 @@ showHero = true
 showLikes = false
 showPagination = true
 showReadingTime = false
+showRelatedContent = true
+relatedContentLimit = 3
 showTableOfContents = true
 showTaxonomies = true
 showViews = false
@@ -264,7 +268,7 @@ indices = [
   {name = "date", weight = 10},
   {applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10}
 ]
-threshold = 0
+threshold = 10
 toLower = false
 
 # Sitemap configuration
