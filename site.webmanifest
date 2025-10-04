@@ -1,6 +1,6 @@
 {
     "name": "Samson Gama",
-    "short_name": "SG",
+    "short_name": "SGama",
     "description": "DevOps Engineer, Cybersecurity Professional, and Cloud Architect",
     "icons": [
         {
@@ -14,6 +14,16 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable any"
+        },
+        {
+            "src": "favicon-32x32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "favicon-16x16.png",
+            "sizes": "16x16",
+            "type": "image/png"
         }
     ],
     "theme_color": "#4facfe",
@@ -23,12 +33,43 @@
     "start_url": "/",
     "scope": "/",
     "lang": "en",
-    "categories": ["technology", "portfolio", "blog"],
+    "dir": "ltr",
+    "categories": ["technology", "portfolio", "blog", "productivity", "developer"],
+    "iarc_rating_id": "",
+    "prefer_related_applications": false,
+    "edge_side_panel": {
+        "preferred_width": 400
+    },
     "screenshots": [
         {
             "src": "android-chrome-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Samson Gama Portfolio Homepage"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Portfolio",
+            "short_name": "Portfolio",
+            "description": "View my technical projects and achievements",
+            "url": "/portfolio",
+            "icons": [{ "src": "favicon-32x32.png", "sizes": "32x32" }]
+        },
+        {
+            "name": "Resume",
+            "short_name": "Resume",
+            "description": "View my professional experience",
+            "url": "/resume",
+            "icons": [{ "src": "favicon-32x32.png", "sizes": "32x32" }]
+        },
+        {
+            "name": "Contact",
+            "short_name": "Contact",
+            "description": "Get in touch",
+            "url": "/contact",
+            "icons": [{ "src": "favicon-32x32.png", "sizes": "32x32" }]
         }
     ]
 }
