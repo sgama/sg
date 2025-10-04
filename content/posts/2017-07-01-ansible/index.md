@@ -26,7 +26,7 @@ Now my **1 hour server setup takes 2 minutes** (times may vary based on CPU powe
 ## Key Benefits
 
 - **Time Savings**: Reduced setup time by 97% (60 minutes → 2 minutes)
-- **Consistency**: Every server configured identically 
+- **Consistency**: Every server configured identically
 - **Reproducibility**: Playbooks serve as infrastructure documentation
 - **Error Reduction**: Eliminates manual configuration mistakes
 

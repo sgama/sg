@@ -18,15 +18,16 @@ Without proper alerting, even the best monitoring setup is just pretty dashboard
 When looking at it from a passive monitoring perspective using Prometheus, **AlertManager** is a great service to leverage as it can hook into:
 
 - **Slack** - Instant team notifications
-- **PagerDuty** - Escalation and on-call management  
+- **PagerDuty** - Escalation and on-call management
 - **SMS** - Critical alerts that need immediate attention
 - **Email** - Non-urgent notifications and reports
 
 ## Application Performance Monitoring
 
 Other times you may want to know about business events:
+
 - When a client registers on your SaaS product
-- When a client is attempting to leave  
+- When a client is attempting to leave
 - When specific business thresholds are met
 
 ### Real-World Example: Trading Bot Alerts
@@ -34,11 +35,13 @@ Other times you may want to know about business events:
 In my trading bot implementation:
 
 **Trade Execution Alerts:**
+
 - ✅ Whenever the bot executes a trade → Slack message
-- ⚠️ When a stop-loss is invoked → Slack message  
+- ⚠️ When a stop-loss is invoked → Slack message
 - 🚨 If an error occurs during trade execution → Slack message
 
 **Benefits:**
+
 - **Remote Management**: Restart services if necessary without SSH access
 - **Peace of Mind**: Enjoy your day without constantly checking dashboards
 - **Immediate Response**: Know about issues as they happen, not hours later
@@ -46,13 +49,15 @@ In my trading bot implementation:
 
 ## Smart Alerting Strategy
 
-### What TO Alert On:
+### What TO Alert On
+
 - **Critical System Issues**: Service down, high error rates
 - **Business Events**: Revenue-impacting events, user actions
 - **Performance Degradation**: Response time increases, resource exhaustion
 - **Security Events**: Failed authentications, unusual access patterns
 
-### What NOT to Alert On:
+### What NOT to Alert On
+
 - **Noise**: Temporary blips that self-resolve
 - **Non-actionable**: Metrics you can't do anything about
 - **Over-alerting**: So many alerts that you ignore them all
@@ -60,8 +65,9 @@ In my trading bot implementation:
 ## Implementation Results
 
 This approach allows me to:
+
 - **Avoid SSH sessions** while out and about
-- **Skip opening Kibana** or other monitoring tools constantly  
+- **Skip opening Kibana** or other monitoring tools constantly
 - **Respond quickly** to actual issues
 - **Maintain work-life balance** without sacrificing system reliability
 

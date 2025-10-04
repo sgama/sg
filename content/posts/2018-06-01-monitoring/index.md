@@ -26,26 +26,28 @@ The one I want to discuss today is **passive monitoring**. Unless your career de
 
 While working on my trading bot (as seen in my portfolio), I often found that some parts of my program were going down all the time. It's not a huge issue as with docker-compose or Kubernetes, the service will simply be restarted.
 
-However that's not how microservices are meant to work. The solution to errors are not just "turn it off and on again." 
+However that's not how microservices are meant to work. The solution to errors are not just "turn it off and on again."
 
 **The question becomes**: How would I know if services were restarted?
 
 ## The Solution: Prometheus + AlertManager
 
-One approach is to check Docker or Kubernetes manually, but that's not practical from a phone while in a restaurant. 
+One approach is to check Docker or Kubernetes manually, but that's not practical from a phone while in a restaurant.
 
 **Better approach**: Prometheus with alerting. It can inform me that my services are not behaving as expected and that I should check the logs to debug any further issues.
 
 ### Use Cases
 
 **Performance Monitoring:**
+
 - If your application is unstable during load, you'd want to be alerted if CPU or memory has exceeded some threshold
 - Find bottlenecks or determine if you need to add more resources to your project
 - Requires node-exporter to export node metrics to Prometheus
 
 **Service Health:**
+
 - Automatic restart detection
-- Service availability tracking  
+- Service availability tracking
 - Resource utilization alerts
 - Network connectivity monitoring
 

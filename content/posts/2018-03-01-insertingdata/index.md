@@ -16,7 +16,7 @@ tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "hft", "t
 All data indexed on time:
 
 - **1 minute candle**: `{timestamp, instrument, high, low, open close, volume, trades}` - 1 insert per minute
-- **Individual trade**: `{timestamp, instrument, price, side, type}` - 0-2000 inserts per minute  
+- **Individual trade**: `{timestamp, instrument, price, side, type}` - 0-2000 inserts per minute
 - **Individual order**: `{timestamp, instrument, price, side, type, status}` - 0-5000 inserts per minute
 
 *Note: There will exist one collection/database per exchange as certain exchanges provide more valuable information than others.*
@@ -38,11 +38,13 @@ All data indexed on time:
 ### MongoDB (NoSQL)
 
 **Pros:**
+
 - Handles thousands of inserts per minute really well with batching
-- Queries work seamlessly 
+- Queries work seamlessly
 - Enforcing retention policy through CRON is very easy
 
 **Cons:**
+
 - Consumed excessive memory and disk space as dataset grew
 - **Data loss issues**: After ten million rows, data would start going missing
 - Batch inserts and queries began timing out and failing
@@ -53,11 +55,13 @@ All data indexed on time:
 ### PostgreSQL (SQL)
 
 **Pros:**
+
 - Simple to insert, query, and delete data
 - No missing data observed
 - Reliable data integrity
 
 **Cons:**
+
 - **Performance degradation**: Inserts got slower as tables grew larger
 - Querying and deletion also slowed over time
 - Growing disk space and memory consumption
@@ -68,6 +72,7 @@ All data indexed on time:
 ### InfluxDB (TimeseriesDB)
 
 **Pros:**
+
 - **Purpose-built** for timeseries data - automatically indexed on time
 - **Built-in retention policies** at database level
 - **Never lost data** despite high load
@@ -75,6 +80,7 @@ All data indexed on time:
 - Perfect fit for the use case
 
 **Cons:**
+
 - High memory and CPU consumption
 - Required workaround for same-millisecond timestamps (added match index)
 
