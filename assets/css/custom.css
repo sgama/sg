@@ -7,7 +7,8 @@ html {
     min-height: 100vh;
 }
 
-/* Moving stars background */
+/* Moving stars background - respects accessibility settings */
+/* Only show stars when blur is enabled and motion is not reduced */
 html::before {
     content: '';
     position: fixed;
@@ -32,6 +33,21 @@ html::before {
     animation: starsMove 60s linear infinite;
     pointer-events: none;
     z-index: -1;
+}
+
+/* Disable stars when blur is disabled (Blowfish accessibility toggle) or manual toggle */
+html.disable-blur::before,
+html.disable-stars::before,
+html[data-background-blur="false"]::before {
+    display: none;
+}
+
+/* Disable stars and animation for users who prefer reduced motion (accessibility) */
+@media (prefers-reduced-motion: reduce) {
+    html::before {
+        animation: none;
+        opacity: 0.3; /* Keep stars but make them static and subtle */
+    }
 }
 
 @keyframes starsMove {

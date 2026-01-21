@@ -1,0 +1,27 @@
+{{/* Extended footer partial to add custom accessibility controls */}}
+{{/* Documentation: https://blowfish.page/docs/partials/#extend-footer */}}
+
+{{/* Add custom accessibility toggle for background stars */}}
+{{ if .Site.Params.enableA11y }}
+<script>
+  // Register stars toggle with Blowfish's A11yPanel system
+  if (window.A11yPanel) {
+    window.A11yPanel.addFeature('disableStars', {
+      default: false,
+      apply: (enabled) => {
+        if (enabled) {
+          document.documentElement.classList.add('disable-stars');
+        } else {
+          document.documentElement.classList.remove('disable-stars');
+        }
+      }
+    });
+    
+    // Initialize on load
+    const settings = window.A11yPanel.getSettings();
+    if (settings.disableStars) {
+      document.documentElement.classList.add('disable-stars');
+    }
+  }
+</script>
+{{ end }}
