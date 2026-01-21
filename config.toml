@@ -50,10 +50,10 @@ dir = ":cacheDir/modules"
 maxAge = "720h"
 
 # Imaging configuration - https://gohugo.io/content-management/image-processing/#imaging-configuration
-[imaging]
-anchor = "Center"  # https://gohugo.io/content-management/image-processing/#anchor
-quality = 85  # https://gohugo.io/content-management/image-processing/#quality
-resampleFilter = "Lanczos"  # https://gohugo.io/content-management/image-processing/#resampling-filter
+# [imaging]
+# anchor = "Center"  # https://gohugo.io/content-management/image-processing/#anchor
+# quality = 85  # https://gohugo.io/content-management/image-processing/#quality
+# resampleFilter = "Lanczos"  # https://gohugo.io/content-management/image-processing/#resampling-filter
 
 # EXIF configuration - https://gohugo.io/content-management/image-processing/#exif-data
 [imaging.exif]
