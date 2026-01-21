@@ -248,36 +248,36 @@ useCDN = true  # Set to false to use local assets from theme
 [params.vendor.jquery]
 # CDNJS: https://cdnjs.com/libraries/jquery
 url = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.slim.min.js"
-integrity = "sha512-sNylduh9fqpYUK5OYXWcBleGzbZInWj8yCJAU57r1dpSK9tP2ghf/SRYCMj+KsslFkCOt3TvJrX2AV/Gc3wOqA=="
+integrity = ""  # Removed for speed (less secure)
 
 [params.vendor.mermaid]
 # CDNJS: https://cdnjs.com/libraries/mermaid
 url = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.1/mermaid.min.js"
-integrity = "sha512-foW46rq/3lDGBKj1dW2o/1NPMdGnDEh4dSq3K4faD8gwlqRli6HQl9wSGxuM2P+OTt5I3aL+Ft98MiRCzO6ug=="
+integrity = ""  # Removed for speed (less secure)
 
 [params.vendor.chart]
 # CDNJS: https://cdnjs.com/libraries/Chart.js
 url = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"
-integrity = "sha512-TQInYhW+NrnUrEaONqc+mJmvfmKLY+bmXLQ7ZsYKuB9vJH9FMp0WtRqZ80bHKz9vIoL+XEp8/IjVWkPHiG/TFQ=="
+integrity = ""  # Removed for speed (less secure)
 
 [params.vendor.katex]
 # CDNJS: https://cdnjs.com/libraries/KaTeX
 cssUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css"
-cssIntegrity = "sha512-6FhcOW+qLLnP8LdH4Pf3Gl5HdfVpVkY3h2/Y9NQKC3HMxzT+r5xEYvh50F1+BzMYwlFpvEkvHvCUxqsXqT1hw=="
+cssIntegrity = ""  # Removed for speed (less secure)
 jsUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"
-jsIntegrity = "sha512-zQvNZS3iMHDCzWVCMdVSaCKYVPXfCVCHDpTlpjlb6qJZSbXPbBNzRm3RuSqSqxNNEm/l9QO+SyQhQGVyPNKdg=="
+jsIntegrity = ""  # Removed for speed (less secure)
 autoRenderUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"
-autoRenderIntegrity = "sha512-4Hk6ZY8cFV2rr8dQT+mccILlGST/nWkEVp4N8z/6bZdxaKekBT6SrSvUbKHSJUo/vdRu1c+K5hg3x4n4N4f/A=="
+autoRenderIntegrity = ""  # Removed for speed (less secure)
 
 [params.vendor.typeit]
 # CDNJS: https://cdnjs.com/libraries/typeit
 url = "https://cdnjs.cloudflare.com/ajax/libs/typeit/8.8.7/index.umd.js"
-integrity = "sha512-AMw+iqn0lDjjYBYEuGCPOd1E8dDz8z2gPGm8GVBpfn8yK2Q6aZB+pKLhqzPKcRv3TwPwGpT53flTIzBAfvUfQ=="
+integrity = ""  # Removed for speed (less secure)
 
 [params.vendor.packery]
 # CDNJS: https://cdnjs.com/libraries/packery
 url = "https://cdnjs.cloudflare.com/ajax/libs/packery/2.1.2/packery.pkgd.min.js"
-integrity = "sha512-bKjnr66E8PZu8gOasfmqKNUvhQ+4ZRZmgHaBwJjHFXpGVNDT2VrhC26Qq+SUrTtCVmb/vafM29m25s+L2kcTIg=="
+integrity = ""  # Removed for speed (less secure)
 
 # Footer configuration - https://blowfish.page/docs/configuration/#footer
 [params.footer]
