@@ -23,21 +23,21 @@ repos:
 
   # YAML linting and formatting
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: ['-c=.yamllint.yaml', '-f', 'colored']
 
   # TOML formatting
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.15.0
+    rev: v2.16.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix]
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.45.0
+    rev: v0.47.0
     hooks:
       - id: markdownlint
         args: ['--config=.markdownlint.yaml', '--fix']
@@ -97,7 +97,7 @@ repos:
 
   # Spell checking
   - repo: https://github.com/crate-ci/typos
-    rev: v1
+    rev: v1.28.3
     hooks:
       - id: typos
         args: [--config, .typos.toml]

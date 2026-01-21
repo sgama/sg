@@ -5,20 +5,20 @@ showDate: false
 ---
 
 {{< lead >}}
-Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps. Currently working at Demonware/Activision on scalable gaming infrastructure.
+Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps.
 {{< /lead >}}
 
 ## Professional Experience
 
 {{< timeline >}}
 
-{{< timelineItem icon="globe" header="Senior Service Reliability Engineer" badge="08/2020 - now()" subheader="Demonware / Activision - Vancouver, Canada" >}}
+{{< timelineItem icon="globe" header="Senior Service Reliability Engineer" badge="08/2020-01/2026" subheader="Demonware / Activision - Vancouver, Canada" >}}
 Contribute improvements to the availability, scalability, and efficiency of Demonware's services.<br>
 Improve the infrastructure supporting Demonware's services.<br>
 Troubleshoot issues with Demonware's online services at scale.
 {{< /timelineItem >}}
 
-{{< timelineItem icon="code" header="Senior Software Engineer" badge="10/2018 - 07/2020" subheader="Mastercard - Vancouver, Canada" >}}
+{{< timelineItem icon="code" header="Senior Software Engineer" badge="10/2018-07/2020" subheader="Mastercard - Vancouver, Canada" >}}
 Implemented Infrastructure as Code templates for new projects through AWS CloudFormation and Saltstack.<br>
 Promoted CI/CD practices and automation by automating tedious manual processes.<br>
 Worked with operations to help developers gain more visibility into their projects in production.<br>

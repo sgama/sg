@@ -40,7 +40,7 @@ A modern, responsive personal website built with [Hugo](https://gohugo.io/) and 
 Use the Makefile for common development tasks:
 
 | Command | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `make help` | Show all available commands |
 | `make init` | Initialize git submodules |
 | `make update` | Update git submodules to latest |

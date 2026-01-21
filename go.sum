@@ -1,4 +1,8 @@
 github.com/martignoni/hugo-notice v0.0.0-20250320135530-d7e24b0222d4 h1:rrCIACq6uJVIVqQNSBNukxW4KbH/Hv9VN3nfLbYwClI=
 github.com/martignoni/hugo-notice v0.0.0-20250320135530-d7e24b0222d4/go.mod h1:MIQPOMgEcbyRC0gNLzQFSgrS+wIy3RuQ/HbaZYtTOKU=
+github.com/martignoni/hugo-notice v0.0.0-20260115210225-7d3115657552 h1:azrQlG6B68MqITA3NNvLs8pjoGtvvl3eK41p8KGAWSM=
+github.com/martignoni/hugo-notice v0.0.0-20260115210225-7d3115657552/go.mod h1:MIQPOMgEcbyRC0gNLzQFSgrS+wIy3RuQ/HbaZYtTOKU=
 github.com/nunocoracao/blowfish/v2 v2.90.0 h1:YWPCPA3FjipI5DNaKwd64d8xdQK0Km7scW+OJ4sX9mg=
 github.com/nunocoracao/blowfish/v2 v2.90.0/go.mod h1:4SkMc+Ht8gpQCwArqiHMBDP3soxi2OWuAhVney+cuyk=
+github.com/nunocoracao/blowfish/v2 v2.97.0 h1:ofFBkTQKFDnM5/XVLReuJ6KPzLQFwscEg0dYEebWXvw=
+github.com/nunocoracao/blowfish/v2 v2.97.0/go.mod h1:4SkMc+Ht8gpQCwArqiHMBDP3soxi2OWuAhVney+cuyk=
