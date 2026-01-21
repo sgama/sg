@@ -12,7 +12,7 @@ enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemo
 enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
 enableGitInfo = false  # https://gohugo.io/getting-started/configuration/#enablegitinfo (faster builds)
 hasCJKLanguage = false  # https://gohugo.io/getting-started/configuration/#hascjklanguage
-summaryLength = 30  # https://gohugo.io/getting-started/configuration/#summarylength
+summaryLength = 20  # Lower = faster processing (20 words instead of 30)
 timeout = "30s"  # https://gohugo.io/getting-started/configuration/#timeout
 title = "Samson Gama"
 
@@ -49,11 +49,15 @@ maxAge = "720h"  # 30 days for images
 dir = ":cacheDir/modules"
 maxAge = "720h"
 
+# [caches.gettext]
+# dir = ":cacheDir/:project"
+# maxAge = "720h"  # Cache i18n translations
+
 # Imaging configuration - https://gohugo.io/content-management/image-processing/#imaging-configuration
 # [imaging]
-# anchor = "Center"  # https://gohugo.io/content-management/image-processing/#anchor
-# quality = 85  # https://gohugo.io/content-management/image-processing/#quality
-# resampleFilter = "Lanczos"  # https://gohugo.io/content-management/image-processing/#resampling-filter
+# anchor = "Smart"  # Smart cropping for better results
+# quality = 80  # Slightly lower for smaller files (80 vs 85)
+# resampleFilter = "Box"  # Faster than Lanczos, good quality for downscaling
 
 # EXIF configuration - https://gohugo.io/content-management/image-processing/#exif-data
 [imaging.exif]
@@ -93,23 +97,46 @@ name = "Samson Gama"
 
 # Minification configuration - https://gohugo.io/getting-started/configuration/#configure-minify
 [minify]
+disableCSS = false
+disableHTML = false
+disableJS = false
+disableJSON = false
+disableSVG = false
+disableXML = false
+minifyOutput = true
+
 [minify.tdewolff]
-[minify.tdewolff.html]
-keepWhitespace = false
 
 [minify.tdewolff.css]
+inline = true  # Inline @import and url() for smaller output
+precision = 1  # Lower precision = smaller files
 version = 3  # Use CSS3+ (more modern, smaller output)
-precision = 2  # Decimal precision for numbers
+
+[minify.tdewolff.html]
+keepComments = false
+keepDefaultAttrVals = true
+keepDocumentTags = true
+keepEndTags = true
+keepQuotes = false
+keepSpecialComments = true
+keepWhitespace = false
+templateDelims = ['', '']
 
 [minify.tdewolff.js]
-precision = 2
 keepVarNames = false  # Minify variable names
+precision = 2
+version = 2022
 
 [minify.tdewolff.json]
-precision = 0
+keepNumbers = false  # Convert numbers to shorter forms
+precision = 0  # No decimal places in output
 
 [minify.tdewolff.svg]
+keepComments = false
 precision = 2
+
+[minify.tdewolff.xml]
+keepWhitespace = false
 
 # Markup configuration - https://gohugo.io/getting-started/configuration-markup/
 [markup]
@@ -188,7 +215,7 @@ term = ["HTML"]
 
 # Pagination - https://gohugo.io/templates/pagination/
 [pagination]
-pagerSize = 100
+pagerSize = 50  # Lower = fewer pages to generate = faster builds
 
 # Blowfish theme parameters - https://blowfish.page/docs/configuration/#theme-parameters
 [params]
