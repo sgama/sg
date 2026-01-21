@@ -94,20 +94,11 @@ name = "Contact"
 pageRef = "contact"
 weight = 50
 
-# Asset processing
-[minify]
-
-[minify.tdewolff]
-
-[minify.tdewolff.js]
-keepVarNames = true
-precision = 0
-
 [module]
-
 [module.hugoVersion]
-extended = false
-min = "0.87.0"
+extended = true
+min = "0.141.0"
+max = "0.154.5"
 
 # Module configuration
 [[module.imports]]
@@ -133,6 +124,7 @@ colorScheme = "catppuccin"
 defaultAppearance = "dark"
 defaultBackgroundImage = "background.webp"
 disableImageOptimization = false
+disableImageOptimizationMD = false
 disableTextInHeader = false
 enableA11y = true
 enableCodeCopy = true

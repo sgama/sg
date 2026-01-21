@@ -1,5 +1,6 @@
 ---
 title: "Samson Gama"
+description: "Portfolio"
 ---
 
 <style>
