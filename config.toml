@@ -64,7 +64,7 @@ maxAge = "720h"
 
 # EXIF configuration - https://gohugo.io/content-management/image-processing/#exif-data
 [imaging.exif]
-disableDate = false
+disableDate = true
 disableLatLong = true  # Privacy + smaller metadata
 excludeFields = "GPS"
 
