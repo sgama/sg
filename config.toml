@@ -10,8 +10,8 @@ buildFuture = false  # https://gohugo.io/getting-started/configuration/#buildfut
 cleanDestinationDir = true  # https://gohugo.io/getting-started/configuration/#cleandestinationdir
 defaultContentLanguage = "en"  # https://gohugo.io/getting-started/configuration/#defaultcontentlanguage
 enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemoji
-enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
 enableGitInfo = false  # https://gohugo.io/getting-started/configuration/#enablegitinfo (faster builds)
+enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
 hasCJKLanguage = false  # https://gohugo.io/getting-started/configuration/#hascjklanguage
 summaryLength = 20  # Lower = faster processing (20 words instead of 30)
 timeout = "30s"  # https://gohugo.io/getting-started/configuration/#timeout
@@ -22,12 +22,13 @@ title = "Samson Gama"
 useResourceCacheWhen = "always"  # https://gohugo.io/getting-started/configuration/#configure-build
 
 [build.buildStats]
-enable = false
 disableKinds = []  # Don't disable any content kinds
+enable = false
 writeStats = false  # Don't write build stats
 
 # Cache configuration - https://gohugo.io/getting-started/configuration/#configure-file-caches
 [caches]
+
 [caches.assets]
 dir = ":resourceDir/_gen"
 maxAge = "24h"
@@ -51,16 +52,6 @@ maxAge = "720h"  # 30 days for images
 [caches.modules]
 dir = ":cacheDir/modules"
 maxAge = "720h"
-
-# [caches.gettext]
-# dir = ":cacheDir/:project"
-# maxAge = "720h"  # Cache i18n translations
-
-# Imaging configuration - https://gohugo.io/content-management/image-processing/#imaging-configuration
-# [imaging]
-# anchor = "Smart"  # Smart cropping for better results
-# quality = 80  # Slightly lower for smaller files (80 vs 85)
-# resampleFilter = "Box"  # Faster than Lanczos, good quality for downscaling
 
 # EXIF configuration - https://gohugo.io/content-management/image-processing/#exif-data
 [imaging.exif]
@@ -90,13 +81,63 @@ rtl = false
 bio = "Samson Gama is a software developer, tech enthusiast, and lifelong learner with a passion for creating innovative solutions and sharing knowledge through writing and collaboration."
 image = "samson.webp"
 links = [
-  { github = "https://github.com/sgama" },
-  { instagram = "https://instagram.com/watts.up.ohmie" },
-  { linkedin = "https://linkedin.com/in/samsongama" },
-  { signal = "https://signal.me/#eu/3unmmwMbX_hNPWywXwlHuZQYNwPRI0vaqlVAZuVjVazezrt-onhIxY5ATPn2ZFjg" },
-  { spotify = "https://open.spotify.com/user/+samson" },
+  {github = "https://github.com/sgama"},
+  {instagram = "https://instagram.com/watts.up.ohmie"},
+  {linkedin = "https://linkedin.com/in/samsongama"},
+  {signal = "https://signal.me/#eu/3unmmwMbX_hNPWywXwlHuZQYNwPRI0vaqlVAZuVjVazezrt-onhIxY5ATPn2ZFjg"},
+  {spotify = "https://open.spotify.com/user/+samson"}
 ]
 name = "Samson Gama"
+
+# Markup configuration - https://gohugo.io/getting-started/configuration-markup/
+[markup]
+
+# Goldmark (Markdown renderer) - https://gohugo.io/getting-started/configuration-markup/#goldmark
+[markup.goldmark]
+
+[markup.goldmark.parser]
+autoHeadingID = true  # https://gohugo.io/getting-started/configuration-markup/#goldmark
+autoHeadingIDType = "github"
+wrapStandAloneImageWithinParagraph = false
+
+[markup.goldmark.renderer]
+hardWraps = false
+unsafe = true  # https://gohugo.io/getting-started/configuration-markup/#goldmark
+
+# Syntax highlighting - https://gohugo.io/getting-started/configuration-markup/#highlight
+[markup.highlight]
+noClasses = false
+
+[markup.tableOfContents]
+endLevel = 4
+startLevel = 1
+
+[menu]
+
+[[menu.main]]
+name = "About"
+pageRef = "about"
+weight = 10
+
+[[menu.main]]
+name = "Posts"
+pageRef = "posts"
+weight = 20
+
+[[menu.main]]
+name = "Portfolio"
+pageRef = "portfolio"
+weight = 30
+
+[[menu.main]]
+name = "Resume"
+pageRef = "resume"
+weight = 40
+
+[[menu.main]]
+name = "Contact"
+pageRef = "contact"
+weight = 50
 
 # Minification configuration - https://gohugo.io/getting-started/configuration/#configure-minify
 [minify]
@@ -140,57 +181,6 @@ precision = 2
 
 [minify.tdewolff.xml]
 keepWhitespace = false
-
-# Markup configuration - https://gohugo.io/getting-started/configuration-markup/
-[markup]
-
-# Goldmark (Markdown renderer) - https://gohugo.io/getting-started/configuration-markup/#goldmark
-[markup.goldmark]
-
-[markup.goldmark.parser]
-autoHeadingID = true  # https://gohugo.io/getting-started/configuration-markup/#goldmark
-autoHeadingIDType = "github"
-wrapStandAloneImageWithinParagraph = false
-
-[markup.goldmark.renderer]
-unsafe = true  # https://gohugo.io/getting-started/configuration-markup/#goldmark
-hardWraps = false
-
-# Syntax highlighting - https://gohugo.io/getting-started/configuration-markup/#highlight
-[markup.highlight]
-noClasses = false
-
-[markup.tableOfContents]
-endLevel = 4
-startLevel = 1
-
-# Menu configuration - https://gohugo.io/content-management/menus/
-[menu]
-
-[[menu.main]]
-name = "About"
-pageRef = "about"
-weight = 10
-
-[[menu.main]]
-name = "Posts"
-pageRef = "posts"
-weight = 20
-
-[[menu.main]]
-name = "Portfolio"
-pageRef = "portfolio"
-weight = 30
-
-[[menu.main]]
-name = "Resume"
-pageRef = "resume"
-weight = 40
-
-[[menu.main]]
-name = "Contact"
-pageRef = "contact"
-weight = 50
 
 # Hugo Modules - https://gohugo.io/hugo-modules/configuration/
 [module]
@@ -340,12 +330,12 @@ showViews = false
 [related]
 includeNewer = true
 indices = [
-  { name = "tags", weight = 100 },
-  { name = "categories", weight = 100 },
-  { name = "series", weight = 50 },
-  { name = "authors", weight = 20 },
-  { name = "date", weight = 10 },
-  { applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10 },
+  {name = "tags", weight = 100},
+  {name = "categories", weight = 100},
+  {name = "series", weight = 50},
+  {name = "authors", weight = 20},
+  {name = "date", weight = 10},
+  {applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10}
 ]
 threshold = 50  # Higher threshold = fewer related items = faster
 toLower = true  # Normalize for better matches
