@@ -1,9 +1,7 @@
-{{/* jQuery - Only load if gallery shortcode is used */}}
-{{ if .Page.HasShortcode "gallery" }}
+{{/* jQuery */}}
 {{ $jqueryLib := resources.Get "lib/jquery/jquery.slim.min.js" | resources.Fingerprint
 (.Site.Params.fingerprintAlgorithm | default "sha512") }}
 <script defer src="{{ $jqueryLib.RelPermalink }}" integrity="{{ $jqueryLib.Data.Integrity }}"></script>
-{{ end }}
 
 {{/* Mermaid */}}
 {{ if .Page.HasShortcode "mermaid" }}
@@ -126,6 +124,6 @@ default "sha512") }}
 {{ if .Page.HasShortcode "tabs" }}
 {{ $tabJS := resources.Get "js/shortcodes/tabs.js" }}
 {{ with $tabJS | minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm | default "sha512") }}
-<script defer src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+<script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
 {{ end }}
 {{ end }}
