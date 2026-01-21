@@ -1,28 +1,67 @@
 # Hugo Configuration File
 # Consolidated configuration for samsongama.com
+# Documentation: https://gohugo.io/getting-started/configuration/
+# Blowfish Theme: https://blowfish.page/docs/configuration/
 
+# Base configuration - https://gohugo.io/getting-started/configuration/#all-configuration-settings
 baseURL = "https://samsongama.com"
-buildDrafts = false
-buildFuture = false
-defaultContentLanguage = "en"
-enableEmoji = true
-enableRobotsTXT = true
-hasCJKLanguage = false
-hideColorSchemeToggle = false
-summaryLength = 30
+buildDrafts = false  # https://gohugo.io/getting-started/configuration/#builddrafts
+buildFuture = false  # https://gohugo.io/getting-started/configuration/#buildfuture
+defaultContentLanguage = "en"  # https://gohugo.io/getting-started/configuration/#defaultcontentlanguage
+enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemoji
+enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
+enableGitInfo = false  # https://gohugo.io/getting-started/configuration/#enablegitinfo (faster builds)
+hasCJKLanguage = false  # https://gohugo.io/getting-started/configuration/#hascjklanguage
+summaryLength = 30  # https://gohugo.io/getting-started/configuration/#summarylength
+timeout = "30s"  # https://gohugo.io/getting-started/configuration/#timeout
 title = "Samson Gama"
 
-# Asset processing and inlining
+# Build configuration - https://gohugo.io/getting-started/configuration/#configure-build
 [build]
+useResourceCacheWhen = "always"  # https://gohugo.io/getting-started/configuration/#configure-build
 
 [build.buildStats]
 enable = false
 
-# Imaging configuration
-[imaging]
-anchor = "Center"
+# Cache configuration - https://gohugo.io/getting-started/configuration/#configure-file-caches
+[caches]
+[caches.assets]
+dir = ":resourceDir/_gen"
+maxAge = "24h"
 
-# Language configuration
+[caches.getcsv]
+dir = ":cacheDir/:project"
+maxAge = "24h"
+
+[caches.getjson]
+dir = ":cacheDir/:project"
+maxAge = "24h"
+
+[caches.getresource]
+dir = ":cacheDir/:project"
+maxAge = "24h"
+
+[caches.images]
+dir = ":resourceDir/_gen"
+maxAge = "720h"  # 30 days for images
+
+[caches.modules]
+dir = ":cacheDir/modules"
+maxAge = "720h"
+
+# Imaging configuration - https://gohugo.io/content-management/image-processing/#imaging-configuration
+[imaging]
+anchor = "Center"  # https://gohugo.io/content-management/image-processing/#anchor
+quality = 85  # https://gohugo.io/content-management/image-processing/#quality
+resampleFilter = "Lanczos"  # https://gohugo.io/content-management/image-processing/#resampling-filter
+
+# EXIF configuration - https://gohugo.io/content-management/image-processing/#exif-data
+[imaging.exif]
+disableDate = false
+disableLatLong = true  # Privacy + smaller metadata
+excludeFields = "GPS"
+
+# Language configuration - https://gohugo.io/content-management/multilingual/
 [languages]
 
 [languages.en]
@@ -41,7 +80,7 @@ isoCode = "en"
 rtl = false
 
 [languages.en.params.author]
-bio = "bbb"
+bio = "Samson Gama is a software developer, tech enthusiast, and lifelong learner with a passion for creating innovative solutions and sharing knowledge through writing and collaboration."
 image = "samson.webp"
 links = [
   { github = "https://github.com/sgama" },
@@ -52,14 +91,42 @@ links = [
 ]
 name = "Samson Gama"
 
-# Markup configuration
+# Minification configuration - https://gohugo.io/getting-started/configuration/#configure-minify
+[minify]
+[minify.tdewolff]
+[minify.tdewolff.html]
+keepWhitespace = false
+
+[minify.tdewolff.css]
+version = 3  # Use CSS3+ (more modern, smaller output)
+precision = 2  # Decimal precision for numbers
+
+[minify.tdewolff.js]
+precision = 2
+keepVarNames = false  # Minify variable names
+
+[minify.tdewolff.json]
+precision = 0
+
+[minify.tdewolff.svg]
+precision = 2
+
+# Markup configuration - https://gohugo.io/getting-started/configuration-markup/
 [markup]
 
+# Goldmark (Markdown renderer) - https://gohugo.io/getting-started/configuration-markup/#goldmark
 [markup.goldmark]
 
-[markup.goldmark.renderer]
-unsafe = true
+[markup.goldmark.parser]
+autoHeadingID = true  # https://gohugo.io/getting-started/configuration-markup/#goldmark
+autoHeadingIDType = "github"
+wrapStandAloneImageWithinParagraph = false
 
+[markup.goldmark.renderer]
+unsafe = true  # https://gohugo.io/getting-started/configuration-markup/#goldmark
+hardWraps = false
+
+# Syntax highlighting - https://gohugo.io/getting-started/configuration-markup/#highlight
 [markup.highlight]
 noClasses = false
 
@@ -67,6 +134,7 @@ noClasses = false
 endLevel = 4
 startLevel = 1
 
+# Menu configuration - https://gohugo.io/content-management/menus/
 [menu]
 
 [[menu.main]]
@@ -94,6 +162,7 @@ name = "Contact"
 pageRef = "contact"
 weight = 50
 
+# Hugo Modules - https://gohugo.io/hugo-modules/configuration/
 [module]
 
 [module.hugoVersion]
@@ -101,44 +170,49 @@ extended = true
 max = "0.154.5"
 min = "0.141.0"
 
-# Module configuration
+# Theme and module imports - https://gohugo.io/hugo-modules/use-modules/
 [[module.imports]]
 disable = false
-path = "github.com/martignoni/hugo-notice"
+path = "github.com/martignoni/hugo-notice"  # Notice shortcode
 
 [[module.imports]]
 disable = false
-path = "github.com/nunocoracao/blowfish/v2"
+path = "github.com/nunocoracao/blowfish/v2"  # Main theme
 
-# Output formats
+# Output formats - https://gohugo.io/templates/output-formats/
 [outputs]
-home = ["HTML", "RSS", "JSON"]
+home = ["HTML", "RSS", "JSON"]  # JSON needed for search
+section = ["HTML", "RSS"]
+taxonomy = ["HTML"]
+term = ["HTML"]
 
-# Pagination
+# Pagination - https://gohugo.io/templates/pagination/
 [pagination]
 pagerSize = 100
 
-# Theme parameters
+# Blowfish theme parameters - https://blowfish.page/docs/configuration/#theme-parameters
 [params]
-autoSwitchAppearance = false
-colorScheme = "catppuccin"
-defaultAppearance = "dark"
+autoSwitchAppearance = false  # https://blowfish.page/docs/configuration/#appearance
+colorScheme = "catppuccin"  # https://blowfish.page/docs/configuration/#color-schemes
+defaultAppearance = "dark"  # https://blowfish.page/docs/configuration/#appearance
 defaultBackgroundImage = "background.webp"
-disableImageOptimization = false
+disableImageOptimization = false  # Keep false to use Hugo's optimization
 disableImageOptimizationMD = false
 disableTextInHeader = false
 enableA11y = true
 enableCodeCopy = true
-enableSearch = true
+enableSearch = true  # https://blowfish.page/docs/partials/#search
+fingerprintAlgorithm = "sha256"  # Faster than sha512
 highlightCurrentMenuArea = true
-mainSections = ["portfolio", "posts"]
+mainSections = ["portfolio", "posts"]  # https://gohugo.io/methods/site/mainsections/
 replyByEmail = false
 smartTOC = true
 smartTOCHideUnfocusedChildren = ""
 
+# Article layout - https://blowfish.page/docs/content-examples/#articles
 [params.article]
 editAppendPath = true
-heroStyle = "background"
+heroStyle = "background"  # Options: basic, big, background, thumbAndBackground
 invertPagination = false
 layoutBackgroundBlur = true
 layoutBackgroundHeaderSpace = true
@@ -166,38 +240,28 @@ showViews = false
 showWordCount = false
 showZenMode = true
 
-# JavaScript and asset optimization
-[params.assets]
-bundle = true
-format = "esm"
-# Enable inlining for critical assets
-inline = true
-inlineThreshold = 1048576 # 1MB
-minify = true
-target = "es2018"
-
-# JavaScript processing - target modern browsers
-[params.build]
-target = "es2018"
-writeStats = false
-
-# CDN configuration for vendor libraries
+# Custom CDN configuration for vendor libraries (custom override)
+# See: layouts/partials/vendor.html for implementation
 [params.vendor]
-useCDN = true # Set to false to use local assets from theme
+useCDN = true  # Set to false to use local assets from theme
 
 [params.vendor.jquery]
+# CDNJS: https://cdnjs.com/libraries/jquery
 url = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.slim.min.js"
 integrity = "sha512-sNylduh9fqpYUK5OYXWcBleGzbZInWj8yCJAU57r1dpSK9tP2ghf/SRYCMj+KsslFkCOt3TvJrX2AV/Gc3wOqA=="
 
 [params.vendor.mermaid]
+# CDNJS: https://cdnjs.com/libraries/mermaid
 url = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.1/mermaid.min.js"
 integrity = "sha512-foW46rq/3lDGBKj1dW2o/1NPMdGnDEh4dSq3K4faD8gwlqRli6HQl9wSGxuM2P+OTt5I3aL+Ft98MiRCzO6ug=="
 
 [params.vendor.chart]
+# CDNJS: https://cdnjs.com/libraries/Chart.js
 url = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"
 integrity = "sha512-TQInYhW+NrnUrEaONqc+mJmvfmKLY+bmXLQ7ZsYKuB9vJH9FMp0WtRqZ80bHKz9vIoL+XEp8/IjVWkPHiG/TFQ=="
 
 [params.vendor.katex]
+# CDNJS: https://cdnjs.com/libraries/KaTeX
 cssUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css"
 cssIntegrity = "sha512-6FhcOW+qLLnP8LdH4Pf3Gl5HdfVpVkY3h2/Y9NQKC3HMxzT+r5xEYvh50F1+BzMYwlFpvEkvHvCUxqsXqT1hw=="
 jsUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"
@@ -206,13 +270,16 @@ autoRenderUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/au
 autoRenderIntegrity = "sha512-4Hk6ZY8cFV2rr8dQT+mccILlGST/nWkEVp4N8z/6bZdxaKekBT6SrSvUbKHSJUo/vdRu1c+K5hg3x4n4N4f/A=="
 
 [params.vendor.typeit]
+# CDNJS: https://cdnjs.com/libraries/typeit
 url = "https://cdnjs.cloudflare.com/ajax/libs/typeit/8.8.7/index.umd.js"
 integrity = "sha512-AMw+iqn0lDjjYBYEuGCPOd1E8dDz8z2gPGm8GVBpfn8yK2Q6aZB+pKLhqzPKcRv3TwPwGpT53flTIzBAfvUfQ=="
 
 [params.vendor.packery]
+# CDNJS: https://cdnjs.com/libraries/packery
 url = "https://cdnjs.cloudflare.com/ajax/libs/packery/2.1.2/packery.pkgd.min.js"
 integrity = "sha512-bKjnr66E8PZu8gOasfmqKNUvhQ+4ZRZmgHaBwJjHFXpGVNDT2VrhC26Qq+SUrTtCVmb/vafM29m25s+L2kcTIg=="
 
+# Footer configuration - https://blowfish.page/docs/configuration/#footer
 [params.footer]
 showAppearanceSwitcher = false
 showCopyright = true
@@ -220,9 +287,11 @@ showMenu = true
 showScrollToTop = true
 showThemeAttribution = false
 
+# Header configuration - https://blowfish.page/docs/configuration/#header
 [params.header]
-layout = "fixed-fill-blur"
+layout = "fixed-fill-blur"  # Options: basic, fixed, fixed-fill, fixed-gradient, fixed-fill-blur
 
+# Homepage configuration - https://blowfish.page/docs/homepage-layout/
 [params.homepage]
 cardView = true
 cardViewScreenWidth = false
@@ -234,12 +303,7 @@ showMoreLinkDest = "/portfolio/"
 showRecent = true
 showRecentItems = 3
 
-# Disable legacy JavaScript features
-[params.js]
-enableLegacyBrowser = false
-enablePolyfills = false
-transpileTarget = "es2018"
-
+# List layout - https://blowfish.page/docs/content-examples/#list-layouts
 [params.list]
 cardView = true
 cardViewScreenWidth = false
@@ -256,17 +320,11 @@ showSummary = false
 showTableOfContents = true
 showViews = false
 
-# Enable asset inlining
-[params.optimization]
-criticalCSS = true
-inlineCSS = true
-inlineJS = true
-# Inline threshold in bytes (64KB default)
-inlineThreshold = 65536
-
+# Sitemap parameters - https://blowfish.page/docs/configuration/#sitemap
 [params.sitemap]
 excludedKinds = ["taxonomy", "term"]
 
+# Taxonomy layout - https://blowfish.page/docs/content-examples/#taxonomies
 [params.taxonomy]
 cardView = false
 showBreadcrumbs = false
@@ -276,6 +334,7 @@ showTableOfContents = true
 showTermCount = true
 showViews = false
 
+# Term layout - https://blowfish.page/docs/content-examples/#taxonomy-terms
 [params.term]
 cardView = ""
 cardViewScreenWidth = false
@@ -286,8 +345,9 @@ showLikes = false
 showTableOfContents = true
 showViews = false
 
-# Related content
+# Related content - https://gohugo.io/content-management/related/
 [related]
+includeNewer = true
 indices = [
   { name = "tags", weight = 100 },
   { name = "categories", weight = 100 },
@@ -296,16 +356,16 @@ indices = [
   { name = "date", weight = 10 },
   { applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10 },
 ]
-threshold = 10
-toLower = false
+threshold = 50  # Higher threshold = fewer related items = faster
+toLower = true  # Normalize for better matches
 
-# Sitemap configuration
+# Sitemap configuration - https://gohugo.io/templates/sitemap-template/#configuration
 [sitemap]
 changefreq = "daily"
 filename = "sitemap.xml"
 priority = 0.5
 
-# Taxonomies
+# Taxonomies - https://gohugo.io/content-management/taxonomies/
 [taxonomies]
 author = "authors"
 category = "categories"
