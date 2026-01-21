@@ -42,17 +42,6 @@ repos:
       - id: markdownlint
         args: ['--config=.markdownlint.yaml', '--fix']
 
-  # HTML validation for Hugo templates
-  - repo: https://github.com/Riverside-Healthcare/djLint
-    rev: v1.36.4
-    hooks:
-      - id: djlint-reformat-django
-        files: \.html$
-        args: [--profile=django, --max-line-length=120]
-      - id: djlint-django
-        files: \.html$
-        args: [--profile=django, --max-line-length=120]
-
   # Hugo specific checks
   - repo: local
     hooks:

@@ -8,7 +8,8 @@ defaultContentLanguage = "en"
 enableEmoji = true
 enableRobotsTXT = true
 hideColorSchemeToggle = true
-summaryLength = 0
+summaryLength = 30
+hasCJKLanguage = false
 title = "Samson Gama"
 
 # Asset processing and inlining
@@ -43,11 +44,11 @@ rtl = false
 bio = "bbb"
 image = "samson.webp"
 links = [
-  {github = "https://github.com/sgama"},
-  {instagram = "https://instagram.com/watts.up.ohmie"},
-  {linkedin = "https://linkedin.com/in/samsongama"},
-  {signal = "https://signal.me/#eu/3unmmwMbX_hNPWywXwlHuZQYNwPRI0vaqlVAZuVjVazezrt-onhIxY5ATPn2ZFjg"},
-  {spotify = "https://open.spotify.com/user/+samson"}
+    { github = "https://github.com/sgama" },
+    { instagram = "https://instagram.com/watts.up.ohmie" },
+    { linkedin = "https://linkedin.com/in/samsongama" },
+    { signal = "https://signal.me/#eu/3unmmwMbX_hNPWywXwlHuZQYNwPRI0vaqlVAZuVjVazezrt-onhIxY5ATPn2ZFjg" },
+    { spotify = "https://open.spotify.com/user/+samson" },
 ]
 name = "Samson Gama"
 
@@ -178,7 +179,7 @@ bundle = true
 format = "esm"
 # Enable inlining for critical assets
 inline = true
-inlineThreshold = 65536  # Inline assets smaller than 64KB
+inlineThreshold = 65536 # Inline assets smaller than 64KB
 minify = true
 target = "es2018"
 
@@ -264,12 +265,12 @@ showViews = false
 # Related content
 [related]
 indices = [
-  {name = "tags", weight = 100},
-  {name = "categories", weight = 100},
-  {name = "series", weight = 50},
-  {name = "authors", weight = 20},
-  {name = "date", weight = 10},
-  {applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10}
+    { name = "tags", weight = 100 },
+    { name = "categories", weight = 100 },
+    { name = "series", weight = 50 },
+    { name = "authors", weight = 20 },
+    { name = "date", weight = 10 },
+    { applyFilter = false, name = "fragmentrefs", type = "fragments", weight = 10 },
 ]
 threshold = 10
 toLower = false
