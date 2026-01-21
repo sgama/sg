@@ -8,4 +8,4 @@ showPagination: false
 layout: "cardview"
 ---
 
-My technical projects and professional achievements across backend engineering, cybersecurity, and DevOps.
+My technical projects and professional achievements across backend engineering, cybersecurity, and DevOps. LLMOps on the way.
