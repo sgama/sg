@@ -171,7 +171,7 @@ bundle = true
 format = "esm"
 # Enable inlining for critical assets
 inline = true
-inlineThreshold = 65536 # Inline assets smaller than 64KB
+inlineThreshold = 1024
 minify = true
 target = "es2018"
 
