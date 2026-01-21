@@ -4,8 +4,6 @@ description: "Portfolio"
 ---
 
 <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap');
-
         /* Modern CSS Custom Properties */
         :root {
             --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
