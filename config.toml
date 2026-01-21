@@ -7,6 +7,7 @@
 baseURL = "https://samsongama.com"
 buildDrafts = false  # https://gohugo.io/getting-started/configuration/#builddrafts
 buildFuture = false  # https://gohugo.io/getting-started/configuration/#buildfuture
+cleanDestinationDir = true  # https://gohugo.io/getting-started/configuration/#cleandestinationdir
 defaultContentLanguage = "en"  # https://gohugo.io/getting-started/configuration/#defaultcontentlanguage
 enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemoji
 enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
@@ -22,6 +23,8 @@ useResourceCacheWhen = "always"  # https://gohugo.io/getting-started/configurati
 
 [build.buildStats]
 enable = false
+disableKinds = []  # Don't disable any content kinds
+writeStats = false  # Don't write build stats
 
 # Cache configuration - https://gohugo.io/getting-started/configuration/#configure-file-caches
 [caches]
