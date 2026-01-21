@@ -240,45 +240,6 @@ showViews = false
 showWordCount = false
 showZenMode = true
 
-# Custom CDN configuration for vendor libraries (custom override)
-# See: layouts/partials/vendor.html for implementation
-[params.vendor]
-useCDN = true  # Set to false to use local assets from theme
-
-[params.vendor.jquery]
-# CDNJS: https://cdnjs.com/libraries/jquery
-url = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.slim.min.js"
-integrity = ""  # Removed for speed (less secure)
-
-[params.vendor.mermaid]
-# CDNJS: https://cdnjs.com/libraries/mermaid
-url = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.4.1/mermaid.min.js"
-integrity = ""  # Removed for speed (less secure)
-
-[params.vendor.chart]
-# CDNJS: https://cdnjs.com/libraries/Chart.js
-url = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"
-integrity = ""  # Removed for speed (less secure)
-
-[params.vendor.katex]
-# CDNJS: https://cdnjs.com/libraries/KaTeX
-cssUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css"
-cssIntegrity = ""  # Removed for speed (less secure)
-jsUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"
-jsIntegrity = ""  # Removed for speed (less secure)
-autoRenderUrl = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"
-autoRenderIntegrity = ""  # Removed for speed (less secure)
-
-[params.vendor.typeit]
-# CDNJS: https://cdnjs.com/libraries/typeit
-url = "https://cdnjs.cloudflare.com/ajax/libs/typeit/8.8.7/index.umd.js"
-integrity = ""  # Removed for speed (less secure)
-
-[params.vendor.packery]
-# CDNJS: https://cdnjs.com/libraries/packery
-url = "https://cdnjs.cloudflare.com/ajax/libs/packery/2.1.2/packery.pkgd.min.js"
-integrity = ""  # Removed for speed (less secure)
-
 # Footer configuration - https://blowfish.page/docs/configuration/#footer
 [params.footer]
 showAppearanceSwitcher = false
