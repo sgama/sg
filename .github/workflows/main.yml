@@ -43,7 +43,18 @@ jobs:
         run: |
           # Install optimization tools
           npm install -g purgecss html-minifier-terser svgo
-
+          
+          # Remove unused CSS with safelist for Hugo/Blowfish dynamic classes
+          for cssfile in public/css/*.css; do
+            if [ -f "$cssfile" ]; then
+              purgecss --css "$cssfile" \
+                --content 'public/**/*.html' \
+                --safelist 'active' 'dark' 'light' 'prose' 'max-w' 'mx-auto' 'grid' 'flex' 'hidden' 'block' \
+                --safelist-patterns '/data-/' '/aria-/' '/alpine/' '/x-/' '/transition/' '/duration/' '/ease/' '/scale/' '/opacity/' '/rotate/' '/translate/' \
+                --output "${cssfile%.css}.purged.css"
+              mv "${cssfile%.css}.purged.css" "$cssfile"
+            fi
+          done
           
           # Further minify HTML
           find public -name "*.html" -type f -exec html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js true {} -o {} \;
