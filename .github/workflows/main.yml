@@ -44,13 +44,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy public --project-name=sg --branch=${{ github.ref_name }} --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
-
-      - name: Cleanup old deployments
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: |
-            pages deployment list --project-name=sg --format=json | \
-            jq -r '.[2:] | .[] | .id' | \
-            xargs -I {} wrangler pages deployment delete {} --project-name=sg --yes || true
