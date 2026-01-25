@@ -14,6 +14,9 @@ update: ## Update git submodules
 serve: ## Start Hugo development server
 	hugo server --gc --ignoreCache
 
+dev-ai: build ## Start local server with AI Functions (requires Wrangler)
+	npx wrangler pages dev public
+
 build: ## Build the Hugo site
 	hugo --gc --minify
 

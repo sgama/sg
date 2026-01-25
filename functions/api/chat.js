@@ -19,9 +19,9 @@ export async function onRequest(context) {
     // 1. Retrieval
     const { data } = await context.env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [query] });
     const values = data[0];
-    const results = await context.env.VECTORIZE_INDEX.query(values, { topK: 5 });
+    const results = await context.env.VECTORIZE_INDEX.query(values, { topK: 5, returnMetadata: true });
     const contextBlock = results.matches 
-      ? results.matches.map(m => m.metadata.text).join("\n---\n")
+      ? results.matches.map(m => m.metadata?.text || "").join("\n---\n")
       : "";
 
     // 2. Generation with Streaming
