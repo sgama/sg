@@ -43,15 +43,17 @@ jobs:
         run: |
           # Install optimization tools
           npm install -g purgecss html-minifier-terser svgo
+
           
-          # Remove unused CSS
-          for cssfile in public/css/*.css; do
-            if [ -f "$cssfile" ]; then
-              purgecss --css "$cssfile" --content 'public/**/*.html' --output "${cssfile%.css}.purged.css"
-              mv "${cssfile%.css}.purged.css" "$cssfile"
-            fi
-          done
+          # Further minify HTML
+          find public -name "*.html" -type f -exec html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js true {} -o {} \;
           
+          # Optimize SVGs
+          find public -name "*.svg" -type f -exec svgo {} -o {} \;
+          
+          # Generate compressed versions for faster delivery
+          find public -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.json" -o -name "*.xml" \) -exec gzip -9 -k {} \;
+          find public -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.json" -o -name "*.xml" \) -exec brotli -q 11 {} \;
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
