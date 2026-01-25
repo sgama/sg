@@ -1,5 +1,8 @@
 # samsongama.com
 
+[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml)
+[![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)
+
 A modern, responsive personal website built with [Hugo](https://gohugo.io/) and the [Blowfish](https://blowfish.page/) theme. This repository contains the source code for my personal website featuring blog posts, portfolio projects, and resume.
 
 ## 🚀 Quick Start

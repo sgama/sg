@@ -17,7 +17,7 @@ description: "DevOps Engineer | OSCP | CEH - Building scalable systems and cloud
 
 <div class="intro-container">
     <header class="intro-hero">
-        <p class="typing-effect">DevOps Engineer | OSCP | CEH</p>
+        <p class="typing-effect">DevOps | OSCP | CEH</p>
     </header>
     <section class="intro-content">
         <p>I build scalable, high-performance systems that power products, accelerate teams, and enable growth. From APIs and microservices to distributed architectures, I combine Cybersecurity and DevOps expertise to drive automation, reliability, and cloud-ready infrastructure.</p>

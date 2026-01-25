@@ -24,6 +24,17 @@ jobs:
           hugo-version: "latest"
           extended: true
 
+      - name: Cache Hugo modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/hugo_cache
+            ~/.cache/hugo_cache
+            resources/_gen
+          key: ${{ runner.os }}-hugomod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-hugomod-
+
       - name: Build
         run: hugo --gc --minify --cleanDestinationDir
 
@@ -32,4 +43,14 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy public --project-name=sg
+          command: pages deploy public --project-name=sg --branch=${{ github.ref_name }} --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
+
+      - name: Cleanup old deployments
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: |
+            pages deployment list --project-name=sg --format=json | \
+            jq -r '.[2:] | .[] | .id' | \
+            xargs -I {} wrangler pages deployment delete {} --project-name=sg --yes || true
