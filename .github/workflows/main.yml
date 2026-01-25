@@ -47,12 +47,12 @@ jobs:
           # Extract and inline critical CSS for faster initial render
           for htmlfile in public/index.html public/*/index.html; do
             if [ -f "$htmlfile" ]; then
-              critical "$htmlfile" --base public --inline --minify > "${htmlfile}.critical"
+              critical "$htmlfile" --base public --inline --extract > "${htmlfile}.critical"
               mv "${htmlfile}.critical" "$htmlfile"
             fi
           done
           
-          # Further minify HTML
+          # Further minify HTML (this will also minify the inlined CSS)
           find public -name "*.html" -type f -exec html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js true {} -o {} \;
           
           # Optimize SVGs
