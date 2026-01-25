@@ -1,16 +1,19 @@
 /* AI Chat Widget */
 :root {
-    --ai-chat-primary: #3b82f6;
-    --ai-chat-bg: #ffffff;
-    --ai-chat-text: #1f2937;
-    --ai-chat-border: #e5e7eb;
+    --ai-chat-primary: rgba(var(--color-primary-500), 1);
+    --ai-chat-bg: rgba(var(--color-neutral-50), 1);
+    --ai-chat-text: rgba(var(--color-neutral-900), 1);
+    --ai-chat-border: rgba(var(--color-neutral-200), 1);
     --ai-chat-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --ai-chat-bot-bg: rgba(var(--color-neutral-100), 1);
 }
 
 .dark {
-    --ai-chat-bg: #1f2937;
-    --ai-chat-text: #f3f4f6;
-    --ai-chat-border: #374151;
+    --ai-chat-bg: rgba(var(--color-neutral-800), 1);
+    --ai-chat-text: rgba(var(--color-neutral-100), 1);
+    --ai-chat-border: rgba(var(--color-neutral-700), 1);
+    --ai-chat-bot-bg: rgba(var(--color-neutral-700), 0.5);
+    --ai-chat-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 #ai-chat-widget {
@@ -90,15 +93,21 @@
     border-radius: 0.5rem;
     max-width: 80%;
     font-size: 0.9rem;
-  line-height: 1.5;
-  white-space: pre-wrap; /* Preserve newlines from AI */
+    line-height: 1.5;
+    white-space: pre-wrap;
+    /* Preserve newlines from AI */
     align-self: flex-end;
 }
 
 .ai-message.bot {
-    background-color: var(--ai-chat-border);
+    background-color: var(--ai-chat-bot-bg);
     color: var(--ai-chat-text);
     align-self: flex-start;
+}
+
+.ai-message.user {
+    background-color: var(--ai-chat-primary);
+    color: white;
 }
 
 .ai-chat-input-area {
@@ -129,4 +138,41 @@
 #ai-chat-send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    #ai-chat-widget {
+        bottom: 1rem;
+        right: 1rem;
+    }
+
+    #ai-chat-window {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100dvh;
+        border-radius: 0;
+        transform: translateY(100%);
+        border: none;
+    }
+
+    #ai-chat-window.open {
+        transform: translateY(0);
+    }
+
+    .ai-chat-header {
+        padding: 1rem 1.5rem;
+    }
+    
+    .ai-chat-messages {
+        padding: 1rem 1.5rem;
+    }
+
+    /* Prevent iOS zoom on focus */
+    #ai-chat-input {
+        font-size: 16px;
+    }
 }
