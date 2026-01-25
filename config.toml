@@ -9,6 +9,7 @@ buildDrafts = false  # https://gohugo.io/getting-started/configuration/#builddra
 buildFuture = false  # https://gohugo.io/getting-started/configuration/#buildfuture
 cleanDestinationDir = true  # https://gohugo.io/getting-started/configuration/#cleandestinationdir
 defaultContentLanguage = "en"  # https://gohugo.io/getting-started/configuration/#defaultcontentlanguage
+disableHugoGeneratorInject = true  # https://gohugo.io/getting-started/configuration/#disablehugogeneratorinject
 enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemoji
 enableGitInfo = false  # https://gohugo.io/getting-started/configuration/#enablegitinfo (faster builds)
 enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
