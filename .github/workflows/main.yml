@@ -44,14 +44,10 @@ jobs:
           # Install optimization tools
           npm install -g purgecss html-minifier-terser svgo
           
-          # Remove unused CSS with safelist for Hugo/Blowfish dynamic classes
+          # Remove unused CSS with config file
           for cssfile in public/css/*.css; do
             if [ -f "$cssfile" ]; then
-              purgecss --css "$cssfile" \
-                --content 'public/**/*.html' \
-                --safelist 'active' 'dark' 'light' 'prose' 'max-w' 'mx-auto' 'grid' 'flex' 'hidden' 'block' \
-                --safelist-patterns '/data-/' '/aria-/' '/alpine/' '/x-/' '/transition/' '/duration/' '/ease/' '/scale/' '/opacity/' '/rotate/' '/translate/' \
-                --output "${cssfile%.css}.purged.css"
+              purgecss --css "$cssfile" --config purgecss.config.js --output "${cssfile%.css}.purged.css"
               mv "${cssfile%.css}.purged.css" "$cssfile"
             fi
           done
@@ -61,10 +57,6 @@ jobs:
           
           # Optimize SVGs
           find public -name "*.svg" -type f -exec svgo {} -o {} \;
-          
-          # Generate compressed versions for faster delivery
-          find public -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.json" -o -name "*.xml" \) -exec gzip -9 -k {} \;
-          find public -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" -o -name "*.json" -o -name "*.xml" \) -exec brotli -q 11 {} \;
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
