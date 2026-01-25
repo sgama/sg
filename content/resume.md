@@ -13,17 +13,21 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 {{< timeline >}}
 
 {{< timelineItem icon="globe" header="Senior Service Reliability Engineer" badge="08/2020-01/2026" subheader="Demonware / Activision - Vancouver, Canada" >}}
-Contribute improvements to the availability, scalability, and efficiency of Demonware's services.<br>
-Improve the infrastructure supporting Demonware's services.<br>
-Troubleshoot issues with Demonware's online services at scale.
+Applied SRE principles to ensure uptime, scalability, and fault tolerance across player-facing and backend systems<br>
+Built and maintained automation for deployments and monitoring using IaaC and config management tools<br>
+Led capacity planning and loadtesting initiatives to support large-scale traffic spikes during major events<br>
+Debugged and solved complex production issues across distributed systems during peak live traffic<br>
+Collaborated with product and platform teams to evolve services toward more resilient, sustainable architectures<br>
+Mentored engineers and promoted a culture of service ownership, best practices, and operational excellence through taking pride in our work for the video game series Call of Duty
+
 {{< /timelineItem >}}
 
 {{< timelineItem icon="code" header="Senior Software Engineer" badge="10/2018-07/2020" subheader="Mastercard - Vancouver, Canada" >}}
-Implemented Infrastructure as Code templates for new projects through AWS CloudFormation and Saltstack.<br>
-Promoted CI/CD practices and automation by automating tedious manual processes.<br>
-Worked with operations to help developers gain more visibility into their projects in production.<br>
-Took on operational duties and deployed new software to on-prem and cloud datacenters.<br>
-Created various in-house tools to accommodate the needs of different groups.
+Developed and maintained Infrastructure as Code templates using AWS CloudFormation and SaltStack<br>
+Implemented transparent production traffic mirroring to safely reproduce and debug live issues, significantly improving root-cause analysis and reducing time to resolution<br>
+Led bi-weekly technical sessions on offensive security concepts and practical attack techniques to strengthen organizational security awareness and defensive capabilities<br>
+Managed operational duties and deployed new software to on-prem and cloud datacenters<br>
+Created in-house automation tools to streamline workflows across multiple teams
 {{< /timelineItem >}}
 
 {{< timelineItem icon="github" header="Software Developer" badge="06/2017 - 10/2018" subheader="Absolute Software - Vancouver, Canada" >}}
@@ -31,35 +35,35 @@ Created various in-house tools to accommodate the needs of different groups.
 **Key Achievement:** Rewrote microservices from Python to Golang achieving **2000% throughput increase** and **90% reduction** in CPU/memory usage.
 {{< /alert >}}
 
-Developed various microservices running in a Kubernetes cluster to process incoming data from secured devices.<br>
-Wrote Mongo migration scripts to migrate data and increase performance in production by 20%.<br>
-Created multiple internal testing tools to solve the challenges of replicating hundreds of thousands of devices.<br>
-Added metrics through Prometheus and StatsD and graphed them with Grafana.<br>
-Added deployment tasks to Jenkins to increase team productivity by approximately 30%.
+Developed microservices in Kubernetes clusters to process incoming data from secured devices<br>
+Implemented MongoDB migration scripts to improve production performance by 20%<br>
+Created internal testing tools to replicate and simulate hundreds of thousands of devices<br>
+Integrated metrics collection through Prometheus and StatsD with Grafana visualization<br>
+Automated deployment workflows in Jenkins increasing team productivity by 30%
 {{< /timelineItem >}}
 
 {{< timelineItem icon="lightbulb" header="Co-Founder" badge="03/2016 - 2017" subheader="FingerTipDeals - Vancouver, Canada" >}}
-Created Android and iOS applications to serve the SaaS product in four countries hosted on AWS.<br>
-Wrote various backend services to serve specific client functionality and provide analytics.<br>
-Helped guide the company vision to focus on less served markets while establishing a brand.
+Developed Android and iOS applications serving SaaS product across four countries on AWS infrastructure<br>
+Built backend services providing client-specific functionality and analytics capabilities<br>
+Guided company vision to focus on underserved markets while establishing brand identity
 {{< /timelineItem >}}
 
 {{< timelineItem icon="apple" header="Software Developer" badge="12/2015 - 09/2016" subheader="Prizm Media Inc. - Vancouver, Canada" >}}
-Developed Android and iOS applications for a fitness-oriented social network application.<br>
-Developed solutions using Machine Learning tools such as SVMs and Neural Networks.<br>
-Decreased response time of frequently used APIs by up to **90%** through optimizing queries and caching.
+Developed Android and iOS applications for fitness-oriented social network platform<br>
+Implemented machine learning solutions using SVMs and Neural Networks<br>
+Optimized API response times by **90%** through query optimization and strategic caching
 {{< /timelineItem >}}
 
 {{< timelineItem icon="globe" header="Software Engineering Intern" badge="09/2015 - 12/2015" subheader="Ericsson Silicon Valley - Bay Area, USA" >}}
-Developed an OpenStack Neutron plugin for managing virtual Ericsson routers in Python.<br>
-Investigated secure methods of communication between multiple virtual machines.<br>
-Used Docker within OpenStack to debug containers and automate tests.
+Developed OpenStack Neutron plugin in Python for managing virtual Ericsson routers<br>
+Researched and implemented secure communication methods between virtual machines<br>
+Utilized Docker within OpenStack to debug containers and automate testing workflows
 {{< /timelineItem >}}
 
 {{< timelineItem icon="github" header="Software Developer" badge="05/2014 - 08/2014" subheader="Grin Technologies - Vancouver, Canada" >}}
-Developed two web applications for electric vehicle enthusiasts to visualize trips and render custom wheel builds.<br>
-Programmed Texas Instruments CC2540 SoC for Bluetooth low energy applications.<br>
-Administered large electric vehicle forum with 5000+ daily users (endless-sphere.com).
+Developed web applications for electric vehicle enthusiasts to visualize trips and render custom wheel builds<br>
+Programmed Texas Instruments CC2540 SoC for Bluetooth Low Energy applications<br>
+Administered electric vehicle forum serving 5000+ daily active users (endless-sphere.com)
 {{< /timelineItem >}}
 
 {{< /timeline >}}
@@ -68,24 +72,19 @@ Administered large electric vehicle forum with 5000+ daily users (endless-sphere
 
 {{< timeline >}}
 
-{{< timelineItem icon="graduation-cap" header="B.A.Sc Computer Engineering" badge="09/2012 - 05/2017" subheader="University of British Columbia" >}}
-{{< badge >}}
-With Distinction
-{{< /badge >}}
-
-**Concentration:** Software Engineering
-**Notable Projects:** Too many to count - check out my portfolio for highlights including machine learning, embedded systems, and web development projects.
+{{< timelineItem icon="graduation-cap" header="B.A.Sc Computer Engineering (With Distinction)" badge="09/2012 - 05/2017" subheader="University of British Columbia" >}}
+**Concentration:** Software Engineering<br>
+**Notable Projects:** Machine learning, embedded systems, and web development - see portfolio for highlights
 {{< /timelineItem >}}
 
 {{< timelineItem icon="graduation-cap" header="M.Sc Computer Science Exchange" badge="02/2015" subheader="ETH Zürich" >}}
-
-**Focus:** Computer Vision and Machine Learning
-Check out my Computer Vision project in my portfolio.
+**Focus:** Computer Vision and Machine Learning<br>
+**Projects:** Computer Vision implementations available in portfolio
 {{< /timelineItem >}}
 
 {{< /timeline >}}
 
-## Key Accomplishments & Certifications
+## Accomplishments & Certifications
 
 {{< timeline >}}
 
@@ -126,36 +125,16 @@ Royal Conservatory of Music piano certification.
 
 ## Technical Skills
 
-{{< alert "lightbulb" >}}
-**Programming Languages & Technologies I Work With**
-{{< /alert >}}
+| Category | Technologies |
+|----------|-------------|
+| **Languages** | Rust • Go • Python • JavaScript • Java • C/C++ |
+| **Cloud & Containers** | Docker • Kubernetes • AWS • Azure • GCP |
+| **Databases** | MySQL • MongoDB • PostgreSQL • Redis • DynamoDB |
+| **Monitoring & Observability** | Prometheus • Datadog • ELK Stack |
+| **Web Infrastructure** | Nginx • Apache • HAProxy • Traefik • Varnish • Squid |
+| **Methodologies** | Machine Learning • AI • REST APIs • gRPC • Agile/Scrum • IaC |
 
-### Languages
-
-**Core Languages:** Rust • Go • Python • JavaScript • Java • C/C++
-
-### Infrastructure & DevOps
-
-**Cloud & Containers:** Docker • Kubernetes • AWS • Azure • GCP
-
-### Databases & Monitoring
-
-- **Databases:** MySQL, MongoDB, PostgreSQL, Redis, DynamoDB
-- **Monitoring:** Prometheus, Datadog, ELK Stack
-- **Web Servers:** Apache, Nginx, HAProxy, Traefik
-- **Caching:** Varnish, Squid
-
-### Specialized Skills
-
-**Advanced Technologies:** Machine Learning • AI • REST APIs • gRPC • Agile/Scrum
-
-## CTF Competitions & Cybersecurity
-
-{{< alert "fire" >}}
-**Active CTF Competitor** - Consistently ranking in top teams across international competitions
-{{< /alert >}}
-
-### Recent CTF Achievements
+## Cybersecurity & CTF
 
 {{< timeline >}}
 
@@ -191,8 +170,6 @@ Top 6 performance securing qualification for international finals.
 {{< /timelineItem >}}
 
 {{< /timeline >}}
-
-### Additional Competitions (2020)
 
 {{< alert "info" >}}
 **2020 CTF Participation with Team "Insider Threats"**
