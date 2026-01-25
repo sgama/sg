@@ -1,18 +1,24 @@
-export function initChat() {
+export function initChat(autoOpen = false) {
   const container = document.getElementById('ai-chat-widget');
   
   // Render the chat window inside the widget container
+  // Includes Header (title/close), Message History, and Input Form
   const windowHtml = `
     <div id="ai-chat-window">
+      <!-- Header Section -->
       <div class="ai-chat-header">
         <span>Assistant</span>
-        <button id="ai-chat-close" style="background:none;border:none;color:white;cursor:pointer;">&times;</button>
+        <button id="ai-chat-close" aria-label="Close Chat" style="background:none;border:none;color:white;cursor:pointer;">&times;</button>
       </div>
+
+      <!-- Message History Container -->
       <div class="ai-chat-messages" id="ai-chat-messages">
         <div class="ai-message bot">Hello! I'm an AI assistant trained on this portfolio. Ask me anything about my projects or background.</div>
       </div>
+
+      <!-- Input Area -->
       <form class="ai-chat-input-area" id="ai-chat-form">
-        <input type="text" id="ai-chat-input" placeholder="Ask a question..." autocomplete="off">
+        <input type="text" id="ai-chat-input" placeholder="Ask a question..." aria-label="Question" autocomplete="off">
         <button type="submit" id="ai-chat-send">Send</button>
       </form>
     </div>
@@ -28,11 +34,17 @@ export function initChat() {
   const messagesEl = document.getElementById('ai-chat-messages');
 
   // Open/Close logic
-  toggleBtn.addEventListener('click', () => {
+  const openChat = () => {
     windowEl.classList.add('open');
     document.body.classList.add('ai-chat-open');
     input.focus();
-  });
+  };
+
+  toggleBtn.addEventListener('click', openChat);
+
+  if (autoOpen) {
+    openChat();
+  }
 
   closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();

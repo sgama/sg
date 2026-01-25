@@ -37,6 +37,6 @@
     // Lazy load chat widget
     document.getElementById('ai-chat-toggle').addEventListener('click', async () => {
         const { initChat } = await import('{{ $chat_js.RelPermalink }}');
-        initChat();
+        initChat(true);
     }, { once: true });
 </script>
