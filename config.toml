@@ -18,6 +18,23 @@ summaryLength = 20  # Lower = faster processing (20 words instead of 30)
 timeout = "30s"  # https://gohugo.io/getting-started/configuration/#timeout
 title = "Samson Gama"
 
+# Ignore development files and directories to speed up builds
+ignoreFiles = [
+  "\\.git",
+  "\\.github",
+  "\\.vscode",
+  "tests",
+  "results",
+  "node_modules",
+  "package\\.json",
+  "package-lock\\.json",
+  "docker-compose\\.yml",
+  "generate_favicons\\.sh",
+  "LICENSE",
+  "Makefile",
+  "README\\.md"
+]
+
 # Build configuration - https://gohugo.io/getting-started/configuration/#configure-build
 [build]
 useResourceCacheWhen = "always"  # https://gohugo.io/getting-started/configuration/#configure-build
@@ -154,7 +171,7 @@ minifyOutput = true
 
 [minify.tdewolff.css]
 inline = true  # Inline @import and url() for smaller output
-precision = 1  # Lower precision = smaller files
+precision = 0  # Lower precision = smaller files
 version = 3  # Use CSS3+ (more modern, smaller output)
 
 [minify.tdewolff.html]
@@ -169,7 +186,7 @@ templateDelims = ['', '']
 
 [minify.tdewolff.js]
 keepVarNames = false  # Minify variable names
-precision = 2
+precision = 0
 version = 2022
 
 [minify.tdewolff.json]

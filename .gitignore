@@ -15,3 +15,4 @@ hugo.linux
 .npm
 node_modules
 .DS_Store
+results/
