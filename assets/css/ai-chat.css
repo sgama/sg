@@ -6,7 +6,7 @@
     --ai-chat-border: rgba(var(--color-neutral-200), 1);
     --ai-chat-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --ai-chat-bot-bg: rgba(var(--color-neutral-100), 1);
-    
+
     /* Native Button Style (Light) */
     --ai-chat-btn-bg: rgba(var(--color-neutral-200), 0.5);
     --ai-chat-btn-text: rgba(var(--color-neutral-500), 1);
@@ -28,7 +28,8 @@
 
 #ai-chat-widget {
     position: fixed;
-    bottom: 5.5rem; /* Stacked above the scroll-to-top button */
+    bottom: 5.5rem;
+    /* Stacked above the scroll-to-top button */
     right: 2rem;
     z-index: 999;
     font-family: inherit;
@@ -37,13 +38,15 @@
 #ai-chat-toggle {
     background-color: var(--ai-chat-btn-bg);
     color: var(--ai-chat-btn-text);
-    border: 1px solid rgba(74, 222, 128, 0.5); /* Green border */
+    border: 1px solid rgba(74, 222, 128, 0.5);
+    /* Green border */
     border-radius: 9999px;
-    width: 3rem;
-    height: 3rem;
+    width: 3.5rem;
+    height: 3.5rem;
     padding: 0;
     cursor: pointer;
-    box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.1); /* Green glow */
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.1);
+    /* Green glow */
     transition: all 0.2s;
     display: flex;
     align-items: center;
@@ -57,6 +60,7 @@
     from {
         box-shadow: 0 0 10px rgba(74, 222, 128, 0.4), inset 0 0 10px rgba(74, 222, 128, 0.1);
     }
+
     to {
         box-shadow: 0 0 20px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(74, 222, 128, 0.2);
     }
