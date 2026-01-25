@@ -46,7 +46,8 @@ html[data-background-blur="false"]::before {
 @media (prefers-reduced-motion: reduce) {
     html::before {
         animation: none;
-        opacity: 0.3; /* Keep stars but make them static and subtle */
+        opacity: 0.3;
+        /* Keep stars but make them static and subtle */
     }
 }
 
