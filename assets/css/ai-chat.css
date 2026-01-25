@@ -141,6 +141,10 @@
 }
 
 @media (max-width: 640px) {
+    body.ai-chat-open {
+        overflow: hidden;
+    }
+
     #ai-chat-widget {
         bottom: 1rem;
         right: 1rem;
@@ -166,7 +170,7 @@
     .ai-chat-header {
         padding: 1rem 1.5rem;
     }
-    
+
     .ai-chat-messages {
         padding: 1rem 1.5rem;
         overscroll-behavior: contain;

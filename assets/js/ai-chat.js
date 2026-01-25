@@ -30,12 +30,14 @@ export function initChat() {
   // Open/Close logic
   toggleBtn.addEventListener('click', () => {
     windowEl.classList.add('open');
+    document.body.classList.add('ai-chat-open');
     input.focus();
   });
 
   closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     windowEl.classList.remove('open');
+    document.body.classList.remove('ai-chat-open');
   });
 
   // Message handling
