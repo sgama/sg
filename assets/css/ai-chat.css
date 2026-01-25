@@ -20,7 +20,7 @@
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    z-index: 50;
+    z-index: 999;
     font-family: inherit;
 }
 
@@ -169,6 +169,7 @@
     
     .ai-chat-messages {
         padding: 1rem 1.5rem;
+        overscroll-behavior: contain;
     }
 
     /* Prevent iOS zoom on focus */
