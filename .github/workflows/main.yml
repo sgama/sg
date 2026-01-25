@@ -1,42 +1,35 @@
-# name: Build Pipeline
+name: Build and Deploy to Cloudflare Pages
 
-# on:
-#   push:
-#     branches:
-#       - develop
+on:
+  push:
+    branches:
+      - develop
 
-# jobs:
-#   build-deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v6
-#         with:
-#           ref: develop
-#           fetch-depth: 1
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 1
 
-#       - name: Setup Hugo
-#         uses: peaceiris/actions-hugo@v3
-#         with:
-#           hugo-version: "latest"
-#           extended: true
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "latest"
+          extended: true
 
-#       - name: Build
-#         run: |
-#           GIT_COMMIT_SHA=`git rev-parse --verify HEAD` GIT_COMMIT_SHA_SHORT=`git rev-parse --short HEAD` hugo --gc --minify --cleanDestinationDir
-#           echo "samsongama.com" >> public/CNAME
+      - name: Build
+        run: hugo --gc --minify --cleanDestinationDir
 
-#       - name: Deploy to GitHub Pages
-#         uses: peaceiris/actions-gh-pages@v4
-#         with:
-#           personal_token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-#           publish_branch: gh-pages
-#           publish_dir: ./public
-
-#       - name: Purge Cloudflare CDN Cache
-#         run: |
-#           curl -X DELETE "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE }}/purge_cache" \
-#           -H "X-Auth-Email: ${{ secrets.CLOUDFLARE_AUTH_EMAIL }}" \
-#           -H "X-Auth-Key: ${{ secrets.CLOUDFLARE_AUTH_KEY }}" \
-#           -H "Content-Type: application/json" \
-#           --data '{"purge_everything":true}'
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public --project-name=sg
