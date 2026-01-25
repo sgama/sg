@@ -11,3 +11,7 @@ hugo.linux
 # Development environment files
 .env
 .vscode
+
+.npm
+node_modules
+.DS_Store

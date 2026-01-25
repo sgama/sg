@@ -42,21 +42,29 @@ jobs:
       - name: Optimize assets
         run: |
           # Install optimization tools
-          npm install -g html-minifier-terser svgo critical
+          npm install -g html-minifier-terser svgo
           
-          # Extract and inline critical CSS for faster initial render
-          for htmlfile in public/index.html public/*/index.html; do
-            if [ -f "$htmlfile" ]; then
-              critical "$htmlfile" --base public --inline --extract > "${htmlfile}.critical"
-              mv "${htmlfile}.critical" "$htmlfile"
-            fi
-          done
-          
-          # Further minify HTML (this will also minify the inlined CSS)
+          # Minify HTML
           find public -name "*.html" -type f -exec html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js true {} -o {} \;
           
           # Optimize SVGs
           find public -name "*.svg" -type f -exec svgo {} -o {} \;
+
+      - name: Build summary
+        run: |
+          echo "=== Build Output Summary ==="
+          echo "Total files: $(find public -type f | wc -l)"
+          echo "Total directories: $(find public -type d | wc -l)"
+          echo "Total size: $(du -sh public | cut -f1)"
+          echo ""
+          echo "=== File type breakdown ==="
+          echo "HTML files: $(find public -name "*.html" -type f | wc -l) ($(du -ch public/**/*.html 2>/dev/null | tail -1 | cut -f1))"
+          echo "CSS files: $(find public -name "*.css" -type f | wc -l) ($(du -ch public/**/*.css 2>/dev/null | tail -1 | cut -f1))"
+          echo "JS files: $(find public -name "*.js" -type f | wc -l) ($(du -ch public/**/*.js 2>/dev/null | tail -1 | cut -f1))"
+          echo "Image files: $(find public \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.svg" \) -type f | wc -l) ($(du -ch public/**/*.{jpg,jpeg,png,webp,svg} 2>/dev/null | tail -1 | cut -f1))"
+          echo ""
+          echo "=== Largest files ==="
+          find public -type f -exec du -h {} + | sort -rh | head -10
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
