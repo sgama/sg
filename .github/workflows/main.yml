@@ -42,13 +42,13 @@ jobs:
       - name: Optimize assets
         run: |
           # Install optimization tools
-          npm install -g purgecss html-minifier-terser svgo
+          npm install -g html-minifier-terser svgo critical
           
-          # Remove unused CSS with config file
-          for cssfile in public/css/*.css; do
-            if [ -f "$cssfile" ]; then
-              purgecss --css "$cssfile" --config purgecss.config.js --output "${cssfile%.css}.purged.css"
-              mv "${cssfile%.css}.purged.css" "$cssfile"
+          # Extract and inline critical CSS for faster initial render
+          for htmlfile in public/index.html public/*/index.html; do
+            if [ -f "$htmlfile" ]; then
+              critical "$htmlfile" --base public --inline --minify > "${htmlfile}.critical"
+              mv "${htmlfile}.critical" "$htmlfile"
             fi
           done
           
