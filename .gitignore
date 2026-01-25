@@ -1,18 +1,28 @@
-# Generated files by hugo
+# Hugo
 /public/
 /resources/
 .hugo_build.lock
 
-# Executable files may be added to repository
-hugo.exe
-hugo.darwin
-hugo.linux
-
-# Development environment files
-.env
-.vscode
-
+# Node / JS
+node_modules/
 .npm
-node_modules
+
+# OS / System
 .DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Lighthouse / CI
 results/
+.lighthouseci/
+
+# Env
+.env

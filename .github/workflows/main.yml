@@ -39,16 +39,25 @@ jobs:
       - name: Build
         run: hugo --gc --minify --cleanDestinationDir
 
-      - name: Optimize assets
+      # --- AI Agent Integration ---
+      # This step ensures embeddings are kept in sync with content changes.
+      # It runs before deployment so the "brain" has the latest info.
+      - name: Generate AI Embeddings
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          # Install optimization tools
-          npm install -g html-minifier-terser svgo
-          
-          # Minify HTML
-          find public -name "*.html" -type f -exec html-minifier-terser --collapse-whitespace --remove-comments --minify-css true --minify-js true {} -o {} \;
-          
-          # Optimize SVGs
-          find public -name "*.svg" -type f -exec svgo {} -o {} \;
+          npm install
+          # Uncomment the line below once fully configured with Cloudflare credentials
+          node scripts/generate_embeddings.js
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Using commit hash and message improves the deployment history in Cloudflare Dashboard
+          command: pages deploy public --project-name=sg --branch=develop --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
 
       - name: Build summary
         run: |
@@ -66,9 +75,5 @@ jobs:
           echo "=== Largest files ==="
           find public -type f -exec du -h {} + | sort -rh | head -10
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy public --project-name=sg --branch=${{ github.ref_name }} --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
+      # Second deploy step removed to avoid duplication
+

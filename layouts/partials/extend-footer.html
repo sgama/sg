@@ -25,3 +25,18 @@
     }
 </script>
 {{ end }}
+
+<div id="ai-chat-widget">
+    <button id="ai-chat-toggle" aria-label="Ask AI Assistant">
+        <span>✨ Ask AI</span>
+    </button>
+</div>
+
+{{ $chat_js := resources.Get "js/ai-chat.js" | minify | fingerprint }}
+<script>
+    // Lazy load chat widget
+    document.getElementById('ai-chat-toggle').addEventListener('click', async () => {
+        const { initChat } = await import('{{ $chat_js.RelPermalink }}');
+        initChat();
+    }, { once: true });
+</script>

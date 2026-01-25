@@ -4,3 +4,7 @@
 {{/* Umami Analytics */}}
 <script defer src="https://ping.samsongama.com/script.js"
     data-website-id="7b6c2554-f791-4546-8ea5-894496e4f9b6"></script>
+
+{{/* AI Chat Widget CSS */}}
+{{ $chat_style := resources.Get "css/ai-chat.css" | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $chat_style.RelPermalink }}">
