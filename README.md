@@ -14,6 +14,30 @@ A modern, responsive personal website built with [Hugo](https://gohugo.io/) and 
 - [Git](https://git-scm.com/)
 - [Pre-commit](https://pre-commit.com/) (optional but recommended)
 
+### AI Assistant Setup
+
+To enable the AI chatbot feature:
+
+1. **Install dependencies**:
+
+   ```bash
+   npm install
+   ```
+
+2. **Create Vector Database** (One-time setup):
+
+   ```bash
+   npx wrangler vectorize create portfolio-index --dimensions=768 --metric=cosine
+   ```
+
+3. **Generate Embeddings**:
+
+   ```bash
+   export CLOUDFLARE_ACCOUNT_ID="your_id"
+   export CLOUDFLARE_API_TOKEN="your_token"
+   node scripts/generate_embeddings.js
+   ```
+
 ### Local Development
 
 1. **Clone the repository**

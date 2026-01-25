@@ -2,13 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 const matter = require('gray-matter');
+const { execSync } = require('child_process');
 require('dotenv').config();
 
 const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
 
 if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
-  // If running in CI without these secrets for PRs from forks, exit gracefully?
-  // But for this user repo, we expect them.
   console.error("Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN");
   process.exit(1);
 }
@@ -50,7 +49,6 @@ async function generateEmbeddings() {
                     metadata: {
                         text: chunk,
                         title: data.title || "Untitled",
-                        // Simple URL construction assumption - adjust for your Hugo setup
                         url: "/" + path.relative("content", file).replace(".md", "").replace("_index", "")
                     }
                 });
@@ -66,7 +64,7 @@ async function generateEmbeddings() {
       const BATCH_SIZE = 1000;
       for (let i = 0; i < vectors.length; i += BATCH_SIZE) {
           const batch = vectors.slice(i, i + BATCH_SIZE);
-          await upsertVectors(batch);
+          await upsertVectors(batch); // Now using the updated implementation
       }
       console.log("Upsert complete.");
   } else {
@@ -116,21 +114,26 @@ async function getEmbedding(text) {
 
 async function upsertVectors(vectors) {
     const ndjson = vectors.map(v => JSON.stringify(v)).join("\n");
-    const response = await fetch(
-         `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/vectorize/indexes/${INDEX_NAME}/insert`,
-        {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${CLOUDFLARE_API_TOKEN}`,
-                "Content-Type": "application/x-ndjson" 
-            },
-            body: ndjson
-        }
-    );
+    const tempFile = path.join(__dirname, 'temp_vectors.ndjson');
+    fs.writeFileSync(tempFile, ndjson);
 
-    if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Vectorize Upsert Error: ${response.status} ${err}`);
+    console.log(`Upserting batch of ${vectors.length} vectors via Wrangler CLI...`);
+
+    try {
+        // Use Wrangler CLI to handle the upsert (version management handled by tool)
+        // Ensure you have ran 'npm install wrangler --save-dev'
+        execSync(`npx wrangler vectorize insert ${INDEX_NAME} --file "${tempFile}"`, { 
+            stdio: 'inherit',
+            env: { ...process.env, CLOUDFLARE_API_TOKEN: process.env.CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID }
+        });
+        console.log("Batch success.");
+    } catch (error) {
+        console.error("Wrangler Upsert Failed:");
+        throw new Error("Wrangler upsert command failed.");
+    } finally {
+        if (fs.existsSync(tempFile)) {
+            fs.unlinkSync(tempFile);
+        }
     }
 }
 

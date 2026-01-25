@@ -21,5 +21,8 @@
     "dotenv": "^17.2.3",
     "glob": "^13.0.0",
     "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.60.0"
   }
 }
