@@ -11,6 +11,13 @@ Static sites are great—fast, secure, and cheap. but they often lack interactiv
 
 Instead of adding a third-party widget, I built a custom, native-feeling solution using the Cloudflare ecosystem. Here is exactly how it works.
 
+<div style="margin: 2rem 0; text-align: center;">
+  <button class="js-chat-trigger" style="background: rgb(var(--color-primary-500)); color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; border: none; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M12 7v6"></path><path d="M9 10h6"></path></svg>
+    Try the AI Assistant
+  </button>
+</div>
+
 ## The Architecture
 
 The system uses **Retrieval-Augmented Generation (RAG)**. We don't just ask the AI a question; we first find relevant content from my portfolio, feed it to the AI as context, and *then* ask it to answer.

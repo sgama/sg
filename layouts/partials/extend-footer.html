@@ -27,7 +27,7 @@
 {{ end }}
 
 <div id="ai-chat-widget">
-    <button id="ai-chat-toggle" aria-label="Ask AI Assistant">
+    <button id="ai-chat-toggle" class="js-chat-trigger" aria-label="Ask AI Assistant">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -40,9 +40,18 @@
 
 {{ $chat_js := resources.Get "js/ai-chat.js" | minify | fingerprint }}
 <script>
-    // Lazy load chat widget
-    document.getElementById('ai-chat-toggle').addEventListener('click', async () => {
-        const { initChat } = await import('{{ $chat_js.RelPermalink }}');
-        initChat(true);
-    }, { once: true });
+    // Lazy load chat widget with event delegation
+    document.addEventListener('click', async (e) => {
+        const trigger = e.target.closest('.js-chat-trigger');
+        if (trigger) {
+            e.preventDefault(); // Prevent default link behavior if trigger is an <a> tag
+            if (!window.aiChatInitialized) {
+                const { initChat } = await import('{{ $chat_js.RelPermalink }}');
+                initChat(true);
+                window.aiChatInitialized = true;
+            } else if (window.openAiChat) {
+                window.openAiChat();
+            }
+        }
+    });
 </script>

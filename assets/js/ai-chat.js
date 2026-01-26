@@ -40,7 +40,20 @@ export function initChat(autoOpen = false) {
         input.focus();
     };
 
-    toggleBtn.addEventListener('click', openChat);
+    // Expose openChat globally so external scripts can trigger it
+    window.openAiChat = openChat;
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', openChat);
+    }
+
+    // Attach to any other triggers
+    document.querySelectorAll('.js-chat-trigger').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openChat();
+        });
+    });
 
     if (autoOpen) {
         openChat();
