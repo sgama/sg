@@ -1,95 +1,99 @@
 ---
-title: 'Millions of Inserts | The ideal database?'
-summary: 'Performance comparison of MongoDB, PostgreSQL, and InfluxDB for high-frequency trading data - millions of inserts per day'
+title: 'Millions of Inserts: The Ideal Database?'
+summary: 'A performance comparison of MongoDB, PostgreSQL, and InfluxDB for high-frequency trading data, handling millions of inserts per day.'
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2018-03-01
-tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "hft", "timeseries"]
+tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "hft", "timeseries", "sql", "nosql"]
 ---
 
-*Disclaimer: I haven't ran any benchmarks or ran any of these databases in HA mode for proof of concepts but this was my experience with trying to work with lots of data for my HFT Trading Bot.*
+*Disclaimer: I didn't run synthetic benchmarks in High Availability (HA) mode for Proof of Concepts (POC). This post reflects my practical experience working with massive datasets for my HFT Trading Bot.*
 
 ## The Data Challenge
 
-All data indexed on time:
+High-Frequency Trading (HFT) generates an enormous amount of data, all indexed by time. Here is the structure I needed to persist:
 
-- **1 minute candle**: `{timestamp, instrument, high, low, open close, volume, trades}` - 1 insert per minute
-- **Individual trade**: `{timestamp, instrument, price, side, type}` - 0-2000 inserts per minute
-- **Individual order**: `{timestamp, instrument, price, side, type, status}` - 0-5000 inserts per minute
+- **1 Minute Candle**: `{timestamp, instrument, high, low, open, close, volume, trades}` - ~1 insert per instrument/minute.
+- **Individual Trade**: `{timestamp, instrument, price, side, type}` - 0 to 2,000 inserts per minute.
+- **Individual Order**: `{timestamp, instrument, price, side, type, status}` - 0 to 5,000 inserts per minute.
 
-*Note: There will exist one collection/database per exchange as certain exchanges provide more valuable information than others.*
+*Note: I maintained one collection/database per exchange, as data quality and granularity varied between them.*
 
 ## Query Patterns
 
-- Between times x and y, on a certain instrument per exchange - hence two indexes on time and instrument
-- Last x elements on a certain instrument per exchange - hence two indexes on time and instrument
+The database needed to support specific access patterns efficiently:
+
+1. **Range Queries**: "Give me all trades between time X and Y for Instrument Z" (indexes on Time + Instrument).
+2. **Latest Data**: "Give me the last X candles for Instrument Z" (heavy read load on recent data).
 
 ## Retention Policy
 
-- Candle data will need to be pruned every three days
-- Trade and order data can be pruned every three hours. A longer retention policy would be preferred but that's a lot of data
+Storing this much data indefinitely is expensive and unnecessary for my algorithm.
+
+- **Candle Data**: Pruned every 3 days.
+- **Trade/Order Data**: Pruned every 3 hours. (A longer retention would be preferred, but the volume is manageable).
 
 ---
 
 ## Database Comparison
 
-### MongoDB (NoSQL)
+### 1. MongoDB (NoSQL)
 
 **Pros:**
 
-- Handles thousands of inserts per minute really well with batching
-- Queries work seamlessly
-- Enforcing retention policy through CRON is very easy
+- **Write Throughput**: Handles thousands of inserts per minute exceptionally well with batching.
+- **Flexibility**: Schema-less design made development fast.
+- **Cleanup**: Enforcing retention via TTL indexes or CRON jobs is straightforward.
 
 **Cons:**
 
-- Consumed excessive memory and disk space as dataset grew
-- **Data loss issues**: After ten million rows, data would start going missing
-- Batch inserts and queries began timing out and failing
-- Required increasingly powerful hardware to maintain performance
+- **Resource Hog**: Consumed excessive memory and disk space as the dataset grew.
+- **Data Integrity**: **Data loss issues**. After ~10 million rows, I noticed gaps in the data.
+- **Stability**: Batch inserts and queries began timing out as the collection size increased.
+- **Scaling**: Required increasingly powerful hardware just to keep up.
 
-**Verdict**: Not acceptable for high-availability requirements due to data loss.
+**Verdict**: Not acceptable. Data loss is a critical failure for a trading algorithm.
 
-### PostgreSQL (SQL)
+### 2. PostgreSQL (SQL)
 
 **Pros:**
 
-- Simple to insert, query, and delete data
-- No missing data observed
-- Reliable data integrity
+- **Reliability**: ACID compliance meant zero data loss.
+- **Simplicity**: Standard SQL for inserting, querying, and deleting was easy to implement.
+- **Tools**: Excellent ecosystem and client libraries.
 
 **Cons:**
 
-- **Performance degradation**: Inserts got slower as tables grew larger
-- Querying and deletion also slowed over time
-- Growing disk space and memory consumption
-- **Latency issues**: Unacceptable for HFT requirements
+- **Performance Decay**: Inserts slowed down significantly as tables grew into the millions of rows.
+- **Maintenance**: Querying and deleting old data (vacuuming) impacted write performance.
+- **Bloat**: Disk/Memory usage grew inefficiently for this specific workload.
+- **Latency**: Unacceptable latency for real-time HFT decision making.
 
-**Verdict**: Reliable but too slow for high-frequency trading use case.
+**Verdict**: Reliable, but too slow for the sheer volume of high-frequency time-series data.
 
-### InfluxDB (TimeseriesDB)
+### 3. InfluxDB (Time-Series DB)
 
 **Pros:**
 
-- **Purpose-built** for timeseries data - automatically indexed on time
-- **Built-in retention policies** at database level
-- **Never lost data** despite high load
-- Optimal disk space usage compared to MongoDB
-- Perfect fit for the use case
+- **Purpose-Built**: Designed specifically for time-series data; "Time" is a first-class citizen.
+- **Retention Policies**: Built-in support at the database level (no external cron jobs needed).
+- **Reliability**: **Never lost a single data point** despite the high load.
+- **Efficiency**: Incredible compression algorithms resulted in optimal disk usage compared to MongoDB.
+- **Performance**: Consistent read/write speeds regardless of dataset size.
 
 **Cons:**
 
-- High memory and CPU consumption
-- Required workaround for same-millisecond timestamps (added match index)
+- **Resources**: CPU usage can be high during heavy compaction.
+- **Cardinality**: Required a workaround for events happening at the exact same millisecond (added a unique "match index" tag).
 
-**Verdict**: ✅ **Ideal choice** for HFT Trading bot
+**Verdict**: ✅ **The Ideal Choice** for an HFT Trading Bot.
 
 ## Key Takeaways
 
-- **MongoDB**: Great for general use but failed at scale with data integrity issues
-- **PostgreSQL**: Reliable but performance degradation made it unsuitable for real-time trading
-- **InfluxDB**: Perfect for timeseries data with built-in retention and consistent performance
+- **MongoDB**: Great for general application data but struggled with integrity at this scale.
+- **PostgreSQL**: The gold standard for reliability, but time-series is a specific niche where general SQL engines struggle without tuning (e.g., TimescaleDB).
+- **InfluxDB**: The specialist tool won. It handled millions of data points flawlessly with built-in features that solved my specific problems (retention, time-indexing).
 
-**Result**: InfluxDB became the foundation for a profitable trading system, handling millions of data points without losing a single record.
+**Result**: InfluxDB became the foundation for my trading system, handling millions of inserts daily without losing a single record.

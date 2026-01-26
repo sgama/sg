@@ -17,7 +17,7 @@ Here is how I deployed it securely on my home server using Docker and Cloudflare
 
 The setup is surprisingly simple but robust. Instead of opening ports on my router (port forwarding 80/443), which exposes my home IP to the world, I use **Cloudflare Tunnels**. A lightweight daemon (`cloudflared`) creates an outbound connection to Cloudflare's edge, creating a secure tunnel for traffic to flow in.
 
-```mermaid
+{{< mermaid >}}
 flowchart TD
     subgraph Client
         Browser[User Browser]
@@ -52,7 +52,7 @@ flowchart TD
     
     linkStyle 0,1,2 stroke:blue,stroke-width:2px;
     linkStyle 3,4,5,6 stroke:orange,stroke-width:2px;
-```
+{{< /mermaid >}}
 
 This dual-path architecture enables the best of both worlds:
 

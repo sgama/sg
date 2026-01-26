@@ -49,14 +49,14 @@ The function performs three main steps:
 2. **Search**: Query the `VECTORIZE_INDEX` for similar content chunks.
 3. **Generate**: Send the context + query to Llama 3 and stream the response.
 
-```mermaid
+{{< mermaid >}}
 sequenceDiagram
     participant User
     participant Frontend
     participant Function as CF Function
     participant VectorDB as Vectorize
     participant AI as Workers AI
-    
+
     User->>Frontend: Asks Question
     Frontend->>Function: POST /api/chat
     Function->>AI: Generate Embedding
@@ -66,7 +66,7 @@ sequenceDiagram
     Function->>AI: Generate(System Prompt + Context + Query)
     AI-->>Frontend: JSON Stream
     Frontend-->>User: Update UI
-```
+{{< /mermaid >}}
 
 ```javascript
 // functions/api/chat.js (Simplified)
@@ -106,14 +106,14 @@ export async function onRequest(context) {
 
 The AI needs to know about my posts. I wrote a script (`scripts/generate_embeddings.js`) that runs during the build process.
 
-```mermaid
+{{< mermaid >}}
 flowchart LR
     MD[Markdown Files] -->|Parse| Script[Node.js Script]
     Script -->|Split| Chunks[Text Chunks]
     Chunks -->|API| AI[Workers AI]
     AI -->|Embedding| Vectors[Vector Data]
     Vectors -->|Upsert| DB[(Vectorize Index)]
-```
+{{< /mermaid >}}
 
 1. It scans all `.md` files in `content/`.
 2. It parses the frontmatter and content.

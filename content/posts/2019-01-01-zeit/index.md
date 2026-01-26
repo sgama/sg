@@ -2,17 +2,19 @@
 title: Zeit - Functions as a Service
 subtitle: No Credit Card Required for something like AWS Lambda
 date: 2019-01-01
-tags: ["devops", "lambda", "serverless", "faas", "zeit"]
+tags: ["devops", "lambda", "serverless", "faas", "zeit", "vercel"]
 ---
+
+> **Update 2020:** Zeit has rebranded to [Vercel](https://vercel.com). The `now` command and `zeit.co` URLs referenced below correspond to the platform's state in 2019.
 
 Let me introduce you to this amazing service called [zeit.co AKA ZEIT NOW](https://zeit.co).
 
-I currently use it with another free online service called [MicroBadger](https://microbadger.com/), a service I use to trigger custom Dockerbuilds after a base image such as `alpine` has been updated.
-This allows all my personal projects to be on the latest base image potentially improving performance and security.
+I currently use it with another free online service called [MicroBadger](https://microbadger.com/), a service I use to trigger custom Docker builds after a base image such as `alpine` has been updated.
+This allows all my personal projects to be on the latest base image, potentially improving performance and security.
 
-Microservice sends a POST request to a function hosted on ZEIT NOW, and that function runs a bunch of tasks. Invoking new builds of personal projects that depend on that image, grabbing changelists and sending all that information to Slack.
+The Microservice sends a POST request to a function hosted on ZEIT NOW, and that function runs a bunch of tasks: invoking new builds of personal projects that depend on that image, grabbing changelists, and sending all that information to Slack.
 
-I won't show you how to do that, but I'll show you how to get started with a full CICD pipeline.
+I won't show you how to do that, but I'll show you how to get started with a full CI/CD pipeline.
 
 ---
 
@@ -73,11 +75,11 @@ Now CLI 18.0.0
 �💡  To change the domain or build command, go to https://zeit.co/myuser/demo-zeit-now/settings
 ```
 
-- you should see your deployment at [https://zeit.co/dashboard](https://zeit.co/dashboard)
+- You should see your deployment at [https://zeit.co/dashboard](https://zeit.co/dashboard)
 
 ![Dashboard](dashboard.png "Dashboard")
 
-- Add the following to your repository's secrets for CICD here: `https://github.com/$YOUR_USER/$YOUR_REPO/settings/secrets`
+- Add the following to your repository's secrets for CI/CD here: `https://github.com/$YOUR_USER/$YOUR_REPO/settings/secrets`
 
 |ORG_ID|`jq -r '.orgId' .now/project.json`|
 |---|---|
@@ -86,13 +88,13 @@ Now CLI 18.0.0
 
 - Uncomment the contents of `.github/workflows/main.yml`
 
-- Push your code and view the CICD pipeline run: `https://github.com/$YOUR_USER/$YOUR_REPO/actions`
+- Push your code and view the CI/CD pipeline run: `https://github.com/$YOUR_USER/$YOUR_REPO/actions`
 
 ---
 
-Now you can visit the following URLS:
+Now you can visit the following URLs:
 
 - `https:/$YOUR_REPO.now.sh/src/nodejs`
 - `https:/$YOUR_REPO.now.sh/src/python`
 
-I'll let you figure the rest out now but in this repo, you will now have a fully integration continuous integration and continuous delivery system deploying functions for free.
+I'll let you figure the rest out, but with this repo, you will have a fully integrated continuous integration and continuous delivery system deploying functions for free.
