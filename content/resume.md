@@ -11,6 +11,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ## 💼 Professional Experience
 
 ### 🎮 Senior Service Reliability Engineer
+
 **Demonware / Activision** • Vancouver, Canada  
 *August 2020 - January 2026*
 
@@ -24,6 +25,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### 💳 Senior Software Engineer
+
 **Mastercard** • Vancouver, Canada  
 *October 2018 - July 2020*
 
@@ -36,6 +38,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### 🚀 Software Developer
+
 **Absolute Software** • Vancouver, Canada  
 *June 2017 - October 2018*
 
@@ -52,6 +55,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### 💡 Co-Founder
+
 **FingerTipDeals** • Vancouver, Canada  
 *March 2016 - 2017*
 
@@ -62,6 +66,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### 📱 Software Developer
+
 **Prizm Media Inc.** • Vancouver, Canada  
 *December 2015 - September 2016*
 
@@ -72,6 +77,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### 🌐 Software Engineering Intern
+
 **Ericsson Silicon Valley** • Bay Area, USA  
 *September 2015 - December 2015*
 
@@ -82,6 +88,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### ⚡ Software Developer
+
 **Grin Technologies** • Vancouver, Canada  
 *May 2014 - August 2014*
 
@@ -92,6 +99,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ## 🎓 Education
 
 ### B.A.Sc Computer Engineering ⭐ *With Distinction*
+
 **University of British Columbia**  
 *September 2012 - May 2017*
 
@@ -101,11 +109,28 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ---
 
 ### M.Sc Computer Science Exchange
+
 **ETH Zürich** 🇨🇭  
 *February 2015*
 
 **Focus:** Computer Vision and Machine Learning  
 **Projects:** Computer Vision implementations available in [portfolio](/portfolio)
+
+## 🤝 Volunteering
+
+### Strata Council President
+
+**Community Operations** • Vancouver, Canada  
+*2022 - Present*
+
+- Providing leadership to a community of ~1000 people for the last four years
+
+
+### Trustee
+
+**Veazey Foundation** • Vancouver, Canada
+
+- Helping a charity which funds full scholarships for incoming UBC students
 
 ## 🏆 Accomplishments & Certifications
 

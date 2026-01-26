@@ -179,13 +179,13 @@ await upsertVectors(vectors);
 
 ---
 
-## 3. The Frontend: Making it "Native"
+## 3. The Frontend: Modular & Native
 
-I didn't want a generic chatbot iframe. It had to look like it belonged to the [Blowfish theme](https://blowfish.page/).
+I didn't want a generic chatbot iframe. It had to look like it belonged to the [Blowfish theme](https://blowfish.page/). Initially built as a simple script, I recently refactored the frontend into a robust `AIChatWidget` class to support advanced features like history persistence and offline handling.
 
 ### Theming with CSS Variables
 
-I mapped the chat widget's colors to the theme's CSS variables. This ensures the chat window automatically respects Light/Dark mode and the user's chosen color scheme (Catppuccin, in my case).
+I mapped the chat widget's colors to the theme's CSS variables. This ensures the chat window automatically respects Light/Dark mode and the user's chosen color scheme.
 
 ```css
 /* assets/css/ai-chat.css */
@@ -198,12 +198,6 @@ I mapped the chat widget's colors to the theme's CSS variables. This ensures the
 .dark {
     --ai-chat-bg: rgba(var(--color-neutral-800), 1);
     --ai-chat-bot-bg: rgba(var(--color-neutral-700), 0.5);
-}
-
-#ai-chat-window {
-    backdrop-filter: blur(10px); /* Glassmorphism */
-    border: 1px solid var(--ai-chat-border);
-    /* ... */
 }
 ```
 
@@ -223,67 +217,69 @@ On mobile, popups are annoying. I used a CSS media query to turn the floating wi
 }
 ```
 
-### The "Shining" Button
-
-To make the feature inviting, I added a neon glow animation to the trigger button using CSS keyframes.
-
-```css
-@keyframes chatGradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-#ai-chat-toggle {
-    background: linear-gradient(135deg, #d600d6, #00d6d6, #d6006b);
-    background-size: 200% 200%;
-    animation: chatGradientShift 3s ease-in-out infinite;
-    /* ... */
-}
-```
-
 ---
 
-## 4. Integration via extend-footer.html
+## 4. Integration via Event Delegation
 
-Blowfish provides a partial called `extend-footer.html` to inject custom code. I used this to add the button and **lazy-load** the chat logic. The heavy javascript for the chat only loads when the user actually clicks the button.
+To make the chat accessible from anywhere (header, footer, blog posts), I implemented a global event listener. Any element with the class `.js-chat-trigger` will now lazy-load the widget and open it.
 
 ```html
 <!-- layouts/partials/extend-footer.html -->
 <div id="ai-chat-widget">
-    <button id="ai-chat-toggle" aria-label="Ask AI">
-        <svg>...</svg>
+    <button id="ai-chat-toggle" class="js-chat-trigger" aria-label="Ask AI">
+        <!-- Icon -->
         <span>Ask AI</span>
     </button>
 </div>
 
 <script>
-    // Lazy Load
-    document.getElementById('ai-chat-toggle').addEventListener('click', async () => {
-        const { initChat } = await import('{{ resources.Get "js/ai-chat.js" | minify | fingerprint }}');
-        initChat(true); // Initialize and open immediately
-    }, { once: true });
+    // Lazy load chat widget with event delegation
+    document.addEventListener('click', async (e) => {
+        const trigger = e.target.closest('.js-chat-trigger');
+        if (trigger) {
+            e.preventDefault(); 
+            if (!window.aiChatInitialized) {
+                // Dynamically import the module only when needed
+                const { initChat } = await import('{{ resources.Get "js/ai-chat.js" | minify | fingerprint }}');
+                initChat(true); 
+                window.aiChatInitialized = true;
+            } else if (window.openAiChat) {
+                window.openAiChat();
+            }
+        }
+    });
 </script>
 ```
 
-## Future Improvements
+## 5. Recent Feature Updates
 
-While functional, there is always room to grow. Here is what I plan to add next:
+Since the initial launch, I've rolled out several enhancements to make the assistant more robust and user-friendly:
 
-1. **Chat History**: Persisting the conversation in `localStorage` so users don't lose context when navigating between pages.
-2. **Suggest Questions**: Showing 3-4 clickable "suggestion chips" (e.g., "Tell me about your Python experience") to help users get started.
-3. **Source Citations**: Adding small "citations" [1] to the bot's response that link directly to the blog post or portfolio item where the information was found.
+### 💾 Persistent History
 
-## TODO: Advanced UI Features
+The chat now saves your conversation to `localStorage`. If you navigate away to check a project page and come back, your conversation context remains intact.
 
-To demonstrate true full control over the UI, here are the advanced features I plan to implement next:
+### 💡 Contextual Suggestions
 
-1. **Markdown Parsing**: Currently, the bot outputs raw text. I want to render `**bold**`, lists, and code blocks properly on the fly as tokens stream in.
+To help users get started, the chat now opens with clickable "suggestion chips" (e.g., *"Python Experience?"*). These disappear once the conversation starts to keep the interface clean.
+
+### 🛡️ Robust Error Handling
+
+Network glitches happen. The updated `AIChatWidget` class now checks for offline status before sending requests and handles API failures gracefully without crashing the UI.
+
+### 🧹 Session Management
+
+I added a "Clear History" button to the header, allowing users to wipe their local conversation history and start fresh with a single click.
+
+## Future Roadmap
+
+With the core architecture solid, here is what I plan to add next:
+
+1. **Markdown Parsing**: currently, the bot outputs raw text. I want to render `**bold**`, lists, and code blocks properly on the fly as tokens stream in.
 2. **Syntax Highlighting**: Using a lightweight library to highlight code snippets inside the chat bubble, matching the site's theme.
-3. **Agentic Actions**: Allowing the AI to "drive" the website. If a user asks to see a project, the AI handles the navigation programmatically.
-4. **Voice Input**: Integrating the Web Speech API to allow users to speak their questions instead of typing.
-5. **Draggable UI**: Making the chat window floating and draggable on desktop, saving its position for the next visit.
+3. **Voice Input**: Integrating the Web Speech API to allow users to speak their questions instead of typing.
+4. **Draggable UI**: Making the chat window floating and draggable on desktop, saving its position for the next visit.
 
 ## Conclusion
 
-By leveraging Cloudflare's edge platform, I was able to build a fast, private, and deeply integrated AI assistant without managing a single server. The result is a portfolio that doesn't just display information—it interacts with you.
+By leveraging Cloudflare's edge platform, I was able to build a fast, private, and deeply integrated AI assistant without managing a single server. The result is a portfolio that doesn't just display information. It interacts with you.
