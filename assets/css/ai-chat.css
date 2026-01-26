@@ -120,6 +120,28 @@
     color: var(--ai-chat-text);
 }
 
+.ai-suggestions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 1rem 1rem;
+    flex-wrap: wrap;
+}
+
+.ai-suggestion-chip {
+    background: var(--ai-chat-btn-bg);
+    color: var(--ai-chat-btn-text);
+    border: 1px solid var(--ai-chat-border);
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ai-suggestion-chip:hover {
+    background: var(--ai-chat-btn-hover);
+}
+
 .ai-message {
     padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
