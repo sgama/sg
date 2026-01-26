@@ -1,12 +1,20 @@
 ---
-title: 'Heart Rate Monitor'
-summary: 'Microcontroller-based photoelectric heart rate monitor using finger sensor to detect blood flow variations'
+title: "Biomedical Engineering: Photoelectric Heart Rate Monitor"
+summary: "Designed and built a microcontroller-based photoplethysmogram (PPG) sensor to calculate heart rate from blood flow variations."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2014-03-01
-tags: ["hardware"]
+tags: ["biomedical", "embedded-systems", "signal-processing", "c-programming", "hardware"]
 ---
 
-For this module, I designed, built, programmed, and tested a microcontroller-based photoelectric heart rate monitor. This type of heart rate monitors are attached to a patients’ finger to measure their heart rate in beats-per-minute (BPM). The device I built is based on a non-invasive photo transmitter/receiver pair sensor which detects small variations of blood flow in the fingers due to the heart pumping action. After filtering and amplifying such variations, a microcontroller useable signal can be generated. By measuring the period or frequency of such signal, the heart rate of the person using the sensor can be determined
+For this module, I executed the full lifecycle design—build, program, and test—of a **photoelectric heart rate monitor**.
+
+## Operational Principle
+
+The device functioned as a **photoplethysmogram (PPG)** sensor. It utilized a non-invasive photo transmitter/receiver pair clipped to a finger.
+
+1. **Sensing**: The sensor detected minute variations in light absorption caused by the volumetric change of blood flow with each heartbeat.
+2. **Signal Processing**: The raw analog data was filtered and amplified to isolate the heartbeat signal from noise.
+3. **Calculation**: A microcontroller algorithm measured the period between peaks to calculate the beats-per-minute (BPM) in real-time.

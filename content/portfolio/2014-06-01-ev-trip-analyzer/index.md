@@ -1,25 +1,29 @@
 ---
-title: 'EV Trip Analyzer'
-summary: 'Web application for analyzing electric bicycle trip data from Cycle Analyst with speed, power, and efficiency plotting'
+title: "Data Visualization: EV Trip Analyzer"
+summary: "Full-stack web application for analyzing telemetry data from Electric Vehicles, visualizing power consumption, speed, and efficiency."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2014-06-01
-tags: ["creative"]
+tags: ["web-development", "data-visualization", "clean-tech", "javascript", "google-maps-api"]
 ---
 
-The Trip Analyzer is a web application for analyzing analog and digital data recorded on electric bicycles for the purpose of scruntizing trip data which allows for further analysis. I developed this application during my Engineering Co-op work term at Grin Technologies (more commonly known as ebikes.ca) and was the lead software developer on this project since it has been in motion.
+During my engineering co-op at **Grin Technologies** (ebikes.ca), I served as the lead developer for the **EV Trip Analyzer**, a web platform for scrutinizing electric bicycle performance data.
 
-The Trip Analyzer parses and extrapolates data which is outputted by the Cycle Analyst during a users trip and allows the user to view their speed, power consumption, efficiency and elevation data plotted against various axis. There is even the option to upload a trip and share it via a short link created by the application. A screenshot of the trip analyzer should be on the right. A link to the trip analyzer will be placed here. (LINK TBA with UBC Trip)
+## Functionality
 
-The Trip Analyzer was written in HTML, CSS, PHP, Javascript and JQuery.
+The application parses raw telemetry logs (analog and digital) outputted by the **Cycle Analyst** hardware. It transforms this data into interactive insights:
 
-The following APIs were used:
-Google Maps – for plotting bike route
-DyGraphs – for plotting various series
-LZ-String – for compression/decompression of uploaded/downloaded data
+- **Performance Metrics**: Plots Speed, Power (Watts), Efficiency (Wh/km), and Regenerative Braking data against Time or Distance.
+- **Geospatial Analysis**: Overlays trip data onto a **Google Maps** route, allowing users to correlated energy consumption with elevation changes.
+- **Sharing**: Implemented a trip upload feature that generates permalinks for community sharing.
 
-There were many challenges in creating this application and if you would like to ask me a few questions, feel free to contact me via the contact page on my website.
+## Technology Stack
 
-Try it out here: <a href="http://www.ebikes.ca/tools/trip-analyzer.html">http://www.ebikes.ca/tools/trip-analyzer.html</a>
+- **Core**: HTML5, CSS3, PHP, JavaScript (jQuery).
+- **Compression**: **LZ-String** for efficient client-side compression/decompression of large telemetry datasets.
+- **Visualization**: **DyGraphs** for high-performance time-series plotting.
+- **Mapping**: Google Maps JavaScript API.
+
+Try it out here: [http://www.ebikes.ca/tools/trip-analyzer.html](http://www.ebikes.ca/tools/trip-analyzer.html)

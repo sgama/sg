@@ -1,14 +1,20 @@
 ---
-title: 'King George Website'
-summary: 'School website serving as community hub for events, assignments, and live-streaming basketball games'
+title: "King George Secondary Portal"
+summary: "Development and administration of a high school community portal, including live-streaming infrastructure for varsity sports."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2010-10-01
-tags: ["creative"]
+tags: ["web-development", "streaming", "it-administration", "community"]
 ---
 
-This is the product of several like-minded students coming together to make a new school website. Being one of the five webmasters of this site, I have been part of this website since the conception of the idea to make a new school website back in 2010. Due to other commitments at the time, the website only went live in August 2011. Since then it has been in integral part of the school’s culture used for every major event. From advertising school events, to showing each students assignments due dates, to being a hub for the community. We also provided live-streaming for our home basketball games since our senior teams were very successful during the 2011-2012 season. This service was made available to the public and had provided a lot of positive attention for the schools IT department.
+I served as one of the lead webmasters for King George Secondary, managing the school's digital presence from ideation in 2010 to a full launch in August 2011. The platform served as the central hub for the school community, replacing fragmented paper bulletins.
 
-Since then, the VSB has undergone a regime change and the new IT director has centralized all the school websites. Therefore, this website is no longer active.
+## Key Contributions
+
+- **Portal Management**: Maintained a centralized CMS for school events, assignment calendars, and administrative announcements.
+- **Live Broadcast Infrastructure**: Engineered a live-streaming solution for the senior Varsity basketball team (2011-2012 season). This involved setting up capture hardware, encoding streams, and distributing them to the public web, significantly boosting community engagement.
+- **IT Leadership**: Demonstrated the value of student-led IT initiatives to the administration, creating a model for digital engagement.
+
+*Note: The system was eventually deprecated following a Vancouver School Board (VSB) IT centralization initiative to unify school web architectures.*

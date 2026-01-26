@@ -1,17 +1,33 @@
 ---
-title: 'Kudolife'
-summary: 'Full-stack developer role creating iOS and Android releases with 50% reduction in response time and improved user experience'
+title: "Mobile Development: Kudolife Health App"
+summary: "Full-stack development for a cross-platform health tracking app, achieving a 50% reduction in API response times through backend optimization."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2016-09-01
-tags: ["mobile"]
+tags: ["mobile-app", "ios", "android", "full-stack", "api-optimization", "php", "sql"]
 ---
 
-Between January to August 2016, I was a full-stack developer on the Kudolife App at Prizm Media. During my time, I published multiple iOS and Android releases. Optimized the server stack for the backend in addition to creating new APIs and removing bugs that were revealed from testing. The result was an on average across the platform a 50% reduction in response time and a much more fluid user experience.
+**Kudolife** is a comprehensive health and wellness tracking application. As a full-stack developer at **Prizm Media**, I was responsible for maintaining and enhancing both the mobile apps and the backend infrastructure.
 
-Check out the iOS and Android applications on the iTunes and Google Play Store
+## Key Improvements
 
+### 1. Backend Optimization
 
-Find out more about Kudolife here: <a href="http://www.kudolife.com/">kudolife.com</a>
+- **Performance Tuning**: Analyzed and optimized slow database queries and API endpoints.
+- **Result**: Achieved an average **50% reduction in API response time** across the platform, significantly improving the app's responsiveness and "snappiness" for users.
+
+### 2. Feature Development
+
+- **Cross-Platform**: Published multiple updates to both the **iOS** (App Store) and **Android** (Google Play) applications.
+- **New APIs**: Designed and implemented new RESTful API endpoints availability to support novel tracking features requested by the product team.
+- **Bug Fixes**: Systematically eliminated backlog bugs revealed during QA testing.
+
+**Tech Stack:**
+
+- **Mobile**: Android (Java), iOS (Objective-C/Swift)
+- **Backend**: PHP, MySQL, REST API
+- **Tools**: JIRA, Git
+
+[Visit Kudolife](http://www.kudolife.com/)

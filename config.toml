@@ -270,12 +270,12 @@ showHeadingAnchors = true
 showHero = true
 showLikes = false
 showPagination = true
-showReadingTime = false
+showReadingTime = true
 showRelatedContent = true
 showTableOfContents = true
 showTaxonomies = true
 showViews = false
-showWordCount = false
+showWordCount = true
 showZenMode = true
 
 # Footer configuration - https://blowfish.page/docs/configuration/#footer
@@ -288,7 +288,7 @@ showThemeAttribution = false
 
 # Header configuration - https://blowfish.page/docs/configuration/#header
 [params.header]
-layout = "fixed-fill-blur"  # Options: basic, fixed, fixed-fill, fixed-gradient, fixed-fill-blur
+layout = "fixed-gradient"  # Options: basic, fixed, fixed-fill, fixed-gradient, fixed-fill-blur
 
 # Homepage configuration - https://blowfish.page/docs/homepage-layout/
 [params.homepage]

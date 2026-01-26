@@ -1,14 +1,18 @@
 ---
-title: 'Veazey Scholars'
-summary: 'Website created for Borden Ladner Gervais LLP and the Veazey Scholarship Foundation'
+title: "Web Design: Veazey Scholarship Foundation"
+summary: "Designed and developed the official website for the Veazey Scholarship Foundation, sponsored by Borden Ladner Gervais LLP."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2013-08-01
-tags: ["creative"]
+tags: ["web-design", "frontend", "freelance"]
 ---
 
-I made this website alongside my friend Albert Hynek for Borden Ladner Gervais LLP and the Veazey Scholarship Foundation. I am luckily one of the recipients of the Tom and Phyllis Veazey Scholarship for which I am very thankful for.
+I collaborated with Albert Hynek to design and develop the digital presence for the **Veazey Scholarship Foundation**, an initiative supported by the Canadian law firm **Borden Ladner Gervais LLP (BLG)**.
 
-Visit this site: <a href="http://veazeyscholars.com/">http://veazeyscholars.com/</a>
+The project involved creating a professional, accessible informational site for prospective applicants.
+
+*Note: I was also a proud recipient of the Tom and Phyllis Veazey Scholarship, making this a project of personal significance.*
+
+Visit this site: [http://veazeyscholars.com/](http://veazeyscholars.com/)

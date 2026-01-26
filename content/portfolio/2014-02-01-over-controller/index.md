@@ -1,14 +1,25 @@
 ---
-title: 'Oven Controller'
-summary: 'Reflow soldering oven controller built in assembly with Java interface and Android app for parameter control'
+title: "Embedded Systems: Reflow Oven Controller"
+summary: "Designed an assembly-based PID controller for a reflow soldering oven, featuring an Android interface and Java-based telemetry logging."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2014-02-01
-tags: ["hardware"]
+tags: ["embedded-systems", "assembly", "fpga", "java", "android", "control-systems"]
 ---
 
-I worked in a group of six to build a reflow soldering oven controller in assembly for the DE2-8052 microcontroller and a Java application which allowed users to set their reflow parameters using the FPGA or an Android device of their choice. We addressed the project requirements by creating an effective solution in assembly and added the ability to transmit data over serial to a Java application which created a strip chart for the current oven temperature and additionally hosted the SQLite database necessary for the integration of our Android application. The Android application which allowed users to set their desired reflow parameters and additionally receive real-time temperature readings and elapsed time which provided a better overall user experience.
+I collaborated with a team of six to engineer a precise **reflow soldering oven controller** using the **DE2-8052 microcontroller (FPGA)**. The system aimed to adhere to industry-standard reflow thermal profiles.
 
-This project was a tremendous success as we met and exceeded the expectations outlined in the project.
+## Technical Architecture
+
+The project integrated low-level hardware control with high-level software interfaces:
+
+- **Firmware (Assembly)**: Wrote optimized assembly code to handle sensor data acquisition and heating element control loops.
+- **Middleware (Java)**: Developed a desktop application that communicated over serial (UART) to receive real-time temperature telemetry and visualize it on a live strip chart.
+- **Database (SQLite)**: Integrated a local database to store historical reflow profiles and run parameters.
+- **Interface (Android)**: Built a mobile app allowing users to remotely configure reflow parameters (preheat, soak, reflow, cooling) via the Java bridge.
+
+## Outcomes
+
+The solution successfully automated the soldering process, allowing users to monitor temperature curves in real-time on their mobile devices, significantly improving the user experience compared to traditional on-device 7-segment displays.

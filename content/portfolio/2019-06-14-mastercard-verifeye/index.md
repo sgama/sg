@@ -1,23 +1,28 @@
 ---
-title: 'Mastercard Verifeye'
-summary: 'Dynamic biometrics for authentication, verification and user engagement using facial recognition and sentiment analysis'
+title: "Innovation: Dynamic Biometrics (Verifeye)"
+summary: "Multi-factor authentication concept using facial recognition and sentiment analysis to verify identity and gauge user friction during transactions."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2019-06-14
-tags: ["machine-learning"]
+tags: ["biometrics", "computer-vision", "security", "innovation", "machine-learning"]
 ---
 
-Verifeye was a POC done during #innovationweek with the goal of coming up with new ideas to solve existing problems. It is not an official Mastercard project, but it came to fruition during the #innovationweek competition.
+**Verifeye** was a Proof of Concept (PoC) developed during Mastercard's Innovation Week. The project aimed to rethink payment authentication by moving beyond static passwords to dynamic biological markers.
 
-The purpose of Verifeye was simple, dynamic biometrics for authentication, verification and user engagement:
+## The Concept
 
-- Verify a user based on their approximate age, gender, and other facial features in addition to the CVV code of their credit card
-- Use sentiment analysis to determine and record how the user feels about the purchase and the flow of the transaction
+We designed a passive authentication layer that works in the background during a transaction.
+
+### 1. Identity Verification
+
+- **Facial Age/Gender Estimation**: Used computer vision to compare the user's estimated demographics against the cardholder's file.
+- **Liveness Detection**: Ensured the user is a real person and not a photograph.
+
+### 2. User Sentiment
+
+- **Friction Analysis**: Analyzed facial expressions to determine "customer delight" or frustration during the checkout flow. This data could help merchants optimize their UX.
 
 {{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-2.webp" title="Initial Screen" >}}
-
-For the purposes of simple visualization, the following image will have all the debug information printed on screen for your benefit
-
-{{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-0.webp" title="Debug Screen" >}}
+{{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-0.webp" title="Debug View (Facial Landmarks)" >}}

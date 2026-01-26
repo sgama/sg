@@ -5,7 +5,6 @@ showAuthor: false
 showReadingTime: false
 showEdit: false
 showPagination: false
-layout: "simple"
 ---
 
 ## Did we meet somewhere

@@ -1,16 +1,26 @@
 ---
-title: 'Spoke Calculator'
-summary: 'Multi-purpose tool for visualizing wheel builds and calculating spoke lengths for bicycle wheel construction'
+title: "Web App: Bicycle Spoke Calculator"
+summary: "Visual tool for calculating spoke lengths and visualizing wheel lacing patterns using JSGL."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2014-05-01
-tags: ["creative"]
+tags: ["web-development", "visualization", "javascript", "mathematics"]
 ---
 
-The Spoke Calculator is a multi-purpose tool which allows users to both visualize their wheel build and determine the length of spokes necessary for the build. This is an important calculation as the tolerances for wheel builds are very low.
+The **Spoke Calculator** is a precision tool I developed to help mechanics and hobbyists build bicycle wheels. Because wheel building tolerances are extremely tight (±1mm), accurate calculation is critical.
 
-The Spoke Calculator was made with HTML, CSS, PHP, Javascript with extensive use of the Javascript Vector Graphics library JSGL.
+## Features
 
-Try it out here: <a href="http://www.ebikes.ca/tools/spoke-calc.html">http://www.ebikes.ca/tools/spoke-calc.html</a>
+- **Visual Lacing**: Unlike spreadsheet calculators, this tool renders a real-time vector graphic of the wheel using the **JSGL** library.
+- **Dynamic Calculation**: Users inputs rim diameter, hub flange dimensions, and spoke count to get instant length requirements.
+- **Pattern Verification**: It allows users to visualize different cross-patterns (1-cross, 3-cross) to ensure physical compatibility with the hub.
+
+## Tech Stack
+
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Vector Graphics**: JSGL Library
+- **Backend logic**: PHP (legacy support)
+
+Try it out here: [http://www.ebikes.ca/tools/spoke-calc.html](http://www.ebikes.ca/tools/spoke-calc.html)

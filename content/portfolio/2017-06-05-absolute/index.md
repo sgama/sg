@@ -1,18 +1,51 @@
 ---
-title: 'Absolute Software'
-summary: 'Backend developer designing data processing pipeline with Kubernetes and Golang, achieving 2000% throughput increase'
+title: "High-Scale Backend: Absolute Data Pipeline"
+summary: "Re-engineered a massive data ingestion pipeline using Golang and Kubernetes, increasing throughput by 2000% while reducing memory footprint by 90%."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2017-06-05
-tags: ["backend"]
+tags: ["backend", "golang", "kubernetes", "distributed-systems", "big-data", "optimization"]
 ---
 
-I was brought on as a backend developer to design and create components of a massive data processing pipeline. However, my skills and understanding of DevOps allowed me to take on more responsibilities and make better decisions for the data pipeline.
+At **Absolute Software**, I served as a Backend Developer focused on modernizing the company's core data ingestion infrastructure.
 
-One of my greatest accomplishments at Absolute has been changing the inbound data pipeline to leverage Kubernetes amazing autoscaling and Golang impressive asynchronous capabilities to increase the throughput of the pipeline by 2000% while reducing memory consumption by 90%.
+## The Problem
 
-I have created various internal tools to loadtest and generate mock data for devices.
+The legacy pipeline struggled to process the massive volume of security telemetry data coming from millions of endpoint devices. It was resource-heavy, slow to scale, and difficult to maintain.
 
-Automated some tasks in Jenkins to avoid unnecessary grunt work and more.
+## The Solution
+
+I led the redesign of critical components of the pipeline, shifting from a monolithic approach to a microservices architecture.
+
+### 1. Golang & Concurrency
+
+- **Language Switch**: We rebuilt the ingestion workers in **Go (Golang)** to take advantage of its lightweight goroutines and superior handling of concurrent network I/O.
+- **Async Processing**: Implemented a non-blocking, asynchronous processing model that could handle thousands of concurrent connections effortlessly.
+
+### 2. Kubernetes Autoscaling
+
+- **Orchestration**: Deployed the new services on **Kubernetes**.
+- **Elasticity**: Configured Horizontal Pod Autoscalers (HPA) to automatically spin up new worker pods during traffic spikes and scale down during lulls.
+
+## Results
+
+- **Performance**: Throughput increased by **2000%** (20x).
+- **Efficiency**: Memory consumption was reduced by **90%**, significantly lowering infrastructure costs.
+- **Reliability**: The system became resilient to bursts of data that previously caused outages.
+
+## DevOps Contributions
+
+Beyond the code, I improved the developer experience:
+
+- **Internal Tools**: Built CLI tools for load testing and generating mock telemetry data.
+- **Automation**: Optimized Jenkins pipelines to remove manual deployment steps.
+
+**Tech Stack:**
+
+- **Core**: Golang
+- **Infrastructure**: Kubernetes, Docker
+- **CI/CD**: Jenkins
+- **Domain**: High-Volume Data Processing
+

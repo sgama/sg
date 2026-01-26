@@ -1,20 +1,42 @@
 ---
-title: 'Machine Learning & NLP Capstone'
-summary: 'SaaS service using machine learning to infer context from text/images for targeted advertisement parameters'
+title: "Capstone: Contextual Ad Targeting Engine"
+summary: "Machine Learning SaaS platform capable of inferring context (time, location, sentiment) from text/images to optimize ad targeting."
 showPagination: true
 invertPagination: true
 weight: 100
 showDate: false
 date: 2017-01-01
-tags: ["machine-learning"]
+tags: ["machine-learning", "nlp", "tensorflow", "kubernetes", "microservices", "python"]
 ---
 
-For my final year project at UBC, I built a SaaS service which will infer context from some textual or image input in order to better target advertisement parameters.
+For my UBC Engineering final year project, our team built a **Contextual Inference Engine**. This SaaS platform analyzed unstructured user content (text and images) to extract metadata—Time, Location, and Sentiment—to serve highly relevant advertising parameters.
 
-The service will infer the time window, place, and sentiment from the input and then suggest advertisement parameters.
+## Technical Architecture
 
-In order to do so, we leveraged multiple third parties such as Microsoft Azure, Amazon Rekognition, IBM Watson and more. Additionally, we built our own models and use libraries such as Google’s Tensorflow and Syntaxnet to further process the inputs.
+The system was designed as a modern microservices application.
 
-The project was deployed using Docker, TravisCI, and Kubernetes.
+### 1. Model Ensemble
 
-Unfortunately, the demo is no longer available as we do not have any remainding Azure credits.
+We didn't rely on a single model. Instead, we orchestrated a pipeline of various AI services and custom models:
+
+- **Third-Party APIs**: Integrated **Microsoft Azure Cognitive Services**, **Amazon Rekognition**, and **IBM Watson** for robust baseline analysis.
+- **Custom Models**: Built specialized models using **Google TensorFlow** and **SyntaxNet** (for dependency parsing) to refine sentiment analysis and entity extraction.
+
+### 2. Cloud Native Deployment
+
+- **Containerization**: All services were Dockerized for consistency across development and production.
+- **Orchestration**: Deployed on a **Kubernetes** cluster to manage scaling and service discovery.
+- **CI/CD**: Configuring **TravisCI** for automated testing and deployment pipelines.
+
+## Outcome
+
+We successfully built a working prototype that could take a raw image or text snippet and output structured JSON targeting data (e.g., "User is happy, at a beach, during sunset -> Suggest Sunscreen or Travel Ads").
+
+**Tech Stack:**
+
+- **ML Frameworks**: TensorFlow, SyntaxNet
+- **Cloud Services**: Azure, AWS, IBM Cloud
+- **Infrastructure**: Docker, Kubernetes, TravisCI
+- **Languages**: Python
+
+> Note: The demo is offline as the Azure student credits have expired.
