@@ -28,7 +28,7 @@ export async function onRequest(context) {
         // 5. Logging Hook (Middleware-like)
         if (context.env.CHAT_LOGS) {
             // Persist the complete chat interaction to KV for history
-            stream = await LogService.save(context.env.CHAT_LOGS, body.query, stream);
+            stream = await LogService.save(context.env.CHAT_LOGS, body.query, stream, context);
         }
 
         return new Response(stream, {

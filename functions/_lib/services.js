@@ -72,7 +72,7 @@ export class AiService {
  * Service to handle logging
  */
 export class LogService {
-    static async save(kv, query, responseStream) {
+    static async save(kv, query, responseStream, context = null) {
         if (!kv) return responseStream;
 
         const decoder = new TextDecoder();
@@ -119,12 +119,19 @@ export class LogService {
                 const timestamp = new Date().toISOString();
                 const key = `${CONFIG.KV_PREFIX}${timestamp}`;
 
-                kv.put(key, JSON.stringify({
+                const savePromise = kv.put(key, JSON.stringify({
                     timestamp,
                     query,
                     response: accumulatedResponse,
                     usage: usageData
                 }), { expirationTtl: 2592000 }).catch(e => console.error("Log Flush Error", e));
+
+                // If context is provided, use waitUntil to avoid blocking response
+                if (context && context.waitUntil) {
+                    context.waitUntil(savePromise);
+                } else {
+                    return savePromise;
+                }
             }
         });
 
@@ -151,7 +158,7 @@ export class LogService {
         const logs = await Promise.all(
             listResult.keys.reverse().map(async (key) => {
                 const value = await kv.get(key.name, { type: "json" });
-                
+
                 // Filter out malformed data or legacy non-object values
                 if (!value || typeof value !== 'object') {
                     return null;
