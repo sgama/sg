@@ -6,7 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2021-11-05
-slug: "vanguard"
+slug: "call-of-duty-vanguard"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
 At **Demonware (Activision)**, I worked on the core services powering the multiplayer experience for **Call of Duty: Vanguard**.

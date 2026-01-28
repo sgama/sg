@@ -11,10 +11,6 @@ export const CONFIG = {
         DEFAULT_LIMIT: 20,
         MAX_LIMIT: 50,
     },
-    RATE_LIMIT: {
-        WINDOW_SECONDS: 60,
-        MAX_REQUESTS: 10,
-    },
     KV_PREFIX: "chat:",
     SYSTEM_PROMPT: `You are a helpful assistant for Samson's portfolio. 
 Answer concisely based on the context. If uncertain, admit it. 

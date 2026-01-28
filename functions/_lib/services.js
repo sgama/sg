@@ -151,6 +151,12 @@ export class LogService {
         const logs = await Promise.all(
             listResult.keys.reverse().map(async (key) => {
                 const value = await kv.get(key.name, { type: "json" });
+                
+                // Filter out malformed data or legacy non-object values
+                if (!value || typeof value !== 'object') {
+                    return null;
+                }
+
                 return {
                     id: key.name,
                     ...value
@@ -159,7 +165,7 @@ export class LogService {
         );
 
         return {
-            data: logs,
+            data: logs.filter(log => log !== null),
             meta: {
                 count: logs.length,
                 cursor: listResult.cursor,

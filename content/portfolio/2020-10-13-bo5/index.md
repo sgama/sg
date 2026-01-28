@@ -6,7 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2020-10-13
-slug: "bo5"
+slug: "call-of-duty-bo5"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
 At **Demonware (Activision)**, I worked on the core services powering the multiplayer experience for **Call of Duty: Black Ops Cold War**.

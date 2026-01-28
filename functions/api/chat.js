@@ -1,5 +1,4 @@
 import { AppError } from '../_lib/config.js';
-import { RateLimiter } from '../_lib/rateLimit.js';
 import { AiService, LogService } from '../_lib/services.js';
 
 /**
@@ -21,10 +20,6 @@ export async function onRequest(context) {
             return createErrorResponse("Invalid query. Must be a string < 500 chars.", 400);
         }
 
-        // 3. Rate Limiting (Using KV_LOGS namespace for rate limits too)
-        const ip = context.request.headers.get("CF-Connecting-IP") || "unknown";
-        await RateLimiter.check(context.env.CHAT_LOGS, ip);
-
         // 4. Service Orchestration
         const aiService = new AiService(context.env);
         const contextText = await aiService.retrieveContext(body.query);
@@ -32,7 +27,7 @@ export async function onRequest(context) {
 
         // 5. Logging Hook (Middleware-like)
         if (context.env.CHAT_LOGS) {
-            // We reuse the CHAT_LOGS kv for rate limiting and logging for simplicity in this stack
+            // Persist the complete chat interaction to KV for history
             stream = await LogService.save(context.env.CHAT_LOGS, body.query, stream);
         }
 
