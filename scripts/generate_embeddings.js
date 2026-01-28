@@ -76,15 +76,27 @@ function processFile(filePath) {
 
         const textSegments = splitText(content, CONFIG.MAX_TOKENS_PER_CHUNK);
 
-        return textSegments.map((segment, index) => ({
-            id: `${path.basename(filePath, '.md')}-${index}`,
-            text: segment,
-            metadata: {
-                text: segment, // Storing text in metadata for RAG retrieval
-                title: data.title || "Untitled",
-                url: "/" + path.relative("content", filePath).replace(".md", "").replace("_index", "")
-            }
-        }));
+        return textSegments.map((segment, index) => {
+            const isContext = filePath.includes('content/context/');
+            
+            return {
+                id: `${path.basename(filePath, '.md')}-${index}`,
+                text: segment,
+                metadata: {
+                    text: segment, // Storing text in metadata for RAG retrieval
+                    title: data.title || "Untitled",
+                    // URL Normalization:
+                    // 1. Remove extension (.md)
+                    // 2. Remove "_index" suffix (Hugo Section Bundles)
+                    // 3. Remove "/index" suffix (Hugo Leaf Bundles) to prevent /posts/my-post/index
+                    url: isContext ? null : "/" + path.relative("content", filePath)
+                        .replace(/\.md$/, "")
+                        .replace(/_index$/, "")
+                        .replace(/\/index$/, ""),
+                    type: isContext ? 'context' : 'content'
+                }
+            };
+        });
     } catch (err) {
         console.error(`Error processing file ${filePath}: ${err.message}`);
         return null;

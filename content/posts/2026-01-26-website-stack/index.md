@@ -127,6 +127,7 @@ Once deployed, the site lives on Cloudflare's network. This provides significant
 ### DNS & CDN
 
 Cloudflare proxies all traffic. This means:
+
 - **SSL is automatic:** I don't manage certificates; Cloudflare handles edge encryption.
 - **Caching:** Static assets (images, CSS, JS) are cached in data centers close to the user, reducing latency.
 - **Auto-Minification:** Cloudflare further optimizes HTML/CSS on the fly.
@@ -134,6 +135,7 @@ Cloudflare proxies all traffic. This means:
 ### Workers & Vectorize (The "Smart" Layer)
 
 This is where the [AI Assistant](/posts/2026-01-25-ai-chat/) lives. Instead of spinning up a Python server (Django/FastAPI) to handle chat requests, I use **Cloudflare Workers**.
+
 - **Latency:** The code runs efficiently on the edge, eliminating cold starts associated with traditional serverless (like AWS Lambda).
 - **Database:** **Vectorize** stores the semantic meaning of my blog posts, allowing the AI to "search" my content before answering.
 
@@ -174,7 +176,8 @@ flowchart LR
 
 ### Benefits
 
-* **No Port Forwarding:** My home IP is never exposed.
+- **No Port Forwarding:** My home IP is never exposed.
+
 - **DDoS Protection:** Cloudflare absorbs attacks before they reach my ISP.
 - **Access Control:** I can put the dashboard usage behind **Cloudflare Access** (OAuth / Email OTP), so only I can view the data, while the tracking script remains public.
 
@@ -183,3 +186,8 @@ flowchart LR
 This stack represents the sweet spot of modern web development: **Static reliability** mixed with **serverless power**, all glue-coded together with **CI/CD** and secured by **Zero Trust** networking.
 
 It costs \$0/month to run (excluding the domain name), scales infinitely, and provides a playground for testing the latest tech.
+
+## What's Next? (TODO)
+
+- [ ] **Migrate "Likes" to Cloudflare KV**: Currently, the "Like" button uses a legacy Firebase implementation. I plan to move this to a Cloudflare Worker + KV setup to keep the entire stack within the Cloudflare ecosystem and improve performance.
+

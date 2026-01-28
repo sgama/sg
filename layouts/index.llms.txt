@@ -1,0 +1,42 @@
+# {{ site.Title }}
+{{ site.BaseURL }}
+
+## Site Description
+{{ site.Params.Description | default "Personal Portfolio and Technical Blog of Samson Gama." }}
+
+## Context & Skills (Internal Knowledge)
+{{- with site.GetPage "/context" -}}
+  {{- range .Resources }}
+- [{{ .Title }}]({{ .Permalink }})
+  {{ .Summary | plainify }}
+  {{- end -}}
+{{- else -}}
+  (No context found)
+{{- end }}
+
+## Key Pages
+{{- range site.RegularPages -}}
+  {{- if .File -}}
+    {{- if or (eq .File.TranslationBaseName "about") (eq .File.TranslationBaseName "resume") }}
+- [{{ .Title }}]({{ .Permalink }})
+  {{ .Summary | plainify }}
+    {{- end -}}
+  {{- end -}}
+{{- end }}
+
+## Portfolio Projects
+{{- range site.RegularPages -}}
+  {{- if eq .Section "portfolio" }}
+- [{{ .Title }}]({{ .Permalink }})
+  {{ .Params.description | default .Summary | plainify }}
+  Stack: {{ with .Params.tags }}{{ delimit . ", " }}{{ end }}
+  {{- end -}}
+{{- end }}
+
+## Technical Blog Posts
+{{- range site.RegularPages -}}
+  {{- if eq .Section "posts" }}
+- [{{ .Title }}]({{ .Permalink }})
+  {{ .Summary | plainify }}
+  {{- end -}}
+{{- end }}
