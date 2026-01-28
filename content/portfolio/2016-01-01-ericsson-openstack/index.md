@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2016-01-01
+slug: "ericsson-openstack"
 tags: ["cloud-infrastructure", "openstack", "python", "networking", "sdn", "docker"]
 ---
 

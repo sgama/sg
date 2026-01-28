@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2025-09-14
+slug: "bo7"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
 

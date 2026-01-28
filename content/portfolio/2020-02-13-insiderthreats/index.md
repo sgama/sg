@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2020-02-13
+slug: "insiderthreats"
 tags: ["cybersecurity", "ctf", "leadership", "reverse-engineering", "digital-forensics", "education"]
 ---
 

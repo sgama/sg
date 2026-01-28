@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2022-11-16
+slug: "wz2"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
 At **Demonware (Activision)**, I worked on the core services powering the battle royale experience for **Call of Duty: Warzone 2.0**.

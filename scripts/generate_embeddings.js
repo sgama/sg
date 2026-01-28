@@ -78,7 +78,7 @@ function processFile(filePath) {
 
         return textSegments.map((segment, index) => {
             const isContext = filePath.includes('content/context/');
-            
+
             return {
                 id: `${path.basename(filePath, '.md')}-${index}`,
                 text: segment,

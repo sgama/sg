@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2018-03-01
+slug: "insertingdata"
 tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "hft", "timeseries", "sql", "nosql"]
 ---
 

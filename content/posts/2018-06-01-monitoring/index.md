@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2018-06-01
+slug: "monitoring"
 tags: ["monitoring", "ops", "prometheus", "devops", "infrastructure", "observability"]
 ---
 

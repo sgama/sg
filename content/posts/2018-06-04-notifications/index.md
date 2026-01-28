@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2018-06-04
+slug: "notifications"
 tags: ["notifications", "ops", "alertmanager", "slack", "automation", "monitoring"]
 ---
 

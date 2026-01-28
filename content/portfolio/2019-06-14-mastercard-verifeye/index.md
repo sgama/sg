@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2019-06-14
+slug: "mastercard-verifeye"
 tags: ["biometrics", "computer-vision", "security", "innovation", "machine-learning"]
 ---
 

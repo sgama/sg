@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2019-12-23
+slug: "ctfsamsongamacom"
 tags: ["cybersecurity", "technical-writing", "tutorial", "education", "reverse-engineering"]
 ---
 {{< figure src="/portfolio/2019-12-23-ctfsamsongamacom/ctf.webp" title="CTF Writeup Repository" >}}

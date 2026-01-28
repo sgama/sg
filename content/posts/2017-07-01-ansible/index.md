@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2017-07-01
+slug: "ansible"
 tags: ["ansible", "ops", "docker", "automation", "devops"]
 ---
 

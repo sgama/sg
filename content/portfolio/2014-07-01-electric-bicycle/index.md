@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2014-07-01
+slug: "electric-bicycle"
 tags: ["electric-vehicles", "hardware", "engineering", "clean-tech"]
 ---
 {{< figure src="/portfolio/2014-07-01-electric-bicycle/electric-bicycle-post-0.webp" title="Custom Electric Bicycle Build" >}}

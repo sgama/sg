@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2010-09-01
+slug: "green-screen"
 tags: ["video-production", "visual-effects", "adobe-after-effects", "compositing"]
 ---
 

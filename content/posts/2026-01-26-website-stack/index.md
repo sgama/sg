@@ -1,6 +1,7 @@
 ---
 title: "My Over-Engineered Serverless & Self-Hosted Stack"
 date: 2026-01-26
+slug: "website-stack"
 description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, Cloudflare Pages, Workers, Vectorize, and Tunnels."
 summary: "Why have a simple website when you can have a complex one? A deep dive into the CI/CD pipeline, serverless AI integration, and zero-trust self-hosted analytics stack that powers samsongama.com."
 tags: ["infrastructure", "cloudflare", "github-actions", "devops", "self-hosted", "hugo"]

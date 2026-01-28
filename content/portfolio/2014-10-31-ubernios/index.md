@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2014-10-31
+slug: "ubernios"
 tags: ["embedded-systems", "fpga", "c", "vhdl", "verilog", "assembly"]
 ---
 {{< figure src="/portfolio/2014-10-31-ubernios/ubernios-post-0.webp" title="UberNIOS Game Play" >}}

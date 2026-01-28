@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2023-11-10
+slug: "mw3"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
 At **Demonware (Activision)**, I worked on the core services powering the multiplayer experience for **Call of Duty: Modern Warfare III**.

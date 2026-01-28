@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2016-09-01
+slug: "kudolife"
 tags: ["mobile-app", "ios", "android", "full-stack", "api-optimization", "php", "sql"]
 ---
 

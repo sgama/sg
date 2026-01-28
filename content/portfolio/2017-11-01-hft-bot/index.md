@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2018-01-01
+slug: "hft-bot"
 tags: ["fintech", "algorithmic-trading", "golang", "machine-learning", "time-series-db", "microservices", "influxdb"]
 ---
 {{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_grafana.webp" title="Real-time Monitoring Dashboard" >}}

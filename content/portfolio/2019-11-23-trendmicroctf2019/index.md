@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2019-11-23
+slug: "trendmicroctf2019"
 tags: ["cybersecurity", "ctf", "competition", "reverse-engineering", "tokyo"]
 ---
 {{< figure src="/portfolio/2019-11-23-trendmicroctf2019/tmctf_team.webp" title="Team Maple Bacon in Tokyo" >}}

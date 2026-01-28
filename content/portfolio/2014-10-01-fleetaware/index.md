@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2014-10-01
+slug: "fleetaware"
 tags: ["web-development", "hackathon", "logistics", "iot", "apis", "php", "javascript"]
 ---
 {{< figure src="/portfolio/2014-10-01-fleetaware/fleetaware-post-0.webp" title="FleetAware Dashboard" >}}

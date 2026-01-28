@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2014-12-01
+slug: "boardcast"
 tags: ["mobile-app", "android", "java", "networking", "computer-vision"]
 ---
 {{< youtube id="CUDMqm04WdI" autoplay="false" >}}

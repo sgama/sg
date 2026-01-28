@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2014-06-01
+slug: "ev-trip-analyzer"
 tags: ["web-development", "data-visualization", "clean-tech", "javascript", "google-maps-api"]
 ---
 

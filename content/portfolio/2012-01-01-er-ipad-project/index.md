@@ -6,6 +6,7 @@ invertPagination: true
 weight: 100
 showDate: false
 date: 2012-01-01
+slug: "er-ipad-project"
 tags: ["ed-tech", "ios-deployment", "infrastructure", "networking", "consulting"]
 ---
 

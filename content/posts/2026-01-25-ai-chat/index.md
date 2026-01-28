@@ -1,6 +1,7 @@
 ---
 title: "Building a Serverless AI Chatbot for My Static Portfolio"
 date: 2026-01-25
+slug: "ai-chat"
 description: "A technical deep-dive into adding a RAG-based AI assistant to a Hugo site using Cloudflare Pages, Workers AI, and Vectorize."
 summary: "How I added a 'Speak with AI' feature to this static website using Cloudflare's serverless ecosystem without spending a dime on hosting."
 tags: ["ai", "cloudflare", "hugo", "javascript", "rag"]

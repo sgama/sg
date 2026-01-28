@@ -1,6 +1,7 @@
 ---
 title: "Privacy-First Analytics: Self-Hosting Umami with Cloudflare Tunnels"
 date: 2024-06-05
+slug: "self-hosted-analytics"
 description: "How I ditched Google Analytics for a self-hosted Umami instance running on Docker and exposed safely via Cloudflare Tunnels."
 summary: "A technical guide to deploying Umami Analytics using Docker Compose and Cloudflare Tunnels to protect your server's IP while keeping your website fast and GDPR compliant."
 tags: ["analytics", "self-hosting", "docker", "cloudflare", "privacy"]
