@@ -11,6 +11,13 @@ index_name = "portfolio-index"
 [ai]
 binding = "AI"
 
+# KV Namespace Binding (Chat Logs - Simple & Fast)
+# Run `npx wrangler kv:namespace create chat_logs` to get the ID
+[[kv_namespaces]]
+binding = "CHAT_LOGS"
+id = "2a8435a82e17425d8cff4b2777dbfd98"
+
 # Environment variables for the chat function (if needed)
 [vars]
 # OPENAI_API_KEY = "" # If using OpenAI instead of Cloudflare AI
+# ADMIN_API_KEY = "needs-to-be-set-in-dashboard" # Protects /api/logs

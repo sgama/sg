@@ -43,7 +43,27 @@ export async function onRequest(context) {
         // 3. Orchestration
         const { query } = body;
         const contextText = await retrieveContext(context.env, query);
-        const stream = await generateResponse(context.env, query, contextText);
+        let stream = await generateResponse(context.env, query, contextText);
+
+        // 4. Logging (non-blocking)
+        // If a KV binding exists, we use a TransformStream to "spy" on the data 
+        // without backpressure issues caused by tee().
+        if (context.env.CHAT_LOGS) {
+            const decoder = new TextDecoder();
+            let fullLogData = "";
+
+            const loggingTransform = new TransformStream({
+                transform(chunk, controller) {
+                    controller.enqueue(chunk);
+                    fullLogData += decoder.decode(chunk, { stream: true });
+                },
+                flush() {
+                    context.waitUntil(saveChatLog(context.env, query, fullLogData));
+                }
+            });
+
+            stream = stream.pipeThrough(loggingTransform);
+        }
 
         return new Response(stream, {
             headers: {
@@ -122,4 +142,27 @@ function getCorsHeaders() {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
     };
+}
+
+/**
+ * Helper: Save Log to KV (Async)
+ */
+async function saveChatLog(env, query, fullResponse) {
+    try {
+        // Create a unique key based on timestamp
+        const timestamp = new Date().toISOString();
+        const key = `chat:${timestamp}`;
+
+        const logEntry = {
+            timestamp,
+            query,
+            response: fullResponse
+        };
+
+        // Save to KV (expires in 30 days)
+        await env.CHAT_LOGS.put(key, JSON.stringify(logEntry), { expirationTtl: 2592000 });
+
+    } catch (error) {
+        console.error("Failed to save log to KV:", error);
+    }
 }
