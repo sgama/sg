@@ -3,8 +3,7 @@ title: 'Passive Infrastructure Monitoring with Prometheus'
 summary: 'Essential infrastructure monitoring - track system health, prevent downtime, and get alerts before issues become critical.'
 showPagination: true
 invertPagination: true
-weight: 100
-showDate: false
+showDate: true
 date: 2018-06-01
 slug: "monitoring"
 tags: ["monitoring", "ops", "prometheus", "devops", "infrastructure", "observability"]

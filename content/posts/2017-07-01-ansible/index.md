@@ -3,8 +3,7 @@ title: "Ansible, why didn't I use this sooner"
 summary: 'Automation that saved days of manual server setup time - from 1 hour manual configuration to 2 minutes automated deployment'
 showPagination: true
 invertPagination: true
-weight: 100
-showDate: false
+showDate: true
 date: 2017-07-01
 slug: "ansible"
 tags: ["ansible", "ops", "docker", "automation", "devops"]

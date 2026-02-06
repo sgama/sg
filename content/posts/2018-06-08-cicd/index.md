@@ -3,8 +3,7 @@ title: 'Continuous Integration & Deployment: A Practical Introduction'
 summary: 'Why you should automate everything early - from manual deployment hell to fully automated CI/CD pipelines with Docker and Kubernetes.'
 showPagination: true
 invertPagination: true
-weight: 100
-showDate: false
+showDate: true
 date: 2018-06-08
 slug: "cicd"
 tags: ["cicd", "travis-ci", "jenkins", "docker", "kubernetes", "automation", "devops", "gitlab"]

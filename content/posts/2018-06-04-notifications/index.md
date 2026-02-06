@@ -3,8 +3,7 @@ title: 'Notifications: Smart Alerting Strategy'
 summary: 'Smart alerting systems with Slack integration - from trading bot alerts to SaaS user events, stay informed without being overwhelmed.'
 showPagination: true
 invertPagination: true
-weight: 100
-showDate: false
+showDate: true
 date: 2018-06-04
 slug: "notifications"
 tags: ["notifications", "ops", "alertmanager", "slack", "automation", "monitoring"]

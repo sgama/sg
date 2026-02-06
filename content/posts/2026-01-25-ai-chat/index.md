@@ -5,6 +5,7 @@ slug: "ai-chat"
 description: "A technical deep-dive into adding a RAG-based AI assistant to a Hugo site using Cloudflare Pages, Workers AI, and Vectorize."
 summary: "How I added a 'Speak with AI' feature to this static website using Cloudflare's serverless ecosystem without spending a dime on hosting."
 tags: ["ai", "cloudflare", "hugo", "javascript", "rag"]
+showDate: true
 series: ["Cloudflare Developments"]
 ---
 

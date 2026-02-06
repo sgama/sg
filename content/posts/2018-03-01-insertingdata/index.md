@@ -3,8 +3,7 @@ title: 'Millions of Inserts: The Ideal Database?'
 summary: 'A performance comparison of MongoDB, PostgreSQL, and InfluxDB for high-frequency trading data, handling millions of inserts per day.'
 showPagination: true
 invertPagination: true
-weight: 100
-showDate: false
+showDate: true
 date: 2018-03-01
 slug: "insertingdata"
 tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "hft", "timeseries", "sql", "nosql"]

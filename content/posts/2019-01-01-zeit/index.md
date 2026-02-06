@@ -3,6 +3,7 @@ title: Zeit - Functions as a Service
 subtitle: No Credit Card Required for something like AWS Lambda
 date: 2019-01-01
 slug: "zeit"
+showDate: true
 tags: ["devops", "lambda", "serverless", "faas", "zeit", "vercel"]
 ---
 
