@@ -60,6 +60,9 @@ The function performs three main steps:
 2. **Search**: Query the `VECTORIZE_INDEX` for similar content chunks.
 3. **Generate**: Send the context + query to Llama 3 and stream the response.
 
+{{< huggingface model="moonshotai/Kimi-K2.5" >}}
+
+
 {{< mermaid >}}
 sequenceDiagram
     participant User
