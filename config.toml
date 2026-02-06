@@ -270,7 +270,7 @@ sharingLinks = ["linkedin", "mastodon", "whatsapp", "email", "facebook"]
 showAuthor = false
 showAuthorsBadges = false
 showBreadcrumbs = true
-showComments = true
+showComments = false
 showDate = true
 showDateOnlyInArticle = false
 showDateUpdated = false
@@ -291,14 +291,14 @@ showZenMode = true
 
 [params.article.giscus]
 repo = "sgama/sg"
-repoId = "" # TODO: Get this from https://giscus.app
+repoId = "MDEwOlJlcG9zaXRvcnkxMjAzNzIzNTc="
 category = "Announcements"
-categoryId = "" # TODO: Get this from https://giscus.app
+categoryId = "DIC_kwDOByy8hc4C1dRG"
 mapping = "pathname"
 reactionsEnabled = "1"
 emitMetadata = "0"
 inputPosition = "top"
-theme = "light"
+theme = "catppuccin_mocha"
 lang = "en"
 loading = "lazy"
 

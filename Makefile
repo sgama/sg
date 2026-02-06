@@ -15,10 +15,11 @@ PUBLIC_DIR ?= public
 HUGO ?= hugo
 NODE ?= node
 NPM ?= npm
+CURL ?= curl
 WRANGLER ?= npx wrangler
 JQ ?= jq
 
-REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM) $(JQ)
+REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM) $(JQ) $(CURL)
 
 help: ## Show this help message
 	@echo "Available targets:"
@@ -82,9 +83,24 @@ build-summary: ## Print build output summary
 	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
 
 cleanup-deployments: check-tools check-env ## Delete all but latest Pages deployment (uses .env for secrets)
-	@$(WRANGLER) pages deployment list $(PROJECT_NAME) --branch=$(BRANCH) --account-id=$$CLOUDFLARE_ACCOUNT_ID --json | \
-	$(JQ) -r 'sort_by(.created_on) | reverse | .[1:] | .[].id' | \
-	xargs -I {} $(WRANGLER) pages deployment delete $(PROJECT_NAME) {} --account-id=$$CLOUDFLARE_ACCOUNT_ID || echo "No old deployments to delete."
+	@ACCOUNT_ID="$$CLOUDFLARE_ACCOUNT_ID"; \
+	PROJECT_NAME="$(PROJECT_NAME)"; \
+	BRANCH_NAME="$(BRANCH)"; \
+	$(CURL) -s \
+	  -H "Authorization: Bearer $$CLOUDFLARE_API_TOKEN" \
+	  "https://api.cloudflare.com/client/v4/accounts/$$ACCOUNT_ID/pages/projects/$$PROJECT_NAME/deployments" \
+	| $(JQ) -r '(.result // [])
+	    | map(select((.deployment_trigger.metadata.branch // .deployment_trigger.metadata.branch_name // .deployment_trigger.metadata.commit_ref // "") == "'"$$BRANCH_NAME"'"))
+	    | sort_by(.created_on)
+	    | reverse
+	    | .[1:]
+	    | .[].id' \
+	| while read -r DEPLOYMENT_ID; do \
+	    echo "Deleting deployment $$DEPLOYMENT_ID"; \
+	    $(CURL) -s -X DELETE \
+	      -H "Authorization: Bearer $$CLOUDFLARE_API_TOKEN" \
+	      "https://api.cloudflare.com/client/v4/accounts/$$ACCOUNT_ID/pages/projects/$$PROJECT_NAME/deployments/$$DEPLOYMENT_ID"; \
+	  done
 
 ci: check-tools check-env build ai-embeddings deploy-pages build-summary cleanup-deployments ## Run the full CI flow locally
 

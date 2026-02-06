@@ -5,6 +5,7 @@ showAuthor: false
 showReadingTime: false
 showEdit: false
 showPagination: false
+showComments: true
 ---
 
 ## Did we meet somewhere

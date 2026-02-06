@@ -2,6 +2,7 @@
 title: "Resume"
 summary: "Senior Software Engineer with expertise in backend systems, machine learning, and DevOps"
 showDate: false
+showComments: true
 ---
 
 {{< lead >}}

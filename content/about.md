@@ -3,6 +3,7 @@ title: "About"
 summary: "Senior Software Engineer passionate about innovation, perfection, and pushing technological boundaries"
 showDate: false
 showPagination: false
+showComments: true
 ---
 
 {{< figure src="/samson.webp" alt="Professional headshot photo" caption="Samson Gama - Senior Software Engineer" class="rounded-full mx-auto" width="300" fetchpriority="high">}}
