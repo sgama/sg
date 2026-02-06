@@ -88,7 +88,8 @@ jobs:
           curl -s \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
-          | jq -r '.result
+            | jq -r '(.result // [])
+              | map(select((.deployment_trigger.metadata.branch // .deployment_trigger.metadata.branch_name // .deployment_trigger.metadata.commit_ref // "") == "'"$BRANCH_NAME"'"))
               | sort_by(.created_on)
               | reverse
               | .[1:]
