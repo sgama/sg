@@ -9,6 +9,8 @@ slug: "cicd"
 tags: ["cicd", "travis-ci", "jenkins", "docker", "kubernetes", "automation", "devops", "gitlab"]
 ---
 
+![Featured image](featured.png)
+
 Every time a developer changes code, they commit it and push it upstream to a repository. From there, they typically create a Pull Request (PR) for other developers to review. After the PR is approved, the code is merged into the `develop` or `main` branches.
 
 **Without continuous integration and deployment**, that new code involves a manual verification process for integration and a manual deployment step. This is generally a tedious, repetitive, and error-prone task.

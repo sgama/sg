@@ -9,6 +9,8 @@ date: 2015-02-01
 slug: "endless-sphere"
 tags: ["devops", "aws", "linux", "system-administration", "phpbb", "sql"]
 ---
+
+![Featured image](featured.webp)
 **Endless-Sphere** is the premier online community for DIY electric vehicle enthusiasts, boasting over 25,000 active members and millions of posts. The forum serves as a critical knowledge base for the EV industry.
 
 ## The Challenge

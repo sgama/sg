@@ -10,6 +10,8 @@ slug: "er-ipad-project"
 tags: ["ed-tech", "ios-deployment", "infrastructure", "networking", "consulting"]
 ---
 
+![Featured image](featured.webp)
+
 I provided technical consultation and deployment support for the Elsie Roy Elementary iPad project (2010–2013), a pioneering initiative to integrate mobile technology into elementary education.
 
 ## Project Scope

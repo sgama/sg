@@ -9,6 +9,8 @@ date: 2024-10-25
 slug: "call-of-duty-bo6"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
+
+![Featured image](featured.webp)
 At **Demonware (Activision)**, I worked on the core services powering the multiplayer experience for **Call of Duty: Black Ops 6**.
 
 ## Contributions

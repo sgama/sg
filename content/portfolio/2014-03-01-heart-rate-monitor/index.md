@@ -10,6 +10,8 @@ slug: "heart-rate-monitor"
 tags: ["biomedical", "embedded-systems", "signal-processing", "c-programming", "hardware"]
 ---
 
+![Featured image](featured.webp)
+
 For this module, I executed the full lifecycle design—build, program, and test—of a **photoelectric heart rate monitor**.
 
 ## Operational Principle

@@ -9,6 +9,8 @@ showDate: true
 series: ["Cloudflare Developments"]
 ---
 
+![Featured image](featured.webp)
+
 Static sites are great—fast, secure, and cheap. but they often lack interactivity. I wanted to let visitors "chat" with my portfolio, asking questions like *"What experience does Samson have with Python?"* or *"Tell me about the EV Trip Analyzer project."*
 
 Instead of adding a third-party widget, I built a custom, native-feeling solution using the Cloudflare ecosystem. Here is exactly how it works.

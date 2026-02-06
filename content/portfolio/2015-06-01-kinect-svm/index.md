@@ -9,6 +9,8 @@ date: 2015-06-01
 slug: "kinect-svm"
 tags: ["computer-vision", "machine-learning", "cpp", "kinect", "opencv", "svm"]
 ---
+
+![Featured image](featured.webp)
 {{< youtube id="ZT-NPwJW3Mw" autoplay="false" >}}
 
 **Kinect SVM** is a computer vision application that allows users to trigger operating system tasks (like launching apps or controlling volume) by drawing specific shapes on a piece of paper in front of a Kinect camera.

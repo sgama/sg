@@ -7,6 +7,8 @@ showDate: true
 tags: ["devops", "lambda", "serverless", "faas", "zeit", "vercel"]
 ---
 
+![Featured image](featured.png)
+
 > **Update 2020:** Zeit has rebranded to [Vercel](https://vercel.com). The `now` command and `zeit.co` URLs referenced below correspond to the platform's state in 2019.
 
 Let me introduce you to this amazing service called [zeit.co AKA ZEIT NOW](https://zeit.co).

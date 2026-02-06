@@ -9,6 +9,8 @@ date: 2018-01-01
 slug: "hft-bot"
 tags: ["fintech", "algorithmic-trading", "golang", "machine-learning", "time-series-db", "microservices", "influxdb"]
 ---
+
+![Featured image](featured.webp)
 {{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_grafana.webp" title="Real-time Monitoring Dashboard" >}}
 
 This project is a high-frequency trading (HFT) system designed to capitalize on volatility in the cryptocurrency markets. It evolved from a simple Python scraper into a robust distributed system capable of processing market data in nanoseconds.

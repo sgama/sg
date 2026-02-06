@@ -10,6 +10,8 @@ slug: "veazey-scholars"
 tags: ["web-design", "frontend", "freelance"]
 ---
 
+![Featured image](featured.webp)
+
 I collaborated with Albert Hynek to design and develop the digital presence for the **Veazey Scholarship Foundation**, an initiative supported by the Canadian law firm **Borden Ladner Gervais LLP (BLG)**.
 
 The project involved creating a professional, accessible informational site for prospective applicants.

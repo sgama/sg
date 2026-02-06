@@ -9,6 +9,8 @@ date: 2022-10-28
 slug: "call-of-duty-mw2"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
+
+![Featured image](featured.webp)
 At **Demonware (Activision)**, I worked on the core services powering the multiplayer experience for **Call of Duty: Modern Warfare II**.
 
 ## Contributions

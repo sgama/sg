@@ -9,7 +9,8 @@ date: 2014-07-01
 slug: "electric-bicycle"
 tags: ["electric-vehicles", "hardware", "engineering", "clean-tech"]
 ---
-{{< figure src="/portfolio/2014-07-01-electric-bicycle/electric-bicycle-post-0.webp" title="Custom Electric Bicycle Build" >}}
+
+![Custom electric bicycle](featured.webp)
 
 Leveraging my experience at **Grin Technologies**, I engineered a custom electric bicycle optimized for urban commuting and efficiency testing. The build integrated commercial off-the-shelf components with custom telemetry solutions.
 

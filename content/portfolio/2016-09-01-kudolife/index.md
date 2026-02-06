@@ -10,6 +10,8 @@ slug: "kudolife"
 tags: ["mobile-app", "ios", "android", "full-stack", "api-optimization", "php", "sql"]
 ---
 
+![Featured image](featured.webp)
+
 **Kudolife** is a comprehensive health and wellness tracking application. As a full-stack developer at **Prizm Media**, I was responsible for maintaining and enhancing both the mobile apps and the backend infrastructure.
 
 ## Key Improvements

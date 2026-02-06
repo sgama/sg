@@ -10,6 +10,8 @@ slug: "green-screen"
 tags: ["video-production", "visual-effects", "adobe-after-effects", "compositing"]
 ---
 
+![Featured image](featured.webp)
+
 During high school, I specialized in post-production and visual effects computation for student film projects. While my collaborator Albert Hynek focused on cinematography and directing, I handled the digital workflow, specifically **chroma key compositing** (green screen).
 
 ## Technical Implementation

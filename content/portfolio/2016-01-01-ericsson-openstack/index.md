@@ -10,6 +10,8 @@ slug: "ericsson-openstack"
 tags: ["cloud-infrastructure", "openstack", "python", "networking", "sdn", "docker"]
 ---
 
+![Featured image](featured.webp)
+
 During my internship at **Ericsson**, I worked on integrating their telecommunications hardware into the cloud via OpenStack.
 
 ## Key Contributions

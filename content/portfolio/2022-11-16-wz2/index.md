@@ -9,6 +9,8 @@ date: 2022-11-16
 slug: "call-of-duty-wz2"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
+
+![Featured image](featured.webp)
 At **Demonware (Activision)**, I worked on the core services powering the battle royale experience for **Call of Duty: Warzone 2.0**.
 
 ## Contributions

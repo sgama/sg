@@ -9,6 +9,8 @@ date: 2019-12-23
 slug: "ctfsamsongamacom"
 tags: ["cybersecurity", "technical-writing", "tutorial", "education", "reverse-engineering"]
 ---
+
+![Featured image](featured.webp)
 {{< figure src="/portfolio/2019-12-23-ctfsamsongamacom/ctf.webp" title="CTF Writeup Repository" >}}
 
 I maintain a dedicated repository of writeups for the CTF challenges I've solved. This serves as both a personal knowledge base and a community resource for up-and-coming security researchers.

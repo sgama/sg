@@ -10,6 +10,8 @@ slug: "absolute"
 tags: ["backend", "golang", "kubernetes", "distributed-systems", "big-data", "optimization"]
 ---
 
+![Featured image](featured.webp)
+
 At **Absolute Software**, I served as a Backend Developer focused on modernizing the company's core data ingestion infrastructure.
 
 ## The Problem

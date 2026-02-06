@@ -9,6 +9,8 @@ showDate: true
 series: ["Cloudflare Developments"]
 ---
 
+![Featured image](featured.webp)
+
 About 10 years ago, hosting a website meant paying \$5/month for a VPS, configuring Nginx, and manually FTPing files. Today, we have the "Modern Web"—a beautiful, chaotic mix of static site generators, edge computing, vector databases, and zero-trust tunnels.
 
 This website is a static site (Hugo), but it's wrapped in layers of automation and serverless features that make it feel alive. Here provides a full architectural breakdown of how `samsongama.com` is built, deployed, and monitored.

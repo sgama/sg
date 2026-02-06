@@ -9,6 +9,8 @@ slug: "notifications"
 tags: ["notifications", "ops", "alertmanager", "slack", "automation", "monitoring"]
 ---
 
+![Featured image](featured.webp)
+
 **Notifications make monitoring useful.**
 
 Without proper alerting, even the best monitoring setup is just a collection of pretty dashboards that nobody looks at until it's too late.

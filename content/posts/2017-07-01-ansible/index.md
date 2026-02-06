@@ -9,6 +9,8 @@ slug: "ansible"
 tags: ["ansible", "ops", "docker", "automation", "devops"]
 ---
 
+![Featured image](featured.jpg)
+
 I've been working with Linux since 2008. Back then, I mostly used a spare machine to run FreeNAS, Apache, MySQL, Python to host a static or Wordpress website.
 
 Then as I got more invested with projects running on Linux, I started to set up VPSes to start hosting online in 2011. Everytime, it was the same process. Login as root, set up new user, disable root, set up PKA, enable firewall... etcetc. Took about 30min-1hour depending on how much of the process I remembered. I continued this process till 2015.

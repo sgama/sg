@@ -10,6 +10,8 @@ slug: "call-of-duty-bo7"
 tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
 ---
 
+![Featured image](featured.webp)
+
 ## Contributions
 
 - **Scalability**: Optimization of backend services in preparation for launch.

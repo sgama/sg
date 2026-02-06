@@ -10,6 +10,8 @@ slug: "spoke-calculator"
 tags: ["web-development", "visualization", "javascript", "mathematics"]
 ---
 
+![Featured image](featured.webp)
+
 The **Spoke Calculator** is a precision tool I developed to help mechanics and hobbyists build bicycle wheels. Because wheel building tolerances are extremely tight (±1mm), accurate calculation is critical.
 
 ## Features

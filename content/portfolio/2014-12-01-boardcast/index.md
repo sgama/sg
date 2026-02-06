@@ -9,6 +9,8 @@ date: 2014-12-01
 slug: "boardcast"
 tags: ["mobile-app", "android", "java", "networking", "computer-vision"]
 ---
+
+![Featured image](featured.webp)
 {{< youtube id="CUDMqm04WdI" autoplay="false" >}}
 **Boardcast** is a real-time collaborative whiteboarding tool designed for Android tablets and phones. It allows teams to sketch, diagram, and brainstorm together without needing an internet connection, relying instead on local peer-to-peer mesh networking.
 

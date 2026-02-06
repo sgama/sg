@@ -9,6 +9,8 @@ date: 2014-10-01
 slug: "fleetaware"
 tags: ["web-development", "hackathon", "logistics", "iot", "apis", "php", "javascript"]
 ---
+
+![Featured image](featured.webp)
 {{< figure src="/portfolio/2014-10-01-fleetaware/fleetaware-post-0.webp" title="FleetAware Dashboard" >}}
 
 **FleetAware** was developed during a 24-hour Hackathon with the goal of extending the capabilities of the **Mojio** connected car platform. While Mojio was designed for single-vehicle owners, we recognized an opportunity to scale the technology for enterprise fleet management (Rental agencies, Logistics, Taxi services).

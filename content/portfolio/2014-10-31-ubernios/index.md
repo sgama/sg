@@ -9,6 +9,8 @@ date: 2014-10-31
 slug: "ubernios"
 tags: ["embedded-systems", "fpga", "c", "vhdl", "verilog", "assembly"]
 ---
+
+![Featured image](featured.webp)
 {{< figure src="/portfolio/2014-10-31-ubernios/ubernios-post-0.webp" title="UberNIOS Game Play" >}}
 
 **UberNios** is a custom hardware/software co-design project demonstrating full-stack embedded development—from the logic gate level up to the application layer. We built a functional arcade game console on an Altera DE2 FPGA board.

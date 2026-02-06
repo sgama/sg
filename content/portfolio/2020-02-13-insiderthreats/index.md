@@ -10,6 +10,8 @@ slug: "insiderthreats"
 tags: ["cybersecurity", "ctf", "leadership", "reverse-engineering", "digital-forensics", "education"]
 ---
 
+![Featured image](featured.webp)
+
 To foster a culture of security awareness and technical curiosity, I founded **"Insider Threats"**, a Capture The Flag (CTF) team at the Mastercard Vancouver office.
 
 ## Initiative Goals

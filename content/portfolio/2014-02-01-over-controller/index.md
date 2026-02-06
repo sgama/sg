@@ -10,6 +10,8 @@ slug: "over-controller"
 tags: ["embedded-systems", "assembly", "fpga", "java", "android", "control-systems"]
 ---
 
+![Featured image](featured.webp)
+
 I collaborated with a team of six to engineer a precise **reflow soldering oven controller** using the **DE2-8052 microcontroller (FPGA)**. The system aimed to adhere to industry-standard reflow thermal profiles.
 
 ## Technical Architecture

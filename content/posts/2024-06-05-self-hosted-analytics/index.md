@@ -9,6 +9,8 @@ showDate: true
 series: ["Homelab"]
 ---
 
+![Featured image](featured.png)
+
 I wanted to know how people were using my portfolio, but I didn't want to feed the data surveillance machine of Google Analytics. I also didn't want a heavy script slowing down my blazing fast [Blowfish](https://blowfish.page/) site.
 
 Enter [Umami](https://umami.is/). It's open-source, lighter than a feather, and privacy-focused (no cookies!).

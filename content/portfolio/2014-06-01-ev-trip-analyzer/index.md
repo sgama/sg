@@ -10,6 +10,8 @@ slug: "ev-trip-analyzer"
 tags: ["web-development", "data-visualization", "clean-tech", "javascript", "google-maps-api"]
 ---
 
+![Featured image](featured.webp)
+
 During my engineering co-op at **Grin Technologies** (ebikes.ca), I served as the lead developer for the **EV Trip Analyzer**, a web platform for scrutinizing electric bicycle performance data.
 
 ## Functionality

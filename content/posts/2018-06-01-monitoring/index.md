@@ -9,6 +9,8 @@ slug: "monitoring"
 tags: ["monitoring", "ops", "prometheus", "devops", "infrastructure", "observability"]
 ---
 
+![Featured image](featured.png)
+
 Monitoring is a broad topic in DevOps. I generally simplify it into four main categories:
 
 ## Types of Monitoring

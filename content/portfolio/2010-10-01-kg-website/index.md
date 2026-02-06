@@ -10,6 +10,8 @@ slug: "kg-website"
 tags: ["web-development", "streaming", "it-administration", "community"]
 ---
 
+![Featured image](featured.webp)
+
 I served as one of the lead webmasters for King George Secondary, managing the school's digital presence from ideation in 2010 to a full launch in August 2011. The platform served as the central hub for the school community, replacing fragmented paper bulletins.
 
 ## Key Contributions
