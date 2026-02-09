@@ -77,7 +77,7 @@ function processFile(filePath) {
         const textSegments = splitText(content, CONFIG.MAX_TOKENS_PER_CHUNK);
 
         return textSegments.map((segment, index) => {
-            const isContext = filePath.includes('content/context/');
+            const isContext = filePath.includes('content/_context/');
 
             return {
                 id: `${path.basename(filePath, '.md')}-${index}`,
