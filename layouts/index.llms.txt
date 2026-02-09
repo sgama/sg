@@ -4,6 +4,11 @@
 ## Site Description
 {{ site.Params.Description | default "Personal Portfolio and Technical Blog of Samson Gama." }}
 
+## How to Use This Site
+- Start with the About and Resume pages for a high-level overview.
+- Use Portfolio for project highlights and Posts for technical deep dives.
+- For quick info, scan the Skills/Tags section below.
+
 ## Context & Skills (Internal Knowledge)
 {{- with site.GetPage "/context" -}}
   {{- range .Resources }}
@@ -33,10 +38,32 @@
   {{- end -}}
 {{- end }}
 
+## Recent Posts
+{{- range first 10 (where site.RegularPages "Section" "posts") -}}
+- [{{ .Title }}]({{ .Permalink }})
+  {{ .Summary | plainify }}
+{{- end }}
+
 ## Technical Blog Posts
 {{- range site.RegularPages -}}
   {{- if eq .Section "posts" }}
 - [{{ .Title }}]({{ .Permalink }})
   {{ .Summary | plainify }}
   {{- end -}}
+{{- end }}
+
+## Skills / Tags Snapshot
+{{- $tags := slice -}}
+{{- range site.RegularPages -}}
+  {{- with .Params.tags -}}
+    {{- range . -}}
+      {{- $tags = $tags | append . -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $tags = uniq $tags | sort -}}
+{{- if gt (len $tags) 0 -}}
+{{ delimit $tags ", " }}
+{{- else -}}
+(No tags found)
 {{- end }}

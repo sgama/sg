@@ -1,5 +1,6 @@
 <div class="chat-cta-chips" role="list">
     {{- range .Site.Data.chat_suggestions.suggestions -}}
-    <button class="chat-cta-chip js-chat-trigger" type="button" role="listitem" data-question="{{ . }}">{{ . }}</button>
+    <button class="chat-cta-chip js-chat-trigger" type="button" role="listitem" data-question="{{ . }}" hidden>{{ .
+        }}</button>
     {{- end -}}
 </div>

@@ -230,7 +230,8 @@
     border: 1px solid var(--card-border);
     backdrop-filter: blur(10px);
     animation: fadeIn .6s ease-out .15s both;
-    text-align: center
+    text-align: center;
+    font-size: clamp(0.95rem, 1.6vw, 1.125rem)
 }
 
 .intro-content p {
@@ -275,6 +276,15 @@
     .typing-effect::after {
         animation: none !important;
         opacity: 1
+    }
+
+    #ai-chat-window,
+    #ai-chat-window.open,
+    #ai-chat-toggle,
+    .chat-cta-btn,
+    .chat-cta-chip {
+        animation: none !important;
+        transition: none !important
     }
 }
 

@@ -61,6 +61,20 @@
 
     // Restore chat window if it was open before navigation
     document.addEventListener('DOMContentLoaded', async () => {
+        const chipContainers = document.querySelectorAll('.chat-cta-chips');
+        chipContainers.forEach((container) => {
+            const chips = Array.from(container.querySelectorAll('.chat-cta-chip'));
+            if (!chips.length) return;
+            const count = Math.min(4, chips.length);
+            for (let i = 0; i < count; i += 1) {
+                const j = i + Math.floor(Math.random() * (chips.length - i));
+                [chips[i], chips[j]] = [chips[j], chips[i]];
+            }
+            chips.forEach((chip, index) => {
+                chip.hidden = index >= count;
+            });
+        });
+
         let shouldOpen = false;
         try {
             shouldOpen = sessionStorage.getItem('ai-chat-open') === 'true';

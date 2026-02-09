@@ -30,8 +30,8 @@
                     {{ $style = printf "object-position: %s;" . }}
                     {{ end }}
                     <img id="background-image" class="nozoom mt-0 mr-0 mb-0 ml-0 h-[1000px] w-full object-cover"
-                        src="{{ $homepageImage.RelPermalink }}" role="presentation" {{ if $style
-                        }}style="{{ $style | safeCSS }}" {{ end }}>
+                        src="{{ $homepageImage.RelPermalink }}" role="presentation" loading="eager" fetchpriority="high"
+                        decoding="async" {{ if $style }}style="{{ $style | safeCSS }}" {{ end }}>
                     <div
                         class="from-neutral absolute inset-0 h-[1000px] bg-gradient-to-t to-transparent mix-blend-normal dark:from-neutral-800">
                     </div>
@@ -61,7 +61,7 @@
                         {{ end }}
                         <img class="mb-2 h-36 w-36 rounded-full" width="144" height="144"
                             alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
-                            data-zoom-src="{{ $squareImage.RelPermalink }}">
+                            loading="lazy" decoding="async" data-zoom-src="{{ $squareImage.RelPermalink }}">
                         {{ end }}
                         {{ end }}
                         <h1 class="mb-2 text-4xl font-extrabold text-neutral-800 dark:text-neutral-200">
