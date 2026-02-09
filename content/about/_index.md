@@ -1,24 +1,23 @@
 ---
 title: "About"
 summary: "Senior Software Engineer passionate about innovation, perfection, and pushing technological boundaries"
-showDate: false
-showComments: true
 ---
 
 {{< figure src="/samson.webp" alt="Professional headshot photo" caption="Samson Gama - Senior Software Engineer" class="rounded-full mx-auto" width="300" fetchpriority="high">}}
 
 ## Hi, I'm Samson 👋
 
-**⚡ Fueled by motivation, obsessed with perfection** - I innovate the present by providing a glimpse of things to come.
+I’m a senior software engineer who loves building dependable systems that feel effortless to the people using them. I started by tinkering with hardware and networks, and over time that curiosity grew into a career focused on backend reliability, automation, and security.
 
 ---
 
 ## 💼 What I Do
 
-I specialize in backend engineering, site reliability, and infrastructure optimization. My track record includes:
+I specialize in backend engineering, site reliability, and infrastructure optimization. A few highlights:
 
-- 📈 **Scaling systems** to handle millions of concurrent users during peak gaming events
-- 🤖 **Building automation** that reduces manual work and increases team productivity
+- 📈 **Scaled systems** to handle millions of concurrent users during peak gaming events
+- 🤖 **Automated deployments and monitoring** to reduce manual work and improve team velocity
+- 🔐 **Hardened platforms** with security-first practices and incident-driven improvements
 
 {{< button href="/resume" target="_self" >}}
 📄 View Full Resume
@@ -27,16 +26,16 @@ I specialize in backend engineering, site reliability, and infrastructure optimi
 ## 🎯 Core Principles
 
 **💡 Innovation First**
-Question existing implementations. If something can be better, make it better. Don't settle for "good enough."
+I challenge default approaches and look for simpler, more durable solutions.
 
 **✨ Obsess Over Details**
-Optimization isn't just about performance metrics - it's about creating seamless experiences that users don't have to think about.
+Small improvements compound. I care about latency, clarity, and the last 10% that makes a system feel smooth.
 
 **❤️ Build for Impact**
-Technology should serve people. Every system I build, every line of code I write, aims to make someone's work easier or their experience better.
+Tech should reduce friction and help people do their best work.
 
 **🛡️ Security by Design**
-OSCP certified. Security isn't an afterthought - it's foundational to everything I build.
+OSCP certified. Security is built in from the start, not bolted on later.
 
 ---
 
@@ -57,18 +56,18 @@ OSCP certified. Security isn't an afterthought - it's foundational to everything
 
 ## 🎮 Beyond the Terminal
 
-When I'm not architecting distributed systems, I'm:
+When I’m not in the terminal, I’m usually:
 
-- ⚡ **Building electric bicycles** - Hardware meets sustainability
-- 📸 **Photography** - Capturing moments and experimenting with visual composition
-- 🌲 **Exploring Vancouver** - Finding inspiration in nature and urban landscapes
+- ⚡ **Building electric bicycles** — hardware meets sustainability
+- 📸 **Photography** — light, composition, and storytelling
+- 🌲 **Exploring Vancouver** — trails, coastlines, and city energy
 
 ---
 
 ## 🤝 Let's Connect
 
 {{< alert "star" >}}
-**I'm always interested in discussing interesting technical challenges, potential collaborations, or just connecting with fellow engineers and innovators.**
+**I’m always open to discussing technical challenges, collaboration opportunities, or swapping ideas with fellow engineers.**
 {{< /alert >}}
 
 {{< button href="/contact" target="_self" >}}

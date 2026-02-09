@@ -1,13 +1,9 @@
 ---
 title: "Resume"
-summary: "Senior Software Engineer with expertise in backend systems, machine learning, and DevOps"
-showDate: false
-showComments: true
+summary: "Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps"
 ---
 
-{{< lead >}}
 Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps.
-{{< /lead >}}
 
 ## 💼 Professional Experience
 

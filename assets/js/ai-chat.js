@@ -17,6 +17,7 @@ class AIChatWidget {
         this.loadHistory();
         this.bindEvents();
         this.applyPendingQuestion();
+        this.initSuggestionChips();
 
         // Global Exposure
         window.openAiChat = () => this.open();
@@ -63,17 +64,6 @@ class AIChatWidget {
             this.elements.toggleBtn.addEventListener('click', () => this.open());
         }
 
-        document.querySelectorAll('.js-chat-trigger').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.open();
-                const question = btn.dataset.question;
-                if (this.elements.input && question) {
-                    this.elements.input.value = question.trim();
-                }
-            });
-        });
-
         this.elements.closeBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
             this.close();
@@ -109,6 +99,23 @@ class AIChatWidget {
             this.elements.input.value = pending;
             delete window.pendingChatQuestion;
         }
+    }
+
+    initSuggestionChips() {
+        const containers = document.querySelectorAll('.chat-cta-chips');
+        if (!containers.length) return;
+        containers.forEach((container) => {
+            const buttons = Array.from(container.querySelectorAll('.chat-cta-chip'));
+            const count = Math.min(4, buttons.length);
+            if (!count) return;
+            for (let i = 0; i < count; i += 1) {
+                const j = i + Math.floor(Math.random() * (buttons.length - i));
+                [buttons[i], buttons[j]] = [buttons[j], buttons[i]];
+            }
+            buttons.forEach((btn, index) => {
+                btn.hidden = index >= count;
+            });
+        });
     }
 
     getHistory() {
