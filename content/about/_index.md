@@ -26,16 +26,16 @@ I specialize in backend engineering, site reliability, and infrastructure optimi
 
 ## 🎯 Core Principles
 
-**💡 Innovation First**  
+**💡 Innovation First**
 Question existing implementations. If something can be better, make it better. Don't settle for "good enough."
 
-**✨ Obsess Over Details**  
+**✨ Obsess Over Details**
 Optimization isn't just about performance metrics - it's about creating seamless experiences that users don't have to think about.
 
-**❤️ Build for Impact**  
+**❤️ Build for Impact**
 Technology should serve people. Every system I build, every line of code I write, aims to make someone's work easier or their experience better.
 
-**🛡️ Security by Design**  
+**🛡️ Security by Design**
 OSCP certified. Security isn't an afterthought - it's foundational to everything I build.
 
 ---
@@ -43,7 +43,7 @@ OSCP certified. Security isn't an afterthought - it's foundational to everything
 ## 🛠️ Technical Expertise
 
 | | |
-|----------|-------------|
+| --- | --- |
 | **💻 Backend & Infrastructure** | Go • Rust • Python • Kubernetes • Docker • AWS |
 | **🗄️ Databases & Caching** | PostgreSQL • MongoDB • Redis • DynamoDB |
 | **📊 Monitoring & Reliability** | Prometheus • Datadog • ELK Stack |

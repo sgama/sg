@@ -48,7 +48,7 @@ First, we bind the necessary resources to our application.
 binding = "AI" # Access to Workers AI models
 
 [[vectorize]]
-binding = "VECTORIZE_INDEX" 
+binding = "VECTORIZE_INDEX"
 index_name = "portfolio-index" # Our vector database
 ```
 
@@ -65,21 +65,21 @@ The function performs three main steps:
 
 {{< mermaid >}}
 sequenceDiagram
-    participant User
-    participant Frontend
-    participant Function as CF Function
-    participant VectorDB as Vectorize
-    participant AI as Workers AI
+participant User
+participant Frontend
+participant Function as CF Function
+participant VectorDB as Vectorize
+participant AI as Workers AI
 
-    User->>Frontend: Asks Question
-    Frontend->>Function: POST /api/chat
-    Function->>AI: Generate Embedding
-    AI-->>Function: Vector [0.1, 0.5...]
-    Function->>VectorDB: Query Index(vector)
-    VectorDB-->>Function: Top 3 Matches
-    Function->>AI: Generate(System Prompt + Context + Query)
-    AI-->>Frontend: JSON Stream
-    Frontend-->>User: Update UI
+User->>Frontend: Asks Question
+Frontend->>Function: POST /api/chat
+Function->>AI: Generate Embedding
+AI-->>Function: Vector [0.1, 0.5...]
+Function->>VectorDB: Query Index(vector)
+VectorDB-->>Function: Top 3 Matches
+Function->>AI: Generate(System Prompt + Context + Query)
+AI-->>Frontend: JSON Stream
+Frontend-->>User: Update UI
 {{< /mermaid >}}
 
 ```javascript
@@ -91,12 +91,12 @@ export async function onRequest(context) {
     const { data } = await context.env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [query] });
     const vector = data[0];
     const results = await context.env.VECTORIZE_INDEX.query(vector, { topK: 3, returnMetadata: true });
-    
+
     // Combine matched text chunks
     const contextText = results.matches.map(m => m.metadata.text).join("\n---\n");
 
     // 2. Generation with System Prompt
-    const systemPrompt = `You are a helpful assistant for Samson's portfolio. 
+    const systemPrompt = `You are a helpful assistant for Samson's portfolio.
     Use the following Context to answer the user.
     Context: ${contextText}`;
 
@@ -158,13 +158,13 @@ const files = glob.sync("content/**/*.md");
 
 for (const file of files) {
     const { content, data } = matter(fs.readFileSync(file, 'utf8'));
-    
+
     // 2. Split into chunks (~500 tokens)
     const chunks = splitText(content, 500);
 
     for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
-        
+
         // 3. Generate Embedding using Workers AI
         const embedding = await getEmbedding(chunk);
 
@@ -244,11 +244,11 @@ To make the chat accessible from anywhere (header, footer, blog posts), I implem
     document.addEventListener('click', async (e) => {
         const trigger = e.target.closest('.js-chat-trigger');
         if (trigger) {
-            e.preventDefault(); 
+            e.preventDefault();
             if (!window.aiChatInitialized) {
                 // Dynamically import the module only when needed
                 const { initChat } = await import('{{ resources.Get "js/ai-chat.js" | minify | fingerprint }}');
-                initChat(true); 
+                initChat(true);
                 window.aiChatInitialized = true;
             } else if (window.openAiChat) {
                 window.openAiChat();

@@ -140,9 +140,9 @@ export class LogService {
 
     /**
      * Fetches formatted logs from KV
-     * @param {KVNamespace} kv 
-     * @param {number} limit 
-     * @param {string|null} cursor 
+     * @param {KVNamespace} kv
+     * @param {number} limit
+     * @param {string|null} cursor
      */
     static async fetchLogs(kv, limit, cursor) {
         // A. List Keys (Pagination handled by KV)

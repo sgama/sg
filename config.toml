@@ -14,10 +14,6 @@ enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemo
 enableGitInfo = false  # https://gohugo.io/getting-started/configuration/#enablegitinfo (faster builds)
 enableRobotsTXT = true  # https://gohugo.io/getting-started/configuration/#enablerobotstxt
 hasCJKLanguage = false  # https://gohugo.io/getting-started/configuration/#hascjklanguage
-summaryLength = 20  # Lower = faster processing (20 words instead of 30)
-timeout = "30s"  # https://gohugo.io/getting-started/configuration/#timeout
-title = "Samson Gama"
-
 # Ignore development files and directories to speed up builds
 ignoreFiles = [
   "\\.git",
@@ -34,6 +30,9 @@ ignoreFiles = [
   "Makefile",
   "README\\.md"
 ]
+summaryLength = 20  # Lower = faster processing (20 words instead of 30)
+timeout = "30s"  # https://gohugo.io/getting-started/configuration/#timeout
+title = "Samson Gama"
 
 # Build configuration - https://gohugo.io/getting-started/configuration/#configure-build
 [build]
@@ -130,6 +129,11 @@ noClasses = false
 endLevel = 4
 startLevel = 1
 
+[mediaTypes]
+
+[mediaTypes."text/llms"]
+suffixes = ["txt"]
+
 [menu]
 
 [[menu.main]]
@@ -217,22 +221,19 @@ path = "github.com/martignoni/hugo-notice"  # Notice shortcode
 disable = false
 path = "github.com/nunocoracao/blowfish/v2"  # Main theme
 
+[outputFormats]
+
+[outputFormats.LLMS]
+baseName = "llms"
+isPlainText = true
+mediaType = "text/llms"
+
 # Output formats - https://gohugo.io/templates/output-formats/
 [outputs]
 home = ["HTML", "RSS", "JSON", "LLMS"]  # JSON needed for search; LLMS for AI
 section = ["HTML", "RSS"]
 taxonomy = ["HTML"]
 term = ["HTML"]
-
-[mediaTypes]
-  [mediaTypes."text/llms"]
-    suffixes = ["txt"]
-
-[outputFormats]
-  [outputFormats.LLMS]
-    baseName = "llms"
-    isPlainText = true
-    mediaType = "text/llms"
 
 # Pagination - https://gohugo.io/templates/pagination/
 [pagination]
@@ -279,7 +280,7 @@ showEdit = false
 showHeadingAnchors = true
 showHero = true
 showLikes = false
-showPagination = true 
+showPagination = true
 showReadingTime = true
 showRelatedContent = true
 showTableOfContents = true
@@ -288,19 +289,18 @@ showViews = false
 showWordCount = true
 showZenMode = true
 
-
 [params.article.giscus]
-repo = "sgama/sg"
-repoId = "MDEwOlJlcG9zaXRvcnkxMjAzNzIzNTc="
 category = "Announcements"
 categoryId = "DIC_kwDOByy8hc4C1dRG"
-mapping = "pathname"
-reactionsEnabled = "1"
 emitMetadata = "0"
 inputPosition = "top"
-theme = "catppuccin_mocha"
 lang = "en"
 loading = "lazy"
+mapping = "pathname"
+reactionsEnabled = "1"
+repo = "sgama/sg"
+repoId = "MDEwOlJlcG9zaXRvcnkxMjAzNzIzNTc="
+theme = "catppuccin_mocha"
 
 # Footer configuration - https://blowfish.page/docs/configuration/#footer
 [params.footer]
@@ -316,16 +316,16 @@ layout = "fixed-gradient"  # Options: basic, fixed, fixed-fill, fixed-gradient, 
 
 # Homepage configuration - https://blowfish.page/docs/homepage-layout/
 [params.homepage]
-layout = "custom" # valid options: page, profile, hero, card, background, custom
-#homepageImage = "IMAGE.jpg" # used in: hero, and card
-showRecent = true
-showRecentItems = 3
-showMoreLink = true
-showMoreLinkDest = "/portfolio/"
 cardView = true
 cardViewScreenWidth = false
+disableHeroImageFilter = false  # only used when layout equals hero
+layout = "custom"  # valid options: page, profile, hero, card, background, custom
 layoutBackgroundBlur = true
-disableHeroImageFilter = false # only used when layout equals hero
+showMoreLink = true
+showMoreLinkDest = "/portfolio/"
+# homepageImage = "IMAGE.jpg" # used in: hero, and card
+showRecent = true
+showRecentItems = 3
 
 # List layout - https://blowfish.page/docs/content-examples/#list-layouts
 [params.list]
@@ -397,6 +397,6 @@ series = "series"
 tag = "tags"
 
 [umamiAnalytics]
-websiteid = "7b6c2554-f791-4546-8ea5-894496e4f9b6"
 domain = "ping.samsongama.com"
 scriptName = "script.js"
+websiteid = "7b6c2554-f791-4546-8ea5-894496e4f9b6"

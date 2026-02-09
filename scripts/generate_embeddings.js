@@ -127,7 +127,7 @@ function splitText(text, maxTokens = 500) {
 
 /**
  * Run embedding generation with concurrency limit
- * Replaces sequential loop with a Promise.all + sempahore pattern
+ * Replaces sequential loop with a Promise.all + semaphore pattern
  */
 async function generateEmbeddingsInParallel(chunks, concurrency) {
     const results = [];
@@ -200,10 +200,10 @@ async function getEmbeddingWithRetry(text, retries = 3) {
  */
 async function batchUpsertVectors(vectors) {
     // Note: This requires the Index ID, using Index Name via API requires a lookup first.
-    // For simplicity, sticking to the Wrangler CLI wrapper but making it more robust, 
+    // For simplicity, sticking to the Wrangler CLI wrapper but making it more robust,
     // OR we would need to fetch the index list to get the ID for 'portfolio-index'.
-    // Given the difficulty of finding the underlying ID without an extra call, 
-    // we will optimize the implementation for REST API if we assume user knows ID, 
+    // Given the difficulty of finding the underlying ID without an extra call,
+    // we will optimize the implementation for REST API if we assume user knows ID,
     // otherwise fallback to a more robust CLI call.
 
     // However, to make this "Enterprise Ready", relying on "wrangler" being in PATH is shaky.

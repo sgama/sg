@@ -51,4 +51,3 @@ Beyond the code, I improved the developer experience:
 - **Infrastructure**: Kubernetes, Docker
 - **CI/CD**: Jenkins
 - **Domain**: High-Volume Data Processing
-

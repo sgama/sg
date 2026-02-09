@@ -13,7 +13,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### 🎮 Senior Service Reliability Engineer
 
-**Demonware / Activision** • Vancouver, Canada  
+**Demonware / Activision** • Vancouver, Canada
 *August 2020 - January 2026*
 
 - Applied SRE principles to ensure uptime, scalability, and fault tolerance across player-facing and backend systems
@@ -27,7 +27,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### 💳 Senior Software Engineer
 
-**Mastercard** • Vancouver, Canada  
+**Mastercard** • Vancouver, Canada
 *October 2018 - July 2020*
 
 - Developed and maintained Infrastructure as Code templates using AWS CloudFormation and SaltStack
@@ -40,7 +40,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### 🚀 Software Developer
 
-**Absolute Software** • Vancouver, Canada  
+**Absolute Software** • Vancouver, Canada
 *June 2017 - October 2018*
 
 {{< alert "circle-info" >}}
@@ -57,7 +57,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### 💡 Co-Founder
 
-**FingerTipDeals** • Vancouver, Canada  
+**FingerTipDeals** • Vancouver, Canada
 *March 2016 - 2017*
 
 - Developed Android and iOS applications serving SaaS product across four countries on AWS infrastructure
@@ -68,7 +68,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### 📱 Software Developer
 
-**Prizm Media Inc.** • Vancouver, Canada  
+**Prizm Media Inc.** • Vancouver, Canada
 *December 2015 - September 2016*
 
 - Developed Android and iOS applications for fitness-oriented social network platform
@@ -79,7 +79,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### 🌐 Software Engineering Intern
 
-**Ericsson Silicon Valley** • Bay Area, USA  
+**Ericsson Silicon Valley** • Bay Area, USA
 *September 2015 - December 2015*
 
 - Developed OpenStack Neutron plugin in Python for managing virtual Ericsson routers
@@ -90,7 +90,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### ⚡ Software Developer
 
-**Grin Technologies** • Vancouver, Canada  
+**Grin Technologies** • Vancouver, Canada
 *May 2014 - August 2014*
 
 - Developed web applications for electric vehicle enthusiasts to visualize trips and render custom wheel builds
@@ -101,27 +101,27 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 
 ### B.A.Sc Computer Engineering ⭐ *With Distinction*
 
-**University of British Columbia**  
+**University of British Columbia**
 *September 2012 - May 2017*
 
-**Concentration:** Software Engineering  
+**Concentration:** Software Engineering
 **Notable Projects:** Machine learning, embedded systems, and web development - see [portfolio](/portfolio) for highlights
 
 ---
 
 ### M.Sc Computer Science Exchange
 
-**ETH Zürich** 🇨🇭  
+**ETH Zürich** 🇨🇭
 *February 2015*
 
-**Focus:** Computer Vision and Machine Learning  
+**Focus:** Computer Vision and Machine Learning
 **Projects:** Computer Vision implementations available in [portfolio](/portfolio)
 
 ## 🤝 Volunteering
 
 ### Strata Council President
 
-**Community Operations** • Vancouver, Canada  
+**Community Operations** • Vancouver, Canada
 *2022 - Present*
 
 - Providing leadership to a community of ~1000 people for the last four years
@@ -136,32 +136,32 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 ## 🏆 Accomplishments & Certifications
 
 {{< alert "shield" >}}
-**🔐 Offensive Security Certified Professional (OSCP)** • *2020*  
+**🔐 Offensive Security Certified Professional (OSCP)** • *2020*
 Advanced penetration testing certification demonstrating hands-on offensive security skills
 {{< /alert >}}
 
-**🥇 TrendMicroCTF 2019 Finalist** • *2019*  
+**🥇 TrendMicroCTF 2019 Finalist** • *2019*
 12th place out of 800 teams in international CTF competition finals in Tokyo with team "Maple Bacon"
 
-**🛡️ Certified Ethical Hacker (CEH)** • *2019*  
+**🛡️ Certified Ethical Hacker (CEH)** • *2019*
 Industry-standard certification in ethical hacking and penetration testing methodologies
 
-**❤️ Occupation First Aid Level 2** • *2018*  
+**❤️ Occupation First Aid Level 2** • *2018*
 Occupational safety certification for workplace emergency response
 
-**⭐ Academic Excellence** • *2017*  
+**⭐ Academic Excellence** • *2017*
 Computer Engineering with Distinction - University of British Columbia
 
-**💰 Veazey Scholarship** • *2012*  
+**💰 Veazey Scholarship** • *2012*
 Scholarship for academic achievement and community involvement
 
-**🎹 RCM Grade 7 Piano** • *2010*  
+**🎹 RCM Grade 7 Piano** • *2010*
 First Class Honours - Royal Conservatory of Music piano certification
 
 ## Technical Skills
 
 | Category | Technologies |
-|----------|-------------|
+| --- | --- |
 | **Languages** | Rust • Go • Python • JavaScript • Java • C/C++ |
 | **Cloud & Containers** | Docker • Kubernetes • AWS • Azure • GCP |
 | **Databases** | MySQL • MongoDB • PostgreSQL • Redis • DynamoDB |
@@ -174,7 +174,7 @@ First Class Honours - Royal Conservatory of Music piano certification
 ### 🎯 Notable Achievements
 
 | Competition | Year | Rank | Team |
-|-------------|------|------|------|
+| --- | --- | --- | --- |
 | **Devslop - Docker CTF** | 2020 | 🥇 **#1** | Emergency Meeting |
 | **OverTheWire Advent Bonanza** | 2019 | 🥉 **#3** | Maple Bacon |
 | **Trend Micro CTF Qualifier** | 2019 | **#6** | Maple Bacon |

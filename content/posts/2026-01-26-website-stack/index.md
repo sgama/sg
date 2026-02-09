@@ -21,40 +21,40 @@ At its core, the site lives on the **Cloudflare Edge**. Content is distributed g
 
 {{< mermaid >}}
 graph TD
-    User((Visitor))
+User((Visitor))
 
-    subgraph Cloudflare["☁️ Cloudflare Edge"]
-        DNS[DNS & DDoS Protection]
-        CDN[CDN Cache]
-        WAF[Web App Firewall]
-        Pages[Cloudflare Pages]
-        Workers[Cloudflare Workers AI]
-        Tunnel[Cloudflare Tunnel]
-    end
+subgraph Cloudflare["☁️ Cloudflare Edge"]
+    DNS[DNS & DDoS Protection]
+    CDN[CDN Cache]
+    WAF[Web App Firewall]
+    Pages[Cloudflare Pages]
+    Workers[Cloudflare Workers AI]
+    Tunnel[Cloudflare Tunnel]
+end
 
-    subgraph Github["🐙 GitHub"]
-        Repo[Source Code]
-        Actions[GitHub Actions CI/CD]
-    end
+subgraph Github["🐙 GitHub"]
+    Repo[Source Code]
+    Actions[GitHub Actions CI/CD]
+end
 
-    subgraph HomeLab["🏠 Home Lab"]
-        Cloudflared[cloudflared daemon]
-        Analytics[Analytics Container]
-    end
+subgraph HomeLab["🏠 Home Lab"]
+    Cloudflared[cloudflared daemon]
+    Analytics[Analytics Container]
+end
 
-    User -->|HTTPS| DNS
-    DNS --> WAF
-    WAF --> CDN
-    
-    CDN -->|Static Content| Pages
-    CDN -->|Dynamic API| Workers
-    CDN -->|analytics.samsongama.com| Tunnel
-    
-    Tunnel <-->|Secure Connection| Cloudflared
-    Cloudflared <--> Analytics
-    
-    Repo -->|Push| Actions
-    Actions -->|Deploy| Pages
+User -->|HTTPS| DNS
+DNS --> WAF
+WAF --> CDN
+
+CDN -->|Static Content| Pages
+CDN -->|Dynamic API| Workers
+CDN -->|analytics.samsongama.com| Tunnel
+
+Tunnel <-->|Secure Connection| Cloudflared
+Cloudflared <--> Analytics
+
+Repo -->|Push| Actions
+Actions -->|Deploy| Pages
 {{< /mermaid >}}
 
 ---
@@ -99,27 +99,27 @@ I don't deploy manually. Deployment is handled by a **GitHub Actions** workflow 
 
 {{< mermaid >}}
 sequenceDiagram
-    participant Dev as Developer
-    participant GH as GitHub Actions
-    participant Build as Build Container
-    participant CF as Cloudflare Pages
-    participant Vec as Vectorize DB
+participant Dev as Developer
+participant GH as GitHub Actions
+participant Build as Build Container
+participant CF as Cloudflare Pages
+participant Vec as Vectorize DB
 
-    Dev->>GH: git push main
-    GH->>Build: Spin up Runner
-    Build->>Build: Install Hugo & Node
-    Build->>Build: hugo --minify
-    
-    rect rgb(20, 20, 20)
-        Note over Build, Vec: The Transformation Layer
-        Build->>Build: Parse Content (.md)
-        Build->>CF: Workers AI (Generate Embeddings)
-        CF-->>Build: Return Vectors
-        Build->>Vec: Upsert Vectors
-    end
-    
-    Build->>CF: Upload /public assets
-    CF-->>Dev: Deployment Success 🚀
+Dev->>GH: git push main
+GH->>Build: Spin up Runner
+Build->>Build: Install Hugo & Node
+Build->>Build: hugo --minify
+
+rect rgb(20, 20, 20)
+    Note over Build, Vec: The Transformation Layer
+    Build->>Build: Parse Content (.md)
+    Build->>CF: Workers AI (Generate Embeddings)
+    CF-->>Build: Return Vectors
+    Build->>Vec: Upsert Vectors
+end
+
+Build->>CF: Upload /public assets
+CF-->>Dev: Deployment Success 🚀
 {{< /mermaid >}}
 
 ---
@@ -161,21 +161,21 @@ Instead of opening port `443` on my home router (which is a security risk), I ru
 
 {{< mermaid >}}
 flowchart LR
-    Visitor["Visitor Browser"]
-    CF["Cloudflare Edge"]
-    Router["Home Router (No Open Ports)"]
-    Server["Home Server"]
-    Container["Analytics Docker"]
+Visitor["Visitor Browser"]
+CF["Cloudflare Edge"]
+Router["Home Router (No Open Ports)"]
+Server["Home Server"]
+Container["Analytics Docker"]
 
-    Visitor -->|"HTTPS"| CF
-    CF <-->|"Encrypted Tunnel"| Server
-    
-    subgraph HomeNetwork["Home Network"]
-        Router
-        Server -->|"Running cloudflared"| Container
-    end
-    
-    style Router stroke:#f00,stroke-width:2px,stroke-dasharray:5
+Visitor -->|"HTTPS"| CF
+CF <-->|"Encrypted Tunnel"| Server
+
+subgraph HomeNetwork["Home Network"]
+    Router
+    Server -->|"Running cloudflared"| Container
+end
+
+style Router stroke:#f00,stroke-width:2px,stroke-dasharray:5
 {{< /mermaid >}}
 
 ### Benefits
@@ -194,4 +194,3 @@ It costs \$0/month to run (excluding the domain name), scales infinitely, and pr
 ## What's Next? (TODO)
 
 - [ ] **Migrate "Likes" to Cloudflare KV**: Currently, the "Like" button uses a legacy Firebase implementation. I plan to move this to a Cloudflare Worker + KV setup to keep the entire stack within the Cloudflare ecosystem and improve performance.
-

@@ -21,7 +21,7 @@ description: "DevOps Engineer | OSCP | CEH - Building scalable systems and cloud
         <div class="chat-cta-actions">
             <button class="js-chat-trigger chat-cta-btn" aria-label="Start chat with AI assistant">
                 <span class="chat-cta-btn-text">Start Chat</span>
-                <span class="chat-cta-btn-icon" aria-hidden="true">→</span>
+                <span class="chat-cta-btn-icon" aria-hidden="true">💬</span>
             </button>
             <p class="chat-cta-proof">No signup • Instant answers</p>
         </div>

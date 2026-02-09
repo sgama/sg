@@ -23,39 +23,39 @@ The setup is surprisingly simple but robust. Instead of opening ports on my rout
 
 {{< mermaid >}}
 flowchart TD
-    subgraph Client
-        Browser[User Browser]
-    end
+subgraph Client
+    Browser[User Browser]
+end
 
-    subgraph "Cloudflare Edge Network"
-        CDN[CDN / Cache]
-        TunnelEntry[Tunnel End Point]
-    end
+subgraph "Cloudflare Edge Network"
+    CDN[CDN / Cache]
+    TunnelEntry[Tunnel End Point]
+end
 
-    subgraph "Cloudflare Pages"
-        Static[Static Assets]
-        HTML[index.html]
-    end
+subgraph "Cloudflare Pages"
+    Static[Static Assets]
+    HTML[index.html]
+end
 
-    subgraph "Home Lab (Private Network)"
-        Cloudflared[cloudflared]
-        Umami[Umami App]
-        DB[(PostgreSQL)]
-    end
+subgraph "Home Lab (Private Network)"
+    Cloudflared[cloudflared]
+    Umami[Umami App]
+    DB[(PostgreSQL)]
+end
 
-    %% Flow 1: Static Content
-    Browser -- "GET /" --> CDN
-    CDN -- "Fetch" --> Static
-    Static --> Browser
+%% Flow 1: Static Content
+Browser -- "GET /" --> CDN
+CDN -- "Fetch" --> Static
+Static --> Browser
 
-    %% Flow 2: Analytics Data
-    Browser -- "POST /api/send" --> TunnelEntry
-    TunnelEntry -. "Encrypted Tunnel" .-> Cloudflared
-    Cloudflared -- "Internal Docker Network" --> Umami
-    Umami --> DB
-    
-    linkStyle 0,1,2 stroke:blue,stroke-width:2px;
-    linkStyle 3,4,5,6 stroke:orange,stroke-width:2px;
+%% Flow 2: Analytics Data
+Browser -- "POST /api/send" --> TunnelEntry
+TunnelEntry -. "Encrypted Tunnel" .-> Cloudflared
+Cloudflared -- "Internal Docker Network" --> Umami
+Umami --> DB
+
+linkStyle 0,1,2 stroke:blue,stroke-width:2px;
+linkStyle 3,4,5,6 stroke:orange,stroke-width:2px;
 {{< /mermaid >}}
 
 This dual-path architecture enables the best of both worlds:
@@ -137,19 +137,19 @@ My public domain (`ping.samsongama.com`) allows legitimate visitors to download 
 # Public Facing Block (ping.samsongama.com)
 server {
     server_name ping.samsongama.com;
-    
+
     # 1. Allow public access to tracking scripts
     location ~ ^/(script\.js|umami\.js)$ {
         proxy_pass http://umami:3000;
         # ... proxy headers ...
     }
-    
+
     # 2. Allow public access to tracking API (metrics collection)
     location /api/send {
         proxy_pass http://umami:3000;
         # ... proxy headers ...
     }
-    
+
     # 3. Block everything else (Login Page, Admin Panel)
     location / {
         return 403;
@@ -164,7 +164,7 @@ If I need to check my stats, I access the dashboard via a separate, private doma
 server {
     listen 443 ssl;
     server_name analytics.local;
-    
+
     # Full access to the entire application
     location / {
         proxy_pass http://umami:3000;

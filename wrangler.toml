@@ -1,11 +1,6 @@
+compatibility_date = "2026-01-25"
 name = "sg"
 pages_build_output_dir = "public"
-compatibility_date = "2026-01-25"
-
-# Vectorize Binding (The "Long Term Memory")
-[[vectorize]]
-binding = "VECTORIZE_INDEX"
-index_name = "portfolio-index"
 
 # Workers AI Binding (The "Brain")
 [ai]
@@ -19,5 +14,11 @@ id = "2a8435a82e17425d8cff4b2777dbfd98"
 
 # Environment variables for the chat function (if needed)
 [vars]
+
+# Vectorize Binding (The "Long Term Memory")
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "portfolio-index"
+
 # OPENAI_API_KEY = "" # If using OpenAI instead of Cloudflare AI
 # ADMIN_API_KEY = "needs-to-be-set-in-dashboard" # Protects /api/logs
