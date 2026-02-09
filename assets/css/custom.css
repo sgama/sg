@@ -90,23 +90,16 @@ article img[src*="samson"].rounded-full {
     display: block;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.9);
+    will-change: transform;
 }
 
 /* Animated halo glow effect */
 @keyframes haloGlow {
     0% {
-        box-shadow:
-            0 0 20px rgba(0, 212, 170, 0.4),
-            0 0 40px rgba(0, 212, 170, 0.1),
-            inset 0 0 0 2px rgba(255, 255, 255, 0.1);
         transform: scale(1);
     }
 
     100% {
-        box-shadow:
-            0 0 30px rgba(0, 212, 170, 0.6),
-            0 0 60px rgba(0, 212, 170, 0.2),
-            inset 0 0 0 2px rgba(255, 255, 255, 0.2);
         transform: scale(1.02);
     }
 }
@@ -125,7 +118,7 @@ article img[src*="samson"].rounded-full:hover {
         0 0 70px rgba(0, 212, 170, 0.3),
         inset 0 0 0 2px rgba(255, 255, 255, 0.3);
     transform: scale(1.05);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 /* End Instagram Close Friends Style Halo for Profile Image - Homepage Only */

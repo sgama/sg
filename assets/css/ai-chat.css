@@ -9,8 +9,7 @@
 }
 
 #ai-chat-toggle {
-    background: linear-gradient(135deg, #d600d6, #00d6d6, #d6006b);
-    background-size: 200% 200%;
+    background: #9a00b3;
     color: white;
     border: none;
     border-radius: 9999px;
@@ -21,24 +20,43 @@
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
-    transition: all 0.2s;
+    transition: transform 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+#ai-chat-toggle::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: linear-gradient(135deg, #d600d6, #00d6d6, #d6006b);
+    background-size: 200% 200%;
     animation: chatGradientShift 3s ease-in-out infinite;
+    transform: translateX(-10%);
+    will-change: transform;
+    z-index: 0;
+}
+
+#ai-chat-toggle>* {
+    position: relative;
+    z-index: 1;
 }
 
 @keyframes chatGradientShift {
     0% {
-        background-position: 0% 50%;
+        transform: translateX(-10%);
     }
 
     50% {
-        background-position: 100% 50%;
+        transform: translateX(10%);
     }
 
     100% {
-        background-position: 0% 50%;
+        transform: translateX(-10%);
     }
 }
 
