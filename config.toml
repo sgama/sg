@@ -316,15 +316,16 @@ layout = "fixed-gradient"  # Options: basic, fixed, fixed-fill, fixed-gradient, 
 
 # Homepage configuration - https://blowfish.page/docs/homepage-layout/
 [params.homepage]
-cardView = true
-cardViewScreenWidth = false
-disableHeroImageFilter = false
-layout = "background"
-layoutBackgroundBlur = true
-showMoreLink = true
-showMoreLinkDest = "/portfolio/"
+layout = "custom" # valid options: page, profile, hero, card, background, custom
+#homepageImage = "IMAGE.jpg" # used in: hero, and card
 showRecent = true
 showRecentItems = 3
+showMoreLink = true
+showMoreLinkDest = "/portfolio/"
+cardView = true
+cardViewScreenWidth = false
+layoutBackgroundBlur = true
+disableHeroImageFilter = false # only used when layout equals hero
 
 # List layout - https://blowfish.page/docs/content-examples/#list-layouts
 [params.list]
@@ -394,3 +395,8 @@ author = "authors"
 category = "categories"
 series = "series"
 tag = "tags"
+
+[umamiAnalytics]
+websiteid = "7b6c2554-f791-4546-8ea5-894496e4f9b6"
+domain = "ping.samsongama.com"
+scriptName = "script.js"

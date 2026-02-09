@@ -45,6 +45,10 @@
         const trigger = e.target.closest('.js-chat-trigger');
         if (trigger) {
             e.preventDefault(); // Prevent default link behavior if trigger is an <a> tag
+            const question = trigger.dataset.question;
+            if (question) {
+                window.pendingChatQuestion = question;
+            }
             if (!window.aiChatInitialized) {
                 const { initChat } = await import('{{ $chat_js.RelPermalink }}');
                 initChat(true);
@@ -52,6 +56,19 @@
             } else if (window.openAiChat) {
                 window.openAiChat();
             }
+        }
+    });
+
+    // Restore chat window if it was open before navigation
+    document.addEventListener('DOMContentLoaded', async () => {
+        let shouldOpen = false;
+        try {
+            shouldOpen = sessionStorage.getItem('ai-chat-open') === 'true';
+        } catch { }
+        if (shouldOpen && !window.aiChatInitialized) {
+            const { initChat } = await import('{{ $chat_js.RelPermalink }}');
+            initChat(true);
+            window.aiChatInitialized = true;
         }
     });
 </script>

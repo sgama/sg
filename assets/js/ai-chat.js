@@ -16,6 +16,7 @@ class AIChatWidget {
         this.cacheElements();
         this.loadHistory();
         this.bindEvents();
+        this.applyPendingQuestion();
 
         // Global Exposure
         window.openAiChat = () => this.open();
@@ -37,10 +38,6 @@ class AIChatWidget {
                     </div>
                 </div>
                 <div class="ai-chat-messages" id="ai-chat-messages"></div>
-                <div class="ai-suggestions" id="ai-chat-suggestions" style="display: none;">
-                    <button class="ai-suggestion-chip" data-question="What is Samson's experience with Python?">Python Experience?</button>
-                    <button class="ai-suggestion-chip" data-question="Tell me about the EV Trip Analyzer project.">EV Trip Analyzer?</button>
-                </div>
                 <form class="ai-chat-input-area" id="ai-chat-form">
                     <input type="text" id="ai-chat-input" placeholder="Ask a question..." aria-label="Question" autocomplete="off">
                     <button type="submit" id="ai-chat-send">Send</button>
@@ -57,8 +54,7 @@ class AIChatWidget {
             clearBtn: document.getElementById('ai-chat-clear'),
             form: document.getElementById('ai-chat-form'),
             input: document.getElementById('ai-chat-input'),
-            messages: document.getElementById('ai-chat-messages'),
-            suggestions: document.getElementById('ai-chat-suggestions')
+            messages: document.getElementById('ai-chat-messages')
         };
     }
 
@@ -71,6 +67,10 @@ class AIChatWidget {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.open();
+                const question = btn.dataset.question;
+                if (this.elements.input && question) {
+                    this.elements.input.value = question.trim();
+                }
             });
         });
 
@@ -81,16 +81,6 @@ class AIChatWidget {
 
         this.elements.clearBtn?.addEventListener('click', () => this.clearHistory());
 
-        this.elements.suggestions?.querySelectorAll('.ai-suggestion-chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                if (this.elements.input) {
-                    this.elements.input.value = chip.dataset.question;
-                    this.elements.form.dispatchEvent(new Event('submit'));
-                }
-                this.hideSuggestions();
-            });
-        });
-
         this.elements.form?.addEventListener('submit', (e) => this.handleSubmit(e));
     }
 
@@ -98,16 +88,26 @@ class AIChatWidget {
         this.elements.window?.classList.add('open');
         document.body.classList.add('ai-chat-open');
         this.elements.input?.focus();
+        this.applyPendingQuestion();
+        try {
+            sessionStorage.setItem('ai-chat-open', 'true');
+        } catch { }
     }
 
     close() {
         this.elements.window?.classList.remove('open');
         document.body.classList.remove('ai-chat-open');
+        try {
+            sessionStorage.removeItem('ai-chat-open');
+        } catch { }
     }
 
-    hideSuggestions() {
-        if (this.elements.suggestions) {
-            this.elements.suggestions.style.display = 'none';
+    applyPendingQuestion() {
+        if (!this.elements.input) return;
+        const pending = window.pendingChatQuestion;
+        if (pending) {
+            this.elements.input.value = pending;
+            delete window.pendingChatQuestion;
         }
     }
 
@@ -148,9 +148,6 @@ class AIChatWidget {
 
     addWelcomeMessage() {
         this.addMessageToDOM("Hello! I'm an AI assistant trained on this portfolio. Ask me anything about my projects or background.", 'bot');
-        if (this.elements.suggestions) {
-            this.elements.suggestions.style.display = 'flex';
-        }
     }
 
     addMessageToDOM(text, sender) {
@@ -168,7 +165,6 @@ class AIChatWidget {
         const text = this.elements.input?.value.trim();
         if (!text) return;
 
-        this.hideSuggestions();
         this.addMessageToDOM(text, 'user');
         this.saveToHistory({ text, sender: 'user' });
 

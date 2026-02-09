@@ -87,12 +87,6 @@ article img[src*="samson"].rounded-full {
         0 0 20px rgba(0, 212, 170, 0.3),
         0 0 40px rgba(0, 212, 170, 0.1),
         inset 0 0 0 2px rgba(255, 255, 255, 0.1);
-}
-
-/* Inner image styling to maintain proper border radius - Homepage Only */
-main article img[src*="samson"].rounded-full,
-article img[src*="samson"].rounded-full {
-    border-radius: 50%;
     display: block;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.9);
