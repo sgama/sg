@@ -86,7 +86,7 @@ build-summary: ## Print build output summary
 	@echo "Image files: $$(find $(PUBLIC_DIR) \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.svg" \) -type f | wc -l) ($$(du -ch $(PUBLIC_DIR)/**/*.{jpg,jpeg,png,webp,svg} 2>/dev/null | tail -1 | cut -f1))"
 	@echo ""
 	@echo "=== Largest files ==="
-	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
+	@set +o pipefail; find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
 
 cleanup-deployments: check-tools check-env ## Delete all but latest Pages deployment (uses .env for secrets)
 	@ACCOUNT_ID="$$CLOUDFLARE_ACCOUNT_ID"; \

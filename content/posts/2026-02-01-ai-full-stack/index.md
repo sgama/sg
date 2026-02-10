@@ -1,6 +1,7 @@
 ---
 title: "AI-Accelerated Full-Stack Development in a Rust Project"
 date: 2026-02-01
+slug: "ai-full-stack"
 draft: false
 tags:
   - ai

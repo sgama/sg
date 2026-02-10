@@ -1,6 +1,7 @@
 ---
 title: "Building a Reproducible Infra Lab with Packer, Terraform, Ansible, and Docker Compose"
 date: 2021-06-06
+slug: "homelab"
 summary: "A deep-dive on structuring a reproducible infrastructure lab using image baking, provisioning, configuration management, and service orchestration."
 tags: ["packer", "terraform", "ansible", "docker", "devops", "infra"]
 categories: ["Infrastructure", "Automation"]
