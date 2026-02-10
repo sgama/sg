@@ -1,7 +1,9 @@
 SHELL := /bin/bash
+.SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help init update serve dev-ai build ai-embeddings favicons clean deploy deploy-pages build-summary cleanup-deployments ci check-tools check-env
+.PHONY: \
+	help init update serve dev-ai build deps ai-embeddings favicons clean deploy deploy-pages build-summary cleanup-deployments ci check-tools check-env
 
 ifneq (,$(wildcard .env))
 include .env
@@ -13,6 +15,8 @@ BRANCH ?= develop
 PUBLIC_DIR ?= public
 
 HUGO ?= hugo
+HUGO_FLAGS ?= --gc --minify --cleanDestinationDir
+HUGO_SERVER_FLAGS ?= --gc --ignoreCache
 NODE ?= node
 NPM ?= npm
 CURL ?= curl
@@ -23,7 +27,7 @@ REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM) $(JQ) $(CURL)
 
 help: ## Show this help message
 	@echo "Available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
 check-tools: ## Validate required tools are installed
 	@for tool in $(REQUIRED_TOOLS); do \
@@ -41,16 +45,18 @@ update: ## Update git submodules
 	git submodule update --recursive --remote
 
 serve: ## Start Hugo development server
-	$(HUGO) server --gc --ignoreCache
+	$(HUGO) server $(HUGO_SERVER_FLAGS)
 
 dev-ai: build ## Start local server with AI Functions (requires Wrangler)
 	$(WRANGLER) pages dev $(PUBLIC_DIR)
 
-build: ## Build the Hugo site
-	$(HUGO) --gc --minify
+build: check-tools ## Build the Hugo site
+	$(HUGO) $(HUGO_FLAGS)
 
-ai-embeddings: check-tools check-env ## Generate AI embeddings (uses .env for secrets)
+deps: ## Install Node dependencies
 	$(NPM) install
+
+ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
 	$(NODE) scripts/generate_embeddings.js
 
 favicons: ## Generate favicon files

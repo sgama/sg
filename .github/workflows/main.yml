@@ -37,7 +37,7 @@ jobs:
             ${{ runner.os }}-build-
 
       - name: Build
-        run: hugo --gc --minify --cleanDestinationDir
+        run: make build
 
       # --- AI Agent Integration ---
       # This step ensures embeddings are kept in sync with content changes.
@@ -46,57 +46,20 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          npm install
-          # Uncomment the line below once fully configured with Cloudflare credentials
-          node scripts/generate_embeddings.js
+        run: make ai-embeddings
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Using commit hash and message improves the deployment history in Cloudflare Dashboard
-          command: pages deploy public --project-name=sg --branch=develop --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: make deploy-pages
 
       - name: Build summary
-        run: |
-          echo "=== Build Output Summary ==="
-          echo "Total files: $(find public -type f | wc -l)"
-          echo "Total directories: $(find public -type d | wc -l)"
-          echo "Total size: $(du -sh public | cut -f1)"
-          echo ""
-          echo "=== File type breakdown ==="
-          echo "HTML files: $(find public -name "*.html" -type f | wc -l) ($(du -ch public/**/*.html 2>/dev/null | tail -1 | cut -f1))"
-          echo "CSS files: $(find public -name "*.css" -type f | wc -l) ($(du -ch public/**/*.css 2>/dev/null | tail -1 | cut -f1))"
-          echo "JS files: $(find public -name "*.js" -type f | wc -l) ($(du -ch public/**/*.js 2>/dev/null | tail -1 | cut -f1))"
-          echo "Image files: $(find public \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.svg" \) -type f | wc -l) ($(du -ch public/**/*.{jpg,jpeg,png,webp,svg} 2>/dev/null | tail -1 | cut -f1))"
-          echo ""
-          echo "=== Largest files ==="
-          find public -type f -exec du -h {} + | sort -rh | head -10
+        run: make build-summary
 
       # Delete previous Cloudflare deployments
       - name: Clean up old deployments
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          ACCOUNT_ID="$CLOUDFLARE_ACCOUNT_ID"
-          PROJECT_NAME="sg"
-          BRANCH_NAME="develop"
-
-          curl -s \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
-            | jq -r '(.result // [])
-              | map(select((.deployment_trigger.metadata.branch // .deployment_trigger.metadata.branch_name // .deployment_trigger.metadata.commit_ref // "") == "'"$BRANCH_NAME"'"))
-              | sort_by(.created_on)
-              | reverse
-              | .[1:]
-              | .[].id' \
-          | while read -r DEPLOYMENT_ID; do
-              echo "Deleting deployment $DEPLOYMENT_ID"
-              curl -s -X DELETE \
-                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments/$DEPLOYMENT_ID"
-            done
+        run: make cleanup-deployments
