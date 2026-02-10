@@ -120,3 +120,7 @@ default "sha512") }}
     data-blur-id="background-blur" data-image-id="background-image" {{ if $homepageImage
     }}data-image-url="{{ $homepageImage.RelPermalink }}" {{ end }}></script>
 {{ end }}
+<br>
+<section>
+    {{ partial "comments.html" . }}
+</section>
