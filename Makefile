@@ -95,8 +95,8 @@ cleanup-deployments: check-tools check-env ## Delete all but latest Pages deploy
 	$(CURL) -s \
 	  -H "Authorization: Bearer $$CLOUDFLARE_API_TOKEN" \
 	  "https://api.cloudflare.com/client/v4/accounts/$$ACCOUNT_ID/pages/projects/$$PROJECT_NAME/deployments" \
-	| $(JQ) -r '(.result // [])
-	    | map(select((.deployment_trigger.metadata.branch // .deployment_trigger.metadata.branch_name // .deployment_trigger.metadata.commit_ref // "") == "'"$$BRANCH_NAME"'"))
+	| $(JQ) -r --arg BRANCH "$$BRANCH_NAME" '(.result // [])
+	    | map(select((.deployment_trigger.metadata.branch // .deployment_trigger.metadata.branch_name // .deployment_trigger.metadata.commit_ref // "") == $BRANCH))
 	    | sort_by(.created_on)
 	    | reverse
 	    | .[1:]
