@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2018-01-01
 slug: "hft-bot"
-tags: ["fintech", "algorithmic-trading", "machine-learning", "time-series-db", "microservices"]
+tags: ["fintech", "algorithmic-trading", "machine-learning"]
 ---
 
 ![Featured image](featured.webp)

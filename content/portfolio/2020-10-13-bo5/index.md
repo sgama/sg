@@ -1,13 +1,11 @@
 ---
 title: "Call of Duty: Black Ops Cold War"
 summary: "Backend engineering and scaling support for the global launch of Black Ops Cold War, supporting millions of concurrent users on Day 1."
-showPagination: true
-invertPagination: true
 weight: 100
 showDate: false
 date: 2020-10-13
 slug: "call-of-duty-bo5"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
 ![Featured image](featured.webp)

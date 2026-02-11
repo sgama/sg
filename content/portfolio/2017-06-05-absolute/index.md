@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2017-06-05
 slug: "absolute"
-tags: ["backend", "golang", "kubernetes", "distributed-systems", "big-data", "optimization"]
+tags: ["backend", "kubernetes", "cybersecurity","biometrics"]
 ---
 
 ![Featured image](featured.webp)

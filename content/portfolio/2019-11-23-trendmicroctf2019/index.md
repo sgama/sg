@@ -1,5 +1,5 @@
 ---
-title: "Competition: Trend Micro CTF Finalist"
+title: "TrendMicroCTF2019 Finalist"
 summary: "Ranked 12th globally (top 1.5%) at the Trend Micro CTF Finals in Tokyo, representing Canada with team Maple Bacon."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2019-11-23
 slug: "trendmicroctf2019"
-tags: ["cybersecurity", "ctf", "competition", "reverse-engineering", "tokyo"]
+tags: ["backend", "cybersecurity", "frontend", "networking"]
 ---
 
 ![Featured image](featured.webp)

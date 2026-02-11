@@ -1,5 +1,5 @@
 ---
-title: "Visual Effects & Compositing: Green Screen Projects"
+title: "Green Screen Projects"
 summary: "Early explorations in video production and visual effects using Chroma Keying technology and Adobe After Effects."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2010-09-01
 slug: "green-screen"
-tags: ["video-production", "visual-effects", "adobe-after-effects", "compositing"]
+tags: ["video-production"]
 ---
 
 ![Featured image](featured.webp)

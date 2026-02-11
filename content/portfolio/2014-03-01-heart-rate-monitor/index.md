@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-03-01
 slug: "heart-rate-monitor"
-tags: ["biomedical", "embedded-systems", "signal-processing", "c-programming", "hardware"]
+tags: ["biomedical", "hardware"]
 ---
 
 ![Featured image](featured.webp)

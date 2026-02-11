@@ -1,5 +1,5 @@
 ---
-title: "Cybersecurity Leadership: Mastercard CTF Team"
+title: "Mastercard CTF Team"
 summary: "Founded and led the 'Insider Threats' Capture The Flag team at Mastercard Vancouver, conducting workshops on binary exploitation and forensics."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2020-02-13
 slug: "insiderthreats"
-tags: ["cybersecurity", "ctf", "leadership", "reverse-engineering"]
+tags: ["backend", "cybersecurity", "frontend", "networking"]
 ---
 
 ![Featured image](featured.webp)

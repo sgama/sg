@@ -1,5 +1,5 @@
 ---
-title: "Web Design: Veazey Scholarship Foundation"
+title: "Veazey Scholarship Foundation"
 summary: "Designed and developed the official website for the Veazey Scholarship Foundation, sponsored by Borden Ladner Gervais LLP."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2013-08-01
 slug: "veazey-scholars"
-tags: ["web-design", "frontend", "Community"]
+tags: ["community", "frontend"]
 ---
 
 ![Featured image](featured.webp)

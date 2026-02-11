@@ -1,5 +1,5 @@
 ---
-title: "Knowledge Base: CTF Writeups"
+title: "CTF Writeups"
 summary: "A curated collection of technical writeups detailing solutions for complex Capture The Flag challenges, focusing on binary exploitation and cryptography."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2019-12-23
 slug: "ctfsamsongamacom"
-tags: ["cybersecurity", "technical-writing", "tutorial", "education", "reverse-engineering"]
+tags: ["backend", "cybersecurity", "frontend", "networking"]
 ---
 
 ![Featured image](featured.webp)

@@ -21,6 +21,8 @@ module.exports = {
                         "chat-cta__chips",
                         "chat-cta__chip",
                         "chat-widget__window--open",
+                        "chat-widget__message--bot",
+                        "chat-widget__message--user",
                     ],
                     defaultExtractor: (content) => content.match(/[A-Za-z0-9-_:/]+/g) || [],
                 }),

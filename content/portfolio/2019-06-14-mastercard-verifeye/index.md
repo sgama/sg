@@ -1,5 +1,5 @@
 ---
-title: "Innovation: Dynamic Biometrics (Verifeye)"
+title: "Dynamic Biometrics (Verifeye)"
 summary: "Multi-factor authentication concept using facial recognition and sentiment analysis to verify identity and gauge user friction during transactions."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2019-06-14
 slug: "mastercard-verifeye"
-tags: ["biometrics", "computer-vision", "security", "innovation", "machine-learning"]
+tags: ["biometrics", "cybersecurity", "machine-learning"]
 ---
 
 ![Featured image](featured.webp)

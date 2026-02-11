@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-10-01
 slug: "fleetaware"
-tags: ["hackathon", "logistics", "iot", "apis", "php", "javascript"]
+tags: ["hackathon", "backend", "frontend"]
 ---
 
 ![Featured image](featured.webp)

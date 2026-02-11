@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2017-01-01
 slug: "ubc-capstone"
-tags: ["machine-learning", "nlp", "tensorflow", "kubernetes", "microservices", "python"]
+tags: ["machine-learning", "nlp", "tensorflow", "backend"]
 ---
 
 ![Featured image](featured.webp)

@@ -1,5 +1,5 @@
 ---
-title: "King George Secondary Portal"
+title: "King George Secondary Website"
 summary: "Development and administration of a high school community portal, including live-streaming infrastructure for varsity sports."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2010-10-01
 slug: "kg-website"
-tags: ["web-development", "streaming", "it-administration", "Community"]
+tags: ["community", "infrastructure", "frontend"]
 ---
 
 ![Featured image](featured.webp)

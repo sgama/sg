@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2015-06-01
 slug: "kinect-svm"
-tags: ["computer-vision", "machine-learning", "cpp", "kinect", "opencv", "svm"]
+tags: ["computer-vision", "machine-learning"]
 ---
 
 ![Featured image](featured.webp)

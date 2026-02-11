@@ -1,5 +1,5 @@
 ---
-title: "Custom EV: High-Performance Electric Bicycle"
+title: "Custom Electric Bicycle"
 summary: "Designed and built a custom electric mountain bike featuring regenerative braking, bluetooth telemetry, and matched componentry."
 showPagination: true
 invertPagination: true

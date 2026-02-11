@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-05-01
 slug: "spoke-calculator"
-tags: ["web-development", "visualization", "javascript", "EV"]
+tags: ["EV", "frontend"]
 ---
 
 ![Featured image](featured.webp)

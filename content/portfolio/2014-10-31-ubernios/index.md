@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-10-31
 slug: "ubernios"
-tags: ["embedded-systems", "fpga", "c", "vhdl", "verilog", "assembly"]
+tags: ["hardware"]
 ---
 
 ![Featured image](featured.webp)

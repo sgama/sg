@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2024-10-25
 slug: "call-of-duty-bo6"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
 ![Featured image](featured.webp)

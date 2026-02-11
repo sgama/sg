@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-04-01
 slug: "electromagnetic-tetherbot"
-tags: ["robotics", "embedded-c", "android", "control-systems", "signal-processing"]
+tags: ["hardware"]
 ---
 
 ![Featured image](featured.webp)

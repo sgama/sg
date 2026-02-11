@@ -1,5 +1,5 @@
 ---
-title: "Educational Tech: iPad Deployment Initiative"
+title: "Elsie Roy iPad Project"
 summary: "Consulting and technical implementation for a 1:1 iPad deployment program at Elsie Roy Elementary (2010-2013)."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2012-01-01
 slug: "er-ipad-project"
-tags: ["Community", "ios-deployment", "infrastructure", "networking", "consulting"]
+tags: ["infrastructure", "networking", "ios"]
 ---
 
 ![Featured image](featured.webp)

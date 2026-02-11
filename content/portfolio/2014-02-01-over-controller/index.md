@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-02-01
 slug: "over-controller"
-tags: ["embedded-systems", "assembly", "fpga", "java", "android", "control-systems"]
+tags: ["hardware"]
 ---
 
 ![Featured image](featured.webp)

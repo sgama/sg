@@ -1,5 +1,5 @@
 ---
-title: "EV Charger Installation at Marina Pointe"
+title: "EV Charger Installation"
 description: "A detailed breakdown of the technical and logistical steps undertaken by the Strata Council to successfully upgrade the building's EV charging infrastructure and secure critical government rebates."
 tags: ["EV", "Community", "Strata", "Technical"]
 showDate: false

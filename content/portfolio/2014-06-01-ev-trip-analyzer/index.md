@@ -1,5 +1,5 @@
 ---
-title: "Data Visualization: EV Trip Analyzer"
+title: "Web Appe: EV Trip Analyzer"
 summary: "Full-stack web application for analyzing telemetry data from Electric Vehicles, visualizing power consumption, speed, and efficiency."
 showPagination: true
 invertPagination: true
@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-06-01
 slug: "ev-trip-analyzer"
-tags: ["web-development", "data-visualization", "clean-tech", "javascript", "EV"]
+tags: ["EV", "frontend"]
 ---
 
 ![Featured image](featured.webp)
