@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2015-02-01
 slug: "endless-sphere"
-tags: ["devops", "aws", "linux", "system-administration", "phpbb", "sql"]
+tags: ["devops", "aws", "linux", "system-administration", "EV", "sql"]
 ---
 
 ![Featured image](featured.webp)

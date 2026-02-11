@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2020-10-13
 slug: "call-of-duty-bo5"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
+tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
 ---
 
 ![Featured image](featured.webp)

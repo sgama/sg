@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2022-10-28
 slug: "call-of-duty-mw2"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
+tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
 ---
 
 ![Featured image](featured.webp)

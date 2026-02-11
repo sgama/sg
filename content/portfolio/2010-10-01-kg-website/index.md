@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2010-10-01
 slug: "kg-website"
-tags: ["web-development", "streaming", "it-administration", "community"]
+tags: ["web-development", "streaming", "it-administration", "Community"]
 ---
 
 ![Featured image](featured.webp)

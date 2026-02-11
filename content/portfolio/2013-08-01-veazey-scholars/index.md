@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2013-08-01
 slug: "veazey-scholars"
-tags: ["web-design", "frontend", "freelance"]
+tags: ["web-design", "frontend", "Community"]
 ---
 
 ![Featured image](featured.webp)

@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2022-11-16
 slug: "call-of-duty-wz2"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
+tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
 ---
 
 ![Featured image](featured.webp)

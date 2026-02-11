@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2021-11-05
 slug: "call-of-duty-vanguard"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
+tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
 ---
 
 ![Featured image](featured.webp)

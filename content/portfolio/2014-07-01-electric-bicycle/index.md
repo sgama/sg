@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2014-07-01
 slug: "electric-bicycle"
-tags: ["electric-vehicles", "hardware", "engineering", "clean-tech"]
+tags: ["EV", "hardware", "engineering", "technical"]
 ---
 
 ![Custom electric bicycle](featured.webp)
@@ -25,6 +25,6 @@ Leveraging my experience at **Grin Technologies**, I engineered a custom electri
   - **Rear**: Electrolight (Integrated brake light).
 - **Telemetry & Human Machine Interface**:
   - **Display**: **Cycle Analyst V3** (Primary dashboard for tracking Ah consumed, Watts, Speed).
-  - **Data Logging**: Custom-solder **HC-05 Bluetooth Module** bridge to transmit serial data to the [EV Trip Analyzer](/portfolio/2014-06-01-ev-trip-analyzer/) web app.
+  - **Data Logging**: Custom-solder **HC-05 Bluetooth Module** bridge to transmit serial data to the [EV Trip Analyzer](/portfolio/ev-trip-analyzer/) web app.
 
 *Note: This vehicle served as the primary testbed for the EV Trip Analyzer software.*

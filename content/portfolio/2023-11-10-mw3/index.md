@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2023-11-10
 slug: "call-of-duty-mw3"
-tags: ["backend", "distributed-systems", "high-scale", "gaming", "sre"]
+tags: ["backend", "distributed-systems", "high-scale", "gaming", "SRE"]
 ---
 
 ![Featured image](featured.webp)

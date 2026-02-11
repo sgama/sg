@@ -1,7 +1,7 @@
 ---
 title: "EV Charger Installation at Marina Pointe"
 description: "A detailed breakdown of the technical and logistical steps undertaken by the Strata Council to successfully upgrade the building's EV charging infrastructure and secure critical government rebates."
-tags: ["EV", "Strata", "Infrastructure", "Technical"]
+tags: ["EV", "Community", "Strata", "Technical"]
 showDate: false
 date: 2024-02-28
 weight: 100
@@ -12,7 +12,7 @@ slug: "mp-ev-project"
 
 ## Summary 🧭
 
-During my time as Strata Council President at Marina Pointe, I worked on a number of projects, but the EV upgrade is on I'm especially proud of.
+During my time as Strata Council President at Marina Pointe, I worked on a number of projects, but the EV upgrade is one I'm especially proud of.
 
 EV ownership has been steadily increasing, and we could see that more residents were either driving electric vehicles or planning to. Our existing electrical setup was not designed for that level of demand.
 
@@ -82,6 +82,15 @@ flowchart TD
 - **New Equipment:** The installation involved a **new dedicated electrical panel** and **two new dedicated transformers** to service the EV system. **Note:** The exact KVA or Amp ratings are not being disclosed in this post.
 - **Load Management System (LMS):** The Plugzio LMS is central to the design. It acts as a circuit breaker, dynamically allocating the **280A capacity** among all active chargers. This prevents the main breaker from tripping and allows the Strata to install more chargers than the panel could support if they were all charging at max capacity simultaneously.
 
+## Carbon Credit Revenue Stream 💰
+
+The installation of new, metered EV charging stations created a passive revenue stream for the Strata through the accumulation of carbon credits.
+
+- **Revenue generation:** The metered stations enable the Strata to generate tradable carbon credits based on EV energy consumption.
+- **Projected income:** The Strata's carbon credit income for the installation's initial period was **$2,500 in 2023**.
+- **Future projections:** Based on usage, the Strata is projected to generate **$12,000 for 2024** from this carbon credit revenue.
+- **Intended use of funds:** This revenue is being collected to supplement the Strata's general income. A draft report noted that the **$12,000/year** from EV-generated carbon credits would contribute to overall revenue streams.
+
 ## The Legacy System: Eaton Chargers 🧯
 
 In total, the project covered **11 chargers**: **two older Eaton units** in the Landmark (LM) section, **seven new chargers** in the Waterworks (WW) visitor parking area, and the replacement of two old chargers in the WW section.
@@ -149,26 +158,26 @@ The commissioning involved a sequence of electrical work to bring the new system
 
 {{< mermaid >}}
 sequenceDiagram
-    participant S as Strata Council/Manager
-    participant RE as Recharge Electric (Electrical Contractor)
-    participant ME as McKinley Electric (Building Electrician)
-    participant COV as City of Vancouver (Permits)
-    participant BH as BC Hydro
+  participant S as Strata Council/Manager
+  participant RE as Recharge Electric (Electrical Contractor)
+  participant ME as McKinley Electric (Building Electrician)
+  participant COV as City of Vancouver (Permits)
+  participant BH as BC Hydro
 
-    S->>RE: Issue PO & 50% Deposit (Jan 2024)
-    RE->>COV: Submit Electrical Permit Application
-    RE->>RE: Procure New Panel & Transformers
-    ME->>RE: Decommission Legacy Eaton System (Feb 13)
-    RE->>RE: Install New Dedicated Electrical Panel
-    RE->>RE: Install New Transformers
-    S->>ME: Schedule Common Area Power Shutdown
-    ME->>RE: Verify Main Breaker Lock-Out for Safety
-    RE->>ME: Final Electrical Tie-in (New Panel to Service)
-    ME->>S: Power Restored
-    RE->>COV: Schedule Final Electrical Inspection
-    COV->>RE: Pass Final Inspection
-    RE->>S: System Handover & Commissioning
-    S->>BH: Submit Rebate Final Application (Feb 28 Deadline)
+  S->>RE: Issue PO & 50% Deposit (Jan 2024)
+  RE->>COV: Submit Electrical Permit Application
+  RE->>RE: Procure New Panel & Transformers
+  ME->>RE: Decommission Legacy Eaton System (Feb 13)
+  RE->>RE: Install New Dedicated Electrical Panel
+  RE->>RE: Install New Transformers
+  S->>ME: Schedule Common Area Power Shutdown
+  ME->>RE: Verify Main Breaker Lock-Out for Safety
+  RE->>ME: Final Electrical Tie-in (New Panel to Service)
+  ME->>S: Power Restored
+  RE->>COV: Schedule Final Electrical Inspection
+  COV->>RE: Pass Final Inspection
+  RE->>S: System Handover & Commissioning
+  S->>BH: Submit Rebate Final Application (Feb 28 Deadline)
 {{< /mermaid >}}
 
 ### 3. Electrical Tie-in and Commissioning 🔒
