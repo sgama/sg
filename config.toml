@@ -400,3 +400,5 @@ tag = "tags"
 domain = "ping.samsongama.com"
 scriptName = "script.js"
 websiteid = "7b6c2554-f791-4546-8ea5-894496e4f9b6"
+dataDomains = "samsongama.com"
+enableTrackEvent = true

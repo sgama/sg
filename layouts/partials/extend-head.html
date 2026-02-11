@@ -1,10 +1,6 @@
 {{/* Extended head partial to add custom scripts */}}
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-head */}}
 
-{{/* Preconnect to external origins */}}
-<link rel="preconnect" href="https://ajax.googleapis.com" crossorigin>
-<link rel="preconnect" href="https://giscus.app" crossorigin>
-
 {{/* AI Chat Widget CSS */}}
 {{ $chat_style := resources.Get "css/ai-chat.css" | minify | fingerprint }}
 <link rel="stylesheet" href="{{ $chat_style.RelPermalink }}">
