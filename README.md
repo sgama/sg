@@ -1,7 +1,14 @@
 # samsongama.com
 
-[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml)
+[![Actions Status](https://img.shields.io/github/actions/workflow/status/sgama/sg/main.yml?branch=develop&label=actions)](https://github.com/sgama/sg/actions/workflows/main.yml?query=branch%3Adevelop)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/sgama/sg/main.yml?branch=develop&label=build)](https://github.com/sgama/sg/actions/workflows/main.yml?query=branch%3Adevelop)
 [![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)
+[![Repo Size](https://img.shields.io/github/repo-size/sgama/sg)](https://github.com/sgama/sg)
+[![Open Issues](https://img.shields.io/github/issues/sgama/sg)](https://github.com/sgama/sg/issues)
+[![Stars](https://img.shields.io/github/stars/sgama/sg)](https://github.com/sgama/sg/stargazers)
+[![Forks](https://img.shields.io/github/forks/sgama/sg)](https://github.com/sgama/sg/network/members)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/sgama/sg?branch=develop)](https://github.com/sgama/sg/graphs/commit-activity)
+[![License](https://img.shields.io/github/license/sgama/sg)](LICENSE)
 
 A modern, responsive personal website built with [Hugo](https://gohugo.io/) and the [Blowfish](https://blowfish.page/) theme. This repository contains the source code for my personal website featuring blog posts, portfolio projects, and resume.
 
