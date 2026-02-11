@@ -358,15 +358,15 @@ html[data-background-blur="false"]::before {
     font-size: 0.9rem;
     line-height: 1.5;
     white-space: pre-wrap;
-    align-self: flex-end;
+    align-self: flex-start;
 }
 
 .chat-widget__message--bot {
-    background-color: rgba(var(--color-neutral-700), 0.9);
+    background-color: rgba(37, 99, 235, 0.9);
     color: rgb(var(--color-neutral-100));
-    border: 1px solid rgba(var(--color-neutral-600), 0.6);
-    align-self: flex-start;
-    margin-right: auto;
+    border: 1px solid rgba(59, 130, 246, 0.6);
+    align-self: flex-start !important;
+    margin-right: auto !important;
     text-align: left;
 }
 
@@ -374,8 +374,8 @@ html[data-background-blur="false"]::before {
     background-color: rgba(var(--color-primary-600), 0.95);
     color: white;
     border: 1px solid rgba(var(--color-primary-400), 0.5);
-    align-self: flex-end;
-    margin-left: auto;
+    align-self: flex-end !important;
+    margin-left: auto !important;
     text-align: left;
 }
 
