@@ -1,9 +1,13 @@
 {{/* Extended head partial to add custom scripts */}}
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-head */}}
 
-{{/* AI Chat Widget CSS */}}
-{{ $chat_style := resources.Get "css/ai-chat.css" | minify | fingerprint }}
-<link rel="stylesheet" href="{{ $chat_style.RelPermalink }}">
+{{/* Bundled site CSS */}}
+{{ $styles := slice
+    (resources.Get "css/custom.css")
+    (resources.Get "css/ai-chat.css")
+}}
+{{ $bundle := $styles | resources.Concat "css/site.css" | minify | fingerprint }}
+<link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}" crossorigin="anonymous">
 
 {{ if not hugo.IsServer }}
 <script defer src="https://ping.samsongama.com/script.js"

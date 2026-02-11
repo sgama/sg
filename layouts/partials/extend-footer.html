@@ -1,83 +1,37 @@
 {{/* Extended footer partial to add custom accessibility controls */}}
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-footer */}}
 
-{{/* Add custom accessibility toggle for background stars */}}
-{{ if .Site.Params.enableA11y }}
-<script>
-    // Register stars toggle with Blowfish's A11yPanel system
-    if (window.A11yPanel) {
-        window.A11yPanel.addFeature('disableStars', {
-            default: false,
-            apply: (enabled) => {
-                if (enabled) {
-                    document.documentElement.classList.add('disable-stars');
-                } else {
-                    document.documentElement.classList.remove('disable-stars');
-                }
-            }
-        });
-
-        // Initialize on load
-        const settings = window.A11yPanel.getSettings();
-        if (settings.disableStars) {
-            document.documentElement.classList.add('disable-stars');
-        }
-    }
-</script>
-{{ end }}
-
 <div id="ai-chat-widget">
     <button id="ai-chat-toggle" class="js-chat-trigger" aria-label="Ask AI Assistant">
         <span>💬</span>
         <span>Ask AI</span>
     </button>
 </div>
-
-{{ $chat_js := resources.Get "js/ai-chat.js" | minify | fingerprint }}
-<script>
-    // Lazy load chat widget with event delegation
-    document.addEventListener('click', async (e) => {
-        const trigger = e.target.closest('.js-chat-trigger');
-        if (trigger) {
-            e.preventDefault(); // Prevent default link behavior if trigger is an <a> tag
-            const question = trigger.dataset.question;
-            if (question) {
-                window.pendingChatQuestion = question;
-            }
-            if (!window.aiChatInitialized) {
-                const { initChat } = await import('{{ $chat_js.RelPermalink }}');
-                initChat(true);
-                window.aiChatInitialized = true;
-            } else if (window.openAiChat) {
-                window.openAiChat();
-            }
-        }
-    });
-
-    // Restore chat window if it was open before navigation
-    document.addEventListener('DOMContentLoaded', async () => {
-        const chipContainers = document.querySelectorAll('.chat-cta-chips');
-        chipContainers.forEach((container) => {
-            const chips = Array.from(container.querySelectorAll('.chat-cta-chip'));
-            if (!chips.length) return;
-            const count = Math.min(4, chips.length);
-            for (let i = 0; i < count; i += 1) {
-                const j = i + Math.floor(Math.random() * (chips.length - i));
-                [chips[i], chips[j]] = [chips[j], chips[i]];
-            }
-            chips.forEach((chip, index) => {
-                chip.hidden = index >= count;
-            });
-        });
-
-        let shouldOpen = false;
-        try {
-            shouldOpen = sessionStorage.getItem('ai-chat-open') === 'true';
-        } catch { }
-        if (shouldOpen && !window.aiChatInitialized) {
-            const { initChat } = await import('{{ $chat_js.RelPermalink }}');
-            initChat(true);
-            window.aiChatInitialized = true;
-        }
-    });
-</script>
+<template id="ai-chat-template">
+    <div id="ai-chat-window">
+        <div class="ai-chat-header">
+            <span>Assistant</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button id="ai-chat-clear" aria-label="Clear History" title="Clear History"
+                    style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;display:flex;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+                <button id="ai-chat-close" aria-label="Close Chat"
+                    style="background:none;border:none;color:white;cursor:pointer;">&times;</button>
+            </div>
+        </div>
+        <div class="ai-chat-messages" id="ai-chat-messages"></div>
+        <form class="ai-chat-input-area" id="ai-chat-form">
+            <input type="text" id="ai-chat-input" placeholder="Ask a question..." aria-label="Question"
+                autocomplete="off">
+            <button type="submit" id="ai-chat-send">Send</button>
+        </form>
+    </div>
+</template>
+{{ $site_js := resources.Get "js/site.js" | minify | fingerprint }}
+<script defer src="{{ $site_js.RelPermalink }}" integrity="{{ $site_js.Data.Integrity }}"
+    crossorigin="anonymous"></script>

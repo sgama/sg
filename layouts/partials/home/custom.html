@@ -116,7 +116,7 @@
 {{ $backgroundBlur := resources.Get "js/background-blur.js" }}
 {{ $backgroundBlur = $backgroundBlur | resources.Minify | resources.Fingerprint (.Site.Params.fingerprintAlgorithm |
 default "sha512") }}
-<script type="text/javascript" src="{{ $backgroundBlur.RelPermalink }}" integrity="{{ $backgroundBlur.Data.Integrity }}"
+<script defer type="text/javascript" src="{{ $backgroundBlur.RelPermalink }}" integrity="{{ $backgroundBlur.Data.Integrity }}"
     data-blur-id="background-blur" data-image-id="background-image" {{ if $homepageImage
     }}data-image-url="{{ $homepageImage.RelPermalink }}" {{ end }}></script>
 {{ end }}
