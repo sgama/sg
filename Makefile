@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: \
-	help init update serve dev-ai build deps ai-embeddings favicons clean deploy deploy-pages build-summary cleanup-deployments ci check-tools check-env
+	help init update serve dev-ai build deps ai-embeddings favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
 
 ifneq (,$(wildcard .env))
 include .env
@@ -13,6 +13,7 @@ endif
 PROJECT_NAME ?= sg
 BRANCH ?= develop
 PUBLIC_DIR ?= public
+REPORT_DIR ?= reports
 
 HUGO ?= hugo
 HUGO_FLAGS ?= --gc --minify --cleanDestinationDir
@@ -59,6 +60,16 @@ deps: ## Install Node dependencies
 ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
 	$(NODE) scripts/generate_embeddings.js
 
+audit-content: check-tools deps ## Validate content front matter coverage
+	@REPORT_DIR="$(REPORT_DIR)" \
+	$(NODE) scripts/audit_content.js
+
+audit-urls: check-tools deps ## Validate relative links in content
+	@REPORT_DIR="$(REPORT_DIR)" \
+	$(NODE) scripts/audit_urls.js
+
+audit-site: audit-content audit-urls ## Run content and link checks
+
 favicons: ## Generate favicon files
 	@bash scripts/generate_favicons.sh
 
@@ -88,14 +99,15 @@ build-summary: ## Print build output summary
 	@echo "=== Largest files ==="
 	@set +o pipefail; find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
 
-cleanup-deployments: check-tools check-env ## Delete all but latest Pages deployment (uses .env for secrets)
+cleanup-deployments: check-tools check-env ## Delete all but the most recent Pages deployment
 	@ACCOUNT_ID="$$CLOUDFLARE_ACCOUNT_ID"; \
 	PROJECT_NAME="$(PROJECT_NAME)"; \
 	BRANCH_NAME="$(BRANCH)"; \
-	$(CURL) -s \
-	  -H "Authorization: Bearer $$CLOUDFLARE_API_TOKEN" \
-	  "https://api.cloudflare.com/client/v4/accounts/$$ACCOUNT_ID/pages/projects/$$PROJECT_NAME/deployments" \
-	| $(JQ) -r --arg BRANCH "$$BRANCH_NAME" '(.result // []) | map(select((.deployment_trigger.metadata.branch // .deployment_trigger.metadata.branch_name // .deployment_trigger.metadata.commit_ref // "") == $BRANCH)) | sort_by(.created_on) | reverse | .[1:] | .[].id' \
+	DEPLOYMENTS_JSON=$$($(WRANGLER) pages deployment list --project-name="$$PROJECT_NAME" --json); \
+	KEEP_ID=$$(echo "$$DEPLOYMENTS_JSON" | $(JQ) -r --arg BRANCH "$$BRANCH_NAME" '(if type == "array" then . else (.deployments // .result // []) end) | map(select((.Branch // .branch // "") == $$BRANCH)) | map(select((.Environment // .environment // "") | ascii_downcase == "production")) | .[0].Id // empty'); \
+	if [[ -z "$$KEEP_ID" ]]; then echo "No deployments found for branch $$BRANCH_NAME"; exit 1; fi; \
+	echo "Keeping deployment $$KEEP_ID"; \
+	echo "$$DEPLOYMENTS_JSON" | $(JQ) -r --arg BRANCH "$$BRANCH_NAME" --arg KEEP "$$KEEP_ID" '(if type == "array" then . else (.deployments // .result // []) end) | map(select((.Branch // .branch // "") == $$BRANCH)) | map(select((.Environment // .environment // "") | ascii_downcase == "production")) | map(select(.Id != $$KEEP)) | .[].Id' \
 	| while read -r DEPLOYMENT_ID; do \
 	    echo "Deleting deployment $$DEPLOYMENT_ID"; \
 	    $(CURL) -s -X DELETE \
@@ -103,7 +115,7 @@ cleanup-deployments: check-tools check-env ## Delete all but latest Pages deploy
 	      "https://api.cloudflare.com/client/v4/accounts/$$ACCOUNT_ID/pages/projects/$$PROJECT_NAME/deployments/$$DEPLOYMENT_ID"; \
 	  done
 
-ci: check-tools check-env build ai-embeddings deploy-pages build-summary cleanup-deployments ## Run the full CI flow locally
+ci: check-tools check-env build audit-site ai-embeddings deploy-pages build-summary  ## Run the full CI flow locally
 
 pre-commit: ## Run pre-commit hooks manually
 	@pre-commit validate-config

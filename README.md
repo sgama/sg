@@ -73,6 +73,9 @@ Use the Makefile for common development tasks:
 | `make update` | Update git submodules to latest |
 | `make serve` | Start Hugo development server |
 | `make build` | Build the static site for production |
+| `make audit-content` | Validate content front matter coverage |
+| `make audit-urls` | Validate relative links in content |
+| `make audit-site` | Run content and link checks |
 | `make clean` | Remove generated files |
 | `make deploy` | Build and deploy (customize as needed) |
 | `make pre-commit` | Run all pre-commit hooks manually |
@@ -125,6 +128,22 @@ This site uses the [Blowfish theme](https://blowfish.page/) with extensive custo
 ## ✅ Code Quality & CI/CD
 
 This repository includes comprehensive code quality tools:
+
+### Content Quality Gates
+
+Enterprise-style checks for content health and link integrity are available via Makefile targets and run in CI:
+
+- **Content coverage:** Required front matter fields and recommended metadata coverage.
+- **Link integrity:** Broken relative links within content.
+- **Build health:** Hugo build success.
+
+Generate local reports:
+
+```bash
+make audit-site
+```
+
+Reports are written to the `reports/` directory and summarized in CI.
 
 ### Pre-commit Hooks
 
