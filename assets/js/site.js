@@ -6,6 +6,13 @@
 
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const runIdle = (fn) => {
+        if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(fn, { timeout: 2000 });
+            return;
+        }
+        setTimeout(fn, 250);
+    };
 
     const safeStorage = {
         get(key, fallback) {
@@ -79,7 +86,6 @@
             this.bindEvents();
             this.loadHistory();
             this.applyPendingQuestion();
-            this.initSuggestionChips();
             window.openAiChat = () => this.open();
         }
 
@@ -137,17 +143,6 @@
                 this.elements.input.value = pending;
                 delete window.pendingChatQuestion;
             }
-        }
-
-        initSuggestionChips() {
-            $$(".chat-cta-chips").forEach((container) => {
-                const buttons = $$(".chat-cta-chip", container);
-                if (!buttons.length) return;
-                const keep = new Set(shuffleAndLimit(buttons, 4));
-                buttons.forEach((btn) => {
-                    btn.hidden = !keep.has(btn);
-                });
-            });
         }
 
         loadHistory() {
@@ -281,6 +276,17 @@
         }
     }
 
+    function applySuggestionChips() {
+        $$(".chat-cta-chips").forEach((container) => {
+            const buttons = $$(".chat-cta-chip", container);
+            if (!buttons.length) return;
+            const keep = new Set(shuffleAndLimit(buttons, 4));
+            buttons.forEach((btn) => {
+                btn.hidden = !keep.has(btn);
+            });
+        });
+    }
+
     function initChatOnce() {
         if (!window.aiChatInstance) {
             window.aiChatInstance = new AIChatWidget();
@@ -308,10 +314,12 @@
     }
 
     function boot() {
-        registerA11yStarsToggle();
         wireChatTriggers();
-        initChatOnce();
-        restoreChatState();
+        runIdle(() => {
+            registerA11yStarsToggle();
+            applySuggestionChips();
+            restoreChatState();
+        });
     }
 
     if (document.readyState === "loading") {

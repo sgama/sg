@@ -3,13 +3,17 @@
 
 {{/* Bundled site CSS */}}
 {{ $styles := slice
-    (resources.Get "css/custom.css")
-    (resources.Get "css/ai-chat.css")
+(resources.Get "css/custom.css")
+(resources.Get "css/ai-chat.css")
 }}
 {{ $bundle := $styles | resources.Concat "css/site.css" | minify | fingerprint }}
-<link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}" crossorigin="anonymous">
+<link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
+    crossorigin="anonymous">
 
 {{ if not hugo.IsServer }}
+<link rel="preconnect" href="https://ping.samsongama.com" crossorigin>
+<link rel="dns-prefetch" href="https://ping.samsongama.com">
+<link rel="preload" as="script" href="https://ping.samsongama.com/script.js" crossorigin>
 <script defer src="https://ping.samsongama.com/script.js"
     data-website-id="7b6c2554-f791-4546-8ea5-894496e4f9b6"></script>
 {{ end }}

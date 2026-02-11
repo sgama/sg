@@ -8,6 +8,8 @@ on:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    env:
+      HUGO_CACHEDIR: /tmp/hugo_cache
     permissions:
       contents: read
       deployments: write
@@ -31,6 +33,7 @@ jobs:
             /tmp/hugo_cache
             ~/.cache/hugo_cache
             ~/.npm
+            node_modules
             resources/_gen
           key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum', '**/package-lock.json') }}
           restore-keys: |
