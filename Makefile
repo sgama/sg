@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: \
-	help init update serve dev-ai build build-prod postcss postcss-build deps ai-embeddings favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
+	help init update serve dev-ai build build-prod postcss postcss-build deps test ai-embeddings favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
 
 ifneq (,$(wildcard .env))
 include .env
@@ -65,6 +65,9 @@ postcss-build: check-tools ## Generate purged CSS for production builds
 
 deps: ## Install Node dependencies
 	$(NPM) install
+
+test: deps ## Run unit tests
+	$(NPM) test
 
 ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
 	$(NODE) scripts/generate_embeddings.js
