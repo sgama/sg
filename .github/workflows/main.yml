@@ -39,9 +39,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      - name: Build
-        run: make build
-
       # --- AI Agent Integration ---
       # This step ensures embeddings are kept in sync with content changes.
       # It runs before deployment so the "brain" has the latest info.
@@ -56,9 +53,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: make deploy-pages
-
-      - name: Build summary
-        run: make build-summary
 
       # Delete previous Cloudflare deployments
       - name: Clean up old deployments

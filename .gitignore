@@ -2,6 +2,7 @@
 /public/
 /resources/
 .hugo_build.lock
+assets/css/site.purged.css
 
 # Node / JS
 node_modules/

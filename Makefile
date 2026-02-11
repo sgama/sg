@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: \
-	help init update serve dev-ai build deps ai-embeddings favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
+	help init update serve dev-ai build build-prod postcss postcss-build deps ai-embeddings favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
 
 ifneq (,$(wildcard .env))
 include .env
@@ -54,6 +54,15 @@ dev-ai: build ## Start local server with AI Functions (requires Wrangler)
 build: check-tools ## Build the Hugo site
 	$(HUGO) $(HUGO_FLAGS)
 
+build-prod: check-tools ## Build with PostCSS/PurgeCSS enabled
+	$(MAKE) postcss-build
+	HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS)
+
+postcss: build-prod ## Alias for PostCSS/PurgeCSS build
+
+postcss-build: check-tools ## Generate purged CSS for production builds
+	HUGO_ENV=production NODE_ENV=production npx postcss assets/css/site.css -o assets/css/site.purged.css
+
 deps: ## Install Node dependencies
 	$(NPM) install
 
@@ -79,7 +88,7 @@ clean: ## Clean generated files
 deploy: build ## Build and deploy (customize as needed)
 	@echo "Build complete. Customize this target for your deployment method."
 
-deploy-pages: check-tools check-env build ## Deploy to Cloudflare Pages (uses .env for secrets)
+deploy-pages: check-tools check-env build-prod ## Deploy to Cloudflare Pages (uses .env for secrets)
 	@COMMIT_HASH=$$(git rev-parse HEAD); \
 	COMMIT_MESSAGE=$$(git log -1 --pretty=%s); \
 	$(WRANGLER) pages deploy $(PUBLIC_DIR) --project-name=$(PROJECT_NAME) --branch=$(BRANCH) --commit-hash=$$COMMIT_HASH --commit-message="$$COMMIT_MESSAGE"

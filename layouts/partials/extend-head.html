@@ -2,11 +2,11 @@
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-head */}}
 
 {{/* Bundled site CSS */}}
-{{ $styles := slice
-(resources.Get "css/custom.css")
-(resources.Get "css/ai-chat.css")
-}}
-{{ $bundle := $styles | resources.Concat "css/site.css" | minify | fingerprint }}
+{{ $bundle := resources.Get "css/site.css" }}
+{{ if hugo.IsProduction }}
+{{ $bundle = resources.Get "css/site.purged.css" }}
+{{ end }}
+{{ $bundle = $bundle | minify | fingerprint }}
 <link rel="preload" as="style" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
     crossorigin="anonymous">
 <link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"

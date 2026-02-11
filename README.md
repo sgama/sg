@@ -123,7 +123,7 @@ This site uses the [Blowfish theme](https://blowfish.page/) with extensive custo
 - `config/_default/params.toml` - Theme parameters and styling
 - `config/_default/hugo.toml` - Core Hugo configuration
 - `config/_default/menus.en.toml` - Navigation menus
-- `assets/css/custom.css` - Custom CSS overrides
+- `assets/css/site.css` - Custom CSS overrides (merged)
 
 ## ✅ Code Quality & CI/CD
 
