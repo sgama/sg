@@ -7,8 +7,14 @@
 (resources.Get "css/ai-chat.css")
 }}
 {{ $bundle := $styles | resources.Concat "css/site.css" | minify | fingerprint }}
-<link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
+<link rel="preload" as="style" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
     crossorigin="anonymous">
+<link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
+    crossorigin="anonymous" media="print" onload="this.media='all'">
+<noscript>
+    <link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
+        crossorigin="anonymous">
+</noscript>
 
 {{ if not hugo.IsServer }}
 <link rel="preconnect" href="https://ping.samsongama.com" crossorigin>
