@@ -395,10 +395,3 @@ author = "authors"
 category = "categories"
 series = "series"
 tag = "tags"
-
-[umamiAnalytics]
-domain = "ping.samsongama.com"
-scriptName = "script.js"
-websiteid = "7b6c2554-f791-4546-8ea5-894496e4f9b6"
-dataDomains = "samsongama.com"
-enableTrackEvent = true
