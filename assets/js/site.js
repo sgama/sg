@@ -123,7 +123,7 @@
         }
 
         open() {
-            this.elements.window?.classList.add("open");
+            this.elements.window?.classList.add("chat-widget__window--open");
             document.body.classList.add("ai-chat-open");
             this.elements.input?.focus();
             this.applyPendingQuestion();
@@ -131,7 +131,7 @@
         }
 
         close() {
-            this.elements.window?.classList.remove("open");
+            this.elements.window?.classList.remove("chat-widget__window--open");
             document.body.classList.remove("ai-chat-open");
             safeSession.remove(OPEN_KEY);
         }
@@ -170,7 +170,7 @@
         addMessage(text, sender) {
             if (!this.elements.messages) return null;
             const div = document.createElement("div");
-            div.classList.add("ai-message", sender);
+            div.classList.add("chat-widget__message", `chat-widget__message--${sender}`);
             div.textContent = text;
             this.elements.messages.appendChild(div);
             this.elements.messages.scrollTop = this.elements.messages.scrollHeight;
@@ -277,8 +277,8 @@
     }
 
     function applySuggestionChips() {
-        $$(".chat-cta-chips").forEach((container) => {
-            const buttons = $$(".chat-cta-chip", container);
+        $$(".chat-cta__chips").forEach((container) => {
+            const buttons = $$(".chat-cta__chip", container);
             if (!buttons.length) return;
             const keep = new Set(shuffleAndLimit(buttons, 4));
             buttons.forEach((btn) => {

@@ -59,7 +59,7 @@
                         {{ $shortSide := int (math.Min $authorImage.Width $authorImage.Height) }}
                         {{ $squareImage = $authorImage.Crop (printf "%dx%d" $shortSide $shortSide ) }}
                         {{ end }}
-                        <img class="mb-2 h-36 w-36 rounded-full" width="144" height="144"
+                        <img class="intro__avatar mb-2 h-36 w-36 rounded-full" width="144" height="144"
                             alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
                             loading="lazy" decoding="async" data-zoom-src="{{ $squareImage.RelPermalink }}">
                         {{ end }}
@@ -87,8 +87,8 @@
                             </div>
                             {{ end }}
                         </div>
-                        <div class="intro-hero">
-                            <p class="typing-effect">DevOps | OSCP | CEH</p>
+                        <div class="intro__hero">
+                            <p class="intro__typing">DevOps | OSCP | CEH</p>
                         </div>
                     </div>
                     <div class="prose dark:prose-invert max-w-none w-full">

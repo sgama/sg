@@ -1,5 +1,7 @@
 ---
 title: "Contact"
+layout: single
+showDate: false
 ---
 
 ## Did we meet somewhere
@@ -7,21 +9,21 @@ title: "Contact"
 I’d love to chat! Just fill out the form, and feel free to share how we met or what brought you to my site.
 
 
-<div class="contact-container">
-  <div class="contact-card">
+<div class="contact">
+  <div class="contact__card">
     <h3 class="text-2xl font-semibold text-neutral-800 dark:text-neutral-200 mb-6">Send a Message</h3>
     <form action="https://formspree.io/f0rm5p33@samsongama.com" method="POST" class="space-12">
       <div>
-        <label for="name" class="form-label">Full Name <span class="text-red-500">*</span></label>
-        <input type="text" id="name" name="name" required class="form-input" placeholder="Your full name">
+        <label for="name" class="contact__label">Full Name <span class="text-red-500">*</span></label>
+        <input type="text" id="name" name="name" required class="contact__input" placeholder="Your full name">
       </div>
       <div>
-        <label for="email" class="form-label">Email Address <span class="text-red-500">*</span></label>
-        <input type="email" id="email" name="email" required class="form-input" placeholder="your.email@example.com">
+        <label for="email" class="contact__label">Email Address <span class="text-red-500">*</span></label>
+        <input type="email" id="email" name="email" required class="contact__input" placeholder="your.email@example.com">
       </div>
       <div>
-        <label for="subject" class="form-label">Subject <span class="text-red-500">*</span></label>
-        <select id="subject" name="subject" required class="form-input">
+        <label for="subject" class="contact__label">Subject <span class="text-red-500">*</span></label>
+        <select id="subject" name="subject" required class="contact__input">
           <option value="">Select a topic...</option>
           <option value="Job Opportunity">Job Opportunity</option>
           <option value="Project Collaboration">Project Collaboration</option>
@@ -32,14 +34,14 @@ I’d love to chat! Just fill out the form, and feel free to share how we met or
         </select>
       </div>
       <div>
-        <label for="message" class="form-label">Message <span class="text-red-500">*</span></label>
-        <textarea id="message" name="message" rows="6" required class="form-input resize-vertical" placeholder="Tell me about your project, opportunity, or question. I'd love to learn more about what you're working on..."></textarea>
+        <label for="message" class="contact__label">Message <span class="text-red-500">*</span></label>
+        <textarea id="message" name="message" rows="6" required class="contact__input contact__input--resizable" placeholder="Tell me about your project, opportunity, or question. I'd love to learn more about what you're working on..."></textarea>
       </div>
       <br>
       <input type="text" name="_gotcha" style="display:none">
       <input type="hidden" name="_next" value="https://samsongama.com/contact?success=true">
       <input type="hidden" name="_subject" value="New Contact Form Submission">
-      <button type="submit" class="submit-btn">
+      <button type="submit" class="contact__submit">
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
         </svg>
@@ -48,8 +50,8 @@ I’d love to chat! Just fill out the form, and feel free to share how we met or
     </form>
   </div>
 </div>
-<div id="success-message" class="success-message hidden">
-  <div class="success-card">
+<div id="success-message" class="contact__success hidden">
+  <div class="contact__success-card">
     <div class="flex items-center space-x-3">
       <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>

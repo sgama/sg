@@ -1,34 +1,39 @@
 {{/* Extended footer partial to add custom accessibility controls */}}
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-footer */}}
 
-<div id="ai-chat-widget">
-    <button id="ai-chat-toggle" class="js-chat-trigger" aria-label="Ask AI Assistant">
-        <span>💬</span>
+<div id="ai-chat-widget" class="chat-widget">
+    <button id="ai-chat-toggle" class="chat-widget__toggle js-chat-trigger" aria-label="Ask AI Assistant">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <path d="M12 7v6"></path>
+            <path d="M9 10h6"></path>
+        </svg>
         <span>Ask AI</span>
     </button>
 </div>
 <template id="ai-chat-template">
-    <div id="ai-chat-window">
-        <div class="ai-chat-header">
+    <div id="ai-chat-window" class="chat-widget__window">
+        <div class="chat-widget__header">
             <span>Assistant</span>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <button id="ai-chat-clear" aria-label="Clear History" title="Clear History"
-                    style="background:none;border:none;color:white;cursor:pointer;opacity:0.7;display:flex;">
+            <div class="chat-widget__header-actions">
+                <button id="ai-chat-clear" class="chat-widget__header-btn chat-widget__header-btn--clear"
+                    aria-label="Clear History" title="Clear History">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                 </button>
-                <button id="ai-chat-close" aria-label="Close Chat"
-                    style="background:none;border:none;color:white;cursor:pointer;">&times;</button>
+                <button id="ai-chat-close" class="chat-widget__header-btn chat-widget__header-btn--close"
+                    aria-label="Close Chat">&times;</button>
             </div>
         </div>
-        <div class="ai-chat-messages" id="ai-chat-messages"></div>
-        <form class="ai-chat-input-area" id="ai-chat-form">
-            <input type="text" id="ai-chat-input" placeholder="Ask a question..." aria-label="Question"
-                autocomplete="off">
-            <button type="submit" id="ai-chat-send">Send</button>
+        <div class="chat-widget__messages" id="ai-chat-messages"></div>
+        <form class="chat-widget__input-area" id="ai-chat-form">
+            <input type="text" id="ai-chat-input" class="chat-widget__input" placeholder="Ask a question..."
+                aria-label="Question" autocomplete="off">
+            <button type="submit" id="ai-chat-send" class="chat-widget__send">Send</button>
         </form>
     </div>
 </template>

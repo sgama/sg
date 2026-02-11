@@ -1,6 +1,8 @@
 ---
 title: "Resume"
 summary: "Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps"
+layout: single
+showDate: false
 ---
 
 Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps.
