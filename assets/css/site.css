@@ -362,14 +362,21 @@ html[data-background-blur="false"]::before {
 }
 
 .chat-widget__message--bot {
-    background-color: rgb(var(--color-neutral-700));
+    background-color: rgba(var(--color-neutral-700), 0.9);
     color: rgb(var(--color-neutral-100));
+    border: 1px solid rgba(var(--color-neutral-600), 0.6);
     align-self: flex-start;
+    margin-right: auto;
+    text-align: left;
 }
 
 .chat-widget__message--user {
-    background-color: rgb(var(--color-primary-600));
+    background-color: rgba(var(--color-primary-600), 0.95);
     color: white;
+    border: 1px solid rgba(var(--color-primary-400), 0.5);
+    align-self: flex-end;
+    margin-left: auto;
+    text-align: left;
 }
 
 .chat-widget__input-area {
