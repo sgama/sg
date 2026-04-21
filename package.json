@@ -21,9 +21,11 @@
   },
   "homepage": "https://github.com/sgama/sg#readme",
   "dependencies": {
+    "cloudflare": "^5.2.0",
     "dotenv": "^17.2.4",
     "glob": "^13.0.2",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "p-limit": "^4.0.0"
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^8.0.0",

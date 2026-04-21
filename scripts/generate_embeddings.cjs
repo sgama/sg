@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const glob = require('glob');
 const matter = require('gray-matter');
+const pLimit = require('p-limit');
+const Cloudflare = require('cloudflare');
 require('dotenv').config();
 
 // Configuration
@@ -22,6 +24,8 @@ if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
     console.error("Error: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN in environment.");
     process.exit(1);
 }
+
+const cf = new Cloudflare({ apiToken: CLOUDFLARE_API_TOKEN });
 
 /**
  * Main Orchestrator
@@ -126,111 +130,58 @@ function splitText(text, maxTokens = 500) {
 }
 
 /**
- * Run embedding generation with concurrency limit
- * Replaces sequential loop with a Promise.all + semaphore pattern
+ * Run embedding generation with concurrency limit via p-limit.
  */
 async function generateEmbeddingsInParallel(chunks, concurrency) {
+    const limit = pLimit(concurrency);
     const results = [];
-    const queue = [...chunks];
 
-    // Simple pool implementation
-    // Ideally use 'p-limit' library, but keeping deps minimal
-    const next = async () => {
-        if (queue.length === 0) return;
-        const chunk = queue.shift();
+    await Promise.all(chunks.map(chunk =>
+        limit(async () => {
+            try {
+                const embedding = await getEmbedding(chunk.text);
+                results.push({ id: chunk.id, values: embedding, metadata: chunk.metadata });
+                process.stdout.write(".");
+            } catch (err) {
+                console.error(`\nFailed to embed chunk ${chunk.id}: ${err.message}`);
+            }
+        })
+    ));
 
-        try {
-            const embedding = await getEmbeddingWithRetry(chunk.text);
-            results.push({
-                id: chunk.id,
-                values: embedding,
-                metadata: chunk.metadata
-            });
-            process.stdout.write("."); // Progress indicator
-        } catch (err) {
-            console.error(`\nFailed to embed chunk ${chunk.id}: ${err.message}`);
-        }
-
-        await next();
-    };
-
-    const initialWorkers = [];
-    for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
-        initialWorkers.push(next());
-    }
-
-    await Promise.all(initialWorkers);
     console.log("\nEmbedding complete.");
     return results;
 }
 
 /**
- * Call Workers AI API
+ * Call Workers AI API via the Cloudflare SDK (handles auth + retry).
  */
-async function getEmbeddingWithRetry(text, retries = 3) {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${CONFIG.EMBEDDING_MODEL}`;
-
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${CLOUDFLARE_API_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ text: [text] })
-            });
-
-            if (!response.ok) {
-                // Rate limiting handling could go here
-                throw new Error(`API ${response.status}: ${await response.text()}`);
-            }
-
-            const json = await response.json();
-            return json.result.data[0];
-        } catch (err) {
-            if (i === retries - 1) throw err;
-            await new Promise(r => setTimeout(r, 1000 * (i + 1))); // Exponential backoffish
-        }
-    }
+async function getEmbedding(text) {
+    const result = await cf.ai.run(CONFIG.EMBEDDING_MODEL, {
+        account_id: CLOUDFLARE_ACCOUNT_ID,
+        text: [text],
+    });
+    return result.data[0];
 }
 
 /**
- * Upsert to Vectorize via REST API (Cleaner than Wrangler CLI)
+ * Upsert vectors to Vectorize via the Cloudflare SDK.
+ * Sends NDJSON in batches; no temp files or wrangler CLI needed.
  */
 async function batchUpsertVectors(vectors) {
-    // Note: This requires the Index ID, using Index Name via API requires a lookup first.
-    // For simplicity, sticking to the Wrangler CLI wrapper but making it more robust,
-    // OR we would need to fetch the index list to get the ID for 'portfolio-index'.
-    // Given the difficulty of finding the underlying ID without an extra call,
-    // we will optimize the implementation for REST API if we assume user knows ID,
-    // otherwise fallback to a more robust CLI call.
-
-    // However, to make this "Enterprise Ready", relying on "wrangler" being in PATH is shaky.
-    // The previous implementation used `ndjson` + `wrangler vectorize insert`.
-    // Let's improve that by handling the batching loop properly here.
-
-    const { execSync } = require('child_process');
     const BATCH_SIZE = CONFIG.UPSERT_BATCH_SIZE;
 
     for (let i = 0; i < vectors.length; i += BATCH_SIZE) {
         const batch = vectors.slice(i, i + BATCH_SIZE);
-        const ndjson = batch.map(v => JSON.stringify(v)).join("\n");
-        const tempFile = path.join(__dirname, `temp_vectors_${Date.now()}.ndjson`);
+        const ndjson = batch.map(v => JSON.stringify(v)).join('\n');
 
         try {
-            fs.writeFileSync(tempFile, ndjson);
-            // Use npx to ensure local version is used
-            execSync(`npx wrangler vectorize insert ${CONFIG.INDEX_NAME} --file "${tempFile}"`, {
-                stdio: 'ignore', // Suppress noisy output
-                env: { ...process.env } // Pass through env vars
+            await cf.vectorize.indexes.upsert(CONFIG.INDEX_NAME, {
+                account_id: CLOUDFLARE_ACCOUNT_ID,
+                body: ndjson,
             });
-            console.log(`   ✅ Batch ${i / BATCH_SIZE + 1} uploaded (${batch.length} vectors)`);
+            console.log(`   ✅ Batch ${Math.floor(i / BATCH_SIZE) + 1} uploaded (${batch.length} vectors)`);
         } catch (err) {
             console.error(`   ❌ Batch upload failed: ${err.message}`);
-            // In enterprise scenario: push to a Dead Letter Queue or log to file
-        } finally {
-            if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
         }
     }
 }

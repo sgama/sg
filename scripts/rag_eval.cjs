@@ -10,6 +10,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const Cloudflare = require('cloudflare');
 require('dotenv').config();
 
 const DEFAULTS = {
@@ -20,29 +21,21 @@ const DEFAULTS = {
 
 const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
 
-const cfHeaders = () => ({
-    'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`,
-    'Content-Type': 'application/json',
-});
+const cf = new Cloudflare({ apiToken: CLOUDFLARE_API_TOKEN });
 
 async function embed(text, model = DEFAULTS.embeddingModel) {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}`;
-    const res = await fetch(url, { method: 'POST', headers: cfHeaders(), body: JSON.stringify({ text: [text] }) });
-    if (!res.ok) throw new Error(`embed ${res.status}: ${await res.text()}`);
-    const { result } = await res.json();
+    const result = await cf.ai.run(model, { account_id: CLOUDFLARE_ACCOUNT_ID, text: [text] });
     return result.data[0];
 }
 
 async function queryIndex(vector, topK, indexName = DEFAULTS.indexName) {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/vectorize/v2/indexes/${indexName}/query`;
-    const res = await fetch(url, {
-        method: 'POST',
-        headers: cfHeaders(),
-        body: JSON.stringify({ vector, topK, returnMetadata: 'all' }),
+    const result = await cf.vectorize.indexes.query(indexName, {
+        account_id: CLOUDFLARE_ACCOUNT_ID,
+        vector,
+        topK,
+        returnMetadata: 'all',
     });
-    if (!res.ok) throw new Error(`query ${res.status}: ${await res.text()}`);
-    const { result } = await res.json();
-    return (result.matches || []).map(m => (m.metadata?.text || ''));
+    return (result.matches || []).map(m => m.metadata?.text || '');
 }
 
 // Pure: did any expected substring appear in any chunk? (case-insensitive)

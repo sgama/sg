@@ -1,4 +1,10 @@
 import { AppError, CONFIG } from '../_lib/config.js';
+import { createSseMessageStream } from '../_lib/sse.js';
+import {
+    isPromptInjectionAttempt,
+    SAFE_NO_CONTEXT_MESSAGE,
+    shouldAbstainForMissingContext,
+} from '../_lib/guardrails.js';
 import { sanitizeHistory } from '../_lib/history.js';
 import { AiService, LogService } from '../_lib/services.js';
 
@@ -23,6 +29,9 @@ export async function onRequest(context) {
         if (!query || query.length > MAX_QUERY_LENGTH) {
             return createErrorResponse("Invalid query. Must be a string < 500 chars.", 400);
         }
+        if (isPromptInjectionAttempt(query)) {
+            return createErrorResponse("Query rejected by guardrails.", 400);
+        }
 
         if (!context.env?.AI) {
             throw new AppError("Service Unavailable: AI binding missing", 503);
@@ -36,7 +45,13 @@ export async function onRequest(context) {
         // 4. Service Orchestration
         const aiService = new AiService(context.env);
         const contextText = await aiService.retrieveContext(query);
-        let stream = await aiService.generateStream(query, contextText, history);
+        let stream;
+
+        if (shouldAbstainForMissingContext(contextText)) {
+            stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE);
+        } else {
+            stream = await aiService.generateStream(query, contextText, history);
+        }
 
         // 5. Logging Hook (Middleware-like)
         if (context.env.CHAT_LOGS) {

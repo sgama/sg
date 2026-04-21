@@ -42,7 +42,7 @@ To enable the AI chatbot feature:
    ```bash
    export CLOUDFLARE_ACCOUNT_ID="your_id"
    export CLOUDFLARE_API_TOKEN="your_token"
-   node scripts/generate_embeddings.js
+   node scripts/generate_embeddings.cjs
    ```
 
 ### Local Development
