@@ -10,8 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HUGO_VERSION: 0.160.0
-      HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      HUGO_CACHEDIR: /tmp/hugo_cache
     permissions:
       contents: read
       deployments: write
@@ -44,7 +43,7 @@ jobs:
         id: cache-restore
         uses: actions/cache/restore@v5
         with:
-          path: ${{ runner.temp }}/hugo_cache
+          path: ${{ env.HUGO_CACHEDIR }}
           key: hugo-${{ github.run_id }}
           restore-keys: hugo-
 
@@ -102,7 +101,7 @@ jobs:
         if: always()
         uses: actions/cache/save@v5
         with:
-          path: ${{ runner.temp }}/hugo_cache
+          path: ${{ env.HUGO_CACHEDIR }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Clean up old deployments
