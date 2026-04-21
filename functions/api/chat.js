@@ -2,11 +2,13 @@ import { AppError, CONFIG } from '../_lib/config.js';
 import { sanitizeHistory } from '../_lib/history.js';
 import { AiService, LogService } from '../_lib/services.js';
 
+const MAX_QUERY_LENGTH = 500;
+
 /**
  * Enterprise-Grade Main Handler
  */
 export async function onRequest(context) {
-    // 1. Prefligth & Method Check
+    // 1. Preflight & Method Check
     if (context.request.method === "OPTIONS") {
         return new Response(null, { headers: getCorsHeaders() });
     }
@@ -17,8 +19,13 @@ export async function onRequest(context) {
     try {
         // 2. Input Validation
         const body = await context.request.json().catch(() => ({}));
-        if (!body.query || typeof body.query !== 'string' || body.query.length > 500) {
+        const query = typeof body.query === 'string' ? body.query.trim() : '';
+        if (!query || query.length > MAX_QUERY_LENGTH) {
             return createErrorResponse("Invalid query. Must be a string < 500 chars.", 400);
+        }
+
+        if (!context.env?.AI) {
+            throw new AppError("Service Unavailable: AI binding missing", 503);
         }
 
         const history = sanitizeHistory(body.history, {
@@ -28,19 +35,20 @@ export async function onRequest(context) {
 
         // 4. Service Orchestration
         const aiService = new AiService(context.env);
-        const contextText = await aiService.retrieveContext(body.query);
-        let stream = await aiService.generateStream(body.query, contextText, history);
+        const contextText = await aiService.retrieveContext(query);
+        let stream = await aiService.generateStream(query, contextText, history);
 
         // 5. Logging Hook (Middleware-like)
         if (context.env.CHAT_LOGS) {
             // Persist the complete chat interaction to KV for history
-            stream = await LogService.save(context.env.CHAT_LOGS, body.query, stream, context);
+            stream = await LogService.save(context.env.CHAT_LOGS, query, stream, context);
         }
 
         return new Response(stream, {
             headers: {
                 ...getCorsHeaders(),
-                "Content-Type": "text/event-stream"
+                ...getCommonHeaders(),
+                "Content-Type": "text/event-stream; charset=utf-8"
             }
         });
 
@@ -59,12 +67,24 @@ function getCorsHeaders() {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+    };
+}
+
+function getCommonHeaders() {
+    return {
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
     };
 }
 
 function createErrorResponse(msg, status) {
     return new Response(JSON.stringify({ error: msg }), {
         status,
-        headers: { ...getCorsHeaders(), "Content-Type": "application/json" }
+        headers: {
+            ...getCorsHeaders(),
+            ...getCommonHeaders(),
+            "Content-Type": "application/json; charset=utf-8"
+        }
     });
 }

@@ -1,10 +1,14 @@
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 const purgecss = require("@fullhuman/postcss-purgecss");
+const autoprefixer = require("autoprefixer");
 
 const isProduction = process.env.HUGO_ENV === "production" || process.env.NODE_ENV === "production";
 
-module.exports = {
+export default {
     plugins: [
-        require("autoprefixer"),
+        autoprefixer,
         ...(isProduction
             ? [
                 purgecss({
