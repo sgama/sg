@@ -1,20 +1,17 @@
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
-const matter = require('gray-matter');
-const pLimit = require('p-limit');
-const Cloudflare = require('cloudflare');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { glob } from 'glob';
+import matter from 'gray-matter';
+import pLimit from 'p-limit';
+import Cloudflare from 'cloudflare';
+import 'dotenv/config';
 
-// Configuration
 const CONFIG = {
     INDEX_NAME: "portfolio-index",
     EMBEDDING_MODEL: "@cf/baai/bge-base-en-v1.5",
-    // Concurrency: How many simultaneous embedding requests to make
     CONCURRENCY_LIMIT: 5,
-    // Batch Size: upsert to Vectorize in batches
     UPSERT_BATCH_SIZE: 1000,
-    // Chunking
     MAX_TOKENS_PER_CHUNK: 500
 };
 
@@ -27,18 +24,14 @@ if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
 
 const cf = new Cloudflare({ apiToken: CLOUDFLARE_API_TOKEN });
 
-/**
- * Main Orchestrator
- */
 async function main() {
     console.time("Total Duration");
     console.log("🚀 Starting embedding generation pipeline...");
 
     try {
-        const files = glob.sync("content/**/*.md");
+        const files = await glob("content/**/*.md");
         console.log(`📂 Found ${files.length} markdown files.`);
 
-        // 1. Process Files & Chunk Text
         const allChunks = [];
         for (const file of files) {
             const fileChunks = processFile(file);
@@ -46,11 +39,9 @@ async function main() {
         }
         console.log(`📝 Generated ${allChunks.length} text chunks.`);
 
-        // 2. Generate Embeddings (with Concurrency Control)
         console.log(`🧠 Generating embeddings (Concurrency: ${CONFIG.CONCURRENCY_LIMIT})...`);
         const vectors = await generateEmbeddingsInParallel(allChunks, CONFIG.CONCURRENCY_LIMIT);
 
-        // 3. Upsert to Cloudflare Vectorize
         if (vectors.length > 0) {
             console.log(`☁️  Upserting ${vectors.length} vectors to index: ${CONFIG.INDEX_NAME}`);
             await batchUpsertVectors(vectors);
@@ -66,11 +57,7 @@ async function main() {
     }
 }
 
-/**
- * Process a single file: Read -> Frontmatter -> Split
- * Returns array of chunk objects { id, text, metadata }
- */
-function processFile(filePath) {
+export function processFile(filePath) {
     try {
         const rawContent = fs.readFileSync(filePath, 'utf8');
         const { data, content } = matter(rawContent);
@@ -82,17 +69,12 @@ function processFile(filePath) {
 
         return textSegments.map((segment, index) => {
             const isContext = filePath.includes('content/_context/');
-
             return {
                 id: `${path.basename(filePath, '.md')}-${index}`,
                 text: segment,
                 metadata: {
-                    text: segment, // Storing text in metadata for RAG retrieval
+                    text: segment,
                     title: data.title || "Untitled",
-                    // URL Normalization:
-                    // 1. Remove extension (.md)
-                    // 2. Remove "_index" suffix (Hugo Section Bundles)
-                    // 3. Remove "/index" suffix (Hugo Leaf Bundles) to prevent /posts/my-post/index
                     url: isContext ? null : "/" + path.relative("content", filePath)
                         .replace(/\.md$/, "")
                         .replace(/_index$/, "")
@@ -107,12 +89,8 @@ function processFile(filePath) {
     }
 }
 
-/**
- * Split text safely
- * (Testable pure function)
- */
-function splitText(text, maxTokens = 500) {
-    const maxChars = maxTokens * 4; // Rough approximation
+export function splitText(text, maxTokens = 500) {
+    const maxChars = maxTokens * 4;
     const paragraphs = text.split(/\n\s*\n/);
     const chunks = [];
     let currentChunk = "";
@@ -129,9 +107,6 @@ function splitText(text, maxTokens = 500) {
     return chunks.map(c => c.trim()).filter(c => c.length > 0);
 }
 
-/**
- * Run embedding generation with concurrency limit via p-limit.
- */
 async function generateEmbeddingsInParallel(chunks, concurrency) {
     const limit = pLimit(concurrency);
     const results = [];
@@ -152,9 +127,6 @@ async function generateEmbeddingsInParallel(chunks, concurrency) {
     return results;
 }
 
-/**
- * Call Workers AI API via the Cloudflare SDK (handles auth + retry).
- */
 async function getEmbedding(text) {
     const result = await cf.ai.run(CONFIG.EMBEDDING_MODEL, {
         account_id: CLOUDFLARE_ACCOUNT_ID,
@@ -163,10 +135,6 @@ async function getEmbedding(text) {
     return result.data[0];
 }
 
-/**
- * Upsert vectors to Vectorize via the Cloudflare SDK.
- * Sends NDJSON in batches; no temp files or wrangler CLI needed.
- */
 async function batchUpsertVectors(vectors) {
     const BATCH_SIZE = CONFIG.UPSERT_BATCH_SIZE;
 
@@ -186,10 +154,6 @@ async function batchUpsertVectors(vectors) {
     }
 }
 
-// Ensure strict run if execution
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
     main();
 }
-
-// Export for Testing
-module.exports = { splitText, processFile, main };

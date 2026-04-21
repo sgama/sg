@@ -70,10 +70,10 @@ test: deps ## Run unit tests
 	$(NPM) test
 
 ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
-	$(NODE) scripts/generate_embeddings.cjs
+	$(NODE) scripts/generate_embeddings.mjs
 
 rag-eval: check-tools check-env deps ## Score RAG retrieval against tests/rag_eval.json (hit@K)
-	$(NODE) scripts/rag_eval.cjs
+	$(NODE) scripts/rag_eval.mjs
 
 audit-content: check-tools deps ## Validate content front matter coverage
 	@REPORT_DIR="$(REPORT_DIR)" \

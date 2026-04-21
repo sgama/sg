@@ -2,16 +2,17 @@
  * Minimal hit@K evaluator for the portfolio-index Vectorize index.
  *
  * - Pure functions (hit, summarize) are exported for unit tests.
- * - Embedding + vectorize calls are narrow fetch wrappers; swap them to
- *   point at a different model or index with no other changes.
  * - Exits non-zero if pass rate < cases.passThreshold.
  *
- * Run: CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... node scripts/rag_eval.js
+ * Run: CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... node scripts/rag_eval.mjs
  */
-const fs = require('fs');
-const path = require('path');
-const Cloudflare = require('cloudflare');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Cloudflare from 'cloudflare';
+import 'dotenv/config';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DEFAULTS = {
     evalFile: path.join(__dirname, '..', 'tests', 'rag_eval.json'),
@@ -23,12 +24,12 @@ const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
 
 const cf = new Cloudflare({ apiToken: CLOUDFLARE_API_TOKEN });
 
-async function embed(text, model = DEFAULTS.embeddingModel) {
+export async function embed(text, model = DEFAULTS.embeddingModel) {
     const result = await cf.ai.run(model, { account_id: CLOUDFLARE_ACCOUNT_ID, text: [text] });
     return result.data[0];
 }
 
-async function queryIndex(vector, topK, indexName = DEFAULTS.indexName) {
+export async function queryIndex(vector, topK, indexName = DEFAULTS.indexName) {
     const result = await cf.vectorize.indexes.query(indexName, {
         account_id: CLOUDFLARE_ACCOUNT_ID,
         vector,
@@ -38,20 +39,19 @@ async function queryIndex(vector, topK, indexName = DEFAULTS.indexName) {
     return (result.matches || []).map(m => m.metadata?.text || '');
 }
 
-// Pure: did any expected substring appear in any chunk? (case-insensitive)
-function hit(chunks, expected) {
+export function hit(chunks, expected) {
     const haystack = chunks.join('\n').toLowerCase();
     const match = expected.find(e => haystack.includes(e.toLowerCase()));
     return { hit: Boolean(match), matched: match || null };
 }
 
-function summarize(results, threshold) {
+export function summarize(results, threshold) {
     const hits = results.filter(r => r.hit).length;
     const rate = results.length ? hits / results.length : 0;
     return { hits, total: results.length, rate, passed: rate >= threshold };
 }
 
-async function runCase({ query, expected }, topK) {
+export async function runCase({ query, expected }, topK) {
     const vector = await embed(query);
     const chunks = await queryIndex(vector, topK);
     return { query, expected, ...hit(chunks, expected) };
@@ -86,6 +86,6 @@ async function main() {
     process.exit(sum.passed ? 0 : 1);
 }
 
-if (require.main === module) main();
-
-module.exports = { hit, summarize, embed, queryIndex, runCase };
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+    main();
+}

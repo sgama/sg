@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HUGO_CACHEDIR: /tmp/hugo_cache
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       contents: read
       deployments: write
@@ -52,7 +53,7 @@ jobs:
           filters: |
             embeddings:
               - 'content/**'
-              - 'scripts/generate_embeddings.cjs'
+              - 'scripts/generate_embeddings.mjs'
               - 'tests/rag_eval.json'
               - 'functions/_lib/services.js'
               - 'functions/_lib/rerank.js'
