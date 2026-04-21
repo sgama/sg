@@ -122,8 +122,8 @@ test('logs streamed output to KV when CHAT_LOGS is configured', async () => {
             }
         },
         CHAT_LOGS: {
-            async put(key, value) {
-                savedEntries.push({ key, value: JSON.parse(value) });
+            async put(key, value, options) {
+                savedEntries.push({ key, value: options?.metadata ?? JSON.parse(value || 'null') });
             }
         }
     };

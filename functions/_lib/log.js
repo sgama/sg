@@ -34,12 +34,16 @@ export class LogService {
             flush() {
                 const timestamp = new Date().toISOString();
                 const key = `${CONFIG.KV_PREFIX}${timestamp}`;
-                const savePromise = kv.put(key, JSON.stringify({
+                const payload = {
                     timestamp,
                     query,
                     response: accumulatedResponse,
                     usage: usageData
-                }), { expirationTtl: 2592000 }).catch(e => console.error("Log Flush Error", e));
+                };
+                const savePromise = kv.put(key, "", {
+                    expirationTtl: 2592000,
+                    metadata: payload
+                }).catch(e => console.error("Log Flush Error", e));
 
                 if (context?.waitUntil) {
                     context.waitUntil(savePromise);
@@ -59,13 +63,10 @@ export class LogService {
             ...(cursor && { cursor })
         });
 
-        const logs = await Promise.all(
-            listResult.keys.reverse().map(async (key) => {
-                const value = await kv.get(key.name, { type: "json" });
-                if (!value || typeof value !== 'object') return null;
-                return { id: key.name, ...value };
-            })
-        );
+        const logs = listResult.keys
+            .reverse()
+            .map((key) => key.metadata ? { id: key.name, ...key.metadata } : null)
+            .filter(Boolean);
 
         return {
             data: logs.filter(Boolean),

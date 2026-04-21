@@ -9,10 +9,22 @@ import { ChatRequestSchema } from '../_lib/schemas.js';
 import { AiService } from '../_lib/ai.js';
 import { LogService } from '../_lib/log.js';
 
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+};
+
+const COMMON_HEADERS = {
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+};
+
 export async function onRequest(context) {
     // 1. Preflight & Method Check
     if (context.request.method === "OPTIONS") {
-        return new Response(null, { headers: getCorsHeaders() });
+        return new Response(null, { headers: CORS_HEADERS });
     }
     if (context.request.method !== "POST") {
         return createErrorResponse("Method not allowed", 405);
@@ -55,8 +67,8 @@ export async function onRequest(context) {
 
         return new Response(stream, {
             headers: {
-                ...getCorsHeaders(),
-                ...getCommonHeaders(),
+                ...CORS_HEADERS,
+                ...COMMON_HEADERS,
                 "Content-Type": "text/event-stream; charset=utf-8"
             }
         });
@@ -71,28 +83,12 @@ export async function onRequest(context) {
     }
 }
 
-function getCorsHeaders() {
-    return {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400",
-    };
-}
-
-function getCommonHeaders() {
-    return {
-        "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff",
-    };
-}
-
 function createErrorResponse(msg, status) {
     return new Response(JSON.stringify({ error: msg }), {
         status,
         headers: {
-            ...getCorsHeaders(),
-            ...getCommonHeaders(),
+            ...CORS_HEADERS,
+            ...COMMON_HEADERS,
             "Content-Type": "application/json; charset=utf-8"
         }
     });
