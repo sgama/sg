@@ -9,25 +9,40 @@ import { ChatRequestSchema } from '../_lib/schemas.js';
 import { AiService } from '../_lib/ai.js';
 import { LogService } from '../_lib/log.js';
 
-const CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Max-Age": "86400",
-};
+const ALLOWED_ORIGINS = new Set([
+    "https://samsongama.com",
+    "https://www.samsongama.com",
+]);
 
 const COMMON_HEADERS = {
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
 };
 
+function corsHeaders(origin) {
+    if (!ALLOWED_ORIGINS.has(origin)) return {};
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+    };
+}
+
 export async function onRequest(context) {
+    const origin = context.request.headers.get("Origin") ?? "";
+    const cors = corsHeaders(origin);
+
     // 1. Preflight & Method Check
     if (context.request.method === "OPTIONS") {
-        return new Response(null, { headers: CORS_HEADERS });
+        if (!ALLOWED_ORIGINS.has(origin)) {
+            return new Response(null, { status: 403 });
+        }
+        return new Response(null, { headers: cors });
     }
     if (context.request.method !== "POST") {
-        return createErrorResponse("Method not allowed", 405);
+        return createErrorResponse("Method not allowed", 405, cors);
     }
 
     try {
@@ -67,7 +82,7 @@ export async function onRequest(context) {
 
         return new Response(stream, {
             headers: {
-                ...CORS_HEADERS,
+                ...cors,
                 ...COMMON_HEADERS,
                 "Content-Type": "text/event-stream; charset=utf-8"
             }
@@ -75,19 +90,19 @@ export async function onRequest(context) {
 
     } catch (err) {
         if (err instanceof AppError) {
-            return createErrorResponse(err.message, err.status);
+            return createErrorResponse(err.message, err.status, cors);
         }
 
         console.error(`API Fatal: ${err.message}`);
-        return createErrorResponse("Internal Server Error", 500);
+        return createErrorResponse("Internal Server Error", 500, cors);
     }
 }
 
-function createErrorResponse(msg, status) {
+function createErrorResponse(msg, status, cors = {}) {
     return new Response(JSON.stringify({ error: msg }), {
         status,
         headers: {
-            ...CORS_HEADERS,
+            ...cors,
             ...COMMON_HEADERS,
             "Content-Type": "application/json; charset=utf-8"
         }

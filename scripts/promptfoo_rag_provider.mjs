@@ -9,8 +9,17 @@ export default {
     id() { return 'vectorize-rag'; },
 
     async callApi(prompt) {
-        const cf = new Cloudflare({ apiToken: process.env.CLOUDFLARE_API_TOKEN });
         const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+        const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+        if (!accountId || !apiToken) {
+            throw new Error(
+                'Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN. ' +
+                'Copy .env.example to .env and fill in your credentials before running make rag-eval.'
+            );
+        }
+
+        const cf = new Cloudflare({ apiToken });
 
         const embResult = await cf.ai.run(EMBEDDING_MODEL, {
             account_id: accountId,

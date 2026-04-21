@@ -2,6 +2,7 @@
 # See: https://github.com/crate-ci/typos
 
 [default.extend-words]
+PN = "PN"
 PNG = "PNG"
 PNGs = "PNGs"
 api = "api"

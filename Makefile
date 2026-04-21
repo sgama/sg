@@ -3,32 +3,40 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: \
-	help init update serve dev-ai build build-prod postcss postcss-build deps test ai-embeddings rag-eval favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
+	help serve dev-ai \
+	build build-prod postcss-build build-summary clean \
+	deps test audit-content audit-urls audit-site rag-eval pre-commit \
+	ai-embeddings \
+	deploy-pages cleanup-deployments \
+	ci check-tools check-env
 
 ifneq (,$(wildcard .env))
 include .env
 export
 endif
 
-PROJECT_NAME ?= sg
-BRANCH ?= develop
-PUBLIC_DIR ?= public
-REPORT_DIR ?= reports
+# ── Config ─────────────────────────────────────────────────────────────────────
+PROJECT_NAME      ?= sg
+BRANCH            ?= develop
+PUBLIC_DIR        ?= public
+REPORT_DIR        ?= reports
 
-HUGO ?= hugo
-HUGO_FLAGS ?= --gc --minify --cleanDestinationDir
+HUGO              ?= hugo
+HUGO_FLAGS        ?= --gc --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?= --gc --ignoreCache
-NODE ?= node
-NPM ?= npm
-CURL ?= curl
-WRANGLER ?= npx wrangler
+NODE              ?= node
+NPM               ?= npm
+WRANGLER          ?= npx wrangler
 
 REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM)
 
-help: ## Show this help message
-	@echo "Available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
+# ── Help ───────────────────────────────────────────────────────────────────────
+help: ## Show available targets
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \
+	  /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2 } \
+	  /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) }' $(MAKEFILE_LIST)
 
+# ── Guards ─────────────────────────────────────────────────────────────────────
 check-tools: ## Validate required tools are installed
 	@for tool in $(REQUIRED_TOOLS); do \
 		command -v $$tool >/dev/null 2>&1 || { echo "Missing tool: $$tool"; exit 1; }; \
@@ -36,87 +44,81 @@ check-tools: ## Validate required tools are installed
 
 check-env: ## Validate required environment variables are set
 	@test -n "$$CLOUDFLARE_ACCOUNT_ID" || (echo "Missing CLOUDFLARE_ACCOUNT_ID" && exit 1)
-	@test -n "$$CLOUDFLARE_API_TOKEN" || (echo "Missing CLOUDFLARE_API_TOKEN" && exit 1)
+	@test -n "$$CLOUDFLARE_API_TOKEN"  || (echo "Missing CLOUDFLARE_API_TOKEN"  && exit 1)
 
-init: ## Initialize git submodules
-	git submodule update --init --recursive
-
-update: ## Update git submodules
-	git submodule update --recursive --remote
-
+##@ Development
 serve: ## Start Hugo development server
 	$(HUGO) server $(HUGO_SERVER_FLAGS)
 
-dev-ai: build ## Start local server with AI Functions (requires Wrangler)
+dev-ai: build ## Start local dev server with Cloudflare Workers AI
 	$(WRANGLER) pages dev $(PUBLIC_DIR)
 
-build: check-tools ## Build the Hugo site
+##@ Build
+build: check-tools ## Build the site (development)
 	$(HUGO) $(HUGO_FLAGS)
 
-build-prod: check-tools ## Build with PostCSS/PurgeCSS enabled
-	$(MAKE) postcss-build
-	HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS)
-
-postcss: build-prod ## Alias for PostCSS/PurgeCSS build
-
-postcss-build: check-tools ## Generate purged CSS for production builds
+postcss-build: check-tools ## Run PostCSS + PurgeCSS (production CSS only)
 	HUGO_ENV=production NODE_ENV=production npx postcss assets/css/site.css -o assets/css/site.purged.css
 
+build-prod: check-tools postcss-build ## Build the site for production (with PurgeCSS)
+	HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS)
+
+build-summary: ## Print a summary of the build output
+	@echo "=== Build Output ==="
+	@echo "Files : $$(find $(PUBLIC_DIR) -type f | wc -l | tr -d ' ')"
+	@echo "Size  : $$(du -sh $(PUBLIC_DIR) | cut -f1)"
+	@echo "HTML  : $$(find $(PUBLIC_DIR) -name '*.html' | wc -l | tr -d ' ')"
+	@echo "CSS   : $$(find $(PUBLIC_DIR) -name '*.css'  | wc -l | tr -d ' ')"
+	@echo "JS    : $$(find $(PUBLIC_DIR) -name '*.js'   | wc -l | tr -d ' ')"
+	@echo "Images: $$(find $(PUBLIC_DIR) \( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' -o -name '*.svg' \) | wc -l | tr -d ' ')"
+	@echo ""
+	@echo "=== Largest files ==="
+	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
+
+clean: ## Remove the build output directory
+	rm -rf $(PUBLIC_DIR)/
+
+##@ Test & Audit
 deps: ## Install Node dependencies
 	$(NPM) install
 
 test: ## Run unit tests
 	$(NPM) test
 
-ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
-	$(NODE) scripts/generate_embeddings.mjs
-
-rag-eval: check-tools check-env deps ## Score RAG retrieval quality (hit@3, pass rate ≥75%)
-	npx promptfoo@latest eval --pass-rate 0.75
-
 audit-content: check-tools deps ## Validate content front matter coverage
-	@REPORT_DIR="$(REPORT_DIR)" \
-	$(NODE) scripts/audit_content.mjs
+	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs
 
 audit-urls: check-tools deps ## Check external links in content files
 	find content -name "*.md" | xargs npx markdown-link-check --config .markdown-link-check.json --quiet
 
-audit-site: audit-content audit-urls ## Run content and link checks
+audit-site: audit-content audit-urls ## Run all content and link audits
 
-favicons: ## Generate favicon files
-	@bash scripts/generate_favicons.sh
+rag-eval: check-tools check-env ## Score RAG retrieval quality (hit@3, pass ≥75%)
+	npx promptfoo@latest eval --pass-rate 0.75
 
-clean: ## Clean generated files
-	rm -rf $(PUBLIC_DIR)/
-
-deploy: build ## Build and deploy (customize as needed)
-	@echo "Build complete. Customize this target for your deployment method."
-
-deploy-pages: check-tools check-env build-prod ## Deploy to Cloudflare Pages (uses .env for secrets)
-	@COMMIT_HASH=$$(git rev-parse HEAD); \
-	COMMIT_MESSAGE=$$(git log -1 --pretty=%s); \
-	$(WRANGLER) pages deploy $(PUBLIC_DIR) --project-name=$(PROJECT_NAME) --branch=$(BRANCH) --commit-hash=$$COMMIT_HASH --commit-message="$$COMMIT_MESSAGE"
-
-build-summary: ## Print build output summary
-	@echo "=== Build Output Summary ==="
-	@echo "Total files: $$(find $(PUBLIC_DIR) -type f | wc -l)"
-	@echo "Total directories: $$(find $(PUBLIC_DIR) -type d | wc -l)"
-	@echo "Total size: $$(du -sh $(PUBLIC_DIR) | cut -f1)"
-	@echo ""
-	@echo "=== File type breakdown ==="
-	@echo "HTML files: $$(find $(PUBLIC_DIR) -name "*.html" -type f | wc -l) ($$(find $(PUBLIC_DIR) -name "*.html" -type f -exec du -ch {} + 2>/dev/null | tail -1 | cut -f1))"
-	@echo "CSS files: $$(find $(PUBLIC_DIR) -name "*.css" -type f | wc -l) ($$(find $(PUBLIC_DIR) -name "*.css" -type f -exec du -ch {} + 2>/dev/null | tail -1 | cut -f1))"
-	@echo "JS files: $$(find $(PUBLIC_DIR) -name "*.js" -type f | wc -l) ($$(find $(PUBLIC_DIR) -name "*.js" -type f -exec du -ch {} + 2>/dev/null | tail -1 | cut -f1))"
-	@echo "Image files: $$(find $(PUBLIC_DIR) \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.svg" \) -type f | wc -l) ($$(find $(PUBLIC_DIR) \( -name "*.jpg" -o -name "*.jpeg" -o -name "*.png" -o -name "*.webp" -o -name "*.svg" \) -type f -exec du -ch {} + 2>/dev/null | tail -1 | cut -f1))"
-	@echo ""
-	@echo "=== Largest files ==="
-	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
-
-cleanup-deployments: check-tools check-env deps ## Delete all but the most recent Pages deployment
-	$(NODE) scripts/cleanup_deployments.mjs
-
-ci: check-tools check-env audit-site ai-embeddings deploy-pages build-summary  ## Run the full CI flow locally
-
-pre-commit: ## Run pre-commit hooks manually
+pre-commit: ## Run pre-commit hooks against all files
 	@pre-commit validate-config
 	@pre-commit run --all-files --color auto
+
+##@ AI
+ai-embeddings: check-tools check-env deps ## Generate and upsert AI embeddings
+	$(NODE) scripts/generate_embeddings.mjs
+
+##@ Deploy
+deploy-pages: check-tools check-env build-prod ## Build (prod) and deploy to Cloudflare Pages
+	@COMMIT_HASH=$$(git rev-parse HEAD); \
+	COMMIT_MESSAGE=$$(git log -1 --pretty=%s); \
+	$(WRANGLER) pages deploy $(PUBLIC_DIR) \
+		--project-name=$(PROJECT_NAME) \
+		--branch=$(BRANCH) \
+		--commit-hash=$$COMMIT_HASH \
+		--commit-message="$$COMMIT_MESSAGE"
+
+cleanup-deployments: check-tools check-env deps ## Delete all but the latest Pages deployment
+	$(NODE) scripts/cleanup_deployments.mjs
+
+favicons: ## Regenerate favicon assets
+	@bash scripts/generate_favicons.sh
+
+##@ CI
+ci: check-tools check-env audit-site ai-embeddings deploy-pages build-summary ## Run the full CI flow locally
