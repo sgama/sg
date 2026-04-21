@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createSseMessageStream } from '../../functions/_lib/sse.js';
+import { createSseMessageStream } from '../../functions/_lib/guardrails.js';
 import {
     isPromptInjectionAttempt,
     SAFE_NO_CONTEXT_MESSAGE,

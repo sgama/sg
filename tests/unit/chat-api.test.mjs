@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
-import { createSseMessageStream as createSseStream } from '../../functions/_lib/sse.js';
+import { createSseMessageStream as createSseStream } from '../../functions/_lib/guardrails.js';
 
 function createContext({ method = 'POST', body, env = {}, waitUntil } = {}) {
     const request = new Request('https://example.com/api/chat', {

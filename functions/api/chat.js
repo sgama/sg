@@ -1,5 +1,5 @@
 import { AppError } from '../_lib/config.js';
-import { createSseMessageStream } from '../_lib/sse.js';
+import { createSseMessageStream } from '../_lib/guardrails.js';
 import {
     isPromptInjectionAttempt,
     SAFE_NO_CONTEXT_MESSAGE,

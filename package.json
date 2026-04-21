@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "description": "[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml) [![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)",
-  "main": "index.js",
+  "hugo-bin": {
+    "buildTags": "extended"
+  },
   "scripts": {
-    "dev": "hugo && npx wrangler pages dev public --port 8788",
-    "build": "hugo --minify",
+    "dev": "npx hugo && npx wrangler pages dev public --port 8788",
+    "build": "npx hugo --minify",
     "test": "node --test tests/unit/*.test.mjs"
   },
   "repository": {
@@ -31,6 +33,7 @@
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^8.0.0",
     "autoprefixer": "^10.4.21",
+    "hugo-bin": "^0.107.0",
     "markdown-link-check": "^3.14.2",
     "postcss": "^8.5.3",
     "postcss-cli": "^11.0.1",

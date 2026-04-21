@@ -21,12 +21,6 @@ jobs:
           ref: develop
           fetch-depth: 1
 
-      - name: Setup Hugo
-        uses: peaceiris/actions-hugo@v3
-        with:
-          hugo-version: "latest"
-          extended: true
-
       - name: Cache Hugo modules and npm packages
         uses: actions/cache@v5
         with:
@@ -45,6 +39,12 @@ jobs:
 
       - name: Run unit tests
         run: npm test
+
+      - name: Audit content front matter
+        run: make audit-content
+
+      - name: Audit external links
+        run: make audit-urls
 
       - name: Detect embedding-relevant changes
         id: changed
