@@ -1,4 +1,5 @@
-import { AppError } from '../_lib/config.js';
+import { AppError, CONFIG } from '../_lib/config.js';
+import { sanitizeHistory } from '../_lib/history.js';
 import { AiService, LogService } from '../_lib/services.js';
 
 /**
@@ -20,10 +21,15 @@ export async function onRequest(context) {
             return createErrorResponse("Invalid query. Must be a string < 500 chars.", 400);
         }
 
+        const history = sanitizeHistory(body.history, {
+            maxTurns: CONFIG.HISTORY.MAX_TURNS,
+            maxContentLength: CONFIG.HISTORY.MAX_CONTENT_LENGTH,
+        });
+
         // 4. Service Orchestration
         const aiService = new AiService(context.env);
         const contextText = await aiService.retrieveContext(body.query);
-        let stream = await aiService.generateStream(body.query, contextText);
+        let stream = await aiService.generateStream(body.query, contextText, history);
 
         // 5. Logging Hook (Middleware-like)
         if (context.env.CHAT_LOGS) {

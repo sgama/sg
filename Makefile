@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: \
-	help init update serve dev-ai build build-prod postcss postcss-build deps test ai-embeddings favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
+	help init update serve dev-ai build build-prod postcss postcss-build deps test ai-embeddings rag-eval favicons clean deploy deploy-pages build-summary audit-content audit-urls audit-site cleanup-deployments ci check-tools check-env
 
 ifneq (,$(wildcard .env))
 include .env
@@ -70,7 +70,10 @@ test: deps ## Run unit tests
 	$(NPM) test
 
 ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
-	$(NODE) scripts/generate_embeddings.js
+	$(NODE) scripts/generate_embeddings.cjs
+
+rag-eval: check-tools check-env deps ## Score RAG retrieval against tests/rag_eval.json (hit@K)
+	$(NODE) scripts/rag_eval.cjs
 
 audit-content: check-tools deps ## Validate content front matter coverage
 	@REPORT_DIR="$(REPORT_DIR)" \

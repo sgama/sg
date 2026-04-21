@@ -1,11 +1,13 @@
 {
   "name": "sg",
   "version": "1.0.0",
+  "type": "module",
   "description": "[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml) [![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)",
   "main": "index.js",
   "scripts": {
     "dev": "hugo && npx wrangler pages dev public --port 8788",
-    "build": "hugo --minify"
+    "build": "hugo --minify",
+    "test": "node --test tests/unit/*.test.mjs"
   },
   "repository": {
     "type": "git",

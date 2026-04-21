@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { buildRerankPrompt, pickTopK } from './rerank.js';
 
 /**
  * Service to handle interaction with Cloudflare Workers AI
@@ -23,7 +24,7 @@ export class AiService {
     }
 
     /**
-     * Search vector database
+     * Search vector database. Over-retrieves then reranks when enabled.
      */
     async retrieveContext(query) {
         if (!this.vectorize) return "";
@@ -31,33 +32,62 @@ export class AiService {
         const vector = await this.getEmbeddings(query);
         if (!vector) return "";
 
+        const retrieveK = CONFIG.RERANK_ENABLED
+            ? CONFIG.VECTOR_SEARCH.RETRIEVE_K
+            : CONFIG.VECTOR_SEARCH.FINAL_K;
+
+        let candidates = [];
         try {
             const results = await this.vectorize.query(vector, {
-                topK: CONFIG.VECTOR_SEARCH.TOP_K,
+                topK: retrieveK,
                 returnMetadata: true
             });
 
-            if (!results.matches) return "";
-
-            return results.matches
+            candidates = (results.matches || [])
                 .map(m => m.metadata?.text || "")
-                .filter(text => text.length > 0)
-                .join("\n---\n");
+                .filter(text => text.length > 0);
         } catch (err) {
             console.error('Vector Search Failed:', err);
-            return ""; // Graceful degradation
+            return "";
         }
+
+        if (candidates.length === 0) return "";
+
+        let selected = candidates.slice(0, CONFIG.VECTOR_SEARCH.FINAL_K);
+        if (CONFIG.RERANK_ENABLED && candidates.length > CONFIG.VECTOR_SEARCH.FINAL_K) {
+            try {
+                selected = await this.rerank(query, candidates, CONFIG.VECTOR_SEARCH.FINAL_K);
+            } catch (err) {
+                console.error('Rerank failed, using top-K fallback:', err);
+            }
+        }
+
+        return selected.join("\n---\n");
     }
 
     /**
-     * Stream response from LLM
+     * Score candidates with a small LLM and return the top-N by relevance.
+     * Prompt construction and score parsing live in _lib/rerank.js.
      */
-    async generateStream(query, contextText) {
+    async rerank(query, candidates, finalK) {
+        const prompt = buildRerankPrompt(query, candidates, CONFIG.VECTOR_SEARCH.RERANK_SNIPPET_CHARS);
+        const { response } = await this.ai.run(CONFIG.MODELS.RERANKER, {
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 60
+        });
+        return pickTopK(candidates, response, finalK);
+    }
+
+    /**
+     * Stream response from LLM, optionally with prior conversation turns.
+     */
+    async generateStream(query, contextText, history = []) {
         const messages = [
             {
                 role: "system",
                 content: `${CONFIG.SYSTEM_PROMPT}\n\nContext:\n${contextText}`
             },
+            ...history,
             { role: "user", content: query }
         ];
 
