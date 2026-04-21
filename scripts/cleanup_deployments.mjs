@@ -18,11 +18,12 @@ if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
 
 const cf = new Cloudflare({ apiToken: CLOUDFLARE_API_TOKEN });
 
-const deployments = await cf.pages.deployments.list(PROJECT, {
-    account_id: CLOUDFLARE_ACCOUNT_ID,
-});
+const allDeployments = [];
+for await (const d of cf.pages.projects.deployments.list(PROJECT, { account_id: CLOUDFLARE_ACCOUNT_ID })) {
+    allDeployments.push(d);
+}
 
-const production = (deployments.result ?? [])
+const production = allDeployments
     .filter(d => (d.deployment_trigger?.metadata?.branch ?? '') === BRANCH)
     .filter(d => d.environment === 'production')
     .sort((a, b) => new Date(b.created_on) - new Date(a.created_on));
@@ -36,7 +37,7 @@ const [keep, ...stale] = production;
 console.log(`Keeping: ${keep.id} (${keep.created_on})`);
 
 for (const d of stale) {
-    await cf.pages.deployments.delete(d.id, PROJECT, {
+    await cf.pages.projects.deployments.delete(PROJECT, d.id, {
         account_id: CLOUDFLARE_ACCOUNT_ID,
     });
     console.log(`Deleted:  ${d.id} (${d.created_on})`);

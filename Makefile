@@ -76,7 +76,7 @@ rag-eval: check-tools check-env deps ## Score RAG retrieval against tests/rag_ev
 
 audit-content: check-tools deps ## Validate content front matter coverage
 	@REPORT_DIR="$(REPORT_DIR)" \
-	$(NODE) scripts/audit_content.js
+	$(NODE) scripts/audit_content.mjs
 
 audit-urls: check-tools deps ## Check external links in content files
 	find content -name "*.md" | xargs npx markdown-link-check --config .markdown-link-check.json --quiet

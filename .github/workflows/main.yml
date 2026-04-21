@@ -55,8 +55,7 @@ jobs:
               - 'content/**'
               - 'scripts/generate_embeddings.mjs'
               - 'tests/rag_eval.json'
-              - 'functions/_lib/services.js'
-              - 'functions/_lib/rerank.js'
+              - 'functions/_lib/ai.js'
               - 'functions/_lib/config.js'
 
       - name: Generate AI Embeddings
