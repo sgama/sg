@@ -21,7 +21,7 @@ test('rejects non-GET requests', async () => {
     const res = await onRequest(createContext({ method: 'POST', env: { CHAT_LOGS: makeKv() } }));
     assert.equal(res.status, 405);
     const body = await res.json();
-    assert.equal(body.error, 'Method not allowed');
+    assert.ok(body.error.includes('Method not allowed'));
 });
 
 test('returns 503 when KV binding is missing', async () => {
@@ -132,7 +132,7 @@ test('exposes has_more and cursor in meta', async () => {
 
 test('sets correct response headers', async () => {
     const res = await onRequest(createContext({ env: { CHAT_LOGS: makeKv() } }));
-    assert.equal(res.headers.get('Content-Type'), 'application/json');
+    assert.match(res.headers.get('Content-Type'), /application\/json/);
     assert.equal(res.headers.get('Cache-Control'), 'no-store');
     assert.equal(res.headers.get('X-Content-Type-Options'), 'nosniff');
 });

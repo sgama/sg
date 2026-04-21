@@ -1,6 +1,9 @@
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { handle } from 'hono/cloudflare-pages';
 import { AppError } from '../_lib/config.js';
-import { createSseMessageStream } from '../_lib/guardrails.js';
 import {
+    createSseMessageStream,
     isPromptInjectionAttempt,
     SAFE_NO_CONTEXT_MESSAGE,
     shouldAbstainForMissingContext,
@@ -9,102 +12,66 @@ import { ChatRequestSchema } from '../_lib/schemas.js';
 import { AiService } from '../_lib/ai.js';
 import { LogService } from '../_lib/log.js';
 
-const ALLOWED_ORIGINS = new Set([
-    "https://samsongama.com",
-    "https://www.samsongama.com",
-]);
+const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 
-const COMMON_HEADERS = {
-    "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
-};
+const app = new Hono();
 
-function corsHeaders(origin) {
-    if (!ALLOWED_ORIGINS.has(origin)) return {};
-    return {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400",
-        "Vary": "Origin",
-    };
-}
+app.use('/api/chat', cors({
+    origin: (origin) => ALLOWED_ORIGINS.includes(origin) ? origin : null,
+    allowMethods: ['POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type'],
+    maxAge: 86400,
+}));
 
-export async function onRequest(context) {
-    const origin = context.request.headers.get("Origin") ?? "";
-    const cors = corsHeaders(origin);
+app.post('/api/chat', async (c) => {
+    const env = c.env;
 
-    // 1. Preflight & Method Check
-    if (context.request.method === "OPTIONS") {
-        if (!ALLOWED_ORIGINS.has(origin)) {
-            return new Response(null, { status: 403 });
-        }
-        return new Response(null, { headers: cors });
+    const parsed = ChatRequestSchema.safeParse(
+        await c.req.json().catch(() => ({}))
+    );
+    if (!parsed.success) {
+        return c.json({ error: 'Invalid query. Must be a string < 500 chars.' }, 400);
     }
-    if (context.request.method !== "POST") {
-        return createErrorResponse("Method not allowed", 405, cors);
+    const { query, history } = parsed.data;
+
+    if (isPromptInjectionAttempt(query)) {
+        return c.json({ error: 'Query rejected by guardrails.' }, 400);
     }
 
-    try {
-        // 2. Input Validation
-        const parsed = ChatRequestSchema.safeParse(
-            await context.request.json().catch(() => ({}))
-        );
-        if (!parsed.success) {
-            return createErrorResponse("Invalid query. Must be a string < 500 chars.", 400);
-        }
-        const { query, history } = parsed.data;
-
-        if (isPromptInjectionAttempt(query)) {
-            return createErrorResponse("Query rejected by guardrails.", 400);
-        }
-
-        if (!context.env?.AI) {
-            throw new AppError("Service Unavailable: AI binding missing", 503);
-        }
-
-        // 4. Service Orchestration
-        const aiService = new AiService(context.env);
-        const contextText = await aiService.retrieveContext(query);
-        let stream;
-
-        if (shouldAbstainForMissingContext(contextText)) {
-            stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE);
-        } else {
-            stream = await aiService.generateStream(query, contextText, history);
-        }
-
-        // 5. Logging Hook (Middleware-like)
-        if (context.env.CHAT_LOGS) {
-            // Persist the complete chat interaction to KV for history
-            stream = await LogService.save(context.env.CHAT_LOGS, query, stream, context);
-        }
-
-        return new Response(stream, {
-            headers: {
-                ...cors,
-                ...COMMON_HEADERS,
-                "Content-Type": "text/event-stream; charset=utf-8"
-            }
-        });
-
-    } catch (err) {
-        if (err instanceof AppError) {
-            return createErrorResponse(err.message, err.status, cors);
-        }
-
-        console.error(`API Fatal: ${err.message}`);
-        return createErrorResponse("Internal Server Error", 500, cors);
+    if (!env?.AI) {
+        return c.json({ error: 'Service Unavailable: AI binding missing' }, 503);
     }
-}
 
-function createErrorResponse(msg, status, cors = {}) {
-    return new Response(JSON.stringify({ error: msg }), {
-        status,
+    const aiService = new AiService(env);
+    const contextText = await aiService.retrieveContext(query);
+    let stream;
+
+    if (shouldAbstainForMissingContext(contextText)) {
+        stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE);
+    } else {
+        stream = await aiService.generateStream(query, contextText, history);
+    }
+
+    if (env.CHAT_LOGS) {
+        stream = await LogService.save(env.CHAT_LOGS, query, stream, c.executionCtx);
+    }
+
+    return new Response(stream, {
         headers: {
-            ...cors,
-            ...COMMON_HEADERS,
-            "Content-Type": "application/json; charset=utf-8"
-        }
+            'Content-Type': 'text/event-stream; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+        },
     });
-}
+});
+
+app.onError((err, c) => {
+    if (err instanceof AppError) {
+        return c.json({ error: err.message }, err.status);
+    }
+    console.error(`API Fatal: ${err.message}`);
+    return c.json({ error: 'Internal Server Error' }, 500);
+});
+
+export const onRequest = handle(app);
+

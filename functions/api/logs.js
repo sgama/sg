@@ -1,46 +1,41 @@
+import { Hono } from 'hono';
+import { handle } from 'hono/cloudflare-pages';
 import { CONFIG } from '../_lib/config.js';
 import { LogService } from '../_lib/log.js';
 
-/**
- * Enterprise-Grade Logs Handler
- * @file functions/api/logs.js
- */
-export async function onRequest(context) {
-    if (context.request.method !== "GET") {
-        return createResponse({ error: "Method not allowed" }, 405);
+const app = new Hono();
+
+app.use('/api/logs', async (c, next) => {
+    await next();
+    c.res.headers.set('Cache-Control', 'no-store');
+    c.res.headers.set('X-Content-Type-Options', 'nosniff');
+});
+
+app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/logs', (c) => {
+    return c.json({ error: 'Method not allowed' }, 405);
+});
+
+app.get('/api/logs', async (c) => {
+    const env = c.env;
+
+    if (!env.CHAT_LOGS) {
+        return c.json({ error: 'Service Unavailable: KV binding missing' }, 503);
     }
 
-    if (!context.env.CHAT_LOGS) {
-        return createResponse({ error: "Service Unavailable: KV binding missing" }, 503);
-    }
+    const cursor = c.req.query('cursor') ?? undefined;
+    const limitParam = parseInt(c.req.query('limit'));
+    const limit = (!isNaN(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT)
+        ? limitParam
+        : CONFIG.PAGINATION.DEFAULT_LIMIT;
 
-    try {
-        const url = new URL(context.request.url);
-        const cursor = url.searchParams.get("cursor");
-        const limitParam = parseInt(url.searchParams.get("limit"));
+    const data = await LogService.fetchLogs(env.CHAT_LOGS, limit, cursor);
+    return c.json(data);
+});
 
-        const limit = (!isNaN(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT)
-            ? limitParam
-            : CONFIG.PAGINATION.DEFAULT_LIMIT;
+app.onError((err, c) => {
+    console.error(`Logs API Error: ${err.message}`);
+    return c.json({ error: 'Internal Server Error' }, 500);
+});
 
-        const data = await LogService.fetchLogs(context.env.CHAT_LOGS, limit, cursor);
+export const onRequest = handle(app);
 
-        return createResponse(data, 200);
-
-    } catch (err) {
-        console.error(`Logs API Error: ${err.message}`);
-        return createResponse({ error: "Internal Server Error" }, 500);
-    }
-}
-
-function createResponse(body, status = 200) {
-    return new Response(JSON.stringify(body), {
-        status,
-        headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-store",
-            "X-Content-Type-Options": "nosniff"
-        }
-    });
-}
