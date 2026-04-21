@@ -1,13 +1,9 @@
 # Typos configuration for spell checking
 # See: https://github.com/crate-ci/typos
 
-[default]
-# Check files in .gitignore
-check-gitignore = false
-# Check hidden files
-check-hidden = false
-
 [default.extend-words]
+PNG = "PNG"
+PNGs = "PNGs"
 api = "api"
 apis = "apis"
 # Project specific terms
@@ -22,6 +18,8 @@ hugo = "hugo"
 ico = "ico"
 js = "js"
 md = "md"
+png = "png"
+pngs = "pngs"
 samson = "samson"
 # Personal/project specific terms
 samsongama = "samsongama"
@@ -48,6 +46,8 @@ extend-exclude = [
   "public/",
   "resources/"
 ]
+# Gitignored files are skipped by default; hidden files are checked.
+ignore-hidden = true
 
 [type.md]
 # Markdown specific configuration

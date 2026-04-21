@@ -1,0 +1,108 @@
+{{- /*
+  Overrides Blowfish's schema.html to:
+  - Add a standalone Person node on the homepage with sameAs social links
+  - Emit BlogPosting (not generic Article) for the posts/portfolio sections
+  - Include an image property on articles when a featured image exists
+*/ -}}
+{{- $iso8601 := "2006-01-02T15:04:05-07:00" -}}
+{{- if .IsHome -}}
+  {{- $sameAs := slice -}}
+  {{- with .Site.Params.Author.links -}}
+    {{- range . -}}
+      {{- range $k, $v := . -}}{{- $sameAs = $sameAs | append $v -}}{{- end -}}
+    {{- end -}}
+  {{- end -}}
+  <script type="application/ld+json">
+  [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": {{ site.Home.Permalink | safeURL }},
+      "name": "{{ .Site.Title | safeJS }}",
+      {{ with .Site.Params.description }}"description": "{{ . | safeJS }}",{{ end }}
+      {{ with .Site.Language.Locale }}"inLanguage": "{{ . }}",{{ end }}
+      "url": {{ site.Home.Permalink | safeURL }},
+      {{ with .Site.Params.keywords }}"keywords": {{ . }},{{ end }}
+      "publisher": {
+        "@type": "Person",
+        "name": "{{ .Site.Params.Author.name | safeJS }}"
+      }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "{{ .Site.Params.Author.name | safeJS }}",
+      {{ with .Site.Params.Author.bio }}"description": "{{ . | safeJS }}",{{ end }}
+      {{ with .Site.Params.Author.image }}"image": "{{ . | absURL }}",{{ end }}
+      "url": {{ site.Home.Permalink | safeURL }}{{ with $sameAs }},
+      "sameAs": {{ . | jsonify }}{{ end }}
+    }
+  ]
+  </script>
+{{- else -}}
+  {{- $schemaType := "Article" -}}
+  {{- if in (slice "posts" "post" "portfolio") .Section -}}
+    {{- $schemaType = "BlogPosting" -}}
+  {{- end -}}
+  {{- $image := "" -}}
+  {{- with .Resources.GetMatch "featured*" -}}{{- $image = .Permalink -}}{{- end -}}
+  {{- if not $image -}}
+    {{- with .Params.images -}}{{- with index . 0 -}}{{- $image = . | absURL -}}{{- end -}}{{- end -}}
+  {{- end -}}
+  <script type="application/ld+json">
+  [{
+    "@context": "https://schema.org",
+    "@type": "{{ $schemaType }}",
+    "articleSection": "{{ (site.GetPage .Section).Title | safeJS }}",
+    "name": "{{ .Title | safeJS }}",
+    "headline": "{{ .Title | safeJS }}",
+    {{ with .Description }}"description": "{{ . | safeJS }}",{{ end }}
+    {{ with .Site.Language.Locale }}"inLanguage": "{{ . }}",{{ end }}
+    "url": {{ .Permalink }},
+    {{ with $image }}"image": "{{ . }}",{{ end }}
+    "author": {
+      "@type": "Person",
+      "name": "{{ .Site.Params.Author.name | safeJS }}",
+      "url": {{ site.Home.Permalink | safeURL }}
+    },
+    "publisher": {
+      "@type": "Person",
+      "name": "{{ .Site.Params.Author.name | safeJS }}"
+    },
+    {{ with .PublishDate }}"copyrightYear": "{{ .Format "2006" }}",{{ end }}
+    {{ with .Date }}"dateCreated": "{{ .Format $iso8601 }}",{{ end }}
+    {{ with .PublishDate }}"datePublished": "{{ .Format $iso8601 }}",{{ end }}
+    {{ with .ExpiryDate }}"expires": "{{ .Format $iso8601 }}",{{ end }}
+    {{ with .Lastmod }}"dateModified": "{{ .Format $iso8601 }}",{{ end }}
+    {{ if .Keywords }}{{ with .Keywords }}"keywords": {{ . }},{{ end }}
+    {{ else }}{{ with .Params.tags }}"keywords": {{ . }},{{ end }}{{ end }}
+    "mainEntityOfPage": {{ .Permalink }},
+    "wordCount": "{{ .WordCount }}"
+  }{{ if site.Params.enableStructuredBreadcrumbs | default false }},
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {{- $position := 0 -}}
+      {{- range .Ancestors -}}
+        {{- if not .IsHome -}}
+          {{- $position = add $position 1 -}}
+          {
+            "@type": "ListItem",
+            "position": {{ $position }},
+            "name": "{{ .Title }}",
+            "item": {{ .Permalink }}
+          },
+        {{- end -}}
+      {{- end -}}
+      {{- $position = add $position 1 -}}
+      {
+        "@type": "ListItem",
+        "position": {{ $position }},
+        "name": "{{ .Title }}",
+        "item": {{ .Permalink }}
+      }
+    ]
+  }{{ end }}]
+  </script>
+{{- end -}}

@@ -37,7 +37,7 @@ repos:
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.47.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
         args: ['--config=.markdownlint.yaml', '--fix']
@@ -86,7 +86,7 @@ repos:
 
   # Spell checking
   - repo: https://github.com/crate-ci/typos
-    rev: v1.28.3
+    rev: v1.45.1
     hooks:
       - id: typos
         args: [--config, .typos.toml]

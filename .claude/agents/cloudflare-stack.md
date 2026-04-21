@@ -39,6 +39,7 @@ In the current `/api/chat` flow, user-perceived latency breaks down roughly as:
 5. **Token streaming** — proportional to response length
 
 High-leverage wins:
+
 - **Parallelize steps 2+3** where possible — but here 3 needs output of 2, so sequential. Fine.
 - **Cache embeddings for repeat queries** — normalize the query (lowercase, trim), hash, stash in KV with 7d TTL. Expect 20-40% hit rate on a portfolio site with chip-suggested queries (`data/chat_suggestions.yml`).
 - **Lower `topK`** — if 3 matches are as accurate as 5 on your eval set, ship it. Saves context tokens (= generation cost + latency).
