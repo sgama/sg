@@ -31,10 +31,8 @@ jobs:
       - name: Install Hugo
         if: steps.hugo-binary-cache.outputs.cache-hit != 'true'
         run: |
-          curl -sLJO "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"
           mkdir -p "${{ runner.temp }}/hugo"
-          tar -C "${{ runner.temp }}/hugo" -xf "hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"
-          rm "hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz"
+          curl -sL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" | tar -xz -C "${{ runner.temp }}/hugo"
 
       - name: Add Hugo to PATH
         run: echo "${{ runner.temp }}/hugo" >> "${GITHUB_PATH}"
@@ -93,9 +91,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: make deploy-pages
-
-      - name: Build summary
-        run: make build-summary
 
       - name: Save Hugo build cache
         if: always()

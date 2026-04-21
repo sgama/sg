@@ -1,0 +1,25 @@
+/css/*
+  Cache-Control: public, max-age=600
+
+/js/*
+  Cache-Control: public, max-age=600
+
+/images/*
+  Cache-Control: public, max-age=600
+
+/fonts/*
+  Cache-Control: public, max-age=600
+
+/*.png
+  Cache-Control: public, max-age=600
+
+/*.ico
+  Cache-Control: public, max-age=600
+
+/*.webmanifest
+  Cache-Control: public, max-age=600
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

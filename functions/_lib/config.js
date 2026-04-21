@@ -11,6 +11,8 @@ export const CONFIG = {
         // alongside the new query. Older turns are dropped at the handler.
         MAX_TURNS: 4,
         MAX_CONTENT_LENGTH: 2000,
+        // Total character budget across all history messages combined
+        MAX_TOTAL_LENGTH: 4000,
     },
     PAGINATION: {
         DEFAULT_LIMIT: 20,

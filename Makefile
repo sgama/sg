@@ -65,7 +65,7 @@ postcss-build: check-tools ## Generate purged CSS for production builds
 deps: ## Install Node dependencies
 	$(NPM) install
 
-test: deps ## Run unit tests
+test: ## Run unit tests
 	$(NPM) test
 
 ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
@@ -115,7 +115,7 @@ build-summary: ## Print build output summary
 cleanup-deployments: check-tools check-env deps ## Delete all but the most recent Pages deployment
 	$(NODE) scripts/cleanup_deployments.mjs
 
-ci: check-tools check-env build audit-site ai-embeddings deploy-pages build-summary  ## Run the full CI flow locally
+ci: check-tools check-env audit-site ai-embeddings deploy-pages build-summary  ## Run the full CI flow locally
 
 pre-commit: ## Run pre-commit hooks manually
 	@pre-commit validate-config
