@@ -25,7 +25,7 @@ export class AiService {
         try {
             const results = await this.vectorize.query(vector, {
                 topK: CONFIG.VECTOR_SEARCH.FINAL_K,
-                returnMetadata: true
+                returnMetadata: 'all'
             });
             return (results.matches || [])
                 .map(m => m.metadata?.text || "")

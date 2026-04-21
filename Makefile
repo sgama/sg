@@ -22,9 +22,8 @@ NODE ?= node
 NPM ?= npm
 CURL ?= curl
 WRANGLER ?= npx wrangler
-JQ ?= jq
 
-REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM) $(JQ) $(CURL)
+REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM)
 
 help: ## Show this help message
 	@echo "Available targets:"
@@ -113,21 +112,8 @@ build-summary: ## Print build output summary
 	@echo "=== Largest files ==="
 	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
 
-cleanup-deployments: check-tools check-env ## Delete all but the most recent Pages deployment
-	@ACCOUNT_ID="$$CLOUDFLARE_ACCOUNT_ID"; \
-	PROJECT_NAME="$(PROJECT_NAME)"; \
-	BRANCH_NAME="$(BRANCH)"; \
-	DEPLOYMENTS_JSON=$$($(WRANGLER) pages deployment list --project-name="$$PROJECT_NAME" --json); \
-	KEEP_ID=$$(echo "$$DEPLOYMENTS_JSON" | $(JQ) -r --arg BRANCH "$$BRANCH_NAME" '(if type == "array" then . else (.deployments // .result // []) end) | map(select((.Branch // .branch // "") == $$BRANCH)) | map(select((.Environment // .environment // "") | ascii_downcase == "production")) | .[0].Id // empty'); \
-	if [[ -z "$$KEEP_ID" ]]; then echo "No deployments found for branch $$BRANCH_NAME"; exit 1; fi; \
-	echo "Keeping deployment $$KEEP_ID"; \
-	echo "$$DEPLOYMENTS_JSON" | $(JQ) -r --arg BRANCH "$$BRANCH_NAME" --arg KEEP "$$KEEP_ID" '(if type == "array" then . else (.deployments // .result // []) end) | map(select((.Branch // .branch // "") == $$BRANCH)) | map(select((.Environment // .environment // "") | ascii_downcase == "production")) | map(select(.Id != $$KEEP)) | .[].Id' \
-	| while read -r DEPLOYMENT_ID; do \
-	    echo "Deleting deployment $$DEPLOYMENT_ID"; \
-	    $(CURL) -s -X DELETE \
-	      -H "Authorization: Bearer $$CLOUDFLARE_API_TOKEN" \
-	      "https://api.cloudflare.com/client/v4/accounts/$$ACCOUNT_ID/pages/projects/$$PROJECT_NAME/deployments/$$DEPLOYMENT_ID"; \
-	  done
+cleanup-deployments: check-tools check-env deps ## Delete all but the most recent Pages deployment
+	$(NODE) scripts/cleanup_deployments.mjs
 
 ci: check-tools check-env build audit-site ai-embeddings deploy-pages build-summary  ## Run the full CI flow locally
 

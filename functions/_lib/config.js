@@ -1,7 +1,7 @@
 export const CONFIG = {
     MODELS: {
         EMBEDDINGS: '@cf/baai/bge-base-en-v1.5',
-        GENERATION: '@cf/meta/llama-3-8b-instruct',
+        GENERATION: '@cf/meta/llama-3.1-8b-instruct',
     },
     VECTOR_SEARCH: {
         FINAL_K: 3,
