@@ -50,14 +50,6 @@ writeStats = false  # Don't write build stats
 dir = ":resourceDir/_gen"
 maxAge = "24h"
 
-[caches.getcsv]
-dir = ":cacheDir/:project"
-maxAge = "24h"
-
-[caches.getjson]
-dir = ":cacheDir/:project"
-maxAge = "24h"
-
 [caches.getresource]
 dir = ":cacheDir/:project"
 maxAge = "24h"
@@ -88,7 +80,7 @@ weight = 1
 
 [languages.en.params]
 dateFormat = "2 January 2006"
-description = ""
+description = "Samson Gama — SRE, DevOps engineer, and cloud architect. Writing on infrastructure, automation, observability, and cloud-native systems."
 displayName = "EN"
 isoCode = "en"
 # logo = "icon.svg"

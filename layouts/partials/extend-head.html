@@ -2,24 +2,19 @@
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-head */}}
 
 {{/* Bundled site CSS */}}
-{{ $bundle := resources.Get "css/site.css" }}
-{{ if hugo.IsProduction }}
-{{ $bundle = resources.Get "css/site.purged.css" }}
-{{ end }}
-{{ $bundle = $bundle | minify | fingerprint }}
-<link rel="preload" as="style" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
-    crossorigin="anonymous">
-<link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
-    crossorigin="anonymous" media="print" onload="this.media='all'">
-<noscript>
+{{ $cssPath := "css/site.css" }}
+{{ if hugo.IsProduction }}{{ $cssPath = "css/site.purged.css" }}{{ end }}
+{{ with resources.Get $cssPath }}
+    {{ $bundle := resources.Minify . | resources.Fingerprint }}
+    <link rel="preload" as="style" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
+        crossorigin="anonymous">
     <link rel="stylesheet" href="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}"
         crossorigin="anonymous">
-</noscript>
+{{ end }}
 
 {{ if not hugo.IsServer }}
 <link rel="preconnect" href="https://ping.samsongama.com" crossorigin>
 <link rel="dns-prefetch" href="https://ping.samsongama.com">
-<link rel="preload" as="script" href="https://ping.samsongama.com/script.js" crossorigin>
 <script defer src="https://ping.samsongama.com/script.js"
     data-website-id="7b6c2554-f791-4546-8ea5-894496e4f9b6"></script>
 {{ end }}

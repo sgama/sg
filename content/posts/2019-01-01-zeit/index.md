@@ -4,6 +4,7 @@ subtitle: No Credit Card Required for something like AWS Lambda
 date: 2019-01-01
 slug: "zeit"
 showDate: true
+description: 'Zeit (now Vercel) as a free Functions-as-a-Service platform — orchestrating Docker rebuilds and Slack notifications without touching AWS Lambda.'
 tags: ["devops", "lambda", "serverless", "faas", "zeit", "vercel"]
 ---
 

@@ -1,6 +1,7 @@
 ---
 title: 'Passive Infrastructure Monitoring with Prometheus'
 summary: 'Essential infrastructure monitoring - track system health, prevent downtime, and get alerts before issues become critical.'
+description: 'Passive infrastructure monitoring with Prometheus — CPU, memory, disk, network, and uptime metrics, plus how the four monitoring categories fit together.'
 showPagination: true
 invertPagination: true
 showDate: true

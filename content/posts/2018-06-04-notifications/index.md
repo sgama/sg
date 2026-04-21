@@ -1,6 +1,7 @@
 ---
 title: 'Notifications: Smart Alerting Strategy'
 summary: 'Smart alerting systems with Slack integration - from trading bot alerts to SaaS user events, stay informed without being overwhelmed.'
+description: 'Why monitoring without alerting is just dashboards nobody reads. Wiring AlertManager and custom producers into Slack for actionable notifications.'
 showPagination: true
 invertPagination: true
 showDate: true

@@ -1,6 +1,7 @@
 ---
 title: "Ansible, why didn't I use this sooner"
 summary: 'Automation that saved days of manual server setup time - from 1 hour manual configuration to 2 minutes automated deployment'
+description: 'How Ansible replaced 30-60 minutes of manual Linux server bootstrap with a 2-minute playbook run, and why I stopped provisioning VPSes by hand.'
 showPagination: true
 invertPagination: true
 showDate: true
