@@ -29,10 +29,12 @@
   },
   "devDependencies": {
     "@fullhuman/postcss-purgecss": "^8.0.0",
+    "@langchain/textsplitters": "^1.0.1",
     "autoprefixer": "^10.4.21",
     "markdown-link-check": "^3.14.2",
     "postcss": "^8.5.3",
     "postcss-cli": "^11.0.1",
+    "promptfoo": "^0.121.5",
     "wrangler": "^4.84.0"
   }
 }

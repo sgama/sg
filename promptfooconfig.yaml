@@ -1,0 +1,149 @@
+description: RAG retrieval hit@3 — portfolio-index
+
+prompts:
+  - "{{query}}"
+
+providers:
+  - id: "file://scripts/promptfoo_rag_provider.mjs"
+    label: vectorize-retrieval
+
+tests:
+  - description: Ansible experience
+    vars:
+      query: "What experience do you have with Ansible?"
+    assert:
+      - type: contains-any
+        value: [ansible, automation, playbook]
+
+  - description: Time-series database
+    vars:
+      query: "Which database is best for time-series data?"
+    assert:
+      - type: contains-any
+        value: [influxdb, time-series, timeseries]
+
+  - description: Infrastructure monitoring
+    vars:
+      query: "How do you monitor infrastructure?"
+    assert:
+      - type: contains-any
+        value: [prometheus, monitoring, metric]
+
+  - description: Alerting tools
+    vars:
+      query: "What alerting tools do you use?"
+    assert:
+      - type: contains-any
+        value: [alertmanager, slack, alert]
+
+  - description: CI/CD platforms
+    vars:
+      query: "Which CI/CD platforms have you worked with?"
+    assert:
+      - type: contains-any
+        value: [jenkins, travis, gitlab, "ci/cd"]
+
+  - description: Kubernetes experience
+    vars:
+      query: "Tell me about your Kubernetes experience"
+    assert:
+      - type: contains-any
+        value: [kubernetes, k8s, container]
+
+  - description: Serverless / FaaS
+    vars:
+      query: "Do you use serverless or FaaS?"
+    assert:
+      - type: contains-any
+        value: [serverless, lambda, vercel, faas]
+
+  - description: Homelab
+    vars:
+      query: "What's your homelab running?"
+    assert:
+      - type: contains-any
+        value: [homelab, "home lab"]
+
+  - description: Site analytics
+    vars:
+      query: "What analytics does this site use?"
+    assert:
+      - type: contains-any
+        value: [umami, analytics, self-hosted]
+
+  - description: AI chat implementation
+    vars:
+      query: "How does the AI chat on this site work?"
+    assert:
+      - type: contains-any
+        value: [rag, vectorize, "workers ai", cloudflare]
+
+  - description: Site stack
+    vars:
+      query: "What is this website built with?"
+    assert:
+      - type: contains-any
+        value: [hugo, blowfish, "cloudflare pages"]
+
+  - description: Programming languages
+    vars:
+      query: "What programming languages do you know?"
+    assert:
+      - type: contains-any
+        value: [python, javascript, go, typescript]
+
+  - description: EV charger project
+    vars:
+      query: "Tell me about the EV charger project"
+    assert:
+      - type: contains-any
+        value: [ev, "electric vehicle", charger]
+
+  - description: Trading systems
+    vars:
+      query: "Have you worked on trading systems?"
+    assert:
+      - type: contains-any
+        value: [hft, high-frequency, trading]
+
+  - description: Containerized app deployment
+    vars:
+      query: "How would you deploy a containerized app?"
+    assert:
+      - type: contains-any
+        value: [docker, kubernetes, deploy]
+
+  - description: Trading data database
+    vars:
+      query: "What database did you pick for trading data?"
+    assert:
+      - type: contains-any
+        value: [influxdb, mongodb, postgresql]
+
+  - description: Sports / athletics
+    vars:
+      query: "Are you into sports or athletics?"
+    assert:
+      - type: contains-any
+        value: [athletic, sport, running, gym]
+
+  - description: Hiring case
+    vars:
+      query: "Why should someone hire you?"
+    assert:
+      - type: contains-any
+        value: [skill, experience, engineer]
+
+  - description: Docker experience
+    vars:
+      query: "Do you have Docker experience?"
+    assert:
+      - type: contains-any
+        value: [docker, container, image]
+
+  - description: Observability approach
+    vars:
+      query: "How do you approach observability?"
+    assert:
+      - type: contains-any
+        value: [observability, monitoring, metric, log]

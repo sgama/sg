@@ -71,8 +71,8 @@ test: ## Run unit tests
 ai-embeddings: check-tools check-env deps ## Generate AI embeddings (uses .env for secrets)
 	$(NODE) scripts/generate_embeddings.mjs
 
-rag-eval: check-tools check-env deps ## Score RAG retrieval against tests/rag_eval.json (hit@K)
-	$(NODE) scripts/rag_eval.mjs
+rag-eval: check-tools check-env deps ## Score RAG retrieval quality (hit@3, pass rate ≥75%)
+	npx promptfoo eval --pass-rate 0.75
 
 audit-content: check-tools deps ## Validate content front matter coverage
 	@REPORT_DIR="$(REPORT_DIR)" \

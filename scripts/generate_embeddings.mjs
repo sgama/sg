@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { glob } from 'glob';
 import matter from 'gray-matter';
 import pLimit from 'p-limit';
 import Cloudflare from 'cloudflare';
+import { MarkdownTextSplitter } from '@langchain/textsplitters';
 import 'dotenv/config';
 
 const CONFIG = {
@@ -12,8 +12,12 @@ const CONFIG = {
     EMBEDDING_MODEL: "@cf/baai/bge-base-en-v1.5",
     CONCURRENCY_LIMIT: 5,
     UPSERT_BATCH_SIZE: 1000,
-    MAX_TOKENS_PER_CHUNK: 500
 };
+
+const splitter = new MarkdownTextSplitter({
+    chunkSize: 2000,   // ~500 tokens at 4 chars/token, matching BGE base's 512-token limit
+    chunkOverlap: 200, // overlap preserves context across chunk boundaries
+});
 
 const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
 
@@ -34,7 +38,7 @@ async function main() {
 
         const allChunks = [];
         for (const file of files) {
-            const fileChunks = processFile(file);
+            const fileChunks = await processFile(file);
             if (fileChunks) allChunks.push(...fileChunks);
         }
         console.log(`📝 Generated ${allChunks.length} text chunks.`);
@@ -57,7 +61,7 @@ async function main() {
     }
 }
 
-export function processFile(filePath) {
+export async function processFile(filePath) {
     try {
         const rawContent = fs.readFileSync(filePath, 'utf8');
         const { data, content } = matter(rawContent);
@@ -65,7 +69,7 @@ export function processFile(filePath) {
         if (data.draft) return null;
         if (!content || !content.trim()) return null;
 
-        const textSegments = splitText(content, CONFIG.MAX_TOKENS_PER_CHUNK);
+        const textSegments = await splitter.splitText(content);
 
         return textSegments.map((segment, index) => {
             const isContext = filePath.includes('content/_context/');
@@ -89,23 +93,6 @@ export function processFile(filePath) {
     }
 }
 
-export function splitText(text, maxTokens = 500) {
-    const maxChars = maxTokens * 4;
-    const paragraphs = text.split(/\n\s*\n/);
-    const chunks = [];
-    let currentChunk = "";
-
-    for (const p of paragraphs) {
-        if ((currentChunk.length + p.length) > maxChars) {
-            if (currentChunk) chunks.push(currentChunk);
-            currentChunk = p;
-        } else {
-            currentChunk = currentChunk ? currentChunk + "\n\n" + p : p;
-        }
-    }
-    if (currentChunk) chunks.push(currentChunk);
-    return chunks.map(c => c.trim()).filter(c => c.length > 0);
-}
 
 async function generateEmbeddingsInParallel(chunks, concurrency) {
     const limit = pLimit(concurrency);
