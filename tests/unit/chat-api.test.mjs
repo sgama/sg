@@ -3,10 +3,13 @@ import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
 import { createSseMessageStream as createSseStream } from '../../functions/_lib/guardrails.js';
 
-function createContext({ method = 'POST', body, env = {}, waitUntil } = {}) {
+function createContext({ method = 'POST', body, env = {}, waitUntil, origin = 'https://samsongama.com' } = {}) {
     const request = new Request('https://example.com/api/chat', {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            ...(origin ? { 'Origin': origin } : {}),
+        },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
 
@@ -17,13 +20,21 @@ function createContext({ method = 'POST', body, env = {}, waitUntil } = {}) {
     };
 }
 
-test('returns CORS headers for OPTIONS requests', async () => {
+test('returns CORS headers for OPTIONS requests from allowed origin', async () => {
     const response = await onRequest(createContext({ method: 'OPTIONS' }));
 
     assert.equal(response.status, 200);
-    assert.equal(response.headers.get('Access-Control-Allow-Origin'), '*');
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), 'https://samsongama.com');
     assert.equal(response.headers.get('Access-Control-Allow-Methods'), 'POST, OPTIONS');
     assert.equal(response.headers.get('Access-Control-Max-Age'), '86400');
+    assert.equal(response.headers.get('Vary'), 'Origin');
+});
+
+test('blocks OPTIONS requests from disallowed origins', async () => {
+    const response = await onRequest(createContext({ method: 'OPTIONS', origin: 'https://evil.com' }));
+
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
 });
 
 test('rejects blank queries after trimming whitespace', async () => {

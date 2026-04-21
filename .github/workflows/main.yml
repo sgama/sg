@@ -45,11 +45,6 @@ jobs:
           key: hugo-${{ github.run_id }}
           restore-keys: hugo-
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
       - name: Restore npm cache
         uses: actions/cache@v5
         with:
@@ -104,7 +99,6 @@ jobs:
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Clean up old deployments
-        if: always()
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
