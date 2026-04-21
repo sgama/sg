@@ -75,7 +75,6 @@ jobs:
             embeddings:
               - 'content/**'
               - 'scripts/generate_embeddings.mjs'
-              - 'tests/rag_eval.json'
               - 'functions/_lib/ai.js'
               - 'functions/_lib/config.js'
 
