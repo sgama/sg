@@ -15,7 +15,7 @@ BRANCH ?= develop
 PUBLIC_DIR ?= public
 REPORT_DIR ?= reports
 
-HUGO ?= npx hugo
+HUGO ?= hugo
 HUGO_FLAGS ?= --gc --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?= --gc --ignoreCache
 NODE ?= node
