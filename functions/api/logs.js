@@ -1,5 +1,5 @@
 import { CONFIG } from '../_lib/config.js';
-import { LogService } from '../_lib/services.js';
+import { LogService } from '../_lib/log.js';
 
 /**
  * Enterprise-Grade Logs Handler

@@ -79,9 +79,8 @@ audit-content: check-tools deps ## Validate content front matter coverage
 	@REPORT_DIR="$(REPORT_DIR)" \
 	$(NODE) scripts/audit_content.js
 
-audit-urls: check-tools deps ## Validate relative links in content
-	@REPORT_DIR="$(REPORT_DIR)" \
-	$(NODE) scripts/audit_urls.js
+audit-urls: check-tools deps ## Check external links in content files
+	find content -name "*.md" | xargs npx markdown-link-check --config .markdown-link-check.json --quiet
 
 audit-site: audit-content audit-urls ## Run content and link checks
 

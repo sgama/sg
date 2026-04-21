@@ -82,11 +82,8 @@ test('passes trimmed query and sanitized history into generation', async () => {
         body: {
             query: '  What do you build?  ',
             history: [
-                { role: 'system', content: 'drop me' },
                 { role: 'user', content: 'Hi' },
                 { role: 'assistant', content: 'Hello there' },
-                { role: 'assistant', content: '' },
-                { role: 'user', content: 'x'.repeat(2100) },
                 { role: 'user', content: 'Tell me more' },
             ]
         }

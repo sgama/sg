@@ -1,18 +1,14 @@
-import { AppError, CONFIG } from '../_lib/config.js';
+import { AppError } from '../_lib/config.js';
 import { createSseMessageStream } from '../_lib/sse.js';
 import {
     isPromptInjectionAttempt,
     SAFE_NO_CONTEXT_MESSAGE,
     shouldAbstainForMissingContext,
 } from '../_lib/guardrails.js';
-import { sanitizeHistory } from '../_lib/history.js';
-import { AiService, LogService } from '../_lib/services.js';
+import { ChatRequestSchema } from '../_lib/schemas.js';
+import { AiService } from '../_lib/ai.js';
+import { LogService } from '../_lib/log.js';
 
-const MAX_QUERY_LENGTH = 500;
-
-/**
- * Enterprise-Grade Main Handler
- */
 export async function onRequest(context) {
     // 1. Preflight & Method Check
     if (context.request.method === "OPTIONS") {
@@ -24,11 +20,14 @@ export async function onRequest(context) {
 
     try {
         // 2. Input Validation
-        const body = await context.request.json().catch(() => ({}));
-        const query = typeof body.query === 'string' ? body.query.trim() : '';
-        if (!query || query.length > MAX_QUERY_LENGTH) {
+        const parsed = ChatRequestSchema.safeParse(
+            await context.request.json().catch(() => ({}))
+        );
+        if (!parsed.success) {
             return createErrorResponse("Invalid query. Must be a string < 500 chars.", 400);
         }
+        const { query, history } = parsed.data;
+
         if (isPromptInjectionAttempt(query)) {
             return createErrorResponse("Query rejected by guardrails.", 400);
         }
@@ -36,11 +35,6 @@ export async function onRequest(context) {
         if (!context.env?.AI) {
             throw new AppError("Service Unavailable: AI binding missing", 503);
         }
-
-        const history = sanitizeHistory(body.history, {
-            maxTurns: CONFIG.HISTORY.MAX_TURNS,
-            maxContentLength: CONFIG.HISTORY.MAX_CONTENT_LENGTH,
-        });
 
         // 4. Service Orchestration
         const aiService = new AiService(context.env);

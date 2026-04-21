@@ -1,50 +1,50 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeHistory } from '../../functions/_lib/history.js';
+import { ChatRequestSchema } from '../../functions/_lib/schemas.js';
 
-const LIMITS = { maxTurns: 4, maxContentLength: 2000 };
+const parse = (data) => ChatRequestSchema.safeParse(data);
+const ok = (data) => parse(data).success;
+const val = (data) => parse(data).data;
 
-test('returns [] for non-array input', () => {
-    assert.deepEqual(sanitizeHistory(null, LIMITS), []);
-    assert.deepEqual(sanitizeHistory(undefined, LIMITS), []);
-    assert.deepEqual(sanitizeHistory('string', LIMITS), []);
-    assert.deepEqual(sanitizeHistory({ role: 'user' }, LIMITS), []);
+test('rejects missing or blank query', () => {
+    assert.equal(ok({ query: '' }), false);
+    assert.equal(ok({ query: '   ' }), false);
+    assert.equal(ok({}), false);
 });
 
-test('drops turns with invalid roles', () => {
-    const input = [
-        { role: 'system', content: 'bad' },
-        { role: 'user', content: 'ok' },
-        { role: 'tool', content: 'bad' },
-    ];
-    assert.deepEqual(sanitizeHistory(input, LIMITS), [{ role: 'user', content: 'ok' }]);
+test('rejects query over 500 chars', () => {
+    assert.equal(ok({ query: 'x'.repeat(501) }), false);
+    assert.equal(ok({ query: 'x'.repeat(500) }), true);
 });
 
-test('drops empty or non-string content', () => {
-    const input = [
-        { role: 'user', content: '' },
-        { role: 'user', content: 42 },
-        { role: 'user', content: 'valid' },
-    ];
-    assert.deepEqual(sanitizeHistory(input, LIMITS), [{ role: 'user', content: 'valid' }]);
+test('trims query whitespace', () => {
+    assert.equal(val({ query: '  hi  ' }).query, 'hi');
 });
 
-test('drops turns exceeding maxContentLength', () => {
-    const input = [
-        { role: 'user', content: 'x'.repeat(5) },
-        { role: 'user', content: 'x'.repeat(3000) },
-    ];
-    const result = sanitizeHistory(input, { maxTurns: 10, maxContentLength: 2000 });
-    assert.equal(result.length, 1);
+test('defaults history to [] when omitted', () => {
+    assert.deepEqual(val({ query: 'hi' }).history, []);
 });
 
-test('keeps only the most recent maxTurns', () => {
-    const input = Array.from({ length: 10 }, (_, i) => ({ role: 'user', content: `m${i}` }));
-    const result = sanitizeHistory(input, { maxTurns: 3, maxContentLength: 2000 });
-    assert.deepEqual(result.map(m => m.content), ['m7', 'm8', 'm9']);
+test('rejects turns with invalid roles', () => {
+    assert.equal(ok({ query: 'hi', history: [{ role: 'system', content: 'bad' }] }), false);
+    assert.equal(ok({ query: 'hi', history: [{ role: 'tool', content: 'bad' }] }), false);
+});
+
+test('rejects empty or non-string content', () => {
+    assert.equal(ok({ query: 'hi', history: [{ role: 'user', content: '' }] }), false);
+    assert.equal(ok({ query: 'hi', history: [{ role: 'user', content: 42 }] }), false);
+});
+
+test('rejects content exceeding MAX_CONTENT_LENGTH', () => {
+    assert.equal(ok({ query: 'hi', history: [{ role: 'user', content: 'x'.repeat(2001) }] }), false);
+});
+
+test('rejects history exceeding MAX_TURNS', () => {
+    const history = Array.from({ length: 5 }, (_, i) => ({ role: 'user', content: `m${i}` }));
+    assert.equal(ok({ query: 'hi', history }), false);
 });
 
 test('strips unknown properties from message objects', () => {
-    const input = [{ role: 'user', content: 'hi', secret: 'leak', name: 'nope' }];
-    assert.deepEqual(sanitizeHistory(input, LIMITS), [{ role: 'user', content: 'hi' }]);
+    const result = val({ query: 'hi', history: [{ role: 'user', content: 'hello', secret: 'leak' }] });
+    assert.deepEqual(result.history[0], { role: 'user', content: 'hello' });
 });

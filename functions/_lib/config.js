@@ -2,19 +2,10 @@ export const CONFIG = {
     MODELS: {
         EMBEDDINGS: '@cf/baai/bge-base-en-v1.5',
         GENERATION: '@cf/meta/llama-3-8b-instruct',
-        // Small + cheap model for relevance scoring only.
-        RERANKER: '@cf/meta/llama-3.2-3b-instruct',
     },
     VECTOR_SEARCH: {
-        // Over-retrieve then rerank down to FINAL_K. If RERANK_ENABLED is
-        // false the pipeline falls back to the first FINAL_K matches.
-        RETRIEVE_K: 10,
         FINAL_K: 3,
-        // Each candidate passage is truncated to this many chars before
-        // being shown to the reranker, to keep the scoring prompt small.
-        RERANK_SNIPPET_CHARS: 400,
     },
-    RERANK_ENABLED: true,
     HISTORY: {
         // Max conversation turns (user + assistant combined) accepted
         // alongside the new query. Older turns are dropped at the handler.
