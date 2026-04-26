@@ -453,18 +453,26 @@
         window.A11yPanel.addFeature("disableStars", {
             default: false,
             apply: (enabled) => {
-                if (enabled) {
-                    document.documentElement.classList.add("disable-stars");
-                } else {
-                    document.documentElement.classList.remove("disable-stars");
-                }
+                document.documentElement.classList.toggle("disable-stars", enabled);
             },
         });
 
-        const settings = window.A11yPanel.getSettings();
-        if (settings.disableStars) {
-            document.documentElement.classList.add("disable-stars");
-        }
+        const initial = !!window.A11yPanel.getSettings().disableStars;
+        document.documentElement.classList.toggle("disable-stars", initial);
+
+        $$('[id$="disable-stars"]').forEach((cb) => {
+            cb.checked = initial;
+            cb.onchange = (e) => window.A11yPanel.updateSetting("disableStars", e.target.checked);
+        });
+    }
+
+    function mirrorDisableBlurClass() {
+        if (!window.A11yPanel) return;
+        const apply = (enabled) => document.documentElement.classList.toggle("disable-blur", enabled);
+        apply(!!window.A11yPanel.getSettings().disableBlur);
+        $$('[id$="disable-blur"]').forEach((cb) => {
+            cb.addEventListener("change", (e) => apply(e.target.checked));
+        });
     }
 
     function applySuggestionChips() {
@@ -510,6 +518,7 @@
         wireChatTriggers();
         runIdle(() => {
             registerA11yStarsToggle();
+            mirrorDisableBlurClass();
             applySuggestionChips();
             restoreChatState();
         });
