@@ -6,8 +6,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/logs.js';
-import { 
-  makeKv, 
+import {
+  makeKv,
   createContext,
   buildKvKey,
   PAGINATION,
@@ -18,24 +18,24 @@ import {
 test('/api/logs', async (t) => {
   await t.test('Request validation', async (t) => {
     await t.test('rejects non-GET requests', async () => {
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'POST',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: makeKv() },
       }));
-      
+
       assert.equal(res.status, 405);
       const body = await res.json();
       assert.ok(body.error.includes('Method not allowed'));
     });
 
     await t.test('returns 503 when KV binding is missing', async () => {
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: {},
       }));
-      
+
       assert.equal(res.status, 503);
       const body = await res.json();
       assert.ok(body.error.includes('KV binding missing'));
@@ -44,12 +44,12 @@ test('/api/logs', async (t) => {
 
   await t.test('Data retrieval', async (t) => {
     await t.test('returns empty data when KV has no keys', async () => {
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: makeKv() },
       }));
-      
+
       assert.equal(res.status, 200);
       const body = await res.json();
       assert.deepEqual(body.data, []);
@@ -63,12 +63,12 @@ test('/api/logs', async (t) => {
         buildKvKey({ name: 'chat:2026-01-01T00:00:00.000Z', query: 'hello', response: 'hi', timestamp: TIMESTAMPS.FIXED_TS }),
         buildKvKey({ name: 'chat:2026-01-02T00:00:00.000Z', query: 'world', response: 'yes', timestamp: TIMESTAMPS.FIXED_TS_2 }),
       ];
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: makeKv({ keys }) },
       }));
-      
+
       assert.equal(res.status, 200);
       const body = await res.json();
       assert.equal(body.data.length, 2);
@@ -83,12 +83,12 @@ test('/api/logs', async (t) => {
         buildKvKey({ name: 'chat:a', query: 'q', response: 'r', timestamp: 't' }),
         { name: 'chat:b' }, // no metadata
       ];
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: makeKv({ keys }) },
       }));
-      
+
       const body = await res.json();
       assert.equal(body.data.length, 1);
     });
@@ -103,13 +103,13 @@ test('/api/logs', async (t) => {
           return { keys: [], list_complete: true };
         }
       };
-      
-      await onRequest(createContext({ 
+
+      await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: kv },
       }));
-      
+
       assert.equal(capturedLimit, PAGINATION.DEFAULT_LIMIT);
     });
 
@@ -121,13 +121,13 @@ test('/api/logs', async (t) => {
           return { keys: [], list_complete: true };
         }
       };
-      
+
       await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs?limit=5`,
         env: { CHAT_LOGS: kv },
       }));
-      
+
       assert.equal(capturedLimit, 5);
     });
 
@@ -137,7 +137,7 @@ test('/api/logs', async (t) => {
         url: `${URLS.TEST_API_ENDPOINT}/logs?limit=10`,
         env: { CHAT_LOGS: makeKv() },
       }));
-      
+
       const body = await res.json();
       assert.equal(body.meta.limit, 10);
     });
@@ -150,13 +150,13 @@ test('/api/logs', async (t) => {
           return { keys: [], list_complete: true };
         }
       };
-      
+
       await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs?limit=999`,
         env: { CHAT_LOGS: kv },
       }));
-      
+
       // Falls back to default when over MAX_LIMIT (50)
       assert.equal(capturedLimit, PAGINATION.DEFAULT_LIMIT);
     });
@@ -169,24 +169,24 @@ test('/api/logs', async (t) => {
           return { keys: [], list_complete: true };
         }
       };
-      
+
       await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs?cursor=abc123`,
         env: { CHAT_LOGS: kv },
       }));
-      
+
       assert.equal(capturedCursor, 'abc123');
     });
 
     await t.test('exposes has_more and cursor in meta', async () => {
       const kv = makeKv({ keys: [], cursor: 'next-page', list_complete: false });
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: kv },
       }));
-      
+
       const body = await res.json();
       assert.equal(body.meta.has_more, true);
       assert.equal(body.meta.cursor, 'next-page');
@@ -195,12 +195,12 @@ test('/api/logs', async (t) => {
 
   await t.test('Response headers', async (t) => {
     await t.test('sets correct security and cache headers', async () => {
-      const res = await onRequest(createContext({ 
+      const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: makeKv() },
       }));
-      
+
       assert.match(res.headers.get('Content-Type'), /application\/json/);
       assert.equal(res.headers.get('Cache-Control'), 'no-store');
       assert.equal(res.headers.get('X-Content-Type-Options'), 'nosniff');

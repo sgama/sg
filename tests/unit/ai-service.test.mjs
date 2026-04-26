@@ -6,9 +6,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { 
-  makeEnv, 
-  buildEmbeddingsResponse, 
+import {
+  makeEnv,
+  buildEmbeddingsResponse,
   buildVectorizeResult,
   SAMPLE_DATA,
   FIXTURES,
@@ -21,9 +21,9 @@ test('AiService', async (t) => {
       const svc = new AiService(makeEnv({
         aiRun: async () => buildEmbeddingsResponse(vector),
       }));
-      
+
       const result = await svc.getEmbeddings('hello');
-      
+
       assert.deepEqual(result, vector);
     });
 
@@ -31,21 +31,21 @@ test('AiService', async (t) => {
       const svc = new AiService(makeEnv({
         aiRun: async () => { throw new Error('AI unavailable'); },
       }));
-      
+
       const result = await svc.getEmbeddings('hello');
-      
+
       assert.equal(result, null);
     });
   });
 
   await t.test('retrieveContext', async (t) => {
     await t.test('returns empty string when VECTORIZE_INDEX is not bound', async () => {
-      const svc = new AiService({ 
-        AI: { run: async () => buildEmbeddingsResponse([0.1]) } 
+      const svc = new AiService({
+        AI: { run: async () => buildEmbeddingsResponse([0.1]) }
       });
-      
+
       const result = await svc.retrieveContext('query');
-      
+
       assert.equal(result, '');
     });
 
@@ -54,9 +54,9 @@ test('AiService', async (t) => {
         aiRun: async () => { throw new Error('fail'); },
         vectorizeQuery: async () => { throw new Error('should not be called'); },
       }));
-      
+
       const result = await svc.retrieveContext('query');
-      
+
       assert.equal(result, '');
     });
 
@@ -68,9 +68,9 @@ test('AiService', async (t) => {
           { text: 'chunk two' },
         ]),
       }));
-      
+
       const result = await svc.retrieveContext('query');
-      
+
       assert.equal(result, 'chunk one\n---\nchunk two');
     });
 
@@ -85,9 +85,9 @@ test('AiService', async (t) => {
           ],
         }),
       }));
-      
+
       const result = await svc.retrieveContext('query');
-      
+
       assert.equal(result, 'good chunk');
     });
 
@@ -96,9 +96,9 @@ test('AiService', async (t) => {
         aiRun: async () => buildEmbeddingsResponse([0.1]),
         vectorizeQuery: async () => { throw new Error('vectorize down'); },
       }));
-      
+
       const result = await svc.retrieveContext('query');
-      
+
       assert.equal(result, '');
     });
 
@@ -107,9 +107,9 @@ test('AiService', async (t) => {
         aiRun: async () => buildEmbeddingsResponse([0.1]),
         vectorizeQuery: async () => buildVectorizeResult([]),
       }));
-      
+
       const result = await svc.retrieveContext('query');
-      
+
       assert.equal(result, '');
     });
   });
@@ -125,8 +125,8 @@ test('AiService', async (t) => {
       }));
 
       const result = await svc.generateStream(
-        SAMPLE_DATA.SAFE_QUERY, 
-        'context text', 
+        SAMPLE_DATA.SAFE_QUERY,
+        'context text',
         FIXTURES.SIMPLE_HISTORY
       );
 
@@ -145,9 +145,9 @@ test('AiService', async (t) => {
     await t.test('defaults history to empty array when omitted', async () => {
       const calls = [];
       const svc = new AiService(makeEnv({
-        aiRun: async (model, payload) => { 
-          calls.push(payload); 
-          return 'stream'; 
+        aiRun: async (model, payload) => {
+          calls.push(payload);
+          return 'stream';
         },
       }));
 

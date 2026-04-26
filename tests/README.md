@@ -8,7 +8,7 @@ This test suite follows industry best practices for modular, maintainable, and c
 
 ## Structure
 
-```
+```text
 tests/
 ├── unit/                    # Unit tests for individual modules
 │   ├── ai-service.test.mjs       # AiService (embeddings, context, generation)
@@ -50,7 +50,7 @@ test('AiService', async (t) => {
     await t.test('returns first vector from AI response', async () => {
       // test implementation
     });
-    
+
     await t.test('returns null when AI throws', async () => {
       // test implementation
     });
@@ -80,6 +80,7 @@ assert.equal(limit, PAGINATION.DEFAULT_LIMIT);
 ```
 
 **Available constants:**
+
 - `VALIDATION`: Max lengths and limits for input validation
 - `PAGINATION`: Default and max pagination values
 - `TIMESTAMPS`: Fixed timestamps for deterministic tests
@@ -100,8 +101,8 @@ const env = makeEnv({
 });
 
 // Create mock KV namespace
-const kv = makeKv({ 
-  keys: [...], 
+const kv = makeKv({
+  keys: [...],
   cursor: 'next-page',
   list_complete: false,
 });
@@ -151,7 +152,7 @@ test('handles SSE streams correctly', async () => {
     'data: {"response":" world"}\n',
     'data: [DONE]\n'
   );
-  
+
   const output = await drainStream(stream);
   assert.match(output, /Hello world/);
 });
@@ -180,7 +181,7 @@ test('handles CORS correctly', async () => {
     origin: URLS.ALLOWED_ORIGIN,
     url: `${URLS.TEST_API_ENDPOINT}/chat`,
   }));
-  
+
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), URLS.ALLOWED_ORIGIN);
 });
 ```
@@ -208,6 +209,7 @@ test('handles CORS correctly', async () => {
 ## Coverage Goals
 
 Aim for:
+
 - **Line coverage**: > 90%
 - **Branch coverage**: > 85%
 - **Function coverage**: > 95%
@@ -241,10 +243,10 @@ test('NewModule', async (t) => {
     await t.test('does something when condition', async () => {
       // Arrange
       const module = new NewModule(makeEnv());
-      
+
       // Act
       const result = await module.methodName(SAMPLE_DATA.SAFE_QUERY);
-      
+
       // Assert
       assert.equal(result, expectedValue);
     });
@@ -255,6 +257,7 @@ test('NewModule', async (t) => {
 ## Continuous Integration
 
 Tests run automatically on:
+
 - Pull request creation
 - Commits to main branch
 - Before deployment

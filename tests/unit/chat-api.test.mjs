@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
 import { createSseMessageStream as createSseStream } from '../../functions/_lib/guardrails.js';
-import { 
+import {
   createContext,
   buildEmbeddingsResponse,
   buildVectorizeResult,
@@ -19,7 +19,7 @@ import {
 test('/api/chat', async (t) => {
   await t.test('CORS', async (t) => {
     await t.test('returns CORS headers for OPTIONS requests from allowed origin', async () => {
-      const response = await onRequest(createContext({ 
+      const response = await onRequest(createContext({
         method: 'OPTIONS',
         url: `${URLS.TEST_API_ENDPOINT}/chat`,
       }));
@@ -32,7 +32,7 @@ test('/api/chat', async (t) => {
     });
 
     await t.test('blocks OPTIONS requests from disallowed origins', async () => {
-      const response = await onRequest(createContext({ 
+      const response = await onRequest(createContext({
         method: 'OPTIONS',
         url: `${URLS.TEST_API_ENDPOINT}/chat`,
         origin: URLS.DISALLOWED_ORIGIN,
@@ -46,7 +46,7 @@ test('/api/chat', async (t) => {
 
   await t.test('Validation', async (t) => {
     await t.test('rejects blank queries after trimming whitespace', async () => {
-      const response = await onRequest(createContext({ 
+      const response = await onRequest(createContext({
         method: 'POST',
         url: `${URLS.TEST_API_ENDPOINT}/chat`,
         body: { query: '   ' },
@@ -60,7 +60,7 @@ test('/api/chat', async (t) => {
     });
 
     await t.test('returns 503 when AI binding is missing', async () => {
-      const response = await onRequest(createContext({ 
+      const response = await onRequest(createContext({
         method: 'POST',
         url: `${URLS.TEST_API_ENDPOINT}/chat`,
         body: { query: 'hello' },

@@ -6,9 +6,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LogService } from '../../functions/_lib/log.js';
-import { 
-  makeStream, 
-  drainStream, 
+import {
+  makeStream,
+  drainStream,
   makeTimestamp,
   buildKvKey,
   TIMESTAMPS,
@@ -24,7 +24,7 @@ test('LogService', async (t) => {
       await t.test('returns original stream unchanged when kv is falsy', async () => {
         const original = makeStream('data: {"response":"hi"}\n', 'data: [DONE]\n');
         const result = await LogService.save(null, 'query', original, null, { now });
-        
+
         assert.equal(result, original);
       });
 
@@ -134,7 +134,7 @@ test('LogService', async (t) => {
       };
 
       const result = await LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT, undefined);
-      
+
       assert.equal(result.data[0].query, 'second');
       assert.equal(result.data[1].query, 'first');
     });
@@ -153,7 +153,7 @@ test('LogService', async (t) => {
       };
 
       const result = await LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT, undefined);
-      
+
       assert.equal(result.data.length, 1);
       assert.equal(result.data[0].id, 'chat:a');
     });
@@ -168,7 +168,7 @@ test('LogService', async (t) => {
       };
 
       await LogService.fetchLogs(kv, 5, 'cursor-token');
-      
+
       assert.equal(captured.limit, 5);
       assert.equal(captured.cursor, 'cursor-token');
     });
@@ -181,7 +181,7 @@ test('LogService', async (t) => {
       };
 
       const result = await LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT, undefined);
-      
+
       assert.equal(result.meta.has_more, true);
       assert.equal(result.meta.cursor, 'next');
       assert.equal(result.meta.limit, PAGINATION.DEFAULT_LIMIT);

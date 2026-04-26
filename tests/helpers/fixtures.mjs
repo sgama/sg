@@ -24,8 +24,8 @@ export function buildHistory(...turns) {
  * @param {Object} options.usage - Token usage stats
  * @returns {Object} KV key object with metadata
  */
-export function buildKvKey({ 
-  name = `chat:${TIMESTAMPS.FIXED_TS}`, 
+export function buildKvKey({
+  name = `chat:${TIMESTAMPS.FIXED_TS}`,
   query = 'test query',
   response = 'test response',
   timestamp = TIMESTAMPS.FIXED_TS,
@@ -75,7 +75,7 @@ export function buildEmbeddingsResponse(vector = SAMPLE_DATA.EMBEDDING_VECTOR) {
  */
 export function buildSseMessages({ response = 'test response', usage = null } = {}) {
   const lines = [];
-  
+
   if (response) {
     // Split response into chunks if it contains multiple words
     const chunks = response.split(' ');
@@ -84,11 +84,11 @@ export function buildSseMessages({ response = 'test response', usage = null } = 
       lines.push(`data: ${JSON.stringify({ response: text })}\n`);
     });
   }
-  
+
   if (usage) {
     lines.push(`data: ${JSON.stringify({ usage })}\n`);
   }
-  
+
   lines.push('data: [DONE]\n');
   return lines;
 }
@@ -102,7 +102,7 @@ export const FIXTURES = {
     { role: 'assistant', content: 'Hello there' },
     { role: 'user', content: 'Tell me more' }
   ),
-  
+
   SIMPLE_HISTORY: buildHistory(
     { role: 'user', content: 'Hi' },
     { role: 'assistant', content: 'Hello' }

@@ -38,4 +38,3 @@ app.onError((err, c) => {
 });
 
 export const onRequest = handle(app);
-

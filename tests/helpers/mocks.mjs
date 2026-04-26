@@ -75,13 +75,13 @@ export function makeKv({ keys = [], cursor = undefined, list_complete = true } =
  * @param {string} options.origin - Origin header value
  * @returns {Object} Request context with request, env, and waitUntil
  */
-export function createContext({ 
-  method = 'GET', 
-  url = 'https://example.com/api', 
-  body, 
-  env = {}, 
-  waitUntil, 
-  origin = 'https://samsongama.com' 
+export function createContext({
+  method = 'GET',
+  url = 'https://example.com/api',
+  body,
+  env = {},
+  waitUntil,
+  origin = 'https://samsongama.com'
 } = {}) {
   const request = new Request(url, {
     method,

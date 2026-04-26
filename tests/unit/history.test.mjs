@@ -45,51 +45,51 @@ test('ChatRequestSchema', async (t) => {
     });
 
     await t.test('rejects turns with invalid role "system"', () => {
-      assert.equal(ok({ 
-        query: 'hi', 
-        history: buildHistory({ role: 'system', content: 'bad' }) 
+      assert.equal(ok({
+        query: 'hi',
+        history: buildHistory({ role: 'system', content: 'bad' })
       }), false);
     });
 
     await t.test('rejects turns with invalid role "tool"', () => {
-      assert.equal(ok({ 
-        query: 'hi', 
-        history: buildHistory({ role: 'tool', content: 'bad' }) 
+      assert.equal(ok({
+        query: 'hi',
+        history: buildHistory({ role: 'tool', content: 'bad' })
       }), false);
     });
 
     await t.test('rejects empty content', () => {
-      assert.equal(ok({ 
-        query: 'hi', 
-        history: buildHistory({ role: 'user', content: '' }) 
+      assert.equal(ok({
+        query: 'hi',
+        history: buildHistory({ role: 'user', content: '' })
       }), false);
     });
 
     await t.test('rejects non-string content', () => {
-      assert.equal(ok({ 
-        query: 'hi', 
-        history: buildHistory({ role: 'user', content: 42 }) 
+      assert.equal(ok({
+        query: 'hi',
+        history: buildHistory({ role: 'user', content: 42 })
       }), false);
     });
 
     await t.test('rejects content exceeding MAX_CONTENT_LENGTH', () => {
-      assert.equal(ok({ 
-        query: 'hi', 
-        history: buildHistory({ role: 'user', content: 'x'.repeat(VALIDATION.MAX_CONTENT_LENGTH + 1) }) 
+      assert.equal(ok({
+        query: 'hi',
+        history: buildHistory({ role: 'user', content: 'x'.repeat(VALIDATION.MAX_CONTENT_LENGTH + 1) })
       }), false);
     });
 
     await t.test('rejects history exceeding MAX_TURNS', () => {
-      const history = Array.from({ length: VALIDATION.MAX_TURNS + 1 }, (_, i) => 
+      const history = Array.from({ length: VALIDATION.MAX_TURNS + 1 }, (_, i) =>
         ({ role: 'user', content: `m${i}` })
       );
       assert.equal(ok({ query: 'hi', history }), false);
     });
 
     await t.test('strips unknown properties from message objects', () => {
-      const result = val({ 
-        query: 'hi', 
-        history: buildHistory({ role: 'user', content: 'hello', secret: 'leak' }) 
+      const result = val({
+        query: 'hi',
+        history: buildHistory({ role: 'user', content: 'hello', secret: 'leak' })
       });
       assert.deepEqual(result.history[0], { role: 'user', content: 'hello' });
     });
