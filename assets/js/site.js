@@ -21,6 +21,27 @@
     const isNearBottom = (el, threshold = 64) =>
         el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
+    // Lazy-loaded markdown renderer for bot messages. Falls back to plain text on failure.
+    let renderMarkdown = null;
+    let markdownLoader = null;
+    function loadMarkdown() {
+        if (markdownLoader) return markdownLoader;
+        markdownLoader = Promise.all([
+            import("https://esm.sh/marked@13"),
+            import("https://esm.sh/dompurify@3"),
+        ])
+            .then(([markedMod, purifyMod]) => {
+                const marked = markedMod.marked || markedMod.default || markedMod;
+                const purify = purifyMod.default || purifyMod;
+                marked.setOptions({ gfm: true, breaks: true });
+                renderMarkdown = (text) => purify.sanitize(marked.parse(text));
+            })
+            .catch(() => {
+                renderMarkdown = null;
+            });
+        return markdownLoader;
+    }
+
     function createSafeStore(store, { json = false } = {}) {
         return {
             get(key, fallback) {
@@ -182,6 +203,14 @@
     function createChatUi(elements, { body }) {
         const getMessages = () => elements.messages;
         const getInput = () => elements.input;
+        const writeMessageContent = (el, text, sender) => {
+            if (sender === "bot" && renderMarkdown) {
+                const html = renderMarkdown(text);
+                if (el.innerHTML !== html) el.innerHTML = html;
+            } else if (el.textContent !== text) {
+                el.textContent = text;
+            }
+        };
         const buildMessageElement = (text, sender) => {
             const div = document.createElement("div");
             const normalizedSender = normalizeSender(sender);
@@ -189,7 +218,7 @@
                 "chat-widget__message",
                 `chat-widget__message--${normalizedSender}`
             );
-            div.textContent = text;
+            writeMessageContent(div, text, normalizedSender);
             return div;
         };
 
@@ -241,8 +270,10 @@
             },
             updateMessage(messageEl, text) {
                 if (!messageEl) return;
-                if (messageEl.textContent === text) return;
-                messageEl.textContent = text;
+                const sender = messageEl.classList.contains("chat-widget__message--user")
+                    ? "user"
+                    : "bot";
+                writeMessageContent(messageEl, text, sender);
                 const messages = getMessages();
                 if (messages && isNearBottom(messages)) {
                     messages.scrollTop = messages.scrollHeight;
@@ -492,6 +523,7 @@
     function initChatOnce() {
         if (!window.aiChatInstance) {
             window.aiChatInstance = new AIChatWidget({ pendingStore: pendingQuestionStore });
+            loadMarkdown();
         }
         return window.aiChatInstance.disabled ? null : window.aiChatInstance;
     }

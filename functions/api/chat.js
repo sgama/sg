@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { streamSSE } from 'hono/streaming';
 import { handle } from 'hono/cloudflare-pages';
 import { AppError } from '../_lib/config.js';
 import {
@@ -56,12 +57,9 @@ app.post('/api/chat', async (c) => {
         stream = await LogService.save(env.CHAT_LOGS, query, stream, c.executionCtx);
     }
 
-    return new Response(stream, {
-        headers: {
-            'Content-Type': 'text/event-stream; charset=utf-8',
-            'Cache-Control': 'no-store',
-            'X-Content-Type-Options': 'nosniff',
-        },
+    c.header('X-Content-Type-Options', 'nosniff');
+    return streamSSE(c, async (sse) => {
+        await sse.pipe(stream);
     });
 });
 
