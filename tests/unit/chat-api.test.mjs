@@ -153,8 +153,8 @@ test('/api/chat', async (t) => {
       }));
 
       assert.equal(response.status, 200);
-      assert.equal(response.headers.get('Content-Type'), 'text/event-stream; charset=utf-8');
-      assert.equal(response.headers.get('Cache-Control'), 'no-store');
+      assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
+      assert.equal(response.headers.get('Cache-Control'), 'no-cache');
 
       assert.equal(calls.length, 2);
       assert.equal(calls[1].payload.messages.at(-1).content, 'What do you build?');

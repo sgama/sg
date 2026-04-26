@@ -19,6 +19,9 @@
     "url": "https://github.com/sgama/sg/issues"
   },
   "homepage": "https://github.com/sgama/sg#readme",
+  "overrides": {
+    "uuid": "^14.0.0"
+  },
   "dependencies": {
     "cloudflare": "^5.2.0",
     "dotenv": "^17.2.4",
