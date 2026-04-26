@@ -26,7 +26,7 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-      timezone: America/Toronto
+      timezone: America/Vancouver
     target-branch: develop
     open-pull-requests-limit: 1
     labels:
@@ -47,7 +47,7 @@ updates:
       interval: weekly
       day: monday
       time: "09:00"
-      timezone: America/Toronto
+      timezone: America/Vancouver
     target-branch: develop
     open-pull-requests-limit: 1
     labels:

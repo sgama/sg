@@ -1,7 +1,7 @@
 import { CONFIG } from './config.js';
 
 export class LogService {
-    static async save(kv, query, responseStream, context = null) {
+    static async save(kv, query, responseStream, context = null, { now = () => new Date().toISOString() } = {}) {
         if (!kv) return responseStream;
 
         const decoder = new TextDecoder();
@@ -32,7 +32,7 @@ export class LogService {
                 }
             },
             flush() {
-                const timestamp = new Date().toISOString();
+                const timestamp = now();
                 const key = `${CONFIG.KV_PREFIX}${timestamp}`;
                 const payload = {
                     timestamp,
@@ -72,6 +72,7 @@ export class LogService {
             data: logs.filter(Boolean),
             meta: {
                 count: logs.length,
+                limit,
                 cursor: listResult.cursor,
                 has_more: !listResult.list_complete
             }

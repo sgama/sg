@@ -1,7 +1,6 @@
 ---
 title: "About"
 summary: "Senior Software Engineer passionate about innovation, perfection, and pushing technological boundaries"
-layout: single
 showDate: false
 ---
 

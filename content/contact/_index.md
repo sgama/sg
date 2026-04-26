@@ -1,6 +1,5 @@
 ---
 title: "Contact"
-layout: single
 showDate: false
 ---
 
