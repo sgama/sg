@@ -521,6 +521,7 @@
             mirrorDisableBlurClass();
             applySuggestionChips();
             restoreChatState();
+            document.documentElement.classList.add("stars-running");
         });
     }
 

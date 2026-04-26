@@ -1,0 +1,30 @@
+{{/* Preload above-the-fold imagery on the homepage to accelerate LCP */}}
+{{ if .IsHome }}
+    {{ $disableImgOpt := .Site.Params.disableImageOptimization | default false }}
+    {{ $bg := site.Store.Get "defaultBackgroundImage" }}
+    {{ $bgURL := "" }}
+    {{ if $bg.url }}
+        {{ $bgURL = $bg.url }}
+    {{ else if $bg.obj }}
+        {{ $bgURL = $bg.obj.RelPermalink }}
+        {{ if not (or $disableImgOpt (eq $bg.obj.MediaType.SubType "svg")) }}
+            {{ $bgURL = ($bg.obj.Resize (site.Store.Get "backgroundImageWidth")).RelPermalink }}
+        {{ end }}
+    {{ end }}
+    {{ with $bgURL }}<link rel="preload" as="image" href="{{ . }}" fetchpriority="high">{{ end }}
+    {{ with .Site.Params.Author.image }}
+        {{ $img := "" }}
+        {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
+            {{ $img = resources.GetRemote . }}
+        {{ else }}
+            {{ $img = resources.Get . }}
+        {{ end }}
+        {{ if $img }}
+            {{ $avatarURL := $img.RelPermalink }}
+            {{ if not (or $disableImgOpt (eq $img.MediaType.SubType "svg")) }}
+                {{ $avatarURL = ($img.Fill (print "192x192 q" ($.Site.Params.Author.imagequality | default "80"))).RelPermalink }}
+            {{ end }}
+            <link rel="preload" as="image" href="{{ $avatarURL }}" fetchpriority="high">
+        {{ end }}
+    {{ end }}
+{{ end }}

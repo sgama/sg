@@ -72,8 +72,13 @@ html::before {
         200px 200px, 300px 300px, 250px 250px, 400px 400px, 350px 350px,
         180px 180px, 320px 320px, 280px 280px, 220px 220px, 380px 380px;
     animation: starsMove 60s linear infinite;
+    animation-play-state: paused;
     pointer-events: none;
     z-index: -1;
+}
+
+html.stars-running::before {
+    animation-play-state: running;
 }
 
 html.disable-stars::before,

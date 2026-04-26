@@ -60,15 +60,12 @@
             {{ end }}
             {{ if $authorImage }}
                 {{ $final := $authorImage }}
-                {{ $squareImage := $authorImage }}
                 {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg")) }}
-                    {{ $final = $authorImage.Fill (print "288x288 q" ($.Site.Params.Author.imagequality | default "96")) }}
-                    {{ $shortSide := int (math.Min $authorImage.Width $authorImage.Height) }}
-                    {{ $squareImage = $authorImage.Crop (printf "%dx%d" $shortSide $shortSide) }}
+                    {{ $final = $authorImage.Fill (print "192x192 q" ($.Site.Params.Author.imagequality | default "80")) }}
                 {{ end }}
-                <img class="intro__avatar mb-2 h-36 w-36 rounded-full" width="144" height="144"
+                <img class="intro__avatar nozoom mb-2 h-36 w-36 rounded-full" width="144" height="144"
                     alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
-                    loading="eager" decoding="async" data-zoom-src="{{ $squareImage.RelPermalink }}">
+                    loading="eager" decoding="async" fetchpriority="high">
             {{ end }}
         {{ end }}
         <h1 class="mb-2 text-4xl font-extrabold text-neutral-800 dark:text-neutral-200">
@@ -110,6 +107,3 @@ default "sha512") }}
     integrity="{{ $backgroundBlur.Data.Integrity }}" data-blur-id="background-blur" data-image-id="background-image"
     {{ with $featuredURL }}data-image-url="{{ . }}"{{ end }}></script>
 {{ end }}
-<section>
-    {{ partial "comments.html" . }}
-</section>
