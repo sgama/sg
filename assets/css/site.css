@@ -246,7 +246,6 @@ html[data-background-blur="false"]::before {
     color: white;
     border: none;
     border-radius: 9999px;
-    width: auto;
     height: 3.5rem;
     padding: 0 1.5rem;
     gap: 0.5rem;
@@ -358,10 +357,6 @@ html[data-background-blur="false"]::before {
     font-size: 0.9rem;
     line-height: 1.5;
     white-space: pre-wrap;
-    align-self: flex-start;
-    background-color: rgba(37, 99, 235, 0.9);
-    color: rgb(var(--color-neutral-100));
-    border: 1px solid rgba(59, 130, 246, 0.6);
 }
 
 .chat-widget__message--bot {
@@ -426,7 +421,6 @@ html[data-background-blur="false"]::before {
     backdrop-filter: var(--blur-card);
     animation: fadeIn var(--motion-slow) ease-out 0.15s both;
     text-align: center;
-    font-size: clamp(0.95rem, 1.6vw, 1.125rem);
 }
 
 .intro__content p {
@@ -434,12 +428,6 @@ html[data-background-blur="false"]::before {
     font-size: clamp(0.95rem, 2vw, 1.125rem);
     line-height: 1.7;
     margin: 0;
-}
-
-.intro__hero {
-    text-align: center;
-    padding-block-end: 1em;
-    animation: fadeIn var(--motion-slow) ease-out;
 }
 
 .intro__typing {
@@ -576,18 +564,6 @@ html[data-background-blur="false"]::before {
     }
 }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 @keyframes gradientShift {
     0% {
         background-position: 0% 50%;
@@ -645,7 +621,6 @@ html[data-background-blur="false"]::before {
     .contact,
     .contact__success {
         margin: 1rem 0;
-        padding: 0;
     }
 
     .contact__card,
@@ -717,11 +692,6 @@ html[data-background-blur="false"]::before {
     html::before {
         animation: none;
         opacity: 0.3;
-    }
-
-    .intro__hero,
-    .intro__content {
-        animation: fadeIn 0.3s ease-out both;
     }
 
     .intro__typing::after {
