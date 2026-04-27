@@ -213,7 +213,7 @@
         const getMessages = () => elements.messages;
         const getInput = () => elements.input;
         const getSendBtn = () => elements.sendBtn;
-        
+
         const writeMessageContent = (el, text, sender) => {
             if (sender === "bot" && renderMarkdown) {
                 const html = renderMarkdown(text);
@@ -222,7 +222,7 @@
                 el.textContent = text;
             }
         };
-        
+
         const buildMessageElement = (text, sender) => {
             const div = document.createElement("div");
             const normalizedSender = normalizeSender(sender);
@@ -301,22 +301,22 @@
                     messages.scrollTop = messages.scrollHeight;
                 });
             },
-            updateMessage(messageEl, text) {
+            updateMessage(messageEl, text, forceScroll = false) {
                 if (!messageEl) return;
                 const sender = messageEl.classList.contains("chat-widget__message--user")
                     ? "user"
                     : "bot";
-                
+
                 // Toggle loading state
                 if (!text) {
                     messageEl.classList.add("chat-widget__message--loading");
                 } else {
                     messageEl.classList.remove("chat-widget__message--loading");
                 }
-                
+
                 writeMessageContent(messageEl, text || "...", sender);
                 const messages = getMessages();
-                if (messages && isNearBottom(messages)) {
+                if (messages && (forceScroll || isNearBottom(messages))) {
                     requestAnimationFrame(() => {
                         messages.scrollTop = messages.scrollHeight;
                     });
@@ -364,14 +364,14 @@
                 maxFastSwipeTime: config.maxFastSwipeTime ?? 300,
                 direction: config.direction ?? 'down', // 'down', 'up', 'left', 'right'
             };
-            
+
             this.state = {
                 startX: 0,
                 startY: 0,
                 startTime: 0,
                 isTracking: false,
             };
-            
+
             this.handlers = new Map();
             this.onSwipe = config.onSwipe ?? (() => {});
             this.shouldStartTracking = config.shouldStartTracking ?? (() => true);
@@ -379,17 +379,17 @@
 
         attach(element) {
             if (!element) return;
-            
+
             const handleStart = this._handleStart.bind(this);
             const handleMove = this._handleMove.bind(this);
             const handleEnd = this._handleEnd.bind(this);
             const handleCancel = this._handleCancel.bind(this);
-            
+
             element.addEventListener('touchstart', handleStart, { passive: false });
             element.addEventListener('touchmove', handleMove, { passive: false });
             element.addEventListener('touchend', handleEnd, { passive: true });
             element.addEventListener('touchcancel', handleCancel, { passive: true });
-            
+
             this.handlers.set(element, {
                 start: handleStart,
                 move: handleMove,
@@ -401,12 +401,12 @@
         detach(element) {
             const handlers = this.handlers.get(element);
             if (!handlers || !element) return;
-            
+
             element.removeEventListener('touchstart', handlers.start);
             element.removeEventListener('touchmove', handlers.move);
             element.removeEventListener('touchend', handlers.end);
             element.removeEventListener('touchcancel', handlers.cancel);
-            
+
             this.handlers.delete(element);
         }
 
@@ -421,7 +421,7 @@
                 this.state.isTracking = false;
                 return;
             }
-            
+
             const touch = event.touches[0];
             this.state = {
                 startX: touch.clientX,
@@ -433,11 +433,11 @@
 
         _handleMove(event) {
             if (!this.state.isTracking) return;
-            
+
             const touch = event.touches[0];
             const deltaX = touch.clientX - this.state.startX;
             const deltaY = touch.clientY - this.state.startY;
-            
+
             // Prevent default if moving in swipe direction
             if (this._isMovingInSwipeDirection(deltaX, deltaY)) {
                 event.preventDefault();
@@ -446,16 +446,16 @@
 
         _handleEnd(event) {
             if (!this.state.isTracking) return;
-            
+
             const touch = event.changedTouches[0];
             const deltaX = touch.clientX - this.state.startX;
             const deltaY = touch.clientY - this.state.startY;
             const deltaTime = Date.now() - this.state.startTime;
-            
+
             if (this._isValidSwipe(deltaX, deltaY, deltaTime)) {
                 this.onSwipe({ deltaX, deltaY, deltaTime });
             }
-            
+
             this._resetState();
         }
 
@@ -483,18 +483,18 @@
 
         _isValidSwipe(deltaX, deltaY, deltaTime) {
             const { direction, minDistance, minFastSwipeDistance, maxFastSwipeTime } = this.config;
-            
+
             let distance = 0;
             if (direction === 'down') distance = deltaY;
             else if (direction === 'up') distance = -deltaY;
             else if (direction === 'right') distance = deltaX;
             else if (direction === 'left') distance = -deltaX;
-            
+
             if (distance <= 0) return false;
-            
+
             const isFastSwipe = distance >= minFastSwipeDistance && deltaTime <= maxFastSwipeTime;
             const isLongSwipe = distance >= minDistance;
-            
+
             return isFastSwipe || isLongSwipe;
         }
     }
@@ -588,7 +588,7 @@
             });
             addHandler(this.elements.clearBtn, "click", () => this.clearHistory());
             addHandler(this.elements.form, "submit", (event) => this.handleSubmit(event));
-            
+
             // Keyboard shortcuts
             addHandler(this.elements.input, "keydown", (event) => {
                 if (event.key === "Escape") {
@@ -612,7 +612,7 @@
                     return messages ? messages.scrollTop === 0 : false;
                 },
             });
-            
+
             this.swipeHandler.attach(this.elements.window);
         }
 
@@ -689,7 +689,7 @@
             this.abortController = new AbortController();
             let botMessage = null;
             const throttler = createRafThrottler((nextText) => {
-                this.ui?.updateMessage(botMessage, nextText);
+                this.ui?.updateMessage(botMessage, nextText, true); // Force scroll during streaming
             });
 
             try {
@@ -701,7 +701,7 @@
                 );
 
                 throttler.cancel();
-                this.ui?.updateMessage(botMessage, accumulated);
+                this.ui?.updateMessage(botMessage, accumulated, true); // Force scroll on final update
 
                 if (accumulated) this.saveMessage({ text: accumulated, sender: "bot" });
             } catch (error) {
@@ -731,12 +731,12 @@
                 element.removeEventListener(event, handler);
             });
             this.eventHandlers.clear();
-            
+
             if (this.swipeHandler) {
                 this.swipeHandler.detachAll();
                 this.swipeHandler = null;
             }
-            
+
             this.ui = null;
         }
     }
