@@ -652,7 +652,6 @@ dialog.chat-widget__window::backdrop {
     background: var(--surface-1);
     border-radius: 1.25rem;
     border: 1px solid var(--surface-2);
-    backdrop-filter: var(--blur-card);
     animation: fadeIn var(--motion-slow) ease-out 0.15s both;
     text-align: center;
 }
