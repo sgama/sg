@@ -1,42 +1,11 @@
-{{/* Extended footer partial to add custom accessibility controls */}}
+{{/* Extended footer partial — loads the custom-element-based AI chat widget. */}}
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-footer */}}
 
-<div id="ai-chat-widget" class="chat-widget">
-    <button id="ai-chat-toggle" class="chat-widget__toggle js-chat-trigger" aria-label="Ask AI Assistant">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            <path d="M12 7v6"></path>
-            <path d="M9 10h6"></path>
-        </svg>
-        <span>Ask AI</span>
-    </button>
-</div>
-<template id="ai-chat-template">
-    <dialog id="ai-chat-window" class="chat-widget__window" aria-label="Chat with AI assistant">
-        <header class="chat-widget__header">
-            <span>Assistant</span>
-            <div class="chat-widget__header-actions">
-                <button id="ai-chat-clear" class="chat-widget__header-btn chat-widget__header-btn--clear"
-                    aria-label="Clear History" title="Clear History" type="button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                </button>
-                <button id="ai-chat-close" class="chat-widget__header-btn chat-widget__header-btn--close"
-                    aria-label="Close Chat" type="button">&times;</button>
-            </div>
-        </header>
-        <div class="chat-widget__messages" id="ai-chat-messages"></div>
-        <form class="chat-widget__input-area" id="ai-chat-form">
-            <input type="text" id="ai-chat-input" class="chat-widget__input" placeholder="Ask a question..."
-                aria-label="Question" autocomplete="off">
-            <button type="submit" id="ai-chat-send" class="chat-widget__send">Send</button>
-        </form>
-    </dialog>
-</template>
+<ai-chat-widget id="ai-chat-widget"></ai-chat-widget>
+
+{{ $chat_js := resources.Get "js/ai-chat-widget.js" | minify | fingerprint }}
+<script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
+    crossorigin="anonymous"></script>
 {{ $site_js := resources.Get "js/site.js" | minify | fingerprint }}
 <script defer src="{{ $site_js.RelPermalink }}" integrity="{{ $site_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
