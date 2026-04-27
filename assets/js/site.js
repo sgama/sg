@@ -164,17 +164,19 @@
 
     function createChatApiClient({ endpoint, fetchImpl = fetch, isOnline = () => navigator.onLine }) {
         return {
-            async streamChat(query, onUpdate) {
+            async streamChat(query, onUpdate, signal) {
                 if (!isOnline()) throw new Error("Offline");
 
                 const response = await fetchImpl(endpoint, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ query }),
+                    signal,
                 });
 
                 if (!response.ok || !response.body) {
-                    throw new Error("Network response was not ok");
+                    const errorText = await response.text().catch(() => "Unknown error");
+                    throw new Error(`Network error: ${response.status} - ${errorText}`);
                 }
 
                 const reader = response.body.getReader();
@@ -185,14 +187,21 @@
                     onUpdate(accumulated, delta);
                 });
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    parser.push(decoder.decode(value, { stream: true }));
-                }
+                try {
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        parser.push(decoder.decode(value, { stream: true }));
+                    }
 
-                parser.push(decoder.decode());
-                parser.flush();
+                    parser.push(decoder.decode());
+                    parser.flush();
+                } catch (error) {
+                    reader.releaseLock();
+                    throw error;
+                } finally {
+                    reader.releaseLock();
+                }
 
                 return accumulated;
             },
@@ -203,6 +212,8 @@
     function createChatUi(elements, { body }) {
         const getMessages = () => elements.messages;
         const getInput = () => elements.input;
+        const getSendBtn = () => elements.sendBtn;
+        
         const writeMessageContent = (el, text, sender) => {
             if (sender === "bot" && renderMarkdown) {
                 const html = renderMarkdown(text);
@@ -211,6 +222,7 @@
                 el.textContent = text;
             }
         };
+        
         const buildMessageElement = (text, sender) => {
             const div = document.createElement("div");
             const normalizedSender = normalizeSender(sender);
@@ -218,6 +230,8 @@
                 "chat-widget__message",
                 `chat-widget__message--${normalizedSender}`
             );
+            div.setAttribute("role", normalizedSender === "bot" ? "status" : "article");
+            div.setAttribute("aria-live", normalizedSender === "bot" ? "polite" : "off");
             writeMessageContent(div, text, normalizedSender);
             return div;
         };
@@ -225,10 +239,14 @@
         return {
             open() {
                 elements.window?.classList.add("chat-widget__window--open");
+                elements.widget?.classList.add("chat-widget--open");
+                elements.window?.setAttribute("aria-hidden", "false");
                 body?.classList.add("ai-chat-open");
             },
             close() {
                 elements.window?.classList.remove("chat-widget__window--open");
+                elements.widget?.classList.remove("chat-widget--open");
+                elements.window?.setAttribute("aria-hidden", "true");
                 body?.classList.remove("ai-chat-open");
             },
             focusInput() {
@@ -243,7 +261,16 @@
             },
             setInputDisabled(disabled) {
                 const input = getInput();
+                const btn = getSendBtn();
                 if (input) input.disabled = disabled;
+                if (btn) btn.disabled = disabled;
+            },
+            setLoading(loading) {
+                const btn = getSendBtn();
+                if (btn) {
+                    btn.disabled = loading;
+                    btn.setAttribute("aria-busy", loading ? "true" : "false");
+                }
             },
             clearMessages() {
                 const messages = getMessages();
@@ -255,7 +282,11 @@
                 const shouldScroll = isNearBottom(messages);
                 const div = buildMessageElement(text, sender);
                 messages.appendChild(div);
-                if (shouldScroll) messages.scrollTop = messages.scrollHeight;
+                if (shouldScroll) {
+                    requestAnimationFrame(() => {
+                        messages.scrollTop = messages.scrollHeight;
+                    });
+                }
                 return div;
             },
             addMessages(items) {
@@ -266,17 +297,29 @@
                     fragment.appendChild(buildMessageElement(item.text, item.sender));
                 });
                 messages.appendChild(fragment);
-                messages.scrollTop = messages.scrollHeight;
+                requestAnimationFrame(() => {
+                    messages.scrollTop = messages.scrollHeight;
+                });
             },
             updateMessage(messageEl, text) {
                 if (!messageEl) return;
                 const sender = messageEl.classList.contains("chat-widget__message--user")
                     ? "user"
                     : "bot";
-                writeMessageContent(messageEl, text, sender);
+                
+                // Toggle loading state
+                if (!text) {
+                    messageEl.classList.add("chat-widget__message--loading");
+                } else {
+                    messageEl.classList.remove("chat-widget__message--loading");
+                }
+                
+                writeMessageContent(messageEl, text || "...", sender);
                 const messages = getMessages();
                 if (messages && isNearBottom(messages)) {
-                    messages.scrollTop = messages.scrollHeight;
+                    requestAnimationFrame(() => {
+                        messages.scrollTop = messages.scrollHeight;
+                    });
                 }
             },
         };
@@ -312,6 +355,150 @@
         };
     }
 
+    // Swipe gesture handler with enterprise patterns.
+    class SwipeGestureHandler {
+        constructor(config = {}) {
+            this.config = {
+                minDistance: config.minDistance ?? 100,
+                minFastSwipeDistance: config.minFastSwipeDistance ?? 50,
+                maxFastSwipeTime: config.maxFastSwipeTime ?? 300,
+                direction: config.direction ?? 'down', // 'down', 'up', 'left', 'right'
+            };
+            
+            this.state = {
+                startX: 0,
+                startY: 0,
+                startTime: 0,
+                isTracking: false,
+            };
+            
+            this.handlers = new Map();
+            this.onSwipe = config.onSwipe ?? (() => {});
+            this.shouldStartTracking = config.shouldStartTracking ?? (() => true);
+        }
+
+        attach(element) {
+            if (!element) return;
+            
+            const handleStart = this._handleStart.bind(this);
+            const handleMove = this._handleMove.bind(this);
+            const handleEnd = this._handleEnd.bind(this);
+            const handleCancel = this._handleCancel.bind(this);
+            
+            element.addEventListener('touchstart', handleStart, { passive: false });
+            element.addEventListener('touchmove', handleMove, { passive: false });
+            element.addEventListener('touchend', handleEnd, { passive: true });
+            element.addEventListener('touchcancel', handleCancel, { passive: true });
+            
+            this.handlers.set(element, {
+                start: handleStart,
+                move: handleMove,
+                end: handleEnd,
+                cancel: handleCancel,
+            });
+        }
+
+        detach(element) {
+            const handlers = this.handlers.get(element);
+            if (!handlers || !element) return;
+            
+            element.removeEventListener('touchstart', handlers.start);
+            element.removeEventListener('touchmove', handlers.move);
+            element.removeEventListener('touchend', handlers.end);
+            element.removeEventListener('touchcancel', handlers.cancel);
+            
+            this.handlers.delete(element);
+        }
+
+        detachAll() {
+            for (const [element] of this.handlers) {
+                this.detach(element);
+            }
+        }
+
+        _handleStart(event) {
+            if (!this.shouldStartTracking(event)) {
+                this.state.isTracking = false;
+                return;
+            }
+            
+            const touch = event.touches[0];
+            this.state = {
+                startX: touch.clientX,
+                startY: touch.clientY,
+                startTime: Date.now(),
+                isTracking: true,
+            };
+        }
+
+        _handleMove(event) {
+            if (!this.state.isTracking) return;
+            
+            const touch = event.touches[0];
+            const deltaX = touch.clientX - this.state.startX;
+            const deltaY = touch.clientY - this.state.startY;
+            
+            // Prevent default if moving in swipe direction
+            if (this._isMovingInSwipeDirection(deltaX, deltaY)) {
+                event.preventDefault();
+            }
+        }
+
+        _handleEnd(event) {
+            if (!this.state.isTracking) return;
+            
+            const touch = event.changedTouches[0];
+            const deltaX = touch.clientX - this.state.startX;
+            const deltaY = touch.clientY - this.state.startY;
+            const deltaTime = Date.now() - this.state.startTime;
+            
+            if (this._isValidSwipe(deltaX, deltaY, deltaTime)) {
+                this.onSwipe({ deltaX, deltaY, deltaTime });
+            }
+            
+            this._resetState();
+        }
+
+        _handleCancel() {
+            this._resetState();
+        }
+
+        _resetState() {
+            this.state = {
+                startX: 0,
+                startY: 0,
+                startTime: 0,
+                isTracking: false,
+            };
+        }
+
+        _isMovingInSwipeDirection(deltaX, deltaY) {
+            const { direction } = this.config;
+            if (direction === 'down') return deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX);
+            if (direction === 'up') return deltaY < 0 && Math.abs(deltaY) > Math.abs(deltaX);
+            if (direction === 'right') return deltaX > 0 && Math.abs(deltaX) > Math.abs(deltaY);
+            if (direction === 'left') return deltaX < 0 && Math.abs(deltaX) > Math.abs(deltaY);
+            return false;
+        }
+
+        _isValidSwipe(deltaX, deltaY, deltaTime) {
+            const { direction, minDistance, minFastSwipeDistance, maxFastSwipeTime } = this.config;
+            
+            let distance = 0;
+            if (direction === 'down') distance = deltaY;
+            else if (direction === 'up') distance = -deltaY;
+            else if (direction === 'right') distance = deltaX;
+            else if (direction === 'left') distance = -deltaX;
+            
+            if (distance <= 0) return false;
+            
+            const isFastSwipe = distance >= minFastSwipeDistance && deltaTime <= maxFastSwipeTime;
+            const isLongSwipe = distance >= minDistance;
+            
+            return isFastSwipe || isLongSwipe;
+        }
+    }
+
     // Chat widget.
     class AIChatWidget {
         constructor(options = {}) {
@@ -343,6 +530,9 @@
             this.logger = logger;
             this.ui = null;
             this.disabled = false;
+            this.abortController = null;
+            this.eventHandlers = new Map();
+            this.swipeHandler = null;
             this.init();
         }
 
@@ -371,24 +561,59 @@
 
         cacheElements() {
             this.elements = {
+                widget: $("#ai-chat-widget"),
                 window: $("#ai-chat-window"),
                 toggleBtn: $("#ai-chat-toggle"),
                 closeBtn: $("#ai-chat-close"),
                 clearBtn: $("#ai-chat-clear"),
                 form: $("#ai-chat-form"),
                 input: $("#ai-chat-input"),
+                sendBtn: $("#ai-chat-send"),
                 messages: $("#ai-chat-messages"),
             };
         }
 
         bindEvents() {
-            this.elements.toggleBtn?.addEventListener("click", () => this.open());
-            this.elements.closeBtn?.addEventListener("click", (event) => {
+            const addHandler = (element, event, handler) => {
+                if (!element) return;
+                const boundHandler = handler.bind(this);
+                element.addEventListener(event, boundHandler);
+                this.eventHandlers.set(`${event}-${element.id}`, { element, event, handler: boundHandler });
+            };
+
+            addHandler(this.elements.toggleBtn, "click", () => this.open());
+            addHandler(this.elements.closeBtn, "click", (event) => {
                 event.stopPropagation();
                 this.close();
             });
-            this.elements.clearBtn?.addEventListener("click", () => this.clearHistory());
-            this.elements.form?.addEventListener("submit", (event) => this.handleSubmit(event));
+            addHandler(this.elements.clearBtn, "click", () => this.clearHistory());
+            addHandler(this.elements.form, "submit", (event) => this.handleSubmit(event));
+            
+            // Keyboard shortcuts
+            addHandler(this.elements.input, "keydown", (event) => {
+                if (event.key === "Escape") {
+                    this.close();
+                } else if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    this.elements.form?.requestSubmit();
+                }
+            });
+
+            // Swipe down to close gesture - enterprise pattern with dependency injection
+            this.swipeHandler = new SwipeGestureHandler({
+                direction: 'down',
+                minDistance: 100,
+                minFastSwipeDistance: 50,
+                maxFastSwipeTime: 300,
+                onSwipe: () => this.close(),
+                shouldStartTracking: () => {
+                    // Only track swipe if messages area is scrolled to top
+                    const messages = this.elements.messages;
+                    return messages ? messages.scrollTop === 0 : false;
+                },
+            });
+            
+            this.swipeHandler.attach(this.elements.window);
         }
 
         open() {
@@ -401,6 +626,7 @@
         close() {
             this.ui?.close();
             this.sessionFlag.clear();
+            this.cancelCurrentRequest();
         }
 
         applyPendingQuestion() {
@@ -441,6 +667,13 @@
             this.history.saveMessage(msg);
         }
 
+        cancelCurrentRequest() {
+            if (this.abortController) {
+                this.abortController.abort();
+                this.abortController = null;
+            }
+        }
+
         async handleSubmit(event) {
             event.preventDefault();
             const text = this.ui?.getInputValue().trim() ?? "";
@@ -451,7 +684,9 @@
 
             this.ui?.setInputValue("");
             this.ui?.setInputDisabled(true);
+            this.ui?.setLoading(true);
 
+            this.abortController = new AbortController();
             let botMessage = null;
             const throttler = createRafThrottler((nextText) => {
                 this.ui?.updateMessage(botMessage, nextText);
@@ -459,22 +694,50 @@
 
             try {
                 botMessage = this.addMessage("", "bot");
-                const accumulated = await this.chatApi.streamChat(text, (nextText) => {
-                    throttler.schedule(nextText);
-                });
+                const accumulated = await this.chatApi.streamChat(
+                    text,
+                    (nextText) => throttler.schedule(nextText),
+                    this.abortController.signal
+                );
 
                 throttler.cancel();
                 this.ui?.updateMessage(botMessage, accumulated);
 
                 if (accumulated) this.saveMessage({ text: accumulated, sender: "bot" });
             } catch (error) {
-                this.logger.error(error);
-                if (botMessage && !botMessage.textContent) botMessage.remove();
-                this.addMessage("Sorry, I'm having trouble connecting. Please try again.", "bot");
+                if (error.name === "AbortError") {
+                    this.logger.info("Request cancelled");
+                    if (botMessage) botMessage.remove();
+                } else {
+                    this.logger.error(error);
+                    if (botMessage && !botMessage.textContent) botMessage.remove();
+                    const errorMsg = error.message.includes("Offline")
+                        ? "You appear to be offline. Please check your connection."
+                        : "Sorry, I'm having trouble connecting. Please try again.";
+                    this.addMessage(errorMsg, "bot");
+                }
             } finally {
+                throttler.cancel();
+                this.abortController = null;
                 this.ui?.setInputDisabled(false);
+                this.ui?.setLoading(false);
                 this.ui?.focusInput();
             }
+        }
+
+        destroy() {
+            this.cancelCurrentRequest();
+            this.eventHandlers.forEach(({ element, event, handler }) => {
+                element.removeEventListener(event, handler);
+            });
+            this.eventHandlers.clear();
+            
+            if (this.swipeHandler) {
+                this.swipeHandler.detachAll();
+                this.swipeHandler = null;
+            }
+            
+            this.ui = null;
         }
     }
 
