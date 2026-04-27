@@ -227,8 +227,8 @@
             }
             this.classList.add("chat-widget--open");
             document.body.classList.add("ai-chat-open");
-            if (typeof this.dialog.show === "function") {
-                this.dialog.show();
+            if (typeof this.dialog.showModal === "function") {
+                this.dialog.showModal();
             } else {
                 this.dialog.setAttribute("open", "");
             }
@@ -253,13 +253,19 @@
         close() {
             if (!this._initialised || !this.dialog) return;
             if (!this.dialog.open && !this.dialog.hasAttribute("open")) return;
+            
             this.classList.remove("chat-widget--open");
             document.body.classList.remove("ai-chat-open");
+            
+            // The CSS uses `transition-behavior: allow-discrete` which means modern
+            // browsers (Chrome 117+, Safari 17.4+) will animate the dialog out even
+            // after close() is called. Older browsers will close instantly.
             if (typeof this.dialog.close === "function") {
                 this.dialog.close();
             } else {
                 this.dialog.removeAttribute("open");
             }
+            
             this._safeSession.remove(SESSION_OPEN_KEY);
             this._cancelInflight();
             this.dispatchEvent(new CustomEvent("chat-close", { bubbles: true }));
