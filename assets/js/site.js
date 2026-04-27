@@ -21,6 +21,15 @@
     const isNearBottom = (el, threshold = 64) =>
         el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
+    // Wrap a DOM mutation in a View Transition when supported, otherwise run inline.
+    const withViewTransition = (update) => {
+        if (typeof document.startViewTransition === "function") {
+            return document.startViewTransition(update);
+        }
+        update();
+        return null;
+    };
+
     // Lazy-loaded markdown renderer for bot messages. Falls back to plain text on failure.
     let renderMarkdown = null;
     let markdownLoader = null;
@@ -238,16 +247,30 @@
 
         return {
             open() {
-                elements.window?.classList.add("chat-widget__window--open");
-                elements.widget?.classList.add("chat-widget--open");
-                elements.window?.setAttribute("aria-hidden", "false");
-                body?.classList.add("ai-chat-open");
+                const dialog = elements.window;
+                if (dialog?.open) return;
+                withViewTransition(() => {
+                    elements.widget?.classList.add("chat-widget--open");
+                    body?.classList.add("ai-chat-open");
+                    if (typeof dialog?.show === "function") {
+                        dialog.show();
+                    } else {
+                        dialog?.setAttribute("open", "");
+                    }
+                });
             },
             close() {
-                elements.window?.classList.remove("chat-widget__window--open");
-                elements.widget?.classList.remove("chat-widget--open");
-                elements.window?.setAttribute("aria-hidden", "true");
-                body?.classList.remove("ai-chat-open");
+                const dialog = elements.window;
+                if (dialog && !dialog.open && !dialog.hasAttribute("open")) return;
+                withViewTransition(() => {
+                    elements.widget?.classList.remove("chat-widget--open");
+                    body?.classList.remove("ai-chat-open");
+                    if (typeof dialog?.close === "function") {
+                        dialog.close();
+                    } else {
+                        dialog?.removeAttribute("open");
+                    }
+                });
             },
             focusInput() {
                 getInput()?.focus();
@@ -581,10 +604,15 @@
                 this.eventHandlers.set(`${event}-${element.id}`, { element, event, handler: boundHandler });
             };
 
-            addHandler(this.elements.toggleBtn, "click", () => this.open());
             addHandler(this.elements.closeBtn, "click", (event) => {
                 event.stopPropagation();
                 this.close();
+            });
+            addHandler(this.elements.window, "close", () => {
+                this.elements.widget?.classList.remove("chat-widget--open");
+                document.body.classList.remove("ai-chat-open");
+                this.sessionFlag.clear();
+                this.cancelCurrentRequest();
             });
             addHandler(this.elements.clearBtn, "click", () => this.clearHistory());
             addHandler(this.elements.form, "submit", (event) => this.handleSubmit(event));
@@ -800,7 +828,18 @@
             const question = trigger.dataset.question;
             if (question) pendingQuestionStore.set(question);
 
-            initChatOnce()?.open();
+            const chat = initChatOnce();
+            if (!chat) return;
+
+            // The persistent "Ask AI" button toggles open/closed; all other
+            // triggers (chips, CTA links, etc.) always open and start a question.
+            const isPersistentToggle = trigger.id === "ai-chat-toggle" && !question;
+            const isOpen = chat.elements?.window?.open;
+            if (isPersistentToggle && isOpen) {
+                chat.close();
+            } else {
+                chat.open();
+            }
         });
     }
 

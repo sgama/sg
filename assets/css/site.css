@@ -254,8 +254,8 @@ html.disable-blur #background-blur {
 /* === AI Chat Widget === */
 .chat-widget {
     position: fixed;
-    bottom: 5.5rem;
-    right: 2rem;
+    inset-block-end: 5.5rem;
+    inset-inline-end: 2rem;
     z-index: 999;
     font-family: inherit;
     isolation: isolate;
@@ -304,42 +304,87 @@ html.disable-blur #background-blur {
     transform: scale(0.98);
 }
 
-.chat-widget__window {
+dialog.chat-widget__window {
+    /* Reset native dialog UA defaults that would otherwise center the box. */
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--surface-2);
+    color: inherit;
+
+    /* Anchor relative to the .chat-widget container — explicitly clear the
+       opposite-side insets so UA `inset: 0` + `margin: auto` doesn't center us. */
     position: absolute;
-    bottom: 4rem;
-    right: 0;
-    width: min(350px, calc(100vw - 2rem));
-    max-height: min(600px, calc(100dvh - 12rem));
+    inset-block-start: auto;
+    inset-inline-start: auto;
+    inset-block-end: 4rem;
+    inset-inline-end: 0;
+    inline-size: min(350px, calc(100vw - 2rem));
+    block-size: auto;
+    max-inline-size: none;
+    max-block-size: min(600px, calc(100dvh - 12rem));
+
     background: var(--surface-1);
     backdrop-filter: var(--blur-chat);
     -webkit-backdrop-filter: var(--blur-chat);
-    border: 1px solid var(--surface-2);
     border-radius: 1rem;
     box-shadow:
         0 20px 25px -5px rgba(0, 0, 0, 0.3),
         0 10px 10px -5px rgba(0, 0, 0, 0.2),
         0 0 0 1px rgba(var(--accent-1-dark), 0.1),
         0 0 40px -10px rgba(204, 0, 204, 0.2);
-    display: flex;
-    flex-direction: column;
+
+    /* Container queries for messages/header to adapt to dialog width */
+    container-type: inline-size;
+    container-name: chat-window;
+
+    /* View Transitions API hook (used when document.startViewTransition is available) */
+    view-transition-name: chat-widget-window;
+
+    /* Hidden state for animated dismissal — works with native [open] toggling
+       when transition-behavior: allow-discrete is supported (Chrome 117+, Safari 17.4+). */
     opacity: 0;
     transform: translateY(20px) scale(0.95);
-    pointer-events: none;
     transition:
         opacity var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1),
         transform var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1),
-        box-shadow var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1),
+        overlay var(--motion-base) allow-discrete,
+        display var(--motion-base) allow-discrete;
 }
 
-.chat-widget__window--open {
+dialog.chat-widget__window[open] {
+    display: flex;
+    flex-direction: column;
     opacity: 1;
     transform: translateY(0) scale(1);
-    pointer-events: auto;
     box-shadow:
         0 20px 25px -5px rgba(0, 0, 0, 0.3),
         0 10px 10px -5px rgba(0, 0, 0, 0.2),
         0 0 0 1px rgba(var(--accent-1-dark), 0.2),
         0 0 60px -10px rgba(204, 0, 204, 0.3);
+}
+
+@starting-style {
+    dialog.chat-widget__window[open] {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+}
+
+dialog.chat-widget__window::backdrop {
+    background: transparent;
+}
+
+@container chat-window (max-inline-size: 320px) {
+    .chat-widget__message {
+        max-inline-size: 95%;
+    }
+
+    .chat-widget__header,
+    .chat-widget__messages,
+    .chat-widget__input-area {
+        padding-inline: 0.875rem;
+    }
 }
 
 .chat-widget__header {
@@ -351,7 +396,8 @@ html.disable-blur #background-blur {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-radius: 1rem 1rem 0 0;
+    border-start-start-radius: 1rem;
+    border-start-end-radius: 1rem;
     flex-shrink: 0;
     position: relative;
     overflow: hidden;
@@ -469,8 +515,11 @@ html.disable-blur #background-blur {
     color: rgb(var(--color-neutral-50));
     border: 1px solid rgba(204, 0, 204, 0.3);
     align-self: flex-start;
-    margin-right: auto;
-    border-radius: 1rem 1rem 1rem 0.25rem;
+    margin-inline-end: auto;
+    border-start-start-radius: 1rem;
+    border-start-end-radius: 1rem;
+    border-end-end-radius: 1rem;
+    border-end-start-radius: 0.25rem;
     box-shadow: 0 2px 12px rgba(204, 0, 102, 0.25);
 }
 
@@ -479,8 +528,11 @@ html.disable-blur #background-blur {
     color: rgb(var(--color-neutral-50));
     border: 1px solid var(--surface-2);
     align-self: flex-end;
-    margin-left: auto;
-    border-radius: 1rem 1rem 0.25rem 1rem;
+    margin-inline-start: auto;
+    border-start-start-radius: 1rem;
+    border-start-end-radius: 1rem;
+    border-end-end-radius: 0.25rem;
+    border-end-start-radius: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -493,21 +545,22 @@ html.disable-blur #background-blur {
     display: inline-block;
     width: 3px;
     height: 1em;
-    margin-left: 0.25rem;
+    margin-inline-start: 0.25rem;
     background: currentColor;
     animation: blink 1s steps(1) infinite;
 }
 
 .chat-widget__input-area {
     padding: 1rem 1.25rem;
-    border-top: 1px solid var(--surface-2);
+    border-block-start: 1px solid var(--surface-2);
     display: flex;
     gap: 0.75rem;
     flex-shrink: 0;
     background: var(--surface-0);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-radius: 0 0 1rem 1rem;
+    border-end-start-radius: 1rem;
+    border-end-end-radius: 1rem;
 }
 
 .chat-widget__input {
@@ -823,41 +876,44 @@ html.disable-blur #background-blur {
     }
 
     .chat-widget {
-        bottom: 1rem;
-        right: 1rem;
+        inset-block-end: 1rem;
+        inset-inline-end: 1rem;
     }
 
-    .chat-widget__window {
+    dialog.chat-widget__window {
         position: fixed;
-        bottom: 0;
-        right: 0;
-        left: 0;
-        top: 0;
-        width: 100%;
-        max-height: 100dvh;
+        inset: 0;
+        inline-size: 100%;
+        max-block-size: 100dvh;
         border-radius: 0;
         transform: translateY(100%);
         border: none;
     }
 
-    .chat-widget__window--open {
+    dialog.chat-widget__window[open] {
         transform: translateY(0);
+    }
+
+    @starting-style {
+        dialog.chat-widget__window[open] {
+            transform: translateY(100%);
+        }
     }
 
     .chat-widget__header {
         padding: 1rem 1.5rem;
-        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-block-start: max(1rem, env(safe-area-inset-top));
         border-radius: 0;
     }
 
     .chat-widget__messages {
         padding: 1rem 1.5rem;
-        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        padding-block-end: max(1rem, env(safe-area-inset-bottom));
     }
 
     .chat-widget__input-area {
         padding: 1rem 1.5rem;
-        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        padding-block-end: max(1rem, env(safe-area-inset-bottom));
         border-radius: 0;
     }
 
@@ -889,12 +945,13 @@ html.disable-blur #background-blur {
         opacity: 1;
     }
 
-    .chat-widget__window,
-    .chat-widget__window--open,
+    dialog.chat-widget__window,
+    dialog.chat-widget__window[open],
     .chat-widget__toggle,
     .chat-cta__btn,
     .chat-cta__chip {
         animation: none;
         transition: none;
+        view-transition-name: none;
     }
 }

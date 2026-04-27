@@ -13,12 +13,12 @@
     </button>
 </div>
 <template id="ai-chat-template">
-    <div id="ai-chat-window" class="chat-widget__window">
-        <div class="chat-widget__header">
+    <dialog id="ai-chat-window" class="chat-widget__window" aria-label="Chat with AI assistant">
+        <header class="chat-widget__header">
             <span>Assistant</span>
             <div class="chat-widget__header-actions">
                 <button id="ai-chat-clear" class="chat-widget__header-btn chat-widget__header-btn--clear"
-                    aria-label="Clear History" title="Clear History">
+                    aria-label="Clear History" title="Clear History" type="button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -26,16 +26,16 @@
                     </svg>
                 </button>
                 <button id="ai-chat-close" class="chat-widget__header-btn chat-widget__header-btn--close"
-                    aria-label="Close Chat">&times;</button>
+                    aria-label="Close Chat" type="button">&times;</button>
             </div>
-        </div>
+        </header>
         <div class="chat-widget__messages" id="ai-chat-messages"></div>
         <form class="chat-widget__input-area" id="ai-chat-form">
             <input type="text" id="ai-chat-input" class="chat-widget__input" placeholder="Ask a question..."
                 aria-label="Question" autocomplete="off">
             <button type="submit" id="ai-chat-send" class="chat-widget__send">Send</button>
         </form>
-    </div>
+    </dialog>
 </template>
 {{ $site_js := resources.Get "js/site.js" | minify | fingerprint }}
 <script defer src="{{ $site_js.RelPermalink }}" integrity="{{ $site_js.Data.Integrity }}"
