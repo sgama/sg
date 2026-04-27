@@ -334,8 +334,8 @@ dialog.chat-widget__window {
     container-type: inline-size;
     container-name: chat-window;
 
-    /* View Transitions API hook (used when document.startViewTransition is available) */
-    view-transition-name: chat-widget-window;
+    /* Pre-promote to a composited layer so the first open isn't a layer-promotion frame. */
+    will-change: transform, opacity;
 
     /* Hidden state for animated dismissal — works with native [open] toggling
        when transition-behavior: allow-discrete is supported (Chrome 117+, Safari 17.4+). */
@@ -344,7 +344,6 @@ dialog.chat-widget__window {
     transition:
         opacity var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1),
         transform var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1),
-        box-shadow var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1),
         overlay var(--motion-base) allow-discrete,
         display var(--motion-base) allow-discrete;
 }
@@ -954,6 +953,5 @@ dialog.chat-widget__window::backdrop {
     .chat-cta__chip {
         animation: none;
         transition: none;
-        view-transition-name: none;
     }
 }

@@ -60,14 +60,6 @@
     const isNearBottom = (el, threshold = 64) =>
         el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
-    const withViewTransition = (update) => {
-        if (typeof document.startViewTransition === "function") {
-            return document.startViewTransition(update);
-        }
-        update();
-        return null;
-    };
-
     let renderMarkdown = null;
     let markdownLoader = null;
     function loadMarkdown() {
@@ -233,19 +225,15 @@
                 this._focusInput();
                 return;
             }
-            withViewTransition(() => {
-                this.classList.add("chat-widget--open");
-                document.body.classList.add("ai-chat-open");
-                if (typeof this.dialog.show === "function") {
-                    this.dialog.show();
-                } else {
-                    this.dialog.setAttribute("open", "");
-                }
-                // Apply pending question + focus inside the transition callback so
-                // the input is ready to type into the moment the dialog renders.
-                this._applyPendingQuestion();
-                this._focusInput();
-            });
+            this.classList.add("chat-widget--open");
+            document.body.classList.add("ai-chat-open");
+            if (typeof this.dialog.show === "function") {
+                this.dialog.show();
+            } else {
+                this.dialog.setAttribute("open", "");
+            }
+            this._applyPendingQuestion();
+            this._focusInput();
             this._safeSession.set(SESSION_OPEN_KEY, "true");
             this.dispatchEvent(new CustomEvent("chat-open", { bubbles: true }));
         }
@@ -265,15 +253,13 @@
         close() {
             if (!this._initialised || !this.dialog) return;
             if (!this.dialog.open && !this.dialog.hasAttribute("open")) return;
-            withViewTransition(() => {
-                this.classList.remove("chat-widget--open");
-                document.body.classList.remove("ai-chat-open");
-                if (typeof this.dialog.close === "function") {
-                    this.dialog.close();
-                } else {
-                    this.dialog.removeAttribute("open");
-                }
-            });
+            this.classList.remove("chat-widget--open");
+            document.body.classList.remove("ai-chat-open");
+            if (typeof this.dialog.close === "function") {
+                this.dialog.close();
+            } else {
+                this.dialog.removeAttribute("open");
+            }
             this._safeSession.remove(SESSION_OPEN_KEY);
             this._cancelInflight();
             this.dispatchEvent(new CustomEvent("chat-close", { bubbles: true }));
