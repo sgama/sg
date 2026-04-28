@@ -42,8 +42,10 @@
             const purify = purifyMod.default || purifyMod;
             marked.setOptions({ gfm: true, breaks: true });
             renderMarkdown = (text) => purify.sanitize(marked.parse(text));
+            return true;
         }).catch(() => {
             renderMarkdown = null;
+            return false;
         });
     };
 
@@ -259,8 +261,8 @@
                 this.open();
             }
 
-            loadMarkdown().then(() => {
-                if (this.#dom.messages) {
+            loadMarkdown().then((success) => {
+                if (success && this.#dom.messages) {
                     const botMessages = this.#dom.messages.querySelectorAll('.chat-widget__message--bot');
                     botMessages.forEach((el) => {
                         if (el.dataset.rawText) {
