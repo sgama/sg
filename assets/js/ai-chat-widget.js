@@ -17,42 +17,15 @@
     const API_ENDPOINT = "/api/chat";
     const WELCOME_MESSAGE = "Hello! I'm an AI assistant trained on this portfolio. Ask me anything about my projects or background.";
 
-    const TEMPLATE = `
-<button class="chat-widget__toggle" data-role="toggle" type="button" aria-label="Ask AI Assistant">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        <path d="M12 7v6"></path>
-        <path d="M9 10h6"></path>
-    </svg>
-    <span>Ask AI</span>
-</button>
-<dialog class="chat-widget__window" data-role="window" aria-label="Chat with AI assistant">
-    <header class="chat-widget__header">
-        <span>Assistant</span>
-        <div class="chat-widget__header-actions">
-            <button class="chat-widget__header-btn chat-widget__header-btn--clear"
-                data-role="clear" type="button" aria-label="Clear History" title="Clear History">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
-            <button class="chat-widget__header-btn chat-widget__header-btn--close"
-                data-role="close" type="button" aria-label="Close Chat">&times;</button>
-        </div>
-    </header>
-    <div class="chat-widget__messages" data-role="messages"></div>
-    <form class="chat-widget__input-area" data-role="form">
-        <input type="text" class="chat-widget__input" data-role="input" placeholder="Ask a question..."
-            aria-label="Question" autocomplete="off">
-        <button type="submit" class="chat-widget__send" data-role="send">Send</button>
-    </form>
-</dialog>
-`.trim();
-
     // ---- Helpers ----
+
+    const debounce = (func, wait) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    };
 
     const normalizeSender = (sender) => (sender === "user" ? "user" : "bot");
     const isNearBottom = (el, threshold = 64) =>
@@ -262,7 +235,10 @@
         connectedCallback() {
             if (this.#initialised) return;
             this.classList.add("chat-widget");
-            this.innerHTML = TEMPLATE;
+            const template = document.getElementById("ai-chat-template");
+            if (template) {
+                this.appendChild(template.content.cloneNode(true));
+            }
             
             const q = (role) => this.querySelector(`[data-role="${role}"]`);
             this.#dom = {
@@ -336,6 +312,26 @@
                 document.body.classList.remove("ai-chat-open");
                 this.#safeSession.remove(SESSION_OPEN_KEY);
                 this.#cancelInflight();
+            }, { signal });
+
+            dialog?.addEventListener("keydown", (e) => {
+                if (e.key === "Tab") {
+                    const focusableElements = dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    const firstElement = focusableElements[0];
+                    const lastElement = focusableElements[focusableElements.length - 1];
+
+                    if (e.shiftKey) { 
+                        if (document.activeElement === firstElement) {
+                            lastElement?.focus();
+                            e.preventDefault();
+                        }
+                    } else { 
+                        if (document.activeElement === lastElement) {
+                            firstElement?.focus();
+                            e.preventDefault();
+                        }
+                    }
+                }
             }, { signal });
 
             input?.addEventListener("keydown", (e) => {
@@ -443,6 +439,16 @@
             }
         }
 
+        #debouncedUpdateStorage = debounce((text) => {
+            const history = this.#getHistory();
+            if (history.length && history[history.length - 1].sender === "bot") {
+                history[history.length - 1].text = text;
+            } else {
+                history.push({ text, sender: "bot" });
+            }
+            this.#safeStorage.set(STORAGE_KEY, history);
+        }, 500);
+
         #setInputDisabled(disabled) {
             const { input, sendBtn } = this.#dom;
             if (input) input.disabled = disabled;
@@ -476,6 +482,7 @@
             
             const throttler = createRafThrottler((nextText) => {
                 this.#updateMessage(botMessage, nextText, true);
+                this.#debouncedUpdateStorage(nextText);
             });
 
             try {
@@ -483,7 +490,7 @@
                 const accumulated = await this.#streamChat(text, (next) => throttler.schedule(next), this.#abortController.signal);
                 throttler.cancel();
                 this.#updateMessage(botMessage, accumulated, true);
-                if (accumulated) this.#saveMessage({ text: accumulated, sender: "bot" });
+                this.#debouncedUpdateStorage(accumulated);
             } catch (error) {
                 if (error.name === "AbortError") {
                     botMessage?.remove();
