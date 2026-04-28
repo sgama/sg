@@ -28,7 +28,7 @@
     };
 
     const normalizeSender = (sender) => (sender === "user" ? "user" : "bot");
-    const isNearBottom = (el, threshold = 64) =>
+    const isNearBottom = (el, threshold = 150) =>
         el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
     let renderMarkdown = null;
@@ -189,7 +189,7 @@
                 this.#focusInput();
                 return;
             }
-            this.classList.add("chat-widget--open");
+            this.classList.add("is-open");
             document.body.classList.add("ai-chat-open");
             
             if (typeof this.#dom.dialog.show === "function") {
@@ -198,6 +198,14 @@
                 this.#dom.dialog.setAttribute("open", "");
             }
             
+            if (this.#dom.messages) {
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        this.#dom.messages.scrollTop = this.#dom.messages.scrollHeight;
+                    }, 50); // delay ensures View Transitions / DOM updates complete
+                });
+            }
+
             this.#applyPendingQuestion();
             this.#focusInput();
             this.#safeSession.set(SESSION_OPEN_KEY, "true");
@@ -208,7 +216,7 @@
             if (!this.#initialised || !this.#dom.dialog) return;
             if (!this.#dom.dialog.open && !this.#dom.dialog.hasAttribute("open")) return;
             
-            this.classList.remove("chat-widget--open");
+            this.classList.remove("is-open");
             document.body.classList.remove("ai-chat-open");
             
             if (typeof this.#dom.dialog.close === "function") {
@@ -224,7 +232,15 @@
 
         toggle() {
             if (!this.#initialised || !this.#dom.dialog) return;
-            this.#dom.dialog.open ? this.close() : this.open();
+            const action = () => {
+                this.#dom.dialog.open ? this.close() : this.open();
+            };
+            
+            if (document.startViewTransition) {
+                document.startViewTransition(action);
+            } else {
+                action();
+            }
         }
 
         setPendingQuestion(text) {
@@ -263,12 +279,18 @@
 
             loadMarkdown().then((success) => {
                 if (success && this.#dom.messages) {
-                    const botMessages = this.#dom.messages.querySelectorAll('.chat-widget__message--bot');
+                    const wasAtBottom = isNearBottom(this.#dom.messages, 150) || this.#dom.messages.scrollTop === 0;
+                    const botMessages = this.#dom.messages.querySelectorAll('.message--bot');
                     botMessages.forEach((el) => {
                         if (el.dataset.rawText) {
                             this.#writeMessageContent(el, el.dataset.rawText, "bot");
                         }
                     });
+                    if (wasAtBottom) {
+                        requestAnimationFrame(() => {
+                            this.#dom.messages.scrollTop = this.#dom.messages.scrollHeight;
+                        });
+                    }
                 }
             });
             this.#initialised = true;
@@ -302,6 +324,25 @@
             const { signal } = this.#eventAborter;
             const { toggleBtn, closeBtn, clearBtn, form, dialog, input, messages } = this.#dom;
 
+            if (window.visualViewport && dialog) {
+                const adjustViewport = () => {
+                    if (!dialog.open) {
+                        dialog.style.height = ''; 
+                        return;
+                    }
+                    if (window.innerWidth <= 640) {
+                        dialog.style.height = `${window.visualViewport.height}px`;
+                    } else {
+                        dialog.style.height = '';
+                    }
+                    if (messages && messages.scrollHeight > messages.clientHeight) {
+                        requestAnimationFrame(() => messages.scrollTop = messages.scrollHeight);
+                    }
+                };
+                window.visualViewport.addEventListener('resize', adjustViewport, { signal });
+                window.visualViewport.addEventListener('scroll', adjustViewport, { signal });
+            }
+
             toggleBtn?.addEventListener("click", () => this.toggle(), { signal });
             
             closeBtn?.addEventListener("click", (e) => {
@@ -319,7 +360,7 @@
             form?.addEventListener("submit", (e) => this.#handleSubmit(e), { signal });
 
             dialog?.addEventListener("close", () => {
-                this.classList.remove("chat-widget--open");
+                this.classList.remove("is-open");
                 document.body.classList.remove("ai-chat-open");
                 this.#safeSession.remove(SESSION_OPEN_KEY);
                 this.#cancelInflight();
@@ -412,7 +453,7 @@
         #buildMessageEl(text, sender) {
             const div = document.createElement("div");
             const normalized = normalizeSender(sender);
-            div.classList.add("chat-widget__message", `chat-widget__message--${normalized}`);
+            div.classList.add("message", `message--${normalized}`);
             div.setAttribute("role", normalized === "bot" ? "status" : "article");
             div.setAttribute("aria-live", normalized === "bot" ? "polite" : "off");
             if (normalized === "bot") div.dataset.rawText = text;
@@ -438,13 +479,15 @@
 
         #updateMessage(messageEl, text, forceScroll = false) {
             if (!messageEl) return;
-            const sender = messageEl.classList.contains("chat-widget__message--user") ? "user" : "bot";
-            
-            messageEl.classList.toggle("chat-widget__message--loading", !text);
-            this.#writeMessageContent(messageEl, text || "...", sender);
+            const sender = messageEl.classList.contains("message--user") ? "user" : "bot";
             
             const { messages } = this.#dom;
-            if (messages && (forceScroll || isNearBottom(messages))) {
+            const shouldScroll = forceScroll || (messages ? isNearBottom(messages, 150) : false);
+
+            messageEl.classList.toggle("message--loading", !text);
+            this.#writeMessageContent(messageEl, text || "...", sender);
+            
+            if (shouldScroll) {
                 requestAnimationFrame(() => {
                     messages.scrollTop = messages.scrollHeight;
                 });
