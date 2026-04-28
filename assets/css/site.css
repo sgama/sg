@@ -257,3 +257,12 @@
         html::before { animation: none; opacity: 0.3; }
     }
 }
+  .chat-widget .messages * {
+      overflow-anchor: none;
+  }
+  .chat-widget .scroll-anchor {
+      overflow-anchor: auto;
+      height: 1px;
+      min-height: 1px;
+      flex-shrink: 0;
+  }

@@ -28,8 +28,6 @@
     };
 
     const normalizeSender = (sender) => (sender === "user" ? "user" : "bot");
-    const isNearBottom = (el, threshold = 150) =>
-        el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
     let renderMarkdown = null;
     let markdownLoader = null;
@@ -108,73 +106,12 @@
         };
     };
 
-    class SwipeDownDismiss {
-        #abortController = null;
-
-        constructor({ minDistance = 100, onSwipe, shouldStartTracking }) {
-            this.config = { minDistance };
-            this.state = { startY: 0, startTime: 0, tracking: false, startX: 0 };
-            this.onSwipe = onSwipe ?? (() => {});
-            this.shouldStartTracking = shouldStartTracking ?? (() => true);
-        }
-
-        attach(element) {
-            if (!element) return;
-            this.detach();
-            this.#abortController = new AbortController();
-            const { signal } = this.#abortController;
-
-            const start = (e) => {
-                if (!this.shouldStartTracking()) return;
-                this.state = { 
-                    startY: e.touches[0].clientY, 
-                    startX: e.touches[0].clientX, 
-                    startTime: Date.now(), 
-                    tracking: true 
-                };
-            };
-
-            const move = (e) => {
-                if (!this.state.tracking) return;
-                const dy = e.touches[0].clientY - this.state.startY;
-                const dx = e.touches[0].clientX - this.state.startX;
-                if (dy > 0 && Math.abs(dy) > Math.abs(dx)) {
-                    if (e.cancelable) e.preventDefault();
-                }
-            };
-
-            const end = (e) => {
-                if (!this.state.tracking) return;
-                const dy = e.changedTouches[0].clientY - this.state.startY;
-                const dt = Date.now() - this.state.startTime;
-                const fast = dy >= 50 && dt <= 300;
-                const long = dy >= this.config.minDistance;
-                
-                if (fast || long) this.onSwipe();
-                this.state.tracking = false;
-            };
-
-            const cancel = () => { this.state.tracking = false; };
-
-            element.addEventListener("touchstart", start, { passive: false, signal });
-            element.addEventListener("touchmove", move, { passive: false, signal });
-            element.addEventListener("touchend", end, { passive: true, signal });
-            element.addEventListener("touchcancel", cancel, { passive: true, signal });
-        }
-
-        detach() {
-            this.#abortController?.abort();
-            this.#abortController = null;
-        }
-    }
-
     // ---- Custom element ----
 
     class AiChatWidget extends HTMLElement {
         #dom = {};
         #abortController = null;
         #eventAborter = null;
-        #swipe = null;
         #pendingQuestion = null;
         #initialised = false;
         #safeStorage = createSafeStore(localStorage, { json: true });
@@ -196,14 +133,6 @@
                 this.#dom.dialog.show();
             } else {
                 this.#dom.dialog.setAttribute("open", "");
-            }
-            
-            if (this.#dom.messages) {
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        this.#dom.messages.scrollTop = this.#dom.messages.scrollHeight;
-                    }, 50); // delay ensures View Transitions / DOM updates complete
-                });
             }
 
             this.#applyPendingQuestion();
@@ -279,18 +208,12 @@
 
             loadMarkdown().then((success) => {
                 if (success && this.#dom.messages) {
-                    const wasAtBottom = isNearBottom(this.#dom.messages, 150) || this.#dom.messages.scrollTop === 0;
                     const botMessages = this.#dom.messages.querySelectorAll('.message--bot');
                     botMessages.forEach((el) => {
                         if (el.dataset.rawText) {
                             this.#writeMessageContent(el, el.dataset.rawText, "bot");
                         }
                     });
-                    if (wasAtBottom) {
-                        requestAnimationFrame(() => {
-                            this.#dom.messages.scrollTop = this.#dom.messages.scrollHeight;
-                        });
-                    }
                 }
             });
             this.#initialised = true;
@@ -300,9 +223,7 @@
             this.#cancelInflight();
             this.#eventAborter?.abort();
             this.#eventAborter = null;
-            
-            this.#swipe?.detach();
-            this.#swipe = null;
+            this.
             document.body.classList.remove("ai-chat-open");
             this.#initialised = false;
         }
@@ -323,26 +244,6 @@
             this.#eventAborter = new AbortController();
             const { signal } = this.#eventAborter;
             const { toggleBtn, closeBtn, clearBtn, form, dialog, input, messages } = this.#dom;
-
-            if (window.visualViewport && dialog) {
-                const adjustViewport = () => {
-                    if (!dialog.open) {
-                        dialog.style.height = ''; 
-                        return;
-                    }
-                    if (window.innerWidth <= 640) {
-                        dialog.style.height = `${window.visualViewport.height}px`;
-                    } else {
-                        dialog.style.height = '';
-                    }
-                    if (messages && messages.scrollHeight > messages.clientHeight) {
-                        requestAnimationFrame(() => messages.scrollTop = messages.scrollHeight);
-                    }
-                };
-                window.visualViewport.addEventListener('resize', adjustViewport, { signal });
-                window.visualViewport.addEventListener('scroll', adjustViewport, { signal });
-            }
-
             toggleBtn?.addEventListener("click", () => this.toggle(), { signal });
             
             closeBtn?.addEventListener("click", (e) => {
@@ -393,12 +294,6 @@
                     form?.requestSubmit();
                 }
             }, { signal });
-
-            this.#swipe = new SwipeDownDismiss({
-                onSwipe: () => this.close(),
-                shouldStartTracking: () => !!messages && messages.scrollTop === 0,
-            });
-            this.#swipe.attach(dialog);
         }
 
         // --- History ---
@@ -426,10 +321,7 @@
             });
             
             if (this.#dom.messages) {
-                this.#dom.messages.appendChild(fragment);
-                requestAnimationFrame(() => {
-                    this.#dom.messages.scrollTop = this.#dom.messages.scrollHeight;
-                });
+                this.#dom.messages.insertBefore(fragment, this.#dom.messages.querySelector(".scroll-anchor") || null);
             }
         }
 
@@ -464,16 +356,8 @@
         #addMessage(text, sender) {
             const { messages } = this.#dom;
             if (!messages) return null;
-            
-            const shouldScroll = isNearBottom(messages);
             const div = this.#buildMessageEl(text, sender);
-            messages.appendChild(div);
-            
-            if (shouldScroll) {
-                requestAnimationFrame(() => {
-                    messages.scrollTop = messages.scrollHeight;
-                });
-            }
+            messages.insertBefore(div, messages.querySelector(".scroll-anchor") || null);
             return div;
         }
 
@@ -482,16 +366,9 @@
             const sender = messageEl.classList.contains("message--user") ? "user" : "bot";
             
             const { messages } = this.#dom;
-            const shouldScroll = forceScroll || (messages ? isNearBottom(messages, 150) : false);
 
             messageEl.classList.toggle("message--loading", !text);
             this.#writeMessageContent(messageEl, text || "...", sender);
-            
-            if (shouldScroll) {
-                requestAnimationFrame(() => {
-                    messages.scrollTop = messages.scrollHeight;
-                });
-            }
         }
 
         #debouncedUpdateStorage = debounce((text) => {
