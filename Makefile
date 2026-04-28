@@ -120,5 +120,8 @@ cleanup-deployments: check-tools check-env deps ## Delete all but the latest Pag
 favicons: ## Regenerate favicon assets
 	@bash scripts/generate_favicons.sh
 
+kill:
+	kill -9 $(lsof -t -i:1313)
+
 ##@ CI
 ci: check-tools check-env audit-site ai-embeddings deploy-pages build-summary ## Run the full CI flow locally

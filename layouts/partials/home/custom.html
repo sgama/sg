@@ -36,14 +36,29 @@
         {{ with $.Params.imagePosition | default $defaultPosition }}
             {{ $style = printf "object-position: %s;" . }}
         {{ end }}
-        <img id="background-image"
-            src="{{ . }}"
-            role="presentation"
-            loading="eager"
-            decoding="async"
-            fetchpriority="high"
-            class="absolute inset-0 w-full h-full object-cover"
-            {{ if $style }}style="{{ $style | safeCSS }}"{{ end }}>
+        {{ if and (not $disableImageOptimization) (ne $featured.MediaType.SubType "svg") (ne $featured.MediaType.SubType "webp") }}
+            <picture>
+                <source type="image/avif" srcset="{{ ($featured.Resize (print (site.Store.Get "backgroundImageWidth") " avif")).RelPermalink }}">
+                <source type="image/webp" srcset="{{ ($featured.Resize (print (site.Store.Get "backgroundImageWidth") " webp")).RelPermalink }}">
+                <img id="background-image"
+                    src="{{ . }}"
+                    role="presentation"
+                    loading="eager"
+                    decoding="async"
+                    fetchpriority="high"
+                    class="absolute inset-0 w-full h-full object-cover"
+                    {{ if $style }}style="{{ $style | safeCSS }}"{{ end }}>
+            </picture>
+        {{ else }}
+            <img id="background-image"
+                src="{{ . }}"
+                role="presentation"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+                class="absolute inset-0 w-full h-full object-cover"
+                {{ if $style }}style="{{ $style | safeCSS }}"{{ end }}>
+        {{ end }}
         <div class="absolute inset-0 bg-gradient-to-t from-neutral dark:from-neutral-800 to-transparent mix-blend-normal"></div>
         <div class="absolute inset-0 opacity-60 bg-gradient-to-t from-neutral dark:from-neutral-800 to-neutral-100 dark:to-neutral-800 mix-blend-normal"></div>
     </div>
@@ -60,12 +75,20 @@
             {{ end }}
             {{ if $authorImage }}
                 {{ $final := $authorImage }}
-                {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg")) }}
+                {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg") (eq $authorImage.MediaType.SubType "webp")) }}
                     {{ $final = $authorImage.Fill (print "192x192 q" ($.Site.Params.Author.imagequality | default "80")) }}
+                    <picture>
+                        <source type="image/avif" srcset="{{ ($authorImage.Fill (print "192x192 avif q" ($.Site.Params.Author.imagequality | default "80"))).RelPermalink }}">
+                        <source type="image/webp" srcset="{{ ($authorImage.Fill (print "192x192 webp q" ($.Site.Params.Author.imagequality | default "80"))).RelPermalink }}">
+                        <img class="intro__avatar nozoom mb-2 h-36 w-36 rounded-full" width="144" height="144"
+                            alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
+                            loading="eager" decoding="async" fetchpriority="high">
+                    </picture>
+                {{ else }}
+                    <img class="intro__avatar nozoom mb-2 h-36 w-36 rounded-full" width="144" height="144"
+                        alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
+                        loading="eager" decoding="async" fetchpriority="high">
                 {{ end }}
-                <img class="intro__avatar nozoom mb-2 h-36 w-36 rounded-full" width="144" height="144"
-                    alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
-                    loading="eager" decoding="async" fetchpriority="high">
             {{ end }}
         {{ end }}
         <h1 class="mb-2 text-4xl font-extrabold text-neutral-800 dark:text-neutral-200">

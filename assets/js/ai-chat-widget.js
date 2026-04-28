@@ -259,7 +259,16 @@
                 this.open();
             }
 
-            loadMarkdown();
+            loadMarkdown().then(() => {
+                if (this.#dom.messages) {
+                    const botMessages = this.#dom.messages.querySelectorAll('.chat-widget__message--bot');
+                    botMessages.forEach((el) => {
+                        if (el.dataset.rawText) {
+                            this.#writeMessageContent(el, el.dataset.rawText, "bot");
+                        }
+                    });
+                }
+            });
             this.#initialised = true;
         }
 
@@ -404,6 +413,7 @@
             div.classList.add("chat-widget__message", `chat-widget__message--${normalized}`);
             div.setAttribute("role", normalized === "bot" ? "status" : "article");
             div.setAttribute("aria-live", normalized === "bot" ? "polite" : "off");
+            if (normalized === "bot") div.dataset.rawText = text;
             this.#writeMessageContent(div, text, normalized);
             return div;
         }
