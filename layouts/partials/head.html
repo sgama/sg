@@ -40,7 +40,7 @@
   <link rel="canonical" href="{{ .Permalink }}">
   {{ if .IsTranslated }}
     {{ range .AllTranslations }}
-      {{ $hreflang := .Language.LanguageCode | default .Language.Lang }}
+      {{ $hreflang := .Language.Locale | default .Language.Lang }}
       {{ if $hreflang }}
         <link rel="alternate" hreflang="{{ $hreflang }}" href="{{ .Permalink }}">
       {{ end }}

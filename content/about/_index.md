@@ -1,6 +1,6 @@
 ---
 title: "About"
-summary: "Senior Software Engineer passionate about innovation, perfection, and pushing technological boundaries"
+summary: "Senior Software Engineer focused on reliability, continuous learning, and AI-powered engineering"
 showDate: false
 ---
 
@@ -8,35 +8,41 @@ showDate: false
 
 ## Hi, I'm Samson 👋
 
-I’m a senior software engineer who loves building dependable systems that feel effortless to the people using them. I started by tinkering with hardware and networks, and over time that curiosity grew into a career focused on backend reliability, automation, and security.
+I’m a senior software engineer with 8+ years of experience in backend systems, DevOps, and service reliability. I care deeply about systems that hold up under real-world pressure, and I am equally driven by the process of learning: new tools, better patterns, and clearer ways to ship dependable software.
+
+Right now, I am actively using AI to upgrade this website itself, from content quality and structure to workflow automation and faster iteration. I treat the site as a living engineering artifact where I can test ideas, refine implementation details, and show how I work in public.
 
 ---
 
-## 💼 What I Do
+## 💼 What I Bring
 
-I specialize in backend engineering, site reliability, and infrastructure optimization. A few highlights:
+I specialize in the operational side of software that has to work under real load. I bring a reliability-first mindset, but I also keep evolving my approach as tools and systems change.
 
-- 📈 **Scaled systems** to handle millions of concurrent users during peak gaming events
-- 🤖 **Automated deployments and monitoring** to reduce manual work and improve team velocity
-- 🔐 **Hardened platforms** with security-first practices and incident-driven improvements
+- 📈 **Supported large-scale player-facing systems** during peak gaming events, with a focus on uptime, fault tolerance, and load readiness
+- 🤖 **Built and maintained automation for deployments and monitoring** using IaC and config management to reduce manual work
+- 🔐 **Led security-aware engineering work** including offensive security training, penetration testing, and incident-driven hardening
+- 🧠 **Continuously upskill in modern AI workflows** and apply them directly to real projects, including this site
 
 {{< button href="/resume" target="_self" >}}
 📄 View Full Resume
 {{< /button >}}
 
-## 🎯 Core Principles
+## 🎯 How I Work
 
-**💡 Innovation First**
-I challenge default approaches and look for simpler, more durable solutions.
+**🔁 Automate Repetition**
+If a workflow gets repeated, it should be encoded, observable, and recoverable.
 
-**✨ Obsess Over Details**
-Small improvements compound. I care about latency, clarity, and the last 10% that makes a system feel smooth.
+**📊 Measure the Impact**
+I care about latency, throughput, reliability, and the operational cost of a change, not just whether it looks elegant.
 
-**❤️ Build for Impact**
-Tech should reduce friction and help people do their best work.
+**🛠️ Design for Production**
+Good systems survive imperfect inputs, traffic spikes, and human mistakes.
+
+**🧪 Learn in Public**
+I use this website as an active sandbox for new ideas, especially AI-assisted content, UX, and engineering workflows.
 
 **🛡️ Security by Design**
-OSCP certified. Security is built in from the start, not bolted on later.
+OSCP certified. I treat security as part of the system, not a separate review step.
 
 ---
 
@@ -45,8 +51,9 @@ OSCP certified. Security is built in from the start, not bolted on later.
 | | |
 | --- | --- |
 | **💻 Backend & Infrastructure** | Go • Rust • Python • Kubernetes • Docker • AWS |
-| **🗄️ Databases & Caching** | PostgreSQL • MongoDB • Redis • DynamoDB |
-| **📊 Monitoring & Reliability** | Prometheus • Datadog • ELK Stack |
+| **🧱 Platform & Automation** | Terraform • Ansible • GitHub Actions • Infrastructure as Code |
+| **📊 Monitoring & Reliability** | Prometheus • Datadog • ELK Stack • Load Testing |
+| **🤖 AI in Practice** | Prompt-driven workflows • Content/system iteration • Practical automation with LLMs |
 | **🔐 Security & Testing** | OSCP • Penetration Testing • CTF Competitions |
 
 {{< button href="/portfolio" target="_self" >}}
@@ -57,7 +64,7 @@ OSCP certified. Security is built in from the start, not bolted on later.
 
 ## 🎮 Beyond the Terminal
 
-When I’m not in the terminal, I’m usually:
+Outside work, I’m usually:
 
 - ⚡ **Building electric bicycles** — hardware meets sustainability
 - 📸 **Photography** — light, composition, and storytelling
@@ -68,7 +75,7 @@ When I’m not in the terminal, I’m usually:
 ## 🤝 Let's Connect
 
 {{< alert "star" >}}
-**I’m always open to discussing technical challenges, collaboration opportunities, or swapping ideas with fellow engineers.**
+**I’m always open to discussing production reliability, AI-assisted engineering workflows, and systems work that benefits from continuous learning.**
 {{< /alert >}}
 
 {{< button href="/contact" target="_self" >}}

@@ -73,8 +73,8 @@ excludeFields = "GPS"
 
 [languages.en]
 disabled = false
-languageCode = "en"
-languageName = "English"
+locale = "en"
+label = "English"
 title = "Samson Gama"
 weight = 1
 
