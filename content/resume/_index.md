@@ -1,24 +1,36 @@
 ---
 title: "Resume"
-summary: "Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps"
+summary: "Staff-oriented AI/SRE engineer with 8+ years building reliable distributed systems, incident response rigor, and automation at scale."
 showDate: false
 ---
 
-Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps.
+Engineer focused on production reliability for AI-enabled and distributed systems. I lead incident response, capacity planning, observability, and delivery automation to improve system resilience while reducing operational toil.
 
 ## 💼 Professional Experience
+
+### 🤖 AI Reliability Engineer
+
+**BitComplete (Clients confidential)** • Remote, US
+*March 2026 - Present*
+
+- Leading reliability engineering workstreams for AI-enabled client products under NDA constraints
+- Building production guardrails for inference and API paths: observability, failure isolation, retries/timeouts, and safe rollback patterns
+- Establishing operational readiness standards with runbooks, alert quality reviews, and incident response workflows
+- Partnering with engineering and product stakeholders on capacity planning and cost/performance tradeoffs for compute-heavy workloads
+
+---
 
 ### 🎮 Senior Service Reliability Engineer
 
 **Demonware / Activision** • Vancouver, Canada
 *August 2020 - January 2026*
 
-- Applied SRE principles to ensure uptime, scalability, and fault tolerance across player-facing and backend systems
-- Built and maintained automation for deployments and monitoring using IaaC and config management tools
-- Led capacity planning and loadtesting initiatives to support large-scale traffic spikes during major events
-- Debugged and solved complex production issues across distributed systems during peak live traffic
-- Collaborated with product and platform teams to evolve services toward more resilient, sustainable architectures
-- Mentored engineers and promoted a culture of service ownership, best practices, and operational excellence through taking pride in our work for the video game series **Call of Duty**
+- Owned reliability outcomes across player-facing and backend services for high-traffic live operations
+- Drove deployment and monitoring automation with infrastructure-as-code and configuration management workflows
+- Led capacity planning and load-testing programs to prepare for major launch and seasonal traffic events
+- Ran and supported incident response across distributed systems during peak traffic windows
+- Partnered with product and platform teams to improve resilience, operability, and long-term sustainability of service architectures
+- Mentored engineers and reinforced service ownership culture across teams shipping the **Call of Duty** platform
 
 ---
 
@@ -27,11 +39,11 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Mastercard** • Vancouver, Canada
 *October 2018 - July 2020*
 
-- Developed and maintained Infrastructure as Code templates using AWS CloudFormation and SaltStack
-- Implemented transparent production traffic mirroring to safely reproduce and debug live issues, significantly improving root-cause analysis and reducing time to resolution
-- Led bi-weekly technical sessions on offensive security concepts and practical attack techniques to strengthen organizational security awareness and defensive capabilities
-- Managed operational duties and deployed new software to on-prem and cloud datacenters
-- Created in-house automation tools to streamline workflows across multiple teams
+- Developed and maintained infrastructure-as-code foundations using AWS CloudFormation and SaltStack
+- Implemented transparent production traffic mirroring to reproduce live issues safely, improving root-cause analysis and time to resolution
+- Led recurring offensive-security knowledge sessions to raise practical defensive capability across engineering teams
+- Supported operational ownership and deployments across both on-prem and cloud datacenters
+- Built internal automation tools that reduced manual effort and improved cross-team delivery consistency
 
 ---
 
@@ -57,9 +69,9 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **FingerTipDeals** • Vancouver, Canada
 *March 2016 - 2017*
 
-- Developed Android and iOS applications serving SaaS product across four countries on AWS infrastructure
-- Built backend services providing client-specific functionality and analytics capabilities
-- Guided company vision to focus on underserved markets while establishing brand identity
+- Co-built Android and iOS products serving customers across four countries on AWS infrastructure
+- Built backend services for tenant-specific functionality and analytics workflows
+- Led technical direction and execution in a resource-constrained startup environment
 
 ---
 
@@ -69,7 +81,7 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 *December 2015 - September 2016*
 
 - Developed Android and iOS applications for fitness-oriented social network platform
-- Implemented machine learning solutions using SVMs and Neural Networks
+- Implemented machine learning solutions using SVMs and neural networks
 - Optimized API response times by **90%** through query optimization and strategic caching
 
 ---
@@ -160,11 +172,12 @@ First Class Honours - Royal Conservatory of Music piano certification
 | Category | Technologies |
 | --- | --- |
 | **Languages** | Rust • Go • Python • JavaScript • Java • C/C++ |
-| **Cloud & Containers** | Docker • Kubernetes • AWS • Azure • GCP |
+| **Cloud & Containers** | Docker • Kubernetes • AWS • Cloudflare • Azure • GCP |
 | **Databases** | MySQL • MongoDB • PostgreSQL • Redis • DynamoDB |
-| **Monitoring & Observability** | Prometheus • Datadog • ELK Stack |
+| **Monitoring & Observability** | Prometheus • Grafana • Datadog • ELK Stack |
 | **Web Infrastructure** | Nginx • Apache • HAProxy • Traefik • Varnish • Squid |
-| **Methodologies** | Machine Learning • AI • REST APIs • gRPC • Agile/Scrum • IaC |
+| **AI & Reliability** | AI/ML Inference Workflows • Incident Response • Capacity Planning • SLO-driven Operations • Infrastructure as Code |
+| **Methodologies** | Machine Learning • AI • REST APIs • gRPC • Agile/Scrum |
 
 ## 🔐 Cybersecurity & CTF Competitions
 
