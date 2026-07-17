@@ -20,10 +20,8 @@ Operated and improved a cloud AI infrastructure platform serving AI-native teams
 
 - **Platform operations across providers**: Provisioned, configured, and operated Kubernetes clusters and containerized workloads across heterogeneous infrastructure.
 - **Automation of infrastructure workflows**: Built internal tooling for cluster provisioning, integration, and lifecycle management to reduce manual operational load.
-- **Reliability engineering for AI workloads**: Drove durable reliability and scalability improvements for both training and inference paths, prioritizing systemic fixes over one-off recoveries.
 - **Observability and alerting**: Implemented and refined monitoring, health checks, and alerting signals to detect regressions and customer-impact risk earlier.
 - **Incident response and follow-through**: Investigated and resolved customer-facing incidents across networking, storage, scheduling, and system layers, then fed findings into postmortems, runbooks, and prevention work.
-- **Operational ownership and cross-functional execution**: Participated in on-call, improved escalation and day-to-day operating cadence, and partnered with engineering and product to deliver new infrastructure capabilities safely.
 
 ## Reliability Outcomes
 

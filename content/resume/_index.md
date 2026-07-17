@@ -11,12 +11,10 @@ Engineer focused on production reliability for AI-enabled and distributed system
 ### 🤖 AI Reliability Engineer
 
 **BitComplete (Clients confidential)** • Remote, US
-*March 2026 - Present*
+*March 2026 - June 2026*
 
 - Leading reliability engineering workstreams for AI-enabled client products under NDA constraints
-- Building production guardrails for inference and API paths: observability, failure isolation, retries/timeouts, and safe rollback patterns
 - Establishing operational readiness standards with runbooks, alert quality reviews, and incident response workflows
-- Partnering with engineering and product stakeholders on capacity planning and cost/performance tradeoffs for compute-heavy workloads
 
 ---
 
