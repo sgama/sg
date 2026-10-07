@@ -1,10 +1,9 @@
-import Cloudflare from 'cloudflare';
 import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { AI_CONFIG } from '../functions/_lib/application.js';
-import { waitForMutation } from './lib/corpus-deployment.mjs';
+import { createMaintenanceClient, waitForMutation } from './lib/corpus-deployment.mjs';
 
 const VERSIONED_NAMESPACE = /^corpus-[a-f0-9]{56}$/;
 const successful = deployment => !deployment.is_skipped
@@ -57,7 +56,9 @@ async function inventory(client, project, accountId) {
     const result = [];
     for await (const deployment of client.pages.projects.deployments.list(project, { account_id: accountId })) {
         // Fetch the deployment snapshot rather than current project-wide environment variables.
-        result.push(await client.pages.projects.deployments.get(project, deployment.id, { account_id: accountId }));
+        result.push(await client.pages.projects.deployments.get(deployment.id, {
+            account_id: accountId, project_name: project,
+        }));
     }
     return result;
 }
@@ -87,7 +88,7 @@ async function vectorInventory(client, accountId, indexName) {
         ids.forEach(id => seen.add(id));
         for (let offset = 0; offset < ids.length; offset += 20) {
             const batch = ids.slice(offset, offset + 20);
-            const records = await client.vectorize.indexes.getByIds(indexName, { account_id: accountId, ids: batch });
+            const records = await client.vectorize.indexes.getByIDs(indexName, { account_id: accountId, ids: batch });
             if (!Array.isArray(records) || records.length !== batch.length
                 || new Set(records.map(record => record.id)).size !== batch.length
                 || records.some(record => !batch.includes(record.id))) {
@@ -132,13 +133,16 @@ export async function cleanupDeployments({
     if (!dryRun) {
         for (const deployment of plan.remove) {
             await assertStable(remaining);
-            await client.pages.projects.deployments.delete(project, deployment.id, { account_id: accountId });
+            await client.pages.projects.deployments.delete(deployment.id, {
+                account_id: accountId, project_name: project,
+                ...(deployment.environment === 'preview' ? { force: true } : {}),
+            });
             remaining.delete(deployment.id);
         }
         // Never remove vectors until all obsolete deployments have been deleted.
         for (let offset = 0; offset < staleIds.length; offset += 100) {
             await assertStable(remaining);
-            const result = await client.vectorize.indexes.deleteByIds(indexName, {
+            const result = await client.vectorize.indexes.deleteByIDs(indexName, {
                 account_id: accountId, ids: staleIds.slice(offset, offset + 100),
             });
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
@@ -157,7 +161,7 @@ export async function main(args = process.argv.slice(2)) {
     const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
     if (!accountId || !apiToken) throw new Error('Missing Cloudflare credentials');
     const result = await cleanupDeployments({
-        client: new Cloudflare({ apiToken, maxRetries: 0, timeout: 30000 }), accountId,
+        client: createMaintenanceClient(apiToken), accountId,
         project: process.env.PROJECT_NAME ?? 'sg', branch: process.env.BRANCH ?? 'develop',
         dryRun: values['dry-run'],
     });

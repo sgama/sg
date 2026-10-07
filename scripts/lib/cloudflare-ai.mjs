@@ -10,7 +10,7 @@ export function createCloudflareAi({
 } = {}) {
     if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
     if (!namespace) throw new Error('A versioned corpus namespace is required');
-    const client = new Cloudflare({ apiToken, maxRetries: 0, timeout: timeoutMs });
+    const client = new Cloudflare({ apiToken, fetch: fetchImpl, maxRetries: 0, timeout: timeoutMs });
     return {
         async retrieve(query) {
             const start = performance.now();

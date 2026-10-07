@@ -51,16 +51,15 @@ export function makeEnv({ aiRun, vectorizeQuery } = {}) {
  * @param {Array} options.keys - Array of key objects with metadata
  * @param {string} options.cursor - Pagination cursor
  * @param {boolean} options.list_complete - Whether the list is complete
+ * @param {Function} options.put - Explicit write implementation
  * @returns {Object} Mock KV namespace
  */
-export function makeKv({ keys = [], cursor = undefined, list_complete = true } = {}) {
+export function makeKv({ keys = [], cursor = undefined, list_complete = true, put } = {}) {
   return {
     async list() {
       return { keys, cursor, list_complete };
     },
-    async put() {
-      // Default mock does nothing; override in specific tests
-    },
+    put: put ?? (async () => { throw new Error('KV.put not configured'); }),
   };
 }
 
@@ -120,16 +119,8 @@ export function makeStream(...sseLines) {
  * @param {ReadableStream} stream
  * @returns {Promise<string>} The complete stream content
  */
-export async function drainStream(stream) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let result = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    result += decoder.decode(value, { stream: true });
-  }
-  return result;
+export function drainStream(stream) {
+  return new Response(stream).text();
 }
 
 /**

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { refreshCorpus, setCorpusNamespace, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
+import { createMaintenanceClient, refreshCorpus, setCorpusNamespace, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
 
 const namespace = `corpus-${'a'.repeat(56)}`;
 const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';
@@ -103,6 +103,26 @@ test('unchanged corpus skips all embeddings, uploads and readiness waits but set
         wait: async () => { assert.fail('Unchanged corpus must not wait for ingestion'); } });
     assert.equal(reused.skipped, true);
     assert.deepEqual(reused.mutationIds, []);
+    assert.ok((await fs.readFile(configPath, 'utf8')).includes(corpus.namespace));
+});
+
+test('SDK transport retrieves the active deployment snapshot using the SDK 7 signature', async (t) => {
+    const { root, configPath } = await refreshFixture(t);
+    const corpus = await buildCorpus({ root });
+    const requests = [];
+    const client = createMaintenanceClient('test-token', async (url) => {
+        const pathname = new URL(url).pathname;
+        requests.push(pathname);
+        const base = '/client/v4/accounts/account/pages/projects/sg';
+        assert.ok([base, `${base}/deployments/active`].includes(pathname));
+        return Response.json({ success: true, result: pathname === base
+            ? { canonical_deployment: { id: 'active' } }
+            : { id: 'active', environment: 'production',
+                env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: corpus.namespace } } } });
+    });
+    const result = await refreshCorpus({ client, accountId: 'account', root });
+    assert.equal(result.skipped, true);
+    assert.equal(requests.length, 2);
     assert.ok((await fs.readFile(configPath, 'utf8')).includes(corpus.namespace));
 });
 

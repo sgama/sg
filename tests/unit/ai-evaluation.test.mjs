@@ -218,11 +218,13 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
             'release-check', '--namespace', corpus.namespace,
             '--fixture', 'fixture.json', '--retrieval-report', 'retrieval.json', '--comparison-report', 'comparison.json',
         ];
-        const passed = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8' });
+        const passed = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8', timeout: 10000 });
+        assert.ifError(passed.error);
         assert.equal(passed.status, 0, passed.stderr);
         assert.match(passed.stdout, /Release gate passed/);
         await fs.writeFile(path.join(root, 'wrangler.toml'), '[vars]\nAI_MODEL = "glm"\nAI_CORPUS_NAMESPACE = "old"\n');
-        const failed = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8' });
+        const failed = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8', timeout: 10000 });
+        assert.ifError(failed.error);
         assert.notEqual(failed.status, 0);
         assert.match(failed.stderr, /AI_CORPUS_NAMESPACE/);
     } finally {

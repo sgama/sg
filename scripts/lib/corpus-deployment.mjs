@@ -1,9 +1,13 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import pLimit from 'p-limit';
-import { toFile } from 'cloudflare';
+import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus, validateCorpus } from './corpus.mjs';
+
+export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
+    return new Cloudflare({ apiToken, fetch, maxRetries: 2, timeout: 30000 });
+}
 
 export async function ingestCorpus(client, accountId, corpus, {
     namespace,
@@ -27,7 +31,7 @@ export async function ingestCorpus(client, accountId, corpus, {
         const result = await client.ai.run(corpus.embedding.model, {
             account_id: accountId,
             text: [chunk.text],
-        });
+        }, { maxRetries: 0 });
         const values = result?.data?.[0];
         if (!Array.isArray(result?.data) || result.data.length !== 1
             || !Array.isArray(values) || values.length !== corpus.embedding.dimensions
@@ -101,7 +105,7 @@ export async function refreshCorpus({
         const info = await client.pages.projects.get(project, { account_id: accountId });
         if (info.canonical_deployment?.id) {
             const active = await client.pages.projects.deployments.get(
-                project, info.canonical_deployment.id, { account_id: accountId });
+                info.canonical_deployment.id, { account_id: accountId, project_name: project });
             if (active?.id !== info.canonical_deployment.id || active.environment !== 'production') {
                 throw new Error('Invalid active production deployment snapshot');
             }

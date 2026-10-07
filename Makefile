@@ -119,7 +119,7 @@ deps: check-ai-tools ## Install Node dependencies exactly from the lockfile
 	@$(NPM) ci --no-fund
 
 test: ## Run unit tests
-	@$(NODE) --test --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 lint: check-ai-tools ## Lint all JavaScript with ESLint
 	@$(NPM) --silent run lint
@@ -167,7 +167,7 @@ ai-check: check-ai-tools ## Validate corpus IDs, model selection and evaluation 
 	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
 ai-test: check-ai-tools ## Run offline AI infrastructure and API tests
-	@$(NODE) --test --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 ai-build: check-wrangler-node ## Bundle Pages Functions locally (Node 22+, no deployment)
 	@mkdir -p "$$REPORT_DIR"

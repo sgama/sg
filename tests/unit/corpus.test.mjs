@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import Cloudflare from 'cloudflare';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { ingestCorpus } from '../../scripts/lib/corpus-deployment.mjs';
+import { createMaintenanceClient, ingestCorpus } from '../../scripts/lib/corpus-deployment.mjs';
 
 test('published resume contains the supplied skills and employment facts', async () => {
     const resume = await readFile(new URL('../../content/resume/_index.md', import.meta.url), 'utf8');
@@ -152,7 +152,7 @@ test('SDK transport sends uploaded NDJSON bytes, not a JSON file wrapper (mock f
     const client = new Cloudflare({
         apiToken: 'test-token', maxRetries: 0,
         fetch: async (url, init) => {
-            requests.push({ url: String(url), init });
+            requests.push(new Request(url, init));
             return new Response(JSON.stringify({ success: true, errors: [],
                 result: String(url).includes('/ai/run/')
                     ? { data: [[0.1, 0.2]] } : { mutationId: 'mock-mutation' },
@@ -162,8 +162,8 @@ test('SDK transport sends uploaded NDJSON bytes, not a JSON file wrapper (mock f
     await ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace });
     const request = requests.find(({ url }) => url.includes('/upsert'));
     assert.match(request.url, /unparsable-behavior=error/);
-    assert.equal(request.init.headers['content-type'], 'application/x-ndjson');
-    const vector = JSON.parse(new TextDecoder().decode(request.init.body).trim());
+    assert.equal(request.headers.get('content-type'), 'application/x-ndjson');
+    const vector = JSON.parse((await request.text()).trim());
     assert.equal(vector.namespace, corpus.namespace);
     assert.deepEqual(vector.values, [0.1, 0.2]);
 });
@@ -191,6 +191,23 @@ test('embedding and upsert errors and unaccepted mutations are never swallowed',
     }
 });
 
+test('maintenance retry defaults do not retry paid embedding failures', async (t) => {
+    const corpus = await buildCorpus({
+        root: await fixture(t, { 'content/page.md': 'Body.' }),
+        embedding: { model: 'test-model', dimensions: 2 },
+    });
+    let calls = 0;
+    const client = createMaintenanceClient('test-token', async (url) => {
+        calls++;
+        assert.match(String(url), /\/ai\/run\/test-model$/);
+        return Response.json({ success: false, errors: [{ message: 'embedding unavailable' }] },
+            { status: 504 });
+    });
+    await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace }),
+        error => error instanceof Cloudflare.APIError && error.status === 504);
+    assert.equal(calls, 1);
+});
+
 test('offline CLI needs no credentials, writes reproducible manifest, and import is side-effect safe', async (t) => {
     const root = await fixture(t);
     const manifest = path.join(root, 'manifest.json');
@@ -199,7 +216,8 @@ test('offline CLI needs no credentials, writes reproducible manifest, and import
     delete env.CLOUDFLARE_ACCOUNT_ID;
     delete env.CLOUDFLARE_API_TOKEN;
     const result = spawnSync(process.execPath, [script, '--check', '--manifest', manifest],
-        { cwd: root, env, encoding: 'utf8' });
+        { cwd: root, env, encoding: 'utf8', timeout: 10000 });
+    assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).namespace, (await buildCorpus({ root })).namespace);
     const { readFile } = await import('node:fs/promises');
@@ -215,10 +233,12 @@ test('offline CLI needs no credentials, writes reproducible manifest, and import
         !Object.hasOwn(chunk, 'text') && !Object.hasOwn(chunk.metadata, 'text')));
     const imported = spawnSync(process.execPath, ['--input-type=module', '-e',
         `await import(${JSON.stringify(new URL('../../scripts/generate_embeddings.mjs', import.meta.url).href)})`],
-        { env, encoding: 'utf8' });
+        { env, encoding: 'utf8', timeout: 10000 });
+    assert.ifError(imported.error);
     assert.equal(imported.status, 0, imported.stderr);
     assert.equal(imported.stdout, '');
-    const rejected = spawnSync(process.execPath, [script], { cwd: root, env, encoding: 'utf8' });
+    const rejected = spawnSync(process.execPath, [script], { cwd: root, env, encoding: 'utf8', timeout: 10000 });
+    assert.ifError(rejected.error);
     assert.notEqual(rejected.status, 0);
     assert.match(rejected.stderr, /--namespace/);
 });

@@ -246,8 +246,21 @@ in every unreferenced `corpus-*` namespace, including undeployed evaluation
 candidates. Unversioned/foreign namespaces are untouched. Vector deletion waits
 for the accepted mutation to finish processing.
 
+Cleanup uses Cloudflare SDK 7 native retries: at most two retries per request,
+with a 30-second timeout per attempt. The SDK retries connection failures,
+HTTP 408/409/429, and 5xx responses, honoring `Retry-After` headers (including
+120 seconds). Without a retry header it uses its default exponential backoff;
+the JSON body's `retry_after` field is not used. Exhausted retries still fail CI.
+Retries repeat the failed request, not the whole cleanup plan; existing inventory
+checks remain in place, but they do not run between native retry attempts.
+Corpus refresh and direct ingestion use the same maintenance retry/timeout
+policy for Pages and Vectorize operations. Paid embedding requests explicitly
+disable retries to avoid automatic repeat inference charges.
+
 Preview-only versioned corpora are pruned after preview deletion; corpora also
-referenced by retained production deployments remain protected. API rejection
+referenced by retained production deployments remain protected. Aliased previews
+use the SDK's `force` deletion option, enabled only for previews; it does not
+bypass production retention checks. API rejection
 of preview deletion fails cleanup before vector pruning. A final inventory check
 detects deployments created during cleanup. Disable unwanted automatic preview
 builds in Pages branch controls and avoid concurrent external deployments:

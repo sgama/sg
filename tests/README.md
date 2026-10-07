@@ -24,7 +24,6 @@ tests/
 │   ├── log-service.test.mjs      # LogService (persistence, retrieval)
 │   └── logs-api.test.mjs         # /api/logs endpoint
 └── helpers/                 # Shared test utilities
-    ├── index.mjs                 # Re-exports all helpers
     ├── data.mjs                  # Constants, fixtures, and test data builders
     └── mocks.mjs                 # Mock factories
 ```
@@ -80,6 +79,20 @@ preserving warnings, errors, and exit codes without filtering. Tests use Node's
 `spec` reporter for shorter output than TAP with failure details intact.
 `make test TEST_REPORTER=tap` (or `make ai-test TEST_REPORTER=tap`) selects TAP.
 ESLint is silent on success, and c8 prints its native coverage summary.
+
+Make and npm test/coverage commands use Node's native 30-second test timeout.
+CLI subprocess tests also use a 10-second `spawnSync` timeout and assert that no
+spawn error occurred, so a timeout cannot count as an expected command failure.
+
+Cloudflare contract tests run the installed SDK with injected fetch and native
+`Request`/`Response` objects. They verify Pages routes, terminating pagination,
+preview-only force deletion, Vectorize payload limits and mutation readiness.
+Evaluation fetch injection covers embedding, retrieval and generation, not just
+generation. No Cloudflare credentials or network calls are needed.
+
+KV mocks reject writes unless `put` is explicitly configured. Use a test-scoped
+`t.mock.fn` to assert write arguments and counts. Stream helpers use native
+`Response.text()` for UTF-8 decoding and error propagation.
 
 AI-service, chat API, and stream error-path tests capture expected `console.error` calls with
 test-scoped `t.mock.method` and assert their arguments and call counts.

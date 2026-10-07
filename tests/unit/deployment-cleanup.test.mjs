@@ -1,6 +1,74 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import Cloudflare from 'cloudflare';
+import { setImmediate } from 'node:timers/promises';
 import { cleanupDeployments, planRetention, referencedNamespaces } from '../../scripts/cleanup_deployments.mjs';
+import { createMaintenanceClient } from '../../scripts/lib/corpus-deployment.mjs';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
+
+function retryTimers(t) {
+    const retries = [];
+    const setTimeout = globalThis.setTimeout;
+    const timer = t.mock.method(globalThis, 'setTimeout', (callback, delay, ...args) => {
+        if (delay !== 120000) return setTimeout(callback, delay, ...args);
+        retries.push(() => callback(...args));
+        return setTimeout(() => {}, 0);
+    });
+    t.after(() => timer.mock.restore());
+    return {
+        async waitForRetry(count) {
+            for (let turn = 0; turn < 100; turn++) {
+                if (retries.length >= count) return;
+                await setImmediate();
+            }
+            assert.fail(`SDK did not schedule a 120-second delay for retry ${count}`);
+        },
+        resume(count) { retries[count - 1](); },
+    };
+}
+
+test('native cleanup retries honor a 120-second Retry-After header', async (t) => {
+    const timers = retryTimers(t);
+    let calls = 0;
+    const client = createMaintenanceClient('test-token', async () => {
+        calls++;
+        return calls === 1
+            ? new Response(JSON.stringify({ retry_after: 120 }), {
+                status: 504, headers: { 'retry-after': '120', 'content-type': 'application/json' },
+            })
+            : Response.json({ success: true, result: { canonical_deployment: { id: 'active' } } });
+    });
+    const pending = client.pages.projects.get('sg', { account_id: 'account' });
+    await timers.waitForRetry(1);
+    assert.equal(calls, 1);
+    await setImmediate();
+    assert.equal(calls, 1);
+    timers.resume(1);
+    assert.equal((await pending).canonical_deployment.id, 'active');
+    assert.equal(calls, 2);
+});
+
+test('native cleanup retries are bounded and do not retry invalid requests', async (t) => {
+    const timers = retryTimers(t);
+    for (const [status, expectedCalls] of [[504, 3], [400, 1]]) {
+        let calls = 0;
+        const client = createMaintenanceClient('test-token', async () => {
+            calls++;
+            return Response.json({ success: false, errors: [{ message: 'rejected' }] },
+                { status, headers: { 'retry-after': '120' } });
+        });
+        const pending = assert.rejects(client.pages.projects.get('sg', { account_id: 'account' }),
+            error => error instanceof Cloudflare.APIError && error.status === status);
+        if (status === 504) {
+            for (let retry = 1; retry <= 2; retry++) {
+                await timers.waitForRetry(retry);
+                timers.resume(retry);
+            }
+        }
+        await pending;
+        assert.equal(calls, expectedCalls);
+    }
+});
 
 const namespace = number => `corpus-${number.toString(16).padStart(56, '0')}`;
 const deployment = (number, overrides = {}) => ({
@@ -11,6 +79,76 @@ const deployment = (number, overrides = {}) => ({
     latest_stage: { name: 'deploy', status: 'success' },
     env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: namespace(number) } },
     ...overrides,
+});
+
+test('SDK transport covers Pages deletion, Vectorize batches and mutation readiness', async () => {
+    let deployments = [deployment(1), deployment(8), deployment(99, { environment: 'preview' })];
+    const removed = [];
+    const vectorRequests = [];
+    const stale = Array.from({ length: 110 }, (_, index) => ({ id: `stale-${index}`, namespace: namespace(1) }));
+    const vectors = [...stale, { id: 'active', namespace: namespace(8) }];
+    const base = '/client/v4/accounts/account/pages/projects/sg';
+    const client = createMaintenanceClient('test-token', async (url, init) => {
+        const request = new Request(url, init);
+        const target = new URL(request.url);
+        let result;
+        if (target.pathname === base) {
+            result = { canonical_deployment: { id: 'd8' } };
+        } else if (target.pathname === `${base}/deployments`) {
+            const page = Number(target.searchParams.get('page') ?? 1);
+            assert.ok(page <= 2, 'SDK pagination must stop after the empty page');
+            result = page === 1 ? deployments : [];
+        } else if (target.pathname.startsWith(`${base}/deployments/`)) {
+            const id = target.pathname.slice(`${base}/deployments/`.length);
+            assert.ok(deployments.some(item => item.id === id), `Unexpected deployment ${id}`);
+            if (request.method === 'DELETE') {
+                removed.push([id, target.searchParams.get('force')]);
+                deployments = deployments.filter(item => item.id !== id);
+                result = null;
+            } else {
+                assert.equal(request.method, 'GET');
+                result = deployments.find(item => item.id === id);
+            }
+        } else {
+            const vectorBase = '/client/v4/accounts/account/vectorize/v2/indexes/portfolio-index';
+            const operation = target.pathname.slice(vectorBase.length);
+            assert.ok(target.pathname.startsWith(vectorBase));
+            if (operation === '/list') {
+                assert.equal(request.method, 'GET');
+                assert.equal(target.searchParams.get('count'), '1000');
+                result = { vectors: vectors.map(({ id }) => ({ id })), isTruncated: false };
+            } else if (operation === '/get_by_ids' || operation === '/delete_by_ids') {
+                assert.equal(request.method, 'POST');
+                assert.equal(request.headers.get('content-type'), 'application/json');
+                const { ids } = await request.json();
+                assert.ok(ids.length <= (operation === '/get_by_ids' ? 20 : 100));
+                vectorRequests.push([operation, ids]);
+                result = operation === '/get_by_ids'
+                    ? vectors.filter(vector => ids.includes(vector.id))
+                    : { mutationId: 'deleted' };
+            } else {
+                assert.equal(operation, '/info');
+                assert.equal(request.method, 'GET');
+                vectorRequests.push([operation]);
+                result = { dimensions: AI_CONFIG.embedding.dimensions, processedUpToMutation: 'deleted' };
+            }
+        }
+        return Response.json({ success: true, result,
+            result_info: { page: 1, per_page: 20, total_pages: 1, count: deployments.length } });
+    });
+    const result = await cleanupDeployments({ client, accountId: 'account', previous: 0 });
+    assert.deepEqual(result.removedDeployments, ['d1', 'd99']);
+    assert.deepEqual(removed, [['d1', null], ['d99', 'true']]);
+    assert.deepEqual(result.retainedDeployments, ['d8']);
+    assert.equal(result.removedVectors, 110);
+    assert.deepEqual(vectorRequests.filter(([operation]) => operation === '/get_by_ids')
+        .map(([, ids]) => ids.length), [20, 20, 20, 20, 20, 11]);
+    assert.deepEqual(vectorRequests.filter(([operation]) => operation === '/delete_by_ids')
+        .map(([, ids]) => ids.length), [100, 10]);
+    assert.deepEqual(vectorRequests.filter(([operation]) => operation === '/delete_by_ids')
+        .flatMap(([, ids]) => ids), stale.map(({ id }) => id));
+    assert.deepEqual(vectorRequests.slice(-4).map(([operation]) => operation),
+        ['/delete_by_ids', '/info', '/delete_by_ids', '/info']);
 });
 
 function fixture() {
@@ -29,8 +167,14 @@ function fixture() {
             get: async () => ({ canonical_deployment: { id: active } }),
             deployments: {
                 list: async function* () { yield* deployments; },
-                get: async (_, id) => deployments.find(item => item.id === id),
-                delete: async (_, id) => {
+                get: async (id, params) => {
+                    assert.deepEqual(params, { account_id: 'account', project_name: 'sg' });
+                    return deployments.find(item => item.id === id);
+                },
+                delete: async (id, params) => {
+                    const preview = deployments.find(item => item.id === id).environment === 'preview';
+                    assert.deepEqual(params, { account_id: 'account', project_name: 'sg',
+                        ...(preview ? { force: true } : {}) });
                     calls.push(['deployment', id]);
                     deployments = deployments.filter(item => item.id !== id);
                 },
@@ -40,8 +184,8 @@ function fixture() {
             listVectors: async (_, options) => options.cursor
                 ? { vectors: vectors.slice(2).map(({ id }) => ({ id })), isTruncated: false }
                 : { vectors: vectors.slice(0, 2).map(({ id }) => ({ id })), isTruncated: true, nextCursor: 'next' },
-            getByIds: async (_, options) => vectors.filter(vector => options.ids.includes(vector.id)),
-            deleteByIds: async (_, options) => { calls.push(['vectors', options.ids]); return { mutationId: 'deleted' }; },
+            getByIDs: async (_, options) => vectors.filter(vector => options.ids.includes(vector.id)),
+            deleteByIDs: async (_, options) => { calls.push(['vectors', options.ids]); return { mutationId: 'deleted' }; },
         } },
     };
     return { client, calls, wait: async (_, __, id) => calls.push(['ready', id]),
@@ -135,7 +279,7 @@ test('changed active deployment stops cleanup before writes', async () => {
 
 test('incomplete vector fetch prevents deployment deletion', async () => {
     const data = fixture();
-    data.client.vectorize.indexes.getByIds = async () => [];
+    data.client.vectorize.indexes.getByIDs = async () => [];
     await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Incomplete vector records/);
     assert.deepEqual(data.calls, []);
 });
@@ -150,7 +294,7 @@ test('vector inventory respects the 20-ID lookup limit across pages and partial 
         ? { vectors: vectors.slice(45).map(({ id }) => ({ id })), isTruncated: false }
         : { vectors: vectors.slice(0, 45).map(({ id }) => ({ id })),
             isTruncated: true, nextCursor: 'next' };
-    data.client.vectorize.indexes.getByIds = async (_, options) => {
+    data.client.vectorize.indexes.getByIDs = async (_, options) => {
         assert.ok(options.ids.length <= 20);
         batches.push(options.ids);
         return vectors.filter(vector => options.ids.includes(vector.id));
@@ -170,12 +314,12 @@ test('vector deletion respects the 100-ID limit and waits for each batch', async
     data.client.vectorize.indexes.listVectors = async () => ({
         vectors: vectors.map(({ id }) => ({ id })), isTruncated: false,
     });
-    data.client.vectorize.indexes.getByIds = async (_, options) => {
+    data.client.vectorize.indexes.getByIDs = async (_, options) => {
         assert.ok(options.ids.length <= 20);
         return vectors.filter(vector => options.ids.includes(vector.id));
     };
     let batchNumber = 0;
-    data.client.vectorize.indexes.deleteByIds = async (_, options) => {
+    data.client.vectorize.indexes.deleteByIDs = async (_, options) => {
         assert.ok(options.ids.length <= 100);
         const mutationId = `deleted-${++batchNumber}`;
         data.calls.push(['vectors', options.ids]);
