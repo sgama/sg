@@ -74,7 +74,7 @@ export function validateComparisonReport(report, { namespace, fixture, model, mi
     if (rate < minAnswerRate) throw new Error(`Selected model answer checks ${rate} below ${minAnswerRate}`);
 }
 
-export async function main(args = process.argv.slice(2)) {
+export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values, positionals } = parseArgs({
         args, allowPositionals: true,
         options: {
@@ -150,7 +150,7 @@ export async function main(args = process.argv.slice(2)) {
     }
     let report;
     if (command === 'retrieval') {
-        const cloudflare = createCloudflareAi({ namespace, timeoutMs });
+        const cloudflare = createCloudflareAi({ namespace, timeoutMs, fetchImpl });
         report = { ...base, kind: 'retrieval', ...await evaluateRetrieval({
             cases: fixture.cases, retrieve: cloudflare.retrieve,
         }) };
@@ -168,7 +168,7 @@ export async function main(args = process.argv.slice(2)) {
                     .slice(0, AI_CONFIG.retrieval.topK).map(chunk => ({ metadata: chunk.metadata })),
             )]));
         }
-        const cloudflare = createCloudflareAi({ namespace, timeoutMs });
+        const cloudflare = createCloudflareAi({ namespace, timeoutMs, fetchImpl });
         report = {
             ...base, kind: 'comparison', pricingDate: AI_CONFIG.pricingDate,
             contextMode: values['retrieval-report'] ? 'retrieved' : 'labeled-source',

@@ -73,6 +73,14 @@ Outputs are `coverage/index.html`, `coverage/lcov.info`, and
 `coverage/coverage-summary.json`; CI retains reports for 14 days.
 Coverage is reported, not threshold-gated. Browser unit mocks are not a substitute
 for real-browser coverage or accessibility tests.
+Site and background-blur tests execute the original scripts in isolated Node VM
+contexts with explicit DOM fixtures. Content-audit tests run the CLI against
+temporary content trees and verify report contents and threshold exit codes.
+AI CLI tests exercise evaluation reports and corpus refresh against temporary
+corpora with injected fetch, including failures, force refresh and unchanged
+corpus skipping. Widget lifecycle tests exercise submit, stop, offline errors,
+session restoration and confirmed history clearing with isolated DOM fixtures.
+These fixtures do not replace browser rendering or accessibility verification.
 
 Make validation targets suppress recipe echo and stream native tool output,
 preserving warnings, errors, and exit codes without filtering. Tests use Node's

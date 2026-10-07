@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import 'dotenv/config';
 import { createMaintenanceClient, refreshCorpus } from './lib/corpus-deployment.mjs';
 
-export async function main(args = process.argv.slice(2)) {
+export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({ args, options: {
         config: { type: 'string', default: 'wrangler.toml' },
         force: { type: 'boolean', default: false },
@@ -12,7 +12,7 @@ export async function main(args = process.argv.slice(2)) {
     const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
     if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
     const result = await refreshCorpus({
-        client: createMaintenanceClient(apiToken),
+        client: createMaintenanceClient(apiToken, fetchImpl),
         accountId, configPath: values.config, force: values.force,
         project: process.env.PROJECT_NAME ?? 'sg',
     });
