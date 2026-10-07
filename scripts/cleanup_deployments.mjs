@@ -85,8 +85,8 @@ async function vectorInventory(client, accountId, indexName) {
             throw new Error('Invalid or repeated vector ID during cleanup');
         }
         ids.forEach(id => seen.add(id));
-        for (let offset = 0; offset < ids.length; offset += 100) {
-            const batch = ids.slice(offset, offset + 100);
+        for (let offset = 0; offset < ids.length; offset += 20) {
+            const batch = ids.slice(offset, offset + 20);
             const records = await client.vectorize.indexes.getByIds(indexName, { account_id: accountId, ids: batch });
             if (!Array.isArray(records) || records.length !== batch.length
                 || new Set(records.map(record => record.id)).size !== batch.length

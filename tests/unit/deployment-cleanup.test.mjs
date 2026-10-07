@@ -140,6 +140,28 @@ test('incomplete vector fetch prevents deployment deletion', async () => {
     assert.deepEqual(data.calls, []);
 });
 
+test('vector inventory respects the 20-ID lookup limit across pages and partial batches', async () => {
+    const data = fixture();
+    const vectors = Array.from({ length: 66 }, (_, index) => ({
+        id: `vector-${index}`, namespace: namespace(8),
+    }));
+    const batches = [];
+    data.client.vectorize.indexes.listVectors = async (_, options) => options.cursor
+        ? { vectors: vectors.slice(45).map(({ id }) => ({ id })), isTruncated: false }
+        : { vectors: vectors.slice(0, 45).map(({ id }) => ({ id })),
+            isTruncated: true, nextCursor: 'next' };
+    data.client.vectorize.indexes.getByIds = async (_, options) => {
+        assert.ok(options.ids.length <= 20);
+        batches.push(options.ids);
+        return vectors.filter(vector => options.ids.includes(vector.id));
+    };
+    const result = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true });
+    assert.deepEqual(batches.map(batch => batch.length), [20, 20, 5, 20, 1]);
+    assert.deepEqual(batches.flat(), vectors.map(vector => vector.id));
+    assert.equal(result.removedVectors, 0);
+    assert.deepEqual(data.calls, []);
+});
+
 test('missing retained namespace prevents every destructive operation', async () => {
     const data = fixture();
     data.setDeployments(Array.from({ length: 8 }, (_, index) =>
