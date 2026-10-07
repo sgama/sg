@@ -4,7 +4,7 @@ summary: "Senior Software Engineer with 8+ years of experience in backend develo
 showDate: false
 ---
 
-Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps.
+Senior SRE/Platform Engineer with 8+ years of experience designing, building, and operating distributed systems, Kubernetes platforms, cloud infrastructure, and high-scale production services. Experienced in reliability engineering, incident response, performance engineering, infrastructure automation, and observability, with recent experience operating GPU infrastructure for AI/HPC workloads. Strong background in Go, Kubernetes, Terraform, GitOps, and production systems at scale.
 
 ## 💼 Professional Experience
 
@@ -13,12 +13,13 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Demonware / Activision** • Vancouver, Canada
 *August 2020 - January 2026*
 
-- Applied SRE principles to ensure uptime, scalability, and fault tolerance across player-facing and backend systems
-- Built and maintained automation for deployments and monitoring using IaaC and config management tools
-- Led capacity planning and loadtesting initiatives to support large-scale traffic spikes during major events
-- Debugged and solved complex production issues across distributed systems during peak live traffic
-- Collaborated with product and platform teams to evolve services toward more resilient, sustainable architectures
-- Mentored engineers and promoted a culture of service ownership, best practices, and operational excellence through taking pride in our work for the video game series **Call of Duty**
+- Applied SRE practices to improve reliability, scalability, and operational efficiency across production systems, establishing company-wide conf.d configuration standards and improving resource utilization
+- Designed, built, and owned a distributed load-testing platform used by engineering teams company-wide to validate services against large-scale traffic spikes, using Kubernetes, Go, Redis, and distributed rate limiting
+- Diagnosed and resolved complex production incidents across distributed systems during peak live traffic, developing runbooks and operational improvements that reduced repeat incidents and alert fatigue
+- Partnered with product and platform engineering teams to improve service architectures through pull requests, code reviews, technical design, technology selection, RFCs, and load-testing infrastructure
+- Evaluated and helped drive adoption of Vitess for MySQL workloads on Kubernetes, developing PoCs, design documents, RFCs, and migrations to reduce the overhead of maintaining MySQL clusters on VMs
+- Mentored engineers and promoted service ownership and operational excellence, helping teams adopt more reliable engineering and production practices by taking pride in our work for the video game series **Call of Duty**
+
 
 ---
 
@@ -27,11 +28,10 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Mastercard** • Vancouver, Canada
 *October 2018 - July 2020*
 
-- Developed and maintained Infrastructure as Code templates using AWS CloudFormation and SaltStack
-- Implemented transparent production traffic mirroring to safely reproduce and debug live issues, significantly improving root-cause analysis and reducing time to resolution
-- Led bi-weekly technical sessions on offensive security concepts and practical attack techniques to strengthen organizational security awareness and defensive capabilities
-- Managed operational duties and deployed new software to on-prem and cloud datacenters
-- Created in-house automation tools to streamline workflows across multiple teams
+- Designed and developed highly available microservice infrastructure across AWS regions using CloudFormation and SaltStack, including backup strategies, disaster recovery procedures, and operational runbooks
+- Implemented transparent production traffic mirroring to reproduce and debug live production issues safely, improving root-cause analysis and reducing time to resolution
+- Developed and enhanced operational tooling and observability to improve logging, error handling, and notification workflows for background jobs, reducing manual developer intervention and improving visibility into failures
+- Led bi-weekly technical sessions on offensive security, covering practical attack techniques and security concepts to improve engineering security awareness and defensive practices
 
 ---
 
@@ -44,22 +44,11 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Key Achievement:** Rewrote microservices from Python to Golang achieving **2000% throughput increase** and **90% reduction** in CPU/memory usage.
 {{< /alert >}}
 
-- Developed microservices in Kubernetes clusters to process incoming data from secured devices
-- Implemented MongoDB migration scripts to improve production performance by 20%
-- Created internal testing tools to replicate and simulate hundreds of thousands of devices
-- Integrated metrics collection through Prometheus and StatsD with Grafana visualization
-- Automated deployment workflows in Jenkins increasing team productivity by 30%
-
----
-
-### 💡 Co-Founder
-
-**FingerTipDeals** • Vancouver, Canada
-*March 2016 - 2017*
-
-- Developed Android and iOS applications serving SaaS product across four countries on AWS infrastructure
-- Built backend services providing client-specific functionality and analytics capabilities
-- Guided company vision to focus on underserved markets while establishing brand identity
+- Developed and executed MongoDB data migrations that improved production performance by 20% while maintaining application compatibility
+- Re-engineered a microservice from Python to Go, achieving a 20× increase in throughput and 90% reduction in CPU and memory utilization while maintaining integration test coverage
+- Built internal testing and simulation tooling to replicate and simulate hundreds of thousands of devices in development environments, enabling realistic scalability and performance testing
+- Collaborated with engineers on Docker, Python, Go, Kubernetes, and infrastructure best practices, improving consistency across development and production environments
+- Automated repetitive deployment workflows through Jenkins, reducing manual operational work and improving engineering productivity
 
 ---
 
@@ -68,9 +57,9 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Prizm Media Inc.** • Vancouver, Canada
 *December 2015 - September 2016*
 
-- Developed Android and iOS applications for fitness-oriented social network platform
-- Implemented machine learning solutions using SVMs and Neural Networks
-- Optimized API response times by **90%** through query optimization and strategic caching
+- Developed Android and iOS applications for an AWS-hosted fitness-oriented social networking platform, contributing across mobile application development, and backend services
+- Developed and evaluated machine-learning solutions using support vector machines (SVMs) and neural networks to address application-specific problems, applying model development and performance evaluation techniques
+- Reduced response times for frequently used APIs by up to 90% through database query optimization and application-level caching, improving application responsiveness and reducing backend processing overhead
 
 ---
 
@@ -79,9 +68,9 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Ericsson Silicon Valley** • Bay Area, USA
 *September 2015 - December 2015*
 
-- Developed OpenStack Neutron plugin in Python for managing virtual Ericsson routers
-- Researched and implemented secure communication methods between virtual machines
-- Utilized Docker within OpenStack to debug containers and automate testing workflows
+- Developed an OpenStack Neutron plugin in Python to automate lifecycle management of virtual Ericsson routers, integrating network infrastructure with OpenStack and improving infrastructure provisioning consistency
+- Troubleshot containerized virtual-router environments and automated test pipelines on Mirantis OpenStack, diagnosing infrastructure, networking, and deployment issues to improve reliability and test consistency
+
 
 ---
 
@@ -90,9 +79,9 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Grin Technologies** • Vancouver, Canada
 *May 2014 - August 2014*
 
-- Developed web applications for electric vehicle enthusiasts to visualize trips and render custom wheel builds
+- Developed two web applications that processed and visualized raw electric-vehicle telemetry data, enabling users to plot trip data and generate customized wheel configurations using dynamic frontend and backend data
 - Programmed Texas Instruments CC2540 SoC for Bluetooth Low Energy applications
-- Administered electric vehicle forum serving 5000+ daily active users (endless-sphere.com)
+- Administered an electric-vehicle forum serving 5,000+ daily users on AWS through 2020 – endless-sphere.com
 
 ## 🎓 Education
 
@@ -121,14 +110,13 @@ Senior Software Engineer with 8+ years of experience in backend development, mac
 **Community Operations** • Vancouver, Canada
 *2022 - Present*
 
-- Providing leadership to a community of ~1000 people for the last four years
-
+- Lead a council representing a community of ~1,200 residents, coordinating stakeholders, facilitating meetings and decision-making, and communicating community priorities and operational issues
 
 ### Trustee
 
 **Veazey Foundation** • Vancouver, Canada
 
-- Helping a charity which funds full scholarships for incoming UBC students
+- Serve on the board of a charitable foundation providing full scholarships to incoming UBC students, contributing to governance, financial decisions, and long-term planning
 
 ## 🏆 Accomplishments & Certifications
 
