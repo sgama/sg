@@ -55,12 +55,23 @@ export function referencedNamespaces(deployments) {
 async function inventory(client, project, accountId) {
     const result = [];
     for await (const deployment of client.pages.projects.deployments.list(project, { account_id: accountId })) {
-        // Fetch the deployment snapshot rather than current project-wide environment variables.
-        result.push(await client.pages.projects.deployments.get(deployment.id, {
-            account_id: accountId, project_name: project,
-        }));
+        result.push(deployment);
     }
     return result;
+}
+
+async function retainedSnapshots(client, project, accountId, deployments) {
+    const snapshots = [];
+    for (const deployment of deployments) {
+        const snapshot = await client.pages.projects.deployments.get(deployment.id, {
+            account_id: accountId, project_name: project,
+        });
+        if (snapshot?.id !== deployment.id || snapshot.environment !== deployment.environment) {
+            throw new Error('Invalid retained deployment snapshot; refusing cleanup');
+        }
+        snapshots.push(snapshot);
+    }
+    return snapshots;
 }
 
 async function activeDeployment(client, project, accountId) {
@@ -111,7 +122,10 @@ export async function cleanupDeployments({
     const activeId = await activeDeployment(client, project, accountId);
     const deployments = await inventory(client, project, accountId);
     const plan = planRetention(deployments, activeId, branch, previous);
-    const referenced = referencedNamespaces(plan.retain);
+    const retainedIds = new Set(plan.retain.map(deployment => deployment.id));
+    const references = async deployments => referencedNamespaces(
+        await retainedSnapshots(client, project, accountId, deployments));
+    const referenced = await references(plan.retain);
     const vectors = await vectorInventory(client, accountId, indexName);
     const staleIds = vectors.filter(vector => VERSIONED_NAMESPACE.test(vector.namespace)
         && !referenced.has(vector.namespace)).map(vector => vector.id);
@@ -121,10 +135,11 @@ export async function cleanupDeployments({
         }
         const latest = await inventory(client, project, accountId);
         const currentIds = latest.map(deployment => deployment.id).sort();
-        if (JSON.stringify(currentIds) !== JSON.stringify([...expected].sort())
-            || JSON.stringify([...referencedNamespaces(latest.filter(deployment =>
-                plan.retain.some(item => item.id === deployment.id)))].sort())
-                !== JSON.stringify([...referenced].sort())) {
+        if (JSON.stringify(currentIds) !== JSON.stringify([...expected].sort())) {
+            throw new Error('Deployment inventory changed during cleanup; stopping');
+        }
+        const currentReferences = await references(latest.filter(deployment => retainedIds.has(deployment.id)));
+        if (JSON.stringify([...currentReferences].sort()) !== JSON.stringify([...referenced].sort())) {
             throw new Error('Deployment inventory changed during cleanup; stopping');
         }
     };

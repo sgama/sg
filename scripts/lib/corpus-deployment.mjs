@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
@@ -27,18 +28,26 @@ export async function ingestCorpus(client, accountId, corpus, {
     }
     if (!corpus.chunks.length) throw new Error('Refusing to ingest an empty corpus');
     const limit = pLimit(concurrency);
+    const controller = new AbortController();
     const vectors = await Promise.all(corpus.chunks.map((chunk) => limit(async () => {
-        const result = await client.ai.run(corpus.embedding.model, {
-            account_id: accountId,
-            text: [chunk.text],
-        }, { maxRetries: 0 });
-        const values = result?.data?.[0];
-        if (!Array.isArray(result?.data) || result.data.length !== 1
-            || !Array.isArray(values) || values.length !== corpus.embedding.dimensions
-            || !values.every((value) => typeof value === 'number' && Number.isFinite(value))) {
-            throw new Error(`Invalid embedding dimensions or values for ${chunk.id}`);
+        controller.signal.throwIfAborted();
+        try {
+            const result = await client.ai.run(corpus.embedding.model, {
+                account_id: accountId,
+                text: [chunk.text],
+            }, { maxRetries: 0, signal: controller.signal });
+            controller.signal.throwIfAborted();
+            const values = result?.data?.[0];
+            if (!Array.isArray(result?.data) || result.data.length !== 1
+                || !Array.isArray(values) || values.length !== corpus.embedding.dimensions
+                || !values.every((value) => typeof value === 'number' && Number.isFinite(value))) {
+                throw new Error(`Invalid embedding dimensions or values for ${chunk.id}`);
+            }
+            return { id: chunk.id, values, namespace, metadata: chunk.metadata };
+        } catch (error) {
+            controller.abort(error);
+            throw controller.signal.reason;
         }
-        return { id: chunk.id, values, namespace, metadata: chunk.metadata };
     })));
 
     const mutationIds = [];
@@ -80,16 +89,34 @@ export async function waitForMutation(client, accountId, mutationId, {
     timeoutMs = 180000,
     intervalMs = 2000,
     clock = () => performance.now(),
-    sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
+    sleep = (ms, signal) => delay(ms, undefined, { signal }),
 } = {}) {
+    const signal = AbortSignal.timeout(timeoutMs);
     const start = clock();
-    while (clock() - start < timeoutMs) {
-        const info = await client.vectorize.indexes.info(indexName, { account_id: accountId });
-        if (info?.dimensions !== AI_CONFIG.embedding.dimensions) throw new Error('Vectorize index dimensions do not match embedding configuration');
-        if (info.processedUpToMutation === mutationId) return;
-        await sleep(intervalMs);
+    const timeoutError = () => new Error(`Timed out waiting for Vectorize mutation ${mutationId}; corpus was not activated`);
+    let onAbort;
+    const deadline = new Promise((_, reject) => {
+        onAbort = () => reject(timeoutError());
+        signal.addEventListener('abort', onAbort, { once: true });
+    });
+    const poll = async () => {
+        while (clock() - start < timeoutMs) {
+            signal.throwIfAborted();
+            const info = await client.vectorize.indexes.info(indexName,
+                { account_id: accountId }, { signal });
+            signal.throwIfAborted();
+            if (info?.dimensions !== AI_CONFIG.embedding.dimensions) throw new Error('Vectorize index dimensions do not match embedding configuration');
+            if (info.processedUpToMutation === mutationId) return;
+            await sleep(intervalMs, signal);
+        }
+        throw timeoutError();
+    };
+    try {
+        // SDK retry backoff may not observe cancellation until its next request.
+        await Promise.race([deadline, poll()]);
+    } finally {
+        signal.removeEventListener('abort', onAbort);
     }
-    throw new Error(`Timed out waiting for Vectorize mutation ${mutationId}; corpus was not activated`);
 }
 
 export async function refreshCorpus({

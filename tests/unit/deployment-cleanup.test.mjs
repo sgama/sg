@@ -84,6 +84,7 @@ const deployment = (number, overrides = {}) => ({
 test('SDK transport covers Pages deletion, Vectorize batches and mutation readiness', async () => {
     let deployments = [deployment(1), deployment(8), deployment(99, { environment: 'preview' })];
     const removed = [];
+    const snapshots = [];
     const vectorRequests = [];
     const stale = Array.from({ length: 110 }, (_, index) => ({ id: `stale-${index}`, namespace: namespace(1) }));
     const vectors = [...stale, { id: 'active', namespace: namespace(8) }];
@@ -107,6 +108,7 @@ test('SDK transport covers Pages deletion, Vectorize batches and mutation readin
                 result = null;
             } else {
                 assert.equal(request.method, 'GET');
+                snapshots.push(id);
                 result = deployments.find(item => item.id === id);
             }
         } else {
@@ -140,6 +142,8 @@ test('SDK transport covers Pages deletion, Vectorize batches and mutation readin
     assert.deepEqual(result.removedDeployments, ['d1', 'd99']);
     assert.deepEqual(removed, [['d1', null], ['d99', 'true']]);
     assert.deepEqual(result.retainedDeployments, ['d8']);
+    assert.equal(snapshots.length, 7);
+    assert.ok(snapshots.every(id => id === 'd8'));
     assert.equal(result.removedVectors, 110);
     assert.deepEqual(vectorRequests.filter(([operation]) => operation === '/get_by_ids')
         .map(([, ids]) => ids.length), [20, 20, 20, 20, 20, 11]);
@@ -350,5 +354,22 @@ test('a deployment created during inventory prevents cleanup', async () => {
         return listVectors(...args);
     };
     await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Deployment inventory changed/);
+    assert.deepEqual(data.calls, []);
+});
+
+test('retained namespaces are fetched fresh and a changed snapshot prevents deletion', async () => {
+    const data = fixture();
+    const get = data.client.pages.projects.deployments.get;
+    let reads = 0;
+    data.client.pages.projects.deployments.get = async (id, params) => {
+        assert.ok(!['d1', 'd2'].includes(id), 'Do not fetch obsolete deployment snapshots');
+        const snapshot = await get(id, params);
+        reads++;
+        return reads > 6 && id === 'd8'
+            ? { ...snapshot, env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: namespace(99) } } }
+            : snapshot;
+    };
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }),
+        /Deployment inventory changed/);
     assert.deepEqual(data.calls, []);
 });

@@ -208,6 +208,35 @@ test('maintenance retry defaults do not retry paid embedding failures', async (t
     assert.equal(calls, 1);
 });
 
+test('first embedding failure aborts in-flight work and prevents queued inference and uploads', async (t) => {
+    const corpus = await buildCorpus({ root: await fixture(t, Object.fromEntries(
+        Array.from({ length: 8 }, (_, index) => [`content/page-${index}.md`, `Body ${index}.`]),
+    )) });
+    const failure = new Error('embedding unavailable');
+    let calls = 0;
+    let fail;
+    let inFlightAborted = false;
+    const client = clientStub(corpus.embedding.dimensions);
+    client.ai.run = async (_, __, { signal, maxRetries }) => {
+        assert.equal(maxRetries, 0);
+        calls++;
+        if (calls === 1) return new Promise((_, reject) => { fail = () => reject(failure); });
+        return new Promise((_, reject) => {
+            signal.addEventListener('abort', () => {
+                inFlightAborted = true;
+                reject(signal.reason);
+            }, { once: true });
+            fail();
+        });
+    };
+    await assert.rejects(ingestCorpus(client, 'account', corpus,
+        { namespace: corpus.namespace, concurrency: 2 }), error => error === failure);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls, 2);
+    assert.equal(inFlightAborted, true);
+    assert.equal(client.calls.upserts.length, 0);
+});
+
 test('offline CLI needs no credentials, writes reproducible manifest, and import is side-effect safe', async (t) => {
     const root = await fixture(t);
     const manifest = path.join(root, 'manifest.json');

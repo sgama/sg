@@ -253,9 +253,17 @@ HTTP 408/409/429, and 5xx responses, honoring `Retry-After` headers (including
 the JSON body's `retry_after` field is not used. Exhausted retries still fail CI.
 Retries repeat the failed request, not the whole cleanup plan; existing inventory
 checks remain in place, but they do not run between native retry attempts.
+Inventory rechecks use fresh deployment lists and fetch detailed environment
+snapshots only for retained deployments; obsolete deployment details are not
+fetched. Retained namespace snapshots are re-read before each deletion.
 Corpus refresh and direct ingestion use the same maintenance retry/timeout
 policy for Pages and Vectorize operations. Paid embedding requests explicitly
 disable retries to avoid automatic repeat inference charges.
+The first embedding failure aborts in-flight requests and prevents queued
+inference from starting; already-started inference may still incur charges.
+Mutation readiness has an end-to-end three-minute deadline across requests,
+SDK retry backoff and polling sleeps. Requests and sleeps receive its abort
+signal; readiness still fails on time if SDK backoff delays observing cancellation.
 
 Preview-only versioned corpora are pruned after preview deletion; corpora also
 referenced by retained production deployments remain protected. Aliased previews
