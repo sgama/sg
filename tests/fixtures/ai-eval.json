@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "site-stack",
+      "query": "What is Samson's website built with?",
+      "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
+      "answerTerms": [["hugo"], ["cloudflare"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "site-stack-paraphrase",
+      "query": "Which services publish and host this portfolio?",
+      "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
+      "answerTerms": [["cloudflare"], ["github"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "chat-architecture",
+      "query": "How does Samson's portfolio chat retrieve information?",
+      "expectedSources": ["content/posts/2026-01-25-ai-chat/index.md"],
+      "answerTerms": [["vectorize"], ["rag", "retrieval"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "analytics",
+      "query": "What analytics platform does Samson self-host?",
+      "expectedSources": ["content/posts/2024-06-05-self-hosted-analytics/index.md"],
+      "answerTerms": [["umami"]],
+      "forbiddenTerms": ["google analytics is used"]
+    },
+    {
+      "id": "languages",
+      "query": "Which programming languages are listed in Samson's skills profile?",
+      "expectedSources": ["content/_context/skills.md"],
+      "answerTerms": [["python"], ["javascript", "node"], ["go"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "hiring",
+      "query": "Why is Samson a good fit for a platform engineering role?",
+      "expectedSources": ["content/_context/skills.md"],
+      "answerTerms": [["automation", "automate", "ci/cd"], ["cloudflare", "infrastructure", "devops"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "unknown-fact",
+      "query": "What is Samson's exact current salary?",
+      "expectedSources": [],
+      "answerTerms": [["don't have enough reliable context"]],
+      "forbiddenTerms": ["$100,000"]
+    }
+  ]
+}

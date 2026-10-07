@@ -12,6 +12,9 @@ This test suite follows industry best practices for modular, maintainable, and c
 tests/
 ├── unit/                    # Unit tests for individual modules
 │   ├── ai-service.test.mjs       # AiService (embeddings, context, generation)
+│   ├── ai-evaluation.test.mjs    # Model comparisons and release gates
+│   ├── corpus.test.mjs           # Versioned ingestion and transport
+│   ├── corpus-refresh.test.mjs   # Index readiness and deployment namespace activation
 │   ├── chat-api.test.mjs         # /api/chat endpoint
 │   ├── chat-stream.test.mjs      # Provider SSE normalization
 │   ├── guardrails.test.mjs       # Security and safety checks
@@ -27,7 +30,8 @@ tests/
 
 ## Running Tests
 
-Generation uses GLM-4.7-Flash with thinking disabled. The server normalizes
+Generation defaults to GLM-4.7-Flash with thinking disabled, selected from a
+shared model registry. The server normalizes
 OpenAI-style content deltas to `data: {"response":"..."}` events for the widget
 and KV logger, omits reasoning, and forwards the final Workers AI usage summary.
 Empty or malformed responses emit an error event rather than silently succeeding.

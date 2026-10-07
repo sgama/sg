@@ -46,6 +46,14 @@ test('preserves the legacy response stream contract', async () => {
     assert.equal(output, event({ response: 'Legacy answer' }) + 'data: [DONE]\n\n');
 });
 
+test('preserves a standalone OpenAI aggregate usage event without chunk-usage inflation', async () => {
+    const usage = { prompt_tokens: 30, completion_tokens: 2, total_tokens: 32 };
+    const input = event(delta('Answer'))
+        + event({ choices: [], usage }) + 'data: [DONE]\n\n';
+    assert.equal(await normalize(input),
+        event({ response: 'Answer' }) + event({ usage }) + 'data: [DONE]\n\n');
+});
+
 test('does not duplicate content when provider emits a final response summary', async () => {
     const input = event(delta('Answer')) + event({ response: 'Answer' }) + 'data: [DONE]\n\n';
     assert.equal(await normalize(input), event({ response: 'Answer' }) + 'data: [DONE]\n\n');

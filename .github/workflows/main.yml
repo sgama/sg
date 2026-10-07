@@ -5,6 +5,10 @@ on:
     branches:
       - develop
 
+concurrency:
+  group: production-pages
+  cancel-in-progress: false
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: develop
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Cache Hugo binary
@@ -55,6 +59,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
 
+      - name: Set up Node for Wrangler
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
       - name: Install Node dependencies
         run: npm ci
 
@@ -67,23 +76,11 @@ jobs:
       # - name: Audit external links
       #   run: make audit-urls
 
-      - name: Detect embedding-relevant changes
-        id: changed
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            embeddings:
-              - 'content/**'
-              - 'scripts/generate_embeddings.mjs'
-              - 'functions/_lib/ai.js'
-              - 'functions/_lib/config.js'
-
-      - name: Generate AI Embeddings
-        if: steps.changed.outputs.embeddings == 'true'
+      - name: Rebuild and prepare chat embeddings
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: make ai-embeddings
+        run: make ai-refresh
 
       - name: Deploy to Cloudflare Pages
         env:

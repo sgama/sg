@@ -36,7 +36,8 @@ export function normalizeChatStream(stream) {
             emit(controller, { response: payload.response });
         }
         // Workers AI's final legacy event contains aggregate usage; chunk usage is incremental.
-        if (typeof payload.response === 'string' && payload.usage) {
+        if (payload.usage && (typeof payload.response === 'string' || !payload.choices
+            || (payload.choices.length === 0 && payload.usage.total_tokens > 0))) {
             emit(controller, { usage: payload.usage });
         }
     };

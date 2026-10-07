@@ -1,147 +1,108 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { glob } from 'glob';
-import matter from 'gray-matter';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import pLimit from 'p-limit';
-import Cloudflare from 'cloudflare';
-import { MarkdownTextSplitter } from '@langchain/textsplitters';
-import 'dotenv/config';
+import Cloudflare, { toFile } from 'cloudflare';
+import { AI_CONFIG } from '../functions/_lib/ai-config.js';
+import { buildCorpus, validateCorpus } from './lib/corpus.mjs';
 
-const CONFIG = {
-    INDEX_NAME: "portfolio-index",
-    EMBEDDING_MODEL: "@cf/baai/bge-base-en-v1.5",
-    CONCURRENCY_LIMIT: 5,
-    UPSERT_BATCH_SIZE: 1000,
-};
+export { buildCorpus } from './lib/corpus.mjs';
 
-const splitter = new MarkdownTextSplitter({
-    chunkSize: 2000,   // ~500 tokens at 4 chars/token, matching BGE base's 512-token limit
-    chunkOverlap: 200, // overlap preserves context across chunk boundaries
-});
-
-const { CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN } = process.env;
-
-if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN) {
-    console.error("Error: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN in environment.");
-    process.exit(1);
-}
-
-const cf = new Cloudflare({ apiToken: CLOUDFLARE_API_TOKEN });
-
-async function main() {
-    console.time("Total Duration");
-    console.log("🚀 Starting embedding generation pipeline...");
-
-    try {
-        const files = await glob("content/**/*.md");
-        console.log(`📂 Found ${files.length} markdown files.`);
-
-        const allChunks = [];
-        for (const file of files) {
-            const fileChunks = await processFile(file);
-            if (fileChunks) allChunks.push(...fileChunks);
-        }
-        console.log(`📝 Generated ${allChunks.length} text chunks.`);
-
-        console.log(`🧠 Generating embeddings (Concurrency: ${CONFIG.CONCURRENCY_LIMIT})...`);
-        const vectors = await generateEmbeddingsInParallel(allChunks, CONFIG.CONCURRENCY_LIMIT);
-
-        if (vectors.length > 0) {
-            console.log(`☁️  Upserting ${vectors.length} vectors to index: ${CONFIG.INDEX_NAME}`);
-            await batchUpsertVectors(vectors);
-        } else {
-            console.warn("⚠️  No vectors generated. Skipping upsert.");
-        }
-
-    } catch (error) {
-        console.error("❌ Fatal Pipeline Error:", error);
-        process.exit(1);
-    } finally {
-        console.timeEnd("Total Duration");
+export async function ingestCorpus(client, accountId, corpus, {
+    namespace,
+    indexName = AI_CONFIG.retrieval.indexName,
+    concurrency = 5,
+    batchSize = 1000,
+    afterMutation,
+} = {}) {
+    validateCorpus(corpus);
+    if (!namespace || namespace !== corpus.namespace) {
+        throw new Error(`Explicit --namespace must match computed namespace: ${corpus.namespace}`);
     }
-}
-
-export async function processFile(filePath) {
-    try {
-        const rawContent = fs.readFileSync(filePath, 'utf8');
-        const { data, content } = matter(rawContent);
-
-        if (data.draft) return null;
-        if (!content || !content.trim()) return null;
-
-        const textSegments = await splitter.splitText(content);
-
-        return textSegments.map((segment, index) => {
-            const isContext = filePath.includes('content/_context/');
-            return {
-                id: `${path.basename(filePath, '.md')}-${index}`,
-                text: segment,
-                metadata: {
-                    text: segment,
-                    title: data.title || "Untitled",
-                    url: isContext ? null : "/" + path.relative("content", filePath)
-                        .replace(/\.md$/, "")
-                        .replace(/_index$/, "")
-                        .replace(/\/index$/, ""),
-                    type: isContext ? 'context' : 'content'
-                }
-            };
-        });
-    } catch (err) {
-        console.error(`Error processing file ${filePath}: ${err.message}`);
-        return null;
+    if (!accountId || !indexName) throw new Error('Account ID and index name are required');
+    if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 5
+        || !Number.isInteger(batchSize) || batchSize < 1 || batchSize > 1000) {
+        throw new Error('Concurrency must be 1–5 and batch size must be 1–1000');
     }
-}
-
-
-async function generateEmbeddingsInParallel(chunks, concurrency) {
+    if (!corpus.chunks.length) throw new Error('Refusing to ingest an empty corpus');
     const limit = pLimit(concurrency);
-    const results = [];
-
-    await Promise.all(chunks.map(chunk =>
-        limit(async () => {
-            try {
-                const embedding = await getEmbedding(chunk.text);
-                results.push({ id: chunk.id, values: embedding, metadata: chunk.metadata });
-                process.stdout.write(".");
-            } catch (err) {
-                console.error(`\nFailed to embed chunk ${chunk.id}: ${err.message}`);
-            }
-        })
-    ));
-
-    console.log("\nEmbedding complete.");
-    return results;
-}
-
-async function getEmbedding(text) {
-    const result = await cf.ai.run(CONFIG.EMBEDDING_MODEL, {
-        account_id: CLOUDFLARE_ACCOUNT_ID,
-        text: [text],
-    });
-    return result.data[0];
-}
-
-async function batchUpsertVectors(vectors) {
-    const BATCH_SIZE = CONFIG.UPSERT_BATCH_SIZE;
-
-    for (let i = 0; i < vectors.length; i += BATCH_SIZE) {
-        const batch = vectors.slice(i, i + BATCH_SIZE);
-        const ndjson = batch.map(v => JSON.stringify(v)).join('\n');
-
-        try {
-            await cf.vectorize.indexes.upsert(CONFIG.INDEX_NAME, {
-                account_id: CLOUDFLARE_ACCOUNT_ID,
-                body: ndjson,
-            });
-            console.log(`   ✅ Batch ${Math.floor(i / BATCH_SIZE) + 1} uploaded (${batch.length} vectors)`);
-        } catch (err) {
-            console.error(`   ❌ Batch upload failed: ${err.message}`);
+    const vectors = await Promise.all(corpus.chunks.map((chunk) => limit(async () => {
+        const result = await client.ai.run(corpus.embedding.model, {
+            account_id: accountId,
+            text: [chunk.text],
+        });
+        const values = result?.data?.[0];
+        if (!Array.isArray(result?.data) || result.data.length !== 1
+            || !Array.isArray(values) || values.length !== corpus.embedding.dimensions
+            || !values.every((value) => typeof value === 'number' && Number.isFinite(value))) {
+            throw new Error(`Invalid embedding dimensions or values for ${chunk.id}`);
         }
+        return { id: chunk.id, values, namespace, metadata: chunk.metadata };
+    })));
+
+    const mutationIds = [];
+    for (let i = 0; i < vectors.length; i += batchSize) {
+        const batch = vectors.slice(i, i + batchSize);
+        const body = await toFile(batch.map((vector) => JSON.stringify(vector)).join('\n') + '\n',
+            'vectors.ndjson', { type: 'application/x-ndjson' });
+        const result = await client.vectorize.indexes.upsert(indexName, {
+            account_id: accountId,
+            body,
+            'unparsable-behavior': 'error',
+        });
+        if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
+            throw new Error(`Upsert batch ${mutationIds.length + 1} was not accepted: missing mutationId`);
+        }
+        mutationIds.push(result.mutationId);
+        if (afterMutation) await afterMutation(result.mutationId);
     }
+    // Mutation IDs acknowledge asynchronous acceptance, not query readiness or activation.
+    return { namespace, count: vectors.length, mutationIds };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    main();
+export async function main(args = process.argv.slice(2)) {
+    const { values } = parseArgs({
+        args,
+        options: {
+            check: { type: 'boolean', default: false },
+            manifest: { type: 'string' },
+            namespace: { type: 'string' },
+        },
+    });
+    const corpus = await buildCorpus();
+    if (values.manifest) {
+        await mkdir(path.dirname(values.manifest), { recursive: true });
+        const manifest = {
+            ...corpus,
+            chunks: corpus.chunks.map(({ id, chunkIndex, metadata }) => {
+                const { text, ...sourceMetadata } = metadata;
+                return { id, chunkIndex, metadata: sourceMetadata };
+            }),
+        };
+        await writeFile(values.manifest, JSON.stringify(manifest, null, 2) + '\n');
+    }
+    console.log(JSON.stringify({
+        namespace: corpus.namespace, hash: corpus.hash, counts: corpus.counts,
+        embedding: corpus.embedding, chunking: corpus.chunking,
+    }, null, 2));
+    if (values.check) return corpus;
+    if (values.namespace !== corpus.namespace) {
+        throw new Error(`Explicit --namespace must match computed namespace: ${corpus.namespace}`);
+    }
+    await import('dotenv/config');
+    const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
+    if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
+    const result = await ingestCorpus(new Cloudflare({ apiToken }), accountId, corpus, {
+        namespace: values.namespace,
+    });
+    console.log(JSON.stringify({ ...result, status: 'accepted (asynchronous; not activated)' }, null, 2));
+    return result;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    main().catch((error) => {
+        console.error(`Embedding pipeline failed: ${error.message}`);
+        process.exitCode = 1;
+    });
 }

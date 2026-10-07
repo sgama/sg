@@ -43,9 +43,9 @@
 
 <ai-chat-widget id="ai-chat-widget" class="chat-widget"></ai-chat-widget>
 
-{{ $chat_js := resources.Get "js/ai-chat-widget.js" | minify | fingerprint }}
+{{ $chat_js := resources.Get "js/ai-chat-widget.js" | resources.Minify | resources.Fingerprint }}
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
-{{ $site_js := resources.Get "js/site.js" | minify | fingerprint }}
+{{ $site_js := resources.Get "js/site.js" | resources.Minify | resources.Fingerprint }}
 <script defer src="{{ $site_js.RelPermalink }}" integrity="{{ $site_js.Data.Integrity }}"
     crossorigin="anonymous"></script>

@@ -75,6 +75,15 @@ test('/api/chat', async (t) => {
   });
 
   await t.test('Guardrails', async (t) => {
+    await t.test('returns 503 for a retrieval outage instead of a successful abstention', async () => {
+      const response = await onRequest(createContext({
+        method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: 'What do you build?' },
+        env: { AI: { run: async () => { throw new Error('Should not be called'); } } },
+      }));
+      assert.equal(response.status, 503);
+      assert.deepEqual(await response.json(), { error: 'Retrieval service unavailable' });
+    });
     await t.test('rejects prompt injection style queries', async () => {
       const response = await onRequest(createContext({
         method: 'POST',
@@ -181,7 +190,7 @@ test('/api/chat', async (t) => {
         },
         CHAT_LOGS: {
           async put(key, value, options) {
-            savedEntries.push({ key, value: options?.metadata ?? JSON.parse(value || 'null') });
+            savedEntries.push({ key, value: JSON.parse(value) });
           }
         }
       };
@@ -229,7 +238,7 @@ test('/api/chat', async (t) => {
         },
         CHAT_LOGS: {
           async put(key, value, options) {
-            saved.push(options.metadata);
+            saved.push(JSON.parse(value));
           },
         },
       };

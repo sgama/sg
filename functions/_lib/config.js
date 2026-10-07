@@ -1,10 +1,11 @@
+import { AI_CONFIG } from './ai-config.js';
+
 export const CONFIG = {
     MODELS: {
-        EMBEDDINGS: '@cf/baai/bge-base-en-v1.5',
-        GENERATION: '@cf/zai-org/glm-4.7-flash',
+        EMBEDDINGS: AI_CONFIG.embedding.model,
     },
     VECTOR_SEARCH: {
-        FINAL_K: 3,
+        FINAL_K: AI_CONFIG.retrieval.topK,
     },
     HISTORY: {
         // Max conversation turns (user + assistant combined) accepted
@@ -32,4 +33,12 @@ export class AppError extends Error {
         this.status = status;
         this.name = this.constructor.name;
     }
+}
+
+export function buildMessages(query, contextText, history = []) {
+    return [
+        { role: 'system', content: `${CONFIG.SYSTEM_PROMPT}\n\nContext:\n${contextText}` },
+        ...history,
+        { role: 'user', content: query },
+    ];
 }

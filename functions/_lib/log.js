@@ -1,13 +1,17 @@
 import { CONFIG } from './config.js';
 
 export class LogService {
-    static async save(kv, query, responseStream, context = null, { now = () => new Date().toISOString() } = {}) {
+    static async save(kv, query, responseStream, context = null, {
+        now = () => new Date().toISOString(),
+        id = () => crypto.randomUUID(),
+    } = {}) {
         if (!kv) return responseStream;
 
         const decoder = new TextDecoder();
         let messageBuffer = "";
         let accumulatedResponse = "";
         let usageData = null;
+        let streamError = null;
 
         const loggingTransform = new TransformStream({
             transform(chunk, controller) {
@@ -27,22 +31,24 @@ export class LogService {
                             const parsed = JSON.parse(data);
                             if (parsed.response) accumulatedResponse += parsed.response;
                             if (parsed.usage) usageData = parsed.usage;
+                            if (parsed.error) streamError = parsed.error;
                         } catch (e) { /* partial JSON */ }
                     }
                 }
             },
             flush() {
                 const timestamp = now();
-                const key = `${CONFIG.KV_PREFIX}${timestamp}`;
+                const key = `${CONFIG.KV_PREFIX}${timestamp}:${id()}`;
                 const payload = {
                     timestamp,
                     query,
                     response: accumulatedResponse,
-                    usage: usageData
+                    usage: usageData,
+                    ...(streamError ? { error: streamError } : {}),
                 };
-                const savePromise = kv.put(key, "", {
+                const savePromise = kv.put(key, JSON.stringify(payload), {
                     expirationTtl: 2592000,
-                    metadata: payload
+                    metadata: { timestamp, version: 2 },
                 }).catch(e => console.error("Log Flush Error", e));
 
                 if (context?.waitUntil) {
@@ -63,15 +69,23 @@ export class LogService {
             ...(cursor && { cursor })
         });
 
-        const logs = listResult.keys
-            .reverse()
-            .map((key) => key.metadata ? { id: key.name, ...key.metadata } : null)
-            .filter(Boolean);
+        const logs = await Promise.all(listResult.keys
+            .slice().reverse()
+            .map(async (key) => {
+                if (!key.metadata) return null;
+                if (key.metadata.version !== 2) return { id: key.name, ...key.metadata };
+                const record = await kv.get(key.name, 'json');
+                if (!record) {
+                    console.error('Log record missing:', key.name);
+                    return null;
+                }
+                return { ...record, id: key.name };
+            }));
 
         return {
             data: logs.filter(Boolean),
             meta: {
-                count: logs.length,
+                count: logs.filter(Boolean).length,
                 limit,
                 cursor: listResult.cursor,
                 has_more: !listResult.list_complete

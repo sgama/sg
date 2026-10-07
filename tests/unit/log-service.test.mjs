@@ -17,6 +17,7 @@ import {
 } from '../helpers/index.mjs';
 
 const now = makeTimestamp(TIMESTAMPS.FIXED_TS);
+const id = () => 'test-id';
 
 test('LogService', async (t) => {
   await t.test('save', async (t) => {
@@ -46,7 +47,7 @@ test('LogService', async (t) => {
     });
 
     await t.test('KV persistence', async (t) => {
-      await t.test('persists accumulated response with correct key and metadata', async () => {
+      await t.test('persists full response in the value and small versioned metadata', async () => {
         const saved = [];
         const kv = {
           async put(key, value, options) {
@@ -60,19 +61,20 @@ test('LogService', async (t) => {
           'data: [DONE]\n',
         );
 
-        const piped = await LogService.save(kv, 'test query', stream, null, { now });
+        const piped = await LogService.save(kv, 'test query', stream, null, { now, id });
         await drainStream(piped);
 
         assert.equal(saved.length, 1);
-        assert.equal(saved[0].key, `chat:${TIMESTAMPS.FIXED_TS}`);
-        assert.equal(saved[0].metadata.query, 'test query');
-        assert.equal(saved[0].metadata.response, 'Hello world');
+        assert.equal(saved[0].key, `chat:${TIMESTAMPS.FIXED_TS}:test-id`);
+        assert.equal(JSON.parse(saved[0].value).query, 'test query');
+        assert.equal(JSON.parse(saved[0].value).response, 'Hello world');
         assert.equal(saved[0].metadata.timestamp, TIMESTAMPS.FIXED_TS);
+        assert.deepEqual(saved[0].metadata, { timestamp: TIMESTAMPS.FIXED_TS, version: 2 });
       });
 
       await t.test('captures usage metadata when present in SSE payload', async () => {
         const saved = [];
-        const kv = { put: async (k, v, o) => saved.push(o?.metadata) };
+        const kv = { put: async (k, v) => saved.push(JSON.parse(v)) };
 
         const stream = makeStream(
           'data: {"response":"text"}\n',
@@ -88,7 +90,7 @@ test('LogService', async (t) => {
 
       await t.test('tolerates malformed JSON in SSE data lines', async () => {
         const saved = [];
-        const kv = { put: async (k, v, o) => saved.push(o?.metadata) };
+        const kv = { put: async (k, v) => saved.push(JSON.parse(v)) };
 
         const stream = makeStream(
           'data: {"response":"ok"}\n',
@@ -115,10 +117,43 @@ test('LogService', async (t) => {
         assert.equal(pending.length, 1);
         await pending[0]; // should resolve without error
       });
+
+      await t.test('keeps long answers out of metadata and gives same-time requests unique keys', async () => {
+        const saved = [];
+        const kv = { put: async (key, value, options) => saved.push({ key, value, options }) };
+        for (let i = 0; i < 2; i++) {
+          const piped = await LogService.save(kv, 'q', makeStream(
+            `data: ${JSON.stringify({ response: 'x'.repeat(5000) })}\n`,
+          ), null, { now });
+          await drainStream(piped);
+        }
+        assert.notEqual(saved[0].key, saved[1].key);
+        assert.equal(JSON.parse(saved[0].value).response.length, 5000);
+        assert.ok(new TextEncoder().encode(JSON.stringify(saved[0].options.metadata)).length < 1024);
+      });
     });
   });
 
   await t.test('fetchLogs', async (t) => {
+    await t.test('reads versioned values alongside legacy metadata records', async () => {
+      const kv = {
+        async list() {
+          return { keys: [
+            buildKvKey({ name: 'chat:old', query: 'legacy' }),
+            { name: 'chat:new', metadata: { version: 2, timestamp: TIMESTAMPS.FIXED_TS } },
+          ], list_complete: true };
+        },
+        async get(name, type) {
+          assert.equal(name, 'chat:new');
+          assert.equal(type, 'json');
+          return { query: 'new', response: 'x'.repeat(5000) };
+        },
+      };
+      const result = await LogService.fetchLogs(kv, 10);
+      assert.equal(result.data[0].query, 'new');
+      assert.equal(result.data[0].response.length, 5000);
+      assert.equal(result.data[1].query, 'legacy');
+    });
     await t.test('returns logs in reverse chronological order', async () => {
       const kv = {
         async list() {

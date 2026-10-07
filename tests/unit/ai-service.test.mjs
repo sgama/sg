@@ -28,37 +28,31 @@ test('AiService', async (t) => {
       assert.deepEqual(result, vector);
     });
 
-    await t.test('returns null when AI throws', async () => {
+    await t.test('reports service unavailable when AI throws', async () => {
       const svc = new AiService(makeEnv({
         aiRun: async () => { throw new Error('AI unavailable'); },
       }));
 
-      const result = await svc.getEmbeddings('hello');
-
-      assert.equal(result, null);
+      await assert.rejects(svc.getEmbeddings('hello'), { status: 503 });
     });
   });
 
   await t.test('retrieveContext', async (t) => {
-    await t.test('returns empty string when VECTORIZE_INDEX is not bound', async () => {
+    await t.test('reports service unavailable when VECTORIZE_INDEX is not bound', async () => {
       const svc = new AiService({
         AI: { run: async () => buildEmbeddingsResponse([0.1]) }
       });
 
-      const result = await svc.retrieveContext('query');
-
-      assert.equal(result, '');
+      await assert.rejects(svc.retrieveContext('query'), { status: 503 });
     });
 
-    await t.test('returns empty string when embedding fails', async () => {
+    await t.test('reports service unavailable when embedding fails', async () => {
       const svc = new AiService(makeEnv({
         aiRun: async () => { throw new Error('fail'); },
         vectorizeQuery: async () => { throw new Error('should not be called'); },
       }));
 
-      const result = await svc.retrieveContext('query');
-
-      assert.equal(result, '');
+      await assert.rejects(svc.retrieveContext('query'), { status: 503 });
     });
 
     await t.test('joins matched text chunks with separator', async () => {
@@ -92,15 +86,13 @@ test('AiService', async (t) => {
       assert.equal(result, 'good chunk');
     });
 
-    await t.test('returns empty string when vectorize throws', async () => {
+    await t.test('reports service unavailable when vectorize throws', async () => {
       const svc = new AiService(makeEnv({
         aiRun: async () => buildEmbeddingsResponse([0.1]),
         vectorizeQuery: async () => { throw new Error('vectorize down'); },
       }));
 
-      const result = await svc.retrieveContext('query');
-
-      assert.equal(result, '');
+      await assert.rejects(svc.retrieveContext('query'), { status: 503 });
     });
 
     await t.test('returns empty string when no matches', async () => {
@@ -113,9 +105,32 @@ test('AiService', async (t) => {
 
       assert.equal(result, '');
     });
+
+    await t.test('passes the selected corpus namespace to Vectorize', async () => {
+      const svc = new AiService({
+        ...makeEnv({
+          aiRun: async () => buildEmbeddingsResponse([0.1]),
+          vectorizeQuery: async (vector, options) => {
+            assert.equal(options.namespace, 'corpus-test');
+            return buildVectorizeResult([]);
+          },
+        }),
+        AI_CORPUS_NAMESPACE: 'corpus-test',
+      });
+      assert.equal(await svc.retrieveContext('query'), '');
+    });
+
+    await t.test('rejects malformed embeddings instead of abstaining', async () => {
+      const svc = new AiService(makeEnv({ aiRun: async () => ({ data: [[]] }) }));
+      await assert.rejects(svc.getEmbeddings('query'), { status: 503 });
+    });
   });
 
   await t.test('generateStream', async (t) => {
+    await t.test('reports generation service failure explicitly', async () => {
+      const svc = new AiService(makeEnv({ aiRun: async () => { throw new Error('model unavailable'); } }));
+      await assert.rejects(svc.generateStream('query', 'context'), { status: 503 });
+    });
     await t.test('passes system prompt, history, and user query to AI', async () => {
       const calls = [];
       const svc = new AiService(makeEnv({

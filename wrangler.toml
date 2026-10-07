@@ -14,6 +14,9 @@ id = "2a8435a82e17425d8cff4b2777dbfd98"
 
 # Environment variables for the chat function (if needed)
 [vars]
+AI_MODEL = "glm"
+# CI sets AI_CORPUS_NAMESPACE after `make ai-refresh` finishes indexing the commit's corpus.
+# Local deployments can use ai-refresh or set a previously validated namespace.
 
 # Vectorize Binding (The "Long Term Memory")
 [[vectorize]]
