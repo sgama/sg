@@ -1,21 +1,44 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { LogService } from '../../functions/_lib/log.js';
+import { buildKvKey, TIMESTAMPS, PAGINATION, FIXTURES } from '../helpers/data.mjs';
+import { makeStream, drainStream, makeTimestamp, createContext } from '../helpers/mocks.mjs';
+import { onRequest } from '../../functions/api/logs.js';
+
 /**
  * Unit tests for LogService
  * Tests stream passthrough, KV persistence, and log retrieval
  */
 
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { LogService } from '../../functions/_lib/log.js';
-import {
-  buildKvKey,
-  TIMESTAMPS,
-  PAGINATION,
-  FIXTURES,
-} from '../helpers/data.mjs';
-import { makeStream, drainStream, makeTimestamp } from '../helpers/mocks.mjs';
+
+
+
+
+
 
 const now = makeTimestamp(TIMESTAMPS.FIXED_TS);
 const id = () => 'test-id';
+
+test('KV list and record reads reject and the logs API reports an explicit 500', async (t) => {
+    const error = new Error('KV unavailable');
+    for (const kv of [
+        { list: async () => { throw error; } },
+        { list: async () => ({ keys: [{ name: 'record', metadata: { version: 2 } }] }),
+            get: async () => { throw error; } },
+    ]) {
+        await assert.rejects(LogService.fetchLogs(kv, 10), failure => failure === error);
+        const logged = t.mock.method(console, 'error', () => {});
+        const response = await onRequest(createContext({
+            url: 'https://example.com/api/logs', env: { CHAT_LOGS: kv },
+        }));
+        assert.equal(response.status, 500);
+        assert.deepEqual(await response.json(), { error: 'Internal Server Error' });
+        assert.equal(response.headers.get('Cache-Control'), 'no-store');
+        assert.equal(logged.mock.callCount(), 1);
+        assert.deepEqual(logged.mock.calls[0].arguments, ['Logs API Error: KV unavailable']);
+        logged.mock.restore();
+    }
+});
 
 test('LogService', async (t) => {
   await t.test('fetchLogs', async (t) => {
@@ -220,4 +243,42 @@ test('LogService', async (t) => {
       });
     });
   });
+});
+
+test('missing versioned records log an error and are omitted rather than fabricated', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const result = await LogService.fetchLogs({
+        list: async () => ({ keys: [{ name: 'missing', metadata: { version: 2 } }], list_complete: true }),
+        get: async () => null,
+    }, 10);
+    assert.deepEqual(result.data, []);
+    assert.equal(result.meta.count, 0);
+    assert.deepEqual(logged.mock.calls[0].arguments, ['Log record missing:', 'missing']);
+    assert.equal(logged.mock.callCount(), 1);
+});
+
+test('stream error events persist partial answers and error identity', async () => {
+    let payload;
+    const stream = await LogService.save({ put: async (_, value) => { payload = JSON.parse(value); } },
+        'Question', makeStream('data: {"response":"Partial"}', 'data: {"error":"Provider failed"}'));
+    assert.match(await drainStream(stream), /Provider failed/);
+    assert.equal(payload.response, 'Partial');
+    assert.equal(payload.error, 'Provider failed');
+});
+
+test('write failures are logged once without breaking answer delivery or waitUntil', async (t) => {
+    const failure = new Error('KV write rejected');
+    const logged = t.mock.method(console, 'error', () => {});
+    for (const background of [false, true]) {
+        const pending = [];
+        const stream = await LogService.save({ put: async () => { throw failure; } },
+            'Question', makeStream('data: {"response":"Answer"}', 'data: [DONE]'),
+            background ? { waitUntil: promise => pending.push(promise) } : null);
+        assert.match(await drainStream(stream), /Answer/);
+        await Promise.all(pending);
+        assert.equal(pending.length, background ? 1 : 0);
+    }
+    assert.equal(logged.mock.callCount(), 2);
+    assert.ok(logged.mock.calls.every(call => call.arguments[0] === 'Log Flush Error'
+        && call.arguments[1] === failure));
 });

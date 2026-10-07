@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
-import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile } from '../../scripts/lib/ai-evaluation.mjs';
+import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile, readAnswer } from '../../scripts/lib/ai-evaluation.mjs';
 import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { makeStream } from '../helpers/mocks.mjs';
@@ -87,6 +87,58 @@ test('failed and usage-less runs are explicit, not zero-cost successful results'
     assert.equal(percentile([3, 1, 2], 0.95), 3);
 });
 
+test('failed streams mark cost incomplete and preserve explicit errors', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    for (const stream of [
+        makeStream('data: {"response":"Partial"}\n', 'data: {"error":"provider unavailable"}\n'),
+        new ReadableStream({ start(controller) { controller.error(new Error('Connection lost')); } }),
+        makeStream('data: {invalid}\n', 'data: [DONE]\n'),
+    ]) {
+        const report = await compareModels({ cases: [item], models: ['glm'],
+            contexts: { known: 'Reliable Hugo project evidence.' }, run: async () => stream });
+        assert.equal(report.results[0].status, 'error');
+        assert.equal(typeof report.results[0].error, 'string');
+        assert.equal(report.summaries[0].costComplete, false);
+        assert.equal(report.summaries[0].estimatedGenerationCostUsd, null);
+        assert.equal(report.summaries[0].successRate, 0);
+        assert.equal(report.summaries[0].ttftP50Ms, null);
+    }
+    assert.equal(logged.mock.callCount(), 2);
+    assert.ok(logged.mock.calls.every(call => call.arguments[0] === 'Chat Stream Failed:'
+        && call.arguments[1] instanceof Error));
+});
+
+test('invalid fixture labels and missing comparison contexts fail explicitly', async () => {
+    for (const changes of [
+        { required: 'true' }, { answerTerms: [] }, { answerTerms: [[]] },
+        { answerTerms: [[42]] }, { forbiddenTerms: [''] }, { forbiddenTerms: [42] },
+        { expectedSources: ['missing'] }, { query: ' ' },
+    ]) {
+        assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, ...changes }] },
+            [{ metadata: { source: 'content/a.md' } }]));
+    }
+    await assert.rejects(compareModels({ cases: [item], models: ['glm'], contexts: {},
+        run: async () => assert.fail('Missing context must not generate') }), /Missing context/);
+});
+
+test('missing and invalid usage is unpriced rather than free', async () => {
+    const model = getModel('glm');
+    for (const usage of [null, {}, { prompt_tokens: -1, completion_tokens: 2 },
+        { prompt_tokens: 1, completion_tokens: -2 },
+        { prompt_tokens: Infinity, completion_tokens: 2 },
+        { prompt_tokens: 1, completion_tokens: '2' }]) {
+        assert.equal(estimateCost(usage, model), null);
+    }
+    const report = await compareModels({ cases: [item], models: ['glm'],
+        contexts: { known: 'Reliable Hugo project evidence.' },
+        run: async () => makeStream('data: {"response":"Hugo"}\n', 'data: [DONE]\n') });
+    assert.equal(report.results[0].estimatedGenerationCostUsd, null);
+    assert.equal(report.summaries[0].usageCoverage, 0);
+    assert.equal(report.summaries[0].costComplete, false);
+    assert.equal(percentile([], 0.95), null);
+    assert.equal(percentile([3, 1, 2], 0), 1);
+});
+
 test('model registry is modular and rejects unknown models', () => {
     assert.equal(getModel('glm').id, getModel('@cf/zai-org/glm-4.7-flash').id);
     assert.throws(() => getModel('typo'), /Unknown AI model/);
@@ -125,6 +177,22 @@ test('negative questions retrieve real context and exercise generation rather th
     assert.equal(comparison.results[0].abstained, false);
     assert.equal(comparison.results[0].passed, true);
 });
+
+test('negative-only retrieval and retrieval failures do not manufacture source hits', async () => {
+    const negative = { ...item, expectedSources: [] };
+    const report = await evaluateRetrieval({ cases: [negative],
+        retrieve: async () => ({ matches: [{ id: 'unlabeled' }], embeddingMs: 1, searchMs: 2 }) });
+    assert.equal(report.hitRate, 0);
+    assert.equal(report.results[0].passed, null);
+    assert.deepEqual(report.results[0].sources, []);
+    const failed = await evaluateRetrieval({ cases: [item],
+        retrieve: async () => { throw new Error('Search unavailable'); } });
+    assert.equal(failed.hitRate, 0);
+    assert.equal(failed.results[0].error, 'Search unavailable');
+});
+
+const item = { id: 'known', query: 'Stack?', expectedSources: ['content/a.md'],
+    answerTerms: [['hugo']], forbiddenTerms: [] };
 
 test('release reports must match corpus, labels and retrieval configuration', () => {
     const report = {
@@ -230,4 +298,17 @@ test('source-grounded answer checks reject a contradictory claim', async () => {
     assert.equal(scoreAnswer('Yes, C/C++ is listed in the [resume](/resume/).', cpp), true);
     assert.equal(scoreAnswer('C++ is not listed in the [resume](/resume/).', cpp), false);
     assert.equal(cpp.required, true);
+});
+
+test('stream timing records first answer and interchunk gaps with provider usage', async () => {
+    let time = 0;
+    const result = await readAnswer(makeStream(
+        'data: {"response":"Hu"}\n', 'data: {"response":"go"}\n',
+        'data: {"usage":{"prompt_tokens":2,"completion_tokens":1}}\n', 'data: [DONE]\n',
+    ), { start: 0, clock: () => ++time });
+    assert.equal(result.answer, 'Hugo');
+    assert.equal(result.ttftMs, 1);
+    assert.deepEqual(result.chunkGapsMs, [1]);
+    assert.equal(result.generationMs, 3);
+    assert.deepEqual(result.usage, { prompt_tokens: 2, completion_tokens: 1 });
 });

@@ -171,12 +171,12 @@ export async function cleanupDeployments({
         removedDeployments: plan.remove.map(item => item.id), removedVectors: staleIds.length };
 }
 
-export async function main(args = process.argv.slice(2)) {
+export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({ args, options: { 'dry-run': { type: 'boolean', default: false } } });
     const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
     if (!accountId || !apiToken) throw new Error('Missing Cloudflare credentials');
     const result = await cleanupDeployments({
-        client: createMaintenanceClient(apiToken), accountId,
+        client: createMaintenanceClient(apiToken, fetchImpl), accountId,
         project: process.env.PROJECT_NAME ?? 'sg', branch: process.env.BRANCH ?? 'develop',
         dryRun: values['dry-run'],
     });

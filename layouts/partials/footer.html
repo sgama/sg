@@ -59,6 +59,15 @@
         {{ i18n "footer.powered_by" (dict "Hugo" $hugo "Theme" $blowfish) | safeHTML }}
       </p>
     {{ end }}
+    {{ with os.Getenv "HUGO_BUILD_SHA" }}
+      <p class="footer-build text-sm text-neutral-500 dark:text-neutral-400">
+        <a
+          class="hover:underline"
+          href="https://github.com/sgama/sg/commit/{{ . }}"
+          title="Build commit {{ . }}"
+          aria-label="Build commit {{ substr . 0 6 }}">{{ substr . 0 6 }}</a>
+      </p>
+    {{ end }}
   </div>
   {{/* Extend footer - eg. for extra scripts, etc. */}}
   {{ if templates.Exists "partials/extend-footer.html" }}

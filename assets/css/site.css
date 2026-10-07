@@ -6,6 +6,14 @@
 
 @layer tokens, base, components, utilities, animations;
 
+@layer components {
+    .footer-build {
+        margin-inline-start: auto;
+        padding-inline-start: 1rem;
+        text-align: right;
+    }
+}
+
 @layer tokens {
     :root {
         --font-sans: sans-serif;

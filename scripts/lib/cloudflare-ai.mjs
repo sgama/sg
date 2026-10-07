@@ -1,6 +1,14 @@
 import Cloudflare from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 
+export async function runEmbedding(client, accountId, model, text, options = {}) {
+    // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
+    const response = await client.post(`/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`, {
+        ...options, maxRetries: 0, body: { text },
+    });
+    return response?.result;
+}
+
 export function createCloudflareAi({
     accountId = process.env.CLOUDFLARE_ACCOUNT_ID,
     apiToken = process.env.CLOUDFLARE_API_TOKEN,
@@ -14,10 +22,8 @@ export function createCloudflareAi({
     return {
         async retrieve(query) {
             const start = performance.now();
-            const result = await client.ai.run(AI_CONFIG.embedding.model, {
-                account_id: accountId, text: [query],
-            });
-            const vector = result.data?.[0];
+            const result = await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [query]);
+            const vector = result?.data?.[0];
             if (!Array.isArray(vector) || vector.length !== AI_CONFIG.embedding.dimensions
                 || !vector.every(Number.isFinite)) throw new Error('Invalid embedding vector');
             const embedded = performance.now();

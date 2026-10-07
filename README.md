@@ -176,18 +176,77 @@ Version-2 reports are required; regenerate older positive-only retrieval reports
 Labeled-source comparisons still use oracle context and cannot establish
 end-to-end abstention performance. Empty-context fallback is tested separately.
 
-### Benchmark evidence status
+### Measured GLM baseline
 
-No measured provider retrieval/model comparison reports are currently published
-in this repository. Unit tests use mocks and do not measure model quality,
-production latency, or production cost. No model ranking is established here.
-Before publishing a ranking, run the developer evaluation commands and review
-answers, then publish a sanitized summary with corpus/fixture/prompt hashes,
-model settings, run date, repetitions, sample counts, hit@k, answer-check rate,
-latency percentiles, generation-only cost, and representative failures.
-Include a baseline and human claim-level review; substring checks are regression
-signals, not factual-accuracy measurements. Never publish credentials or visitor
-transcripts as benchmark examples.
+On 2026-10-07, a developer-run baseline used the current production corpus,
+13 fixture queries and one GLM repetition. All contexts came from live
+Vectorize retrieval, including the salary question. No visitor transcripts,
+index mutations, deployments or local browser checks were used.
+
+| Metric | Result |
+| --- | --- |
+| Successful retrieval queries | 13/13 |
+| Labeled source hit@3 | 10/12 (83.3%; salary question excluded) |
+| Retrieval latency p50 / p95 | 143 / 384 ms |
+| Successful generation requests | 13/13; no empty-context abstentions |
+| Deterministic answer checks | 5/13 (38.5%) |
+| Required regression checks | 1/7 (14.3%) |
+| First visible answer p50 / p95 | 343 / 537 ms |
+| Generation completion p50 / p95 | 1,665 / 4,846 ms |
+| Reported prompt / completion tokens | 16,388 / 1,240 |
+| Estimated generation-only cost | $0.001487474; usage available for 13/13 |
+
+The baseline **does not pass the release gate**. Retrieval was below the default
+90% threshold; generation continued with `AI_MIN_HIT_RATE=0` for this diagnostic
+invocation only. The default release thresholds remain unchanged. The generation
+estimate uses registry prices dated 2026-10-07, not a billing measurement, and
+excludes embeddings, storage, failed-call charges and plan allowances. Timings
+are from a developer machine to the provider, not browser-visible or combined
+end-to-end RAG latency. One repetition does not establish a model ranking.
+
+Answer/source spot checks identified distinct problems:
+
+- `analytics` missed the labeled analytics article and omitted Umami, although
+  another retrieved article mentioned it alongside Plausible.
+- `languages` and `resume-demonware` counted as source hits but retrieved the
+  resume's opening chunk, not its skills row or load-testing details. Source
+  hit@3 therefore overstates answer-evidence coverage.
+- The C++ answers and Bitcomplete answer failed citation checks, despite
+  conveying the expected core facts. The Absolute answer gave the documented
+  20x throughput and 90% resource reduction from the portfolio article, but
+  failed the fixture's resume-citation requirement; no resume chunk was retrieved.
+- The salary answer correctly said the excerpts did not specify salary, but
+  failed the narrow substring check. Conversely, `resume-skill-ratings` passed
+  while making an unsupported absence claim about Python. The canonical resume
+  lists Python. Answer-check rate is **not factual accuracy**.
+- `chat-architecture` passed while repeating itself and describing an older
+  Llama configuration from the article rather than the deployed GLM model.
+
+Run provenance:
+
+```text
+Retrieval timestamp: 2026-10-07T23:13:43.815Z
+Generation timestamp: 2026-10-07T23:16:45.803Z
+Model: @cf/zai-org/glm-4.7-flash
+Settings: enable_thinking=false; max_completion_tokens=512; stream=true
+Embedding: @cf/baai/bge-base-en-v1.5; 768 dimensions
+Retrieval: topK=3; maxContextChars=12000; 2000-character chunks; overlap=200
+Corpus: e4dbc5550c38e70f96a8f8abbf6fef6bf3d2090c114df7dd1a07166a4fb120fd
+Fixture: e582828e797e23df475c3e79a61021cd3f10d3baef52003697ec000c21fdcbe8
+Prompt: 8e0ef33898f2090f50605de29af561cfaa9a6d3748b5771316c12e8a69f84bcb
+```
+
+Raw reports remain in ignored, private `reports/` files:
+`ai-retrieval-glm-baseline-2026-10-07-fixed.json` and
+`ai-comparison-glm-baseline-2026-10-07.json`. An initial attempt failed all queries
+because SDK 7's generated `ai.run` URL encoded model slashes. The shared embedding
+helper now uses native SDK `post` with a literal model path and no retries;
+offline transport tests assert the exact URL. That failed attempt is not included
+in the quality or latency metrics above.
+
+Before publishing a model ranking, add repeated comparisons and human claim-level
+review. Unit tests use mocks and cannot measure model quality, production latency
+or production cost. Never publish credentials or visitor transcripts as examples.
 
 Reports include:
 
@@ -638,6 +697,11 @@ summary: "A brief description of the post"
 ## 🚀 Deployment
 
 ### Build for Production
+
+Make build/serve targets supply the current Git revision to Hugo through
+`HUGO_BUILD_SHA`. The footer displays its first six characters at the bottom
+right, linked to the full commit. Direct Hugo builds must supply
+`HUGO_BUILD_SHA`; without a supplied revision the label is omitted.
 
 ```bash
 make build-prod

@@ -82,7 +82,7 @@ test('retrieval uses injected fetch for SDK embeddings and Vectorize query', asy
             requests.push(pathname);
             const base = '/client/v4/accounts/test-account';
             if (requests.length === 1) {
-                assert.equal(decodeURIComponent(pathname), `${base}/ai/run/${AI_CONFIG.embedding.model}`);
+                assert.equal(pathname, `${base}/ai/run/${AI_CONFIG.embedding.model}`);
                 assert.deepEqual(body, { text: ['question'] });
                 return Response.json({ success: true, result: { data: [vector] } });
             }

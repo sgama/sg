@@ -16,14 +16,14 @@ test('changed corpus requires ingestion', async (t) => {
     client.pages.projects.get = async () => ({ canonical_deployment: { id: 'active' } });
     client.pages.projects.deployments = { get: async () => ({ id: 'active', environment: 'production',
         env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: namespace } } }) };
-    client.ai.run = async () => { throw new Error('embedding failed'); };
+    client.post = async () => { throw new Error('embedding failed'); };
     await assert.rejects(refreshCorpus({ client, accountId: 'account', root, wait }), /embedding failed/);
     assert.equal(await fs.readFile(configPath, 'utf8'), config);
 });
 
 test('embedding failures leave configuration untouched', async (t) => {
     const { root, configPath, client, wait } = await refreshFixture(t);
-    client.ai.run = async () => { throw new Error('embedding failed'); };
+    client.post = async () => { throw new Error('embedding failed'); };
     await assert.rejects(refreshCorpus({ client, accountId: 'account', root, wait }), /embedding failed/);
     assert.equal(await fs.readFile(configPath, 'utf8'), config);
 });
@@ -62,7 +62,7 @@ async function refreshFixture(t) {
     const calls = [];
     const client = {
         pages: { projects: { get: async () => ({ canonical_deployment: null }) } },
-        ai: { run: async () => ({ data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] }) },
+        post: async () => ({ result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } }),
         vectorize: { indexes: { upsert: async () => {
             calls.push('upsert');
             return { mutationId: 'accepted' };
@@ -172,7 +172,7 @@ test('SDK transport retrieves the active deployment snapshot using the SDK 7 sig
 
 test('unchanged corpus skips all embeddings, uploads and readiness waits but sets namespace', async (t) => {
     const { root, configPath, client } = await refreshFixture(t);
-    client.ai.run = async () => { assert.fail('Unexpected embedding request'); };
+    client.post = async () => { assert.fail('Unexpected embedding request'); };
     client.vectorize.indexes.upsert = async () => { assert.fail('Unexpected upload'); };
     const corpus = await buildCorpus({ root });
     const snapshot = { id: 'active', environment: 'production',

@@ -2,9 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Cloudflare from 'cloudflare';
 import { setImmediate } from 'node:timers/promises';
-import { cleanupDeployments, planRetention, referencedNamespaces } from '../../scripts/cleanup_deployments.mjs';
+import { cleanupDeployments, planRetention, referencedNamespaces, main } from '../../scripts/cleanup_deployments.mjs';
 import { createMaintenanceClient } from '../../scripts/lib/corpus-deployment.mjs';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 function retryTimers(t) {
     const retries = [];
@@ -60,19 +65,36 @@ const deployment = (number, overrides = {}) => ({
     ...overrides,
 });
 
-test('deletes completed and in-progress previews before pruning their unreferenced vectors', async () => {
-    const data = fixture();
-    data.setDeployments([...Array.from({ length: 8 }, (_, index) => deployment(index + 1)),
-        deployment(99, { environment: 'preview', env_vars: {} }),
-        deployment(100, { environment: 'preview',
-            latest_stage: { name: 'build', status: 'active' }, env_vars: {} })]);
-    const result = await cleanupDeployments({ ...data, accountId: 'account' });
-    assert.deepEqual(result.removedDeployments, ['d1', 'd2', 'd99', 'd100']);
-    assert.deepEqual(data.calls, [
-        ['deployment', 'd1'], ['deployment', 'd2'],
-        ['deployment', 'd99'], ['deployment', 'd100'],
-        ['vectors', ['old', 'candidate']], ['ready', 'deleted'],
-    ]);
+test('cleanup CLI dry-run uses injected transport and reports without deletion', async (t) => {
+    const env = { ...process.env };
+    t.after(() => { process.env = env; });
+    process.env.CLOUDFLARE_ACCOUNT_ID = 'account';
+    process.env.CLOUDFLARE_API_TOKEN = 'test-token';
+    process.env.PROJECT_NAME = 'test-project';
+    process.env.BRANCH = 'develop';
+    const output = t.mock.method(console, 'log', () => {});
+    const paths = [];
+    await main(['--dry-run'], { fetchImpl: async (url, init) => {
+        const request = new Request(url, init);
+        assert.equal(request.method, 'GET');
+        const target = new URL(request.url);
+        paths.push(target.pathname);
+        const base = '/client/v4/accounts/account/pages/projects/test-project';
+        let result;
+        if (target.pathname === base) result = { canonical_deployment: { id: 'active' } };
+        else if (target.pathname === `${base}/deployments`) {
+            result = target.searchParams.has('page') ? [] : [active];
+        } else if (target.pathname === `${base}/deployments/active`) result = active;
+        else {
+            assert.equal(target.pathname, '/client/v4/accounts/account/vectorize/v2/indexes/portfolio-index/list');
+            result = { vectors: [], isTruncated: false };
+        }
+        return Response.json({ success: true, result });
+    } });
+    assert.deepEqual(JSON.parse(output.mock.calls[0].arguments[0]), {
+        dryRun: true, retainedDeployments: ['active'], removedDeployments: [], removedVectors: 0,
+    });
+    assert.ok(paths.length > 1);
 });
 
 function fixture() {
@@ -116,6 +138,39 @@ function fixture() {
         setDeployments: value => { deployments = value; }, setActive: value => { active = value; } };
 }
 
+test('cleanup CLI invalid options and missing credentials fail without network calls', async (t) => {
+    const env = { ...process.env };
+    t.after(() => { process.env = env; });
+    process.env.CLOUDFLARE_ACCOUNT_ID = '';
+    process.env.CLOUDFLARE_API_TOKEN = '';
+    const fetchImpl = async () => assert.fail('Unexpected network request');
+    await assert.rejects(main(['--invalid'], { fetchImpl }), /Unknown option/);
+    await assert.rejects(main([], { fetchImpl }), /Missing Cloudflare credentials/);
+    const root = await mkdtemp(path.join(os.tmpdir(), 'sg-cleanup-cli-'));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const result = spawnSync(process.execPath,
+        [fileURLToPath(new URL('../../scripts/cleanup_deployments.mjs', import.meta.url))],
+        { cwd: root, env: process.env, encoding: 'utf8', timeout: 10000 });
+    assert.ifError(result.error);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Deployment\/corpus cleanup failed: Missing Cloudflare credentials/);
+});
+
+test('deletes completed and in-progress previews before pruning their unreferenced vectors', async () => {
+    const data = fixture();
+    data.setDeployments([...Array.from({ length: 8 }, (_, index) => deployment(index + 1)),
+        deployment(99, { environment: 'preview', env_vars: {} }),
+        deployment(100, { environment: 'preview',
+            latest_stage: { name: 'build', status: 'active' }, env_vars: {} })]);
+    const result = await cleanupDeployments({ ...data, accountId: 'account' });
+    assert.deepEqual(result.removedDeployments, ['d1', 'd2', 'd99', 'd100']);
+    assert.deepEqual(data.calls, [
+        ['deployment', 'd1'], ['deployment', 'd2'],
+        ['deployment', 'd99'], ['deployment', 'd100'],
+        ['vectors', ['old', 'candidate']], ['ready', 'deleted'],
+    ]);
+});
+
 test('deletes deployments before unreferenced versioned vectors and waits for mutation', async () => {
     const data = fixture();
     const result = await cleanupDeployments({ ...data, accountId: 'account' });
@@ -152,6 +207,57 @@ test('incomplete vector fetch prevents deployment deletion', async () => {
     data.client.vectorize.indexes.getByIDs = async () => [];
     await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Incomplete vector records/);
     assert.deepEqual(data.calls, []);
+});
+
+test('invalid retained snapshots and absent canonical deployments prevent writes', async (t) => {
+    for (const snapshot of [null, { ...active, id: 'wrong' }, { ...active, environment: 'preview' }]) {
+        const f = failureFixture(t);
+        f.client.pages.projects.deployments.get = async () => snapshot;
+        await assert.rejects(cleanupDeployments(f), /Invalid retained deployment snapshot/);
+        f.assertNoWrites();
+    }
+    const f = failureFixture(t);
+    f.client.pages.projects.get = async () => ({});
+    await assert.rejects(cleanupDeployments(f), /no canonical deployment/);
+    f.assertNoWrites();
+});
+
+test('malformed vector inventories, repeated IDs and bad lookup records prevent writes', async (t) => {
+    for (const page of [{}, { vectors: null, isTruncated: false },
+        { vectors: [], isTruncated: 'false' },
+        { vectors: [{ id: '' }], isTruncated: false },
+        { vectors: [{ id: 1 }], isTruncated: false }]) {
+        const f = failureFixture(t);
+        f.client.vectorize.indexes.listVectors = async () => page;
+        await assert.rejects(cleanupDeployments(f), /Invalid/);
+        f.assertNoWrites();
+    }
+    const repeated = failureFixture(t);
+    repeated.client.vectorize.indexes.listVectors = async () => ({
+        vectors: [{ id: 'stale' }], isTruncated: true, nextCursor: 'next',
+    });
+    await assert.rejects(cleanupDeployments(repeated), /Invalid or repeated vector ID/);
+    repeated.assertNoWrites();
+    for (const records of [null, [{ id: 'wrong' }], [{ id: 'stale' }, { id: 'stale' }]]) {
+        const f = failureFixture(t);
+        f.client.vectorize.indexes.getByIDs = async () => records;
+        await assert.rejects(cleanupDeployments(f), /Incomplete vector records/);
+        f.assertNoWrites();
+    }
+});
+
+test('missing and repeated vector cursors stop pagination before writes', async (t) => {
+    for (const cursor of [undefined, 'loop']) {
+        const f = failureFixture(t);
+        let calls = 0;
+        f.client.vectorize.indexes.listVectors = async () => {
+            calls++;
+            return { vectors: [], isTruncated: true, nextCursor: cursor };
+        };
+        await assert.rejects(cleanupDeployments(f), /Invalid vector inventory cursor/);
+        assert.equal(calls, cursor ? 2 : 1);
+        f.assertNoWrites();
+    }
 });
 
 test('missing retained namespace prevents every destructive operation', async () => {
@@ -223,6 +329,24 @@ test('rejected preview deletion prevents vector pruning', async () => {
     assert.deepEqual(data.calls, []);
 });
 
+const failureNamespace = `corpus-${'a'.repeat(56)}`;
+const active = {
+    id: 'active', created_on: '2026-01-01T00:00:00Z', environment: 'production',
+    deployment_trigger: { metadata: { branch: 'develop' } },
+    latest_stage: { name: 'deploy', status: 'success' },
+    env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: failureNamespace } },
+};
+
+function failureFixture() {
+    const data = fixture();
+    data.setDeployments([active]);
+    data.setActive(active.id);
+    data.client.vectorize.indexes.listVectors = async () => ({ vectors: [{ id: 'stale' }], isTruncated: false });
+    data.client.vectorize.indexes.getByIDs = async () => [{ id: 'stale', namespace: namespace(99) }];
+    return { ...data, accountId: 'account',
+        assertNoWrites() { assert.deepEqual(data.calls, []); } };
+}
+
 test('retained namespaces are fetched fresh and a changed snapshot prevents deletion', async () => {
     const data = fixture();
     const get = data.client.pages.projects.deployments.get;
@@ -248,6 +372,17 @@ test('retains active deployment plus five successful predecessors, including rol
     const plan = planRetention(deployments, 'd7', 'develop');
     assert.deepEqual(plan.remove.map(item => item.id), ['d1', 'd8', 'd9', 'd11', 'd12']);
     assert.deepEqual(plan.retain.map(item => item.id), ['d2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd10']);
+});
+
+test('retention rejects invalid counts, timestamps and nonproduction active deployments', () => {
+    for (const previous of [-1, 1.5, NaN]) {
+        assert.throws(() => planRetention([active], 'active', 'develop', previous), /retention count/);
+    }
+    for (const entry of [{ ...active, created_on: 'invalid' }, { ...active, id: '' }]) {
+        assert.throws(() => planRetention([active, entry], 'active', 'develop'), /invalid IDs or timestamps/);
+    }
+    assert.throws(() => planRetention([{ ...active, environment: 'preview' }], 'active', 'develop'),
+        /not production/);
 });
 
 test('SDK transport covers Pages deletion, Vectorize batches and mutation readiness', async () => {
@@ -350,6 +485,15 @@ test('vector deletion respects the 100-ID limit and waits for each batch', async
         ['vectors', vectors.slice(0, 100).map(vector => vector.id)], ['ready', 'deleted-1'],
         ['vectors', vectors.slice(100).map(vector => vector.id)], ['ready', 'deleted-2'],
     ]);
+});
+
+test('vector deletion without a valid acknowledgement never waits or claims success', async (t) => {
+    for (const result of [{}, { mutationId: '' }, { mutationId: ' ' }]) {
+        const f = failureFixture(t);
+        f.client.vectorize.indexes.deleteByIDs = async () => result;
+        await assert.rejects(cleanupDeployments({ ...f,
+            wait: async () => assert.fail('Unacknowledged deletion must not wait') }), /mutation ID/);
+    }
 });
 
 test('vector inventory respects the 20-ID lookup limit across pages and partial batches', async () => {

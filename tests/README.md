@@ -11,18 +11,25 @@ This test suite follows industry best practices for modular, maintainable, and c
 ```text
 tests/
 ├── unit/                    # Unit tests for individual modules
+│   ├── ai-cli.test.mjs           # Offline evaluation and refresh CLI contracts
+│   ├── ai-evaluation.test.mjs    # Model comparisons, failures and release gates
 │   ├── ai-service.test.mjs       # AiService (embeddings, context, generation)
-│   ├── ai-evaluation.test.mjs    # Model comparisons and release gates
-│   ├── corpus.test.mjs           # Versioned ingestion and transport
-│   ├── corpus-refresh.test.mjs   # Index readiness and deployment namespace activation
-│   ├── deployment-cleanup.test.mjs # Rollback retention and safe vector pruning
-│   ├── chat-widget.test.mjs      # Lazy lifecycle, scroll following, and client streams
+│   ├── background-blur.test.mjs  # Background image lifecycle
 │   ├── chat-api.test.mjs         # /api/chat endpoint
 │   ├── chat-stream.test.mjs      # Provider SSE normalization
+│   ├── chat-widget.test.mjs      # Lifecycle, storage, scroll and client streams
+│   ├── cloudflare-ai.test.mjs    # SDK retrieval and generation transport
+│   ├── content-audit.test.mjs    # Front matter audit CLI
+│   ├── corpus.test.mjs           # Ingestion, integrity and transport
+│   ├── corpus-refresh.test.mjs   # Readiness and namespace activation
+│   ├── deployment-cleanup.test.mjs # Retention, pruning and failure safety
 │   ├── guardrails.test.mjs       # Security and safety checks
-│   ├── history.test.mjs          # Schema validation
-│   ├── log-service.test.mjs      # LogService (persistence, retrieval)
-│   └── logs-api.test.mjs         # /api/logs endpoint
+│   ├── log-service.test.mjs      # Persistence, retrieval and KV failures
+│   ├── logs-api.test.mjs         # /api/logs endpoint
+│   ├── makefile.test.mjs         # Native command wiring
+│   ├── mocks.test.mjs            # Shared mock contracts
+│   ├── site.test.mjs             # Site browser script behavior
+│   └── validation.test.mjs       # Request/history schemas and exact boundaries
 └── helpers/                 # Shared test utilities
     ├── data.mjs                  # Constants, fixtures, and test data builders
     └── mocks.mjs                 # Mock factories
@@ -81,6 +88,18 @@ corpora with injected fetch, including failures, force refresh and unchanged
 corpus skipping. Widget lifecycle tests exercise submit, stop, offline errors,
 session restoration and confirmed history clearing with isolated DOM fixtures.
 These fixtures do not replace browser rendering or accessibility verification.
+Failure-path assertions live with their owning module suites, not separate
+failure-only files. Widget tests share one fixture for lifecycle and storage.
+Cleanup failure tests verify invalid inventories, pagination cursors, snapshot
+mismatches and mutation acknowledgements prevent unsafe continuation, with CLI
+transport injected for offline checks. Storage tests assert warnings and fallbacks
+when browser storage fails; validation tests cover exact context and aggregate
+history boundaries.
+Evaluation failure tests verify unpriced usage, failed streams and incomplete
+cost reports. Corpus integrity tests cover tampered metadata/IDs, invalid
+configuration and concurrent activation edits. Persistence failure tests assert
+KV errors are logged, missing records are omitted, and failed log writes do not
+break answer delivery; logs API read failures return an explicit 500.
 
 Make validation targets suppress recipe echo and stream native tool output,
 preserving warnings, errors, and exit codes without filtering. Tests use Node's
@@ -100,6 +119,9 @@ Cloudflare contract tests run the installed SDK with injected fetch and native
 preview-only force deletion, Vectorize payload limits and mutation readiness.
 Evaluation fetch injection covers embedding, retrieval and generation, not just
 generation. No Cloudflare credentials or network calls are needed.
+Embedding contracts assert the literal model path, including unencoded slashes.
+The shared embedding helper uses the SDK's native `post` method because SDK 7's
+generated `ai.run` route encodes model slashes that Workers AI rejects.
 
 KV mocks reject writes unless `put` is explicitly configured. Use a test-scoped
 `t.mock.fn` to assert write arguments and counts. Stream helpers use native

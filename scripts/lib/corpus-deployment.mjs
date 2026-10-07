@@ -5,6 +5,7 @@ import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus, validateCorpus } from './corpus.mjs';
+import { runEmbedding } from './cloudflare-ai.mjs';
 
 export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
     return new Cloudflare({ apiToken, fetch, maxRetries: 2, timeout: 30000 });
@@ -32,10 +33,8 @@ export async function ingestCorpus(client, accountId, corpus, {
     const vectors = await Promise.all(corpus.chunks.map((chunk) => limit(async () => {
         controller.signal.throwIfAborted();
         try {
-            const result = await client.ai.run(corpus.embedding.model, {
-                account_id: accountId,
-                text: [chunk.text],
-            }, { maxRetries: 0, signal: controller.signal });
+            const result = await runEmbedding(client, accountId, corpus.embedding.model,
+                [chunk.text], { signal: controller.signal });
             controller.signal.throwIfAborted();
             const values = result?.data?.[0];
             if (!Array.isArray(result?.data) || result.data.length !== 1

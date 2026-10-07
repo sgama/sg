@@ -76,20 +76,20 @@ check-wrangler-node: check-ai-tools
 
 ##@ Development
 serve: ## Start Hugo development server
-	@$(HUGO) server $(HUGO_SERVER_FLAGS)
+	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" $(HUGO) server $(HUGO_SERVER_FLAGS)
 
 dev-ai: check-wrangler-node build ## Start local dev server with Cloudflare Workers AI
 	@$(WRANGLER) pages dev "$(PUBLIC_DIR)" --port=$(DEV_PORT)
 
 ##@ Build
 build: check-tools ## Build the site (development)
-	@$(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
+	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 postcss-build: check-tools ## Run PostCSS + PurgeCSS (production CSS only)
 	@HUGO_ENV=production NODE_ENV=production npx postcss assets/css/site.css -o assets/css/site.purged.css
 
 build-prod: check-tools postcss-build ## Build the site for production (with PurgeCSS)
-	@HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
+	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 build-summary: ## Print a summary of the build output
 	@echo "=== Build Output ==="
