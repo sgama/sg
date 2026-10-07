@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
-import { createSseMessageStream as createSseStream } from '../../functions/_lib/guardrails.js';
+import { createSseMessageStream as createSseStream } from '../../functions/_lib/chat-stream.js';
 import {
   createContext,
   buildEmbeddingsResponse,

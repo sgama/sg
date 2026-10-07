@@ -1,3 +1,14 @@
+export function createSseMessageStream(message) {
+    const encoder = new TextEncoder();
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: message })}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+        }
+    });
+}
+
 export function normalizeChatStream(stream) {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();

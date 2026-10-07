@@ -1,16 +1,16 @@
 /**
- * Unit tests for Guardrails module
+ * Unit tests for request validation guardrails
  * Tests prompt injection detection, context validation, and SSE stream creation
  */
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createSseMessageStream } from '../../functions/_lib/guardrails.js';
+import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import {
   isPromptInjectionAttempt,
   SAFE_NO_CONTEXT_MESSAGE,
   shouldAbstainForMissingContext,
-} from '../../functions/_lib/guardrails.js';
+} from '../../functions/_lib/validation.js';
 import { SAMPLE_DATA } from '../helpers/index.mjs';
 
 test('Guardrails', async (t) => {

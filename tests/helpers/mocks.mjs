@@ -3,7 +3,7 @@
  * Provides reusable mock objects for AI bindings, KV stores, vectorize indexes, etc.
  */
 
-import { TIMESTAMPS } from './constants.mjs';
+import { TIMESTAMPS } from './data.mjs';
 
 /**
  * Create a mock Cloudflare AI binding

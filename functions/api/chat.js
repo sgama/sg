@@ -4,12 +4,12 @@ import { streamSSE } from 'hono/streaming';
 import { handle } from 'hono/cloudflare-pages';
 import { AppError } from '../_lib/config.js';
 import {
-    createSseMessageStream,
     isPromptInjectionAttempt,
     SAFE_NO_CONTEXT_MESSAGE,
     shouldAbstainForMissingContext,
-} from '../_lib/guardrails.js';
-import { ChatRequestSchema } from '../_lib/schemas.js';
+    ChatRequestSchema,
+} from '../_lib/validation.js';
+import { createSseMessageStream } from '../_lib/chat-stream.js';
 import { AiService } from '../_lib/ai.js';
 import { LogService } from '../_lib/log.js';
 

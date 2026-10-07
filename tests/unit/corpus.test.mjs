@@ -1,10 +1,25 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import Cloudflare from 'cloudflare';
 import { buildCorpus, ingestCorpus } from '../../scripts/generate_embeddings.mjs';
+
+test('published resume contains the supplied skills and employment facts', async () => {
+    const resume = await readFile(new URL('../../content/resume/_index.md', import.meta.url), 'utf8');
+    assert.match(resume, /Go, Python, Bash, C\/C\+\+, Java, JavaScript, Rust/);
+    assert.match(resume, /Senior Service Reliability Engineer, GPU Infrastructure/);
+    assert.match(resume, /Mar 2026 - Jun 2026/);
+    assert.match(resume, /Jun 2017 - Sep 2018/);
+    assert.match(resume, /12th of 1,000 teams/);
+});
+
+test('published resume skills remain available in the indexed corpus', async () => {
+    const corpus = await buildCorpus();
+    const chunks = corpus.chunks.filter(chunk => chunk.metadata.source === 'content/resume/_index.md');
+    assert.ok(chunks.some(chunk => chunk.text.includes('C/C++')));
+});
 
 let fixtureIndex = 0;
 async function fixture(t, files = {

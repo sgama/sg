@@ -1,8 +1,92 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { setMaxListeners } from "node:events";
 import { createStore, readHistory, STORAGE_KEY } from "../../assets/js/chat/history.js";
 import { createAnswerParser, streamAnswer } from "../../assets/js/chat/stream.js";
 import { createChatScroller } from "../../assets/js/chat/scroll.js";
+
+test("widget defers history reads and transcript rendering until first open", async () => {
+    const saved = new Map();
+    const names = ["HTMLElement", "customElements", "document", "localStorage", "sessionStorage",
+        "requestAnimationFrame", "cancelAnimationFrame", "ResizeObserver", "AbortController"];
+    for (const name of names) saved.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+    const classes = () => {
+        const values = new Set();
+        return {
+            add: (...names) => names.forEach(name => values.add(name)),
+            remove: name => values.delete(name),
+            contains: name => values.has(name),
+            toggle: (name, enabled) => enabled ? values.add(name) : values.delete(name),
+        };
+    };
+    const element = () => Object.assign(new EventTarget(), {
+        classList: classes(), dataset: {}, textContent: "", value: "", maxLength: 500,
+        setAttribute() {}, querySelectorAll: () => [],
+        focus() {},
+    });
+    const roles = Object.fromEntries(["toggle", "window", "close", "clear", "form", "input", "send",
+        "stop", "messages", "transcript", "latest", "status"].map(role => [role, element()]));
+    let rendered = 0;
+    let reads = 0;
+    let observed = 0;
+    let Widget;
+    const warnings = [];
+    const warn = console.warn;
+    roles.transcript.replaceChildren = (...messages) => { rendered = messages.length; };
+    roles.window.show = () => { roles.window.open = true; };
+    roles.window.close = () => { roles.window.open = false; };
+    try {
+        const NativeAbortController = globalThis.AbortController;
+        globalThis.AbortController = class extends NativeAbortController {
+            constructor() { super(); setMaxListeners(0, this.signal); }
+        };
+        console.warn = (...args) => warnings.push(args);
+        globalThis.HTMLElement = class {
+            classList = classes();
+            isConnected = true;
+            querySelector(selector) { return roles[selector.match(/data-role="([^"]+)"/)[1]]; }
+            dispatchEvent() {}
+        };
+        globalThis.customElements = { get: () => undefined, define: (_, constructor) => { Widget = constructor; } };
+        globalThis.document = { body: element(), activeElement: null, createElement: element };
+        globalThis.localStorage = {
+            getItem() { reads++; return JSON.stringify([{ sender: "bot", text: "Saved answer" }]); },
+        };
+        globalThis.sessionStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+        globalThis.requestAnimationFrame = () => 1;
+        globalThis.cancelAnimationFrame = () => {};
+        globalThis.ResizeObserver = class { observe() { observed++; } disconnect() {} };
+        await import("../../assets/js/ai-chat-widget.js");
+        const widget = new Widget();
+        widget.connectedCallback();
+        assert.equal(reads, 0);
+        assert.equal(rendered, 0);
+        assert.equal(observed, 0);
+        widget.open();
+        assert.equal(reads, 1);
+        assert.equal(rendered, 1);
+        assert.equal(observed, 2);
+        widget.close();
+        widget.open();
+        assert.equal(reads, 1);
+        widget.disconnectedCallback();
+        widget.connectedCallback();
+        widget.open();
+        assert.equal(reads, 2);
+        assert.equal(rendered, 1, "reconnect must replace rather than duplicate messages");
+        widget.disconnectedCallback();
+        // Node cannot import HTTPS modules; the widget explicitly falls back to text.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        assert.equal(warnings.length, 1);
+        assert.match(warnings[0][0], /displaying plain text/);
+    } finally {
+        console.warn = warn;
+        for (const [name, descriptor] of saved) {
+            if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+            else delete globalThis[name];
+        }
+    }
+});
 
 test("history validates stored messages and preserves the existing storage key", () => {
     const values = new Map();

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { AI_CONFIG } from '../../functions/_lib/ai-config.js';
+import { AI_CONFIG } from '../../functions/_lib/config.js';
 import { refreshCorpus, setCorpusNamespace, waitForMutation } from '../../scripts/refresh_ai_corpus.mjs';
 
 const namespace = `corpus-${'a'.repeat(56)}`;

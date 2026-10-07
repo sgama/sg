@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import Cloudflare from 'cloudflare';
 import 'dotenv/config';
-import { AI_CONFIG } from '../functions/_lib/ai-config.js';
+import { AI_CONFIG } from '../functions/_lib/config.js';
 import { buildCorpus, ingestCorpus } from './generate_embeddings.mjs';
 
 export function setCorpusNamespace(config, namespace) {

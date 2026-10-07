@@ -5,10 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { AI_CONFIG, getModel, generationInput } from '../../functions/_lib/ai-config.js';
-import { fixtureHash, validateFixture, evaluateRetrieval, compareModels, estimateCost, percentile } from '../../scripts/lib/ai-evaluation.mjs';
+import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/config.js';
+import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile } from '../../scripts/lib/ai-evaluation.mjs';
 import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
-import { buildMessages } from '../../functions/_lib/config.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { makeStream } from '../helpers/index.mjs';
 
@@ -17,6 +16,30 @@ const known = { id: 'known', query: 'What is the stack?', expectedSources: ['con
 const unknown = { id: 'unknown', query: 'Salary?', expectedSources: [],
     answerTerms: [["don't have enough reliable context"]], forbiddenTerms: [] };
 const fixture = { version: 1, cases: [known, unknown] };
+
+test('source-grounded answer checks reject a contradictory claim', async () => {
+    const labeled = JSON.parse(await fs.readFile(new URL('../fixtures/ai-eval.json', import.meta.url), 'utf8'));
+    const cpp = labeled.cases.find(item => item.id === 'resume-cpp');
+    assert.equal(scoreAnswer('Yes, C/C++ is listed in the [resume](/resume/).', cpp), true);
+    assert.equal(scoreAnswer('C++ is not listed in the [resume](/resume/).', cpp), false);
+    assert.equal(cpp.required, true);
+});
+
+test('a required resume failure blocks release even when aggregate threshold permits it', () => {
+    const model = getModel('glm');
+    const labeled = { cases: [{ id: 'cpp', answerTerms: [['yes']], forbiddenTerms: [], required: true }] };
+    const retrievalReport = { kind: 'retrieval' };
+    const report = {
+        kind: 'comparison', namespace: 'test', fixtureHash: fixtureHash(labeled),
+        promptHash: fixtureHash(buildMessages('__query__', '__context__')),
+        contextMode: 'retrieved', maxCompletionTokens: AI_CONFIG.generation.maxCompletionTokens,
+        modelConfigurations: { [model.id]: model }, retrievalHash: fixtureHash(retrievalReport),
+        results: [{ caseId: 'cpp', repeat: 0, modelId: model.id, status: 'ok', answer: 'No' }],
+    };
+    assert.throws(() => validateComparisonReport(report, {
+        namespace: 'test', fixture: labeled, model, minAnswerRate: 0, retrievalReport,
+    }), /Required resume regression failed/);
+});
 
 test('model registry is modular and rejects unknown models', () => {
     assert.equal(getModel('glm').id, getModel('@cf/zai-org/glm-4.7-flash').id);

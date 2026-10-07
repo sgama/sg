@@ -178,7 +178,7 @@ deploy-pages: check-tools check-env build-prod ## Build (prod) and deploy to Clo
 		--commit-hash=$$COMMIT_HASH \
 		--commit-message="$$COMMIT_MESSAGE"
 
-cleanup-deployments: check-tools check-env deps ## Delete all but the latest Pages deployment
+cleanup-deployments: check-ai-tools check-env ## Keep active + five successful predecessors; prune unreferenced corpora
 	$(NODE) scripts/cleanup_deployments.mjs
 
 favicons: ## Regenerate favicon assets

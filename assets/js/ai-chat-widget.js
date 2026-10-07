@@ -28,6 +28,7 @@ class AiChatWidget extends HTMLElement {
     #pendingQuestion = null;
     #opener = null;
     #openFrame = null;
+    #conversationReady = false;
     #storage = createStore(() => localStorage, { json: true });
     #session = createStore(() => sessionStorage);
 
@@ -49,17 +50,23 @@ class AiChatWidget extends HTMLElement {
             return;
         }
         this.#events = new AbortController();
+        this.#bindEvents();
+        this.#setBusy(false);
+        if (this.#session.get(SESSION_OPEN_KEY) === "true") this.open();
+    }
+
+    #initialiseConversation() {
+        if (this.#conversationReady) return;
+        this.#conversationReady = true;
         this.#scroller = createChatScroller(this.#dom.messages, this.#dom.transcript, this.#dom.latest, {
             isOpen: () => this.#dom.window.open,
             signal: this.#events.signal,
         });
-        this.#bindEvents();
         this.#history = readHistory(this.#storage, WELCOME_MESSAGE);
         this.#renderHistory();
-        this.#setBusy(false);
-        if (this.#session.get(SESSION_OPEN_KEY) === "true") this.open();
+        const events = this.#events;
         loadMarkdown().then(() => {
-            if (!this.isConnected || !renderMarkdown) return;
+            if (events.signal.aborted || !this.isConnected || !renderMarkdown) return;
             this.#dom.transcript.querySelectorAll(".message--bot").forEach((element) =>
                 this.#writeMessage(element, element.dataset.rawText, "bot"));
             this.#scroller.changed();
@@ -71,6 +78,7 @@ class AiChatWidget extends HTMLElement {
         this.#events?.abort();
         this.#events = null;
         this.#scroller?.destroy();
+        this.#conversationReady = false;
         if (this.#openFrame !== null) cancelAnimationFrame(this.#openFrame);
         this.#openFrame = null;
         if (this.#dom?.window.open) this.#dom.window.close();
@@ -80,6 +88,7 @@ class AiChatWidget extends HTMLElement {
 
     open() {
         if (!this.#events) return;
+        this.#initialiseConversation();
         const dialog = this.#dom.window;
         if (!dialog.open) {
             this.#opener = document.activeElement;

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
-import { AI_CONFIG } from '../functions/_lib/ai-config.js';
+import { AI_CONFIG } from '../functions/_lib/config.js';
 import { buildCorpus, validateCorpus } from './lib/corpus.mjs';
 
 export { buildCorpus } from './lib/corpus.mjs';

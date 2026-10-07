@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createCloudflareAi } from '../../scripts/lib/cloudflare-ai.mjs';
-import { createSseMessageStream } from '../../functions/_lib/guardrails.js';
+import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 
 const options = { accountId: 'test-account', apiToken: 'test-token', namespace: 'corpus-test' };
 

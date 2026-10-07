@@ -6,7 +6,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { createSseMessageStream } from '../../functions/_lib/guardrails.js';
+import { buildMessages } from '../../functions/_lib/config.js';
+import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import {
   makeEnv,
   buildEmbeddingsResponse,
@@ -14,6 +15,19 @@ import {
   SAMPLE_DATA,
   FIXTURES,
 } from '../helpers/index.mjs';
+
+test('prompt uses retrieved evidence without injecting a separate resume copy', () => {
+  const context = '## Technical Skills\nProgramming: Go, Python, Bash, C/C++, Java, JavaScript, Rust';
+  const messages = buildMessages('Is C++ listed?', context,
+    [{ role: 'assistant', content: 'C++ is not listed.' }]);
+  assert.ok(messages[0].content.includes(context));
+  assert.match(messages[0].content, /override conflicting older excerpts and conversation history/);
+  assert.match(messages[0].content, /listing both languages/);
+  assert.match(messages[0].content, /Do not treat an omitted fact as either confirmed or disproved/);
+  assert.match(messages[0].content, /Do not exaggerate qualifications or suppress source-supported limitations/);
+  assert.equal(messages.at(-1).content, 'Is C++ listed?');
+  assert.ok(!buildMessages('Skills?', '')[0].content.includes('Mar 2026 - Jun 2026'));
+});
 
 test('AiService', async (t) => {
   await t.test('getEmbeddings', async (t) => {

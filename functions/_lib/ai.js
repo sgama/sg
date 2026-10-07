@@ -1,5 +1,4 @@
-import { CONFIG, AppError, buildMessages } from './config.js';
-import { getModel, generationInput, contextFromMatches } from './ai-config.js';
+import { AI_CONFIG, AppError, buildMessages, getModel, generationInput, contextFromMatches } from './config.js';
 import { normalizeChatStream } from './chat-stream.js';
 
 export class AiService {
@@ -12,7 +11,7 @@ export class AiService {
 
     async getEmbeddings(text) {
         try {
-            const { data } = await this.ai.run(CONFIG.MODELS.EMBEDDINGS, { text: [text] });
+            const { data } = await this.ai.run(AI_CONFIG.embedding.model, { text: [text] });
             const vector = data?.[0];
             if (!Array.isArray(vector) || !vector.length || !vector.every(Number.isFinite)) {
                 throw new Error('Invalid embedding response');
@@ -34,7 +33,7 @@ export class AiService {
 
         try {
             const results = await this.vectorize.query(vector, {
-                topK: CONFIG.VECTOR_SEARCH.FINAL_K,
+                topK: AI_CONFIG.retrieval.topK,
                 returnMetadata: 'all',
                 ...(this.namespace ? { namespace: this.namespace } : {}),
             });

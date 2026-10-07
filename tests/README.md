@@ -15,6 +15,8 @@ tests/
 │   ├── ai-evaluation.test.mjs    # Model comparisons and release gates
 │   ├── corpus.test.mjs           # Versioned ingestion and transport
 │   ├── corpus-refresh.test.mjs   # Index readiness and deployment namespace activation
+│   ├── deployment-cleanup.test.mjs # Rollback retention and safe vector pruning
+│   ├── chat-widget.test.mjs      # Lazy lifecycle, scroll following, and client streams
 │   ├── chat-api.test.mjs         # /api/chat endpoint
 │   ├── chat-stream.test.mjs      # Provider SSE normalization
 │   ├── guardrails.test.mjs       # Security and safety checks
@@ -23,9 +25,8 @@ tests/
 │   └── logs-api.test.mjs         # /api/logs endpoint
 └── helpers/                 # Shared test utilities
     ├── index.mjs                 # Re-exports all helpers
-    ├── constants.mjs             # Centralized test constants
-    ├── mocks.mjs                 # Mock factories
-    └── fixtures.mjs              # Test data builders
+    ├── data.mjs                  # Constants, fixtures, and test data builders
+    └── mocks.mjs                 # Mock factories
 ```
 
 ## Running Tests
@@ -78,7 +79,16 @@ test('AiService', async (t) => {
 
 ## Shared Utilities
 
-### Constants (`helpers/constants.mjs`)
+Production configuration and prompt construction live in
+`functions/_lib/config.js`; request schemas and guardrail checks live in
+`functions/_lib/validation.js`. SSE creation and provider normalization share
+`functions/_lib/chat-stream.js`.
+
+Source-content regression tests are grouped by responsibility: published facts
+and chunk availability in `corpus.test.mjs`, prompt construction in
+`ai-service.test.mjs`, and answer scoring/release gates in `ai-evaluation.test.mjs`.
+
+### Constants (`helpers/data.mjs`)
 
 Centralized test constants ensure consistency and make updates easier:
 
@@ -126,7 +136,7 @@ const ctx = createContext({
 });
 ```
 
-### Fixtures & Builders (`helpers/fixtures.mjs`)
+### Fixtures & Builders (`helpers/data.mjs`)
 
 Pre-built test data and builder patterns for complex objects:
 

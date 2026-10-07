@@ -77,7 +77,11 @@ identity guards prevent an older stream from modifying a newer conversation.
 Completed/stopped messages are saved synchronously; there are no delayed storage
 writes that can restore cleared history. Markdown rendering uses
 dynamically imported Marked and DOMPurify, falling back to text if loading fails.
-These imports begin during widget initialization, not only after its first open.
+History reads, transcript rendering, resize observation, and Markdown imports
+begin on first open, not during page initialization. An automatically restored
+open session initializes immediately because its conversation is visible.
+Closing and reopening reuse the initialized conversation; reconnecting resets
+the lifecycle without duplicating the transcript.
 
 ## Storage and Accessibility
 

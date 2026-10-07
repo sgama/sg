@@ -59,7 +59,7 @@ To enable the AI chatbot feature:
 ### AI Infrastructure and Model Evaluation
 
 AI configuration is shared by the runtime and evaluation tools in
-[`functions/_lib/ai-config.js`](functions/_lib/ai-config.js). Model aliases are
+[`functions/_lib/config.js`](functions/_lib/config.js). Model aliases are
 `glm`, `gemma`, and `llama`; each registry entry defines its model ID, generation
 parameters, completion-limit field, and dated token prices. Add an entry there to
 compare another Workers AI model without duplicating pipeline code. Model access
@@ -208,11 +208,42 @@ make ai-refresh
 make deploy-pages
 ```
 
+#### Deployment and corpus retention
+
+After deployment, CI runs `make cleanup-deployments`. Cleanup preserves the
+project's active deployment and five previous successful production deployments
+on `develop`, plus preview, other-branch, and in-progress deployments. A rollback
+preserves the active deployment and its successful predecessors.
+
+Cleanup reads each retained deployment's environment snapshot to preserve its
+`AI_CORPUS_NAMESPACE`. It first deletes obsolete deployments, then deletes vectors
+in every unreferenced `corpus-*` namespace, including undeployed evaluation
+candidates. Unversioned/foreign namespaces are untouched. Vector deletion waits
+for the accepted mutation to finish processing.
+
+Preview the plan without deletion:
+
+```bash
+node scripts/cleanup_deployments.mjs --dry-run
+```
+
+The command needs Pages read/delete and Vectorize read/write permissions.
+Missing deployment namespace metadata, incomplete inventories, and detected
+deployment changes stop cleanup explicitly. Legacy deployments without a known
+namespace must be resolved before vector pruning can proceed. This index must
+be dedicated to this project: other projects' references are not discovered.
+
+Keep manual deployments, rollback, and ingestion out of the serialized production
+refresh/deploy/cleanup window. Inventory rechecks reduce races but do not provide
+a distributed lock against external writers. Re-ingest a candidate if cleanup
+prunes it before your developer evaluation or deployment.
+
 `ai-refresh` makes paid API calls and edits local `wrangler.toml` only after
-indexing succeeds. It does not delete older namespaces. Every production push
+indexing succeeds. Refresh itself does not delete older namespaces; post-deploy
+cleanup prunes unreferenced versioned vectors. Every production push
 currently regenerates the corpus, even when content is unchanged; incremental
 embedding reuse is a future cost optimization. Deleted content is absent from
-the new active namespace. Old namespaces consume storage until explicitly pruned.
+the new active namespace. Retained rollback namespaces continue consuming storage.
 Leaving `AI_CORPUS_NAMESPACE` unset is only a migration fallback for deployments
 not using the refresh flow. Rollback to an existing deployment retains its pinned
 namespace; a manual rollback deployment must restore the previous namespace/model

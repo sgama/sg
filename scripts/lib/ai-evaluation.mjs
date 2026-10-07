@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-import { AI_CONFIG, getModel, generationInput, contextFromMatches } from '../../functions/_lib/ai-config.js';
-import { buildMessages } from '../../functions/_lib/config.js';
+import { AI_CONFIG, getModel, generationInput, contextFromMatches, buildMessages } from '../../functions/_lib/config.js';
 import { normalizeChatStream } from '../../functions/_lib/chat-stream.js';
-import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../functions/_lib/guardrails.js';
+import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../functions/_lib/validation.js';
 
 export function fixtureHash(fixture) {
     return createHash('sha256').update(JSON.stringify(fixture)).digest('hex');

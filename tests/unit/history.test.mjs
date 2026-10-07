@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ChatRequestSchema } from '../../functions/_lib/schemas.js';
+import { ChatRequestSchema } from '../../functions/_lib/validation.js';
 import { VALIDATION, buildHistory } from '../helpers/index.mjs';
 
 const parse = (data) => ChatRequestSchema.safeParse(data);
