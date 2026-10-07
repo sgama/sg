@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { handle } from 'hono/cloudflare-pages';
-import { AppError } from '../_lib/config.js';
+import { AppError } from '../_lib/application.js';
 import {
     isPromptInjectionAttempt,
     SAFE_NO_CONTEXT_MESSAGE,

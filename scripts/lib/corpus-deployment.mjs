@@ -1,0 +1,109 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import pLimit from 'p-limit';
+import { toFile } from 'cloudflare';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { buildCorpus, validateCorpus } from './corpus.mjs';
+
+export async function ingestCorpus(client, accountId, corpus, {
+    namespace,
+    indexName = AI_CONFIG.retrieval.indexName,
+    concurrency = 5,
+    batchSize = 1000,
+    afterMutation,
+} = {}) {
+    validateCorpus(corpus);
+    if (!namespace || namespace !== corpus.namespace) {
+        throw new Error(`Explicit --namespace must match computed namespace: ${corpus.namespace}`);
+    }
+    if (!accountId || !indexName) throw new Error('Account ID and index name are required');
+    if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 5
+        || !Number.isInteger(batchSize) || batchSize < 1 || batchSize > 1000) {
+        throw new Error('Concurrency must be 1–5 and batch size must be 1–1000');
+    }
+    if (!corpus.chunks.length) throw new Error('Refusing to ingest an empty corpus');
+    const limit = pLimit(concurrency);
+    const vectors = await Promise.all(corpus.chunks.map((chunk) => limit(async () => {
+        const result = await client.ai.run(corpus.embedding.model, {
+            account_id: accountId,
+            text: [chunk.text],
+        });
+        const values = result?.data?.[0];
+        if (!Array.isArray(result?.data) || result.data.length !== 1
+            || !Array.isArray(values) || values.length !== corpus.embedding.dimensions
+            || !values.every((value) => typeof value === 'number' && Number.isFinite(value))) {
+            throw new Error(`Invalid embedding dimensions or values for ${chunk.id}`);
+        }
+        return { id: chunk.id, values, namespace, metadata: chunk.metadata };
+    })));
+
+    const mutationIds = [];
+    for (let i = 0; i < vectors.length; i += batchSize) {
+        const batch = vectors.slice(i, i + batchSize);
+        const body = await toFile(batch.map((vector) => JSON.stringify(vector)).join('\n') + '\n',
+            'vectors.ndjson', { type: 'application/x-ndjson' });
+        const result = await client.vectorize.indexes.upsert(indexName, {
+            account_id: accountId,
+            body,
+            'unparsable-behavior': 'error',
+        });
+        if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
+            throw new Error(`Upsert batch ${mutationIds.length + 1} was not accepted: missing mutationId`);
+        }
+        mutationIds.push(result.mutationId);
+        if (afterMutation) await afterMutation(result.mutationId);
+    }
+    // Mutation IDs acknowledge asynchronous acceptance, not query readiness or activation.
+    return { namespace, count: vectors.length, mutationIds };
+}
+
+export function setCorpusNamespace(config, namespace) {
+    if (!/^corpus-[a-f0-9]{56}$/.test(namespace)) throw new Error('Invalid corpus namespace');
+    const sections = config.split(/(^\[[^\r\n]+\][ \t]*\r?$)/m);
+    const index = sections.findIndex(section => section === '[vars]');
+    if (index === -1 || index + 1 >= sections.length) throw new Error('Wrangler [vars] section is required');
+    const entries = sections[index + 1].match(/^AI_CORPUS_NAMESPACE\s*=.*$/gm) ?? [];
+    if (entries.length > 1) throw new Error('Duplicate AI_CORPUS_NAMESPACE settings');
+    const setting = `AI_CORPUS_NAMESPACE = "${namespace}"`;
+    sections[index + 1] = entries.length
+        ? sections[index + 1].replace(/^AI_CORPUS_NAMESPACE\s*=.*$/m, setting)
+        : `\n${setting}${sections[index + 1]}`;
+    return sections.join('');
+}
+
+export async function waitForMutation(client, accountId, mutationId, {
+    indexName = AI_CONFIG.retrieval.indexName,
+    timeoutMs = 180000,
+    intervalMs = 2000,
+    clock = () => performance.now(),
+    sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
+} = {}) {
+    const start = clock();
+    while (clock() - start < timeoutMs) {
+        const info = await client.vectorize.indexes.info(indexName, { account_id: accountId });
+        if (info?.dimensions !== AI_CONFIG.embedding.dimensions) throw new Error('Vectorize index dimensions do not match embedding configuration');
+        if (info.processedUpToMutation === mutationId) return;
+        await sleep(intervalMs);
+    }
+    throw new Error(`Timed out waiting for Vectorize mutation ${mutationId}; corpus was not activated`);
+}
+
+export async function refreshCorpus({
+    client, accountId, root = process.cwd(),
+    configPath = path.join(root, 'wrangler.toml'),
+    wait = waitForMutation,
+}) {
+    const original = await readFile(configPath, 'utf8');
+    const corpus = await buildCorpus({ root });
+    const updated = setCorpusNamespace(original, corpus.namespace);
+    // Process one upload batch at a time so no later batch can hide its readiness marker.
+    const result = await ingestCorpus(client, accountId, corpus, {
+        namespace: corpus.namespace,
+        afterMutation: mutationId => wait(client, accountId, mutationId),
+    });
+    if (await readFile(configPath, 'utf8') !== original) {
+        throw new Error('Wrangler configuration changed during ingestion; refusing to overwrite');
+    }
+    await writeFile(configPath, updated);
+    return result;
+}

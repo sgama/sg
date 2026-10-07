@@ -4,8 +4,8 @@
   "type": "module",
   "description": "[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml) [![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)",
   "scripts": {
-    "dev": "hugo && npx wrangler pages dev public --port 8788",
-    "build": "hugo --minify",
+    "dev": "make --no-print-directory dev-ai",
+    "build": "make --no-print-directory build-prod",
     "test": "node --test --test-reporter=spec tests/unit/*.test.mjs",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
@@ -29,7 +29,7 @@
     "cloudflare": "^5.2.0",
     "dotenv": "^17.2.4",
     "glob": "^13.0.2",
-    "gray-matter": "^2.0.1",
+    "gray-matter": "^4.0.3",
     "hono": "^4.12.14",
     "p-limit": "^7.0.0",
     "zod": "^4.3.6"

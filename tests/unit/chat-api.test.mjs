@@ -8,14 +8,13 @@ import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
 import { createSseMessageStream as createSseStream } from '../../functions/_lib/chat-stream.js';
 import {
-  createContext,
   buildEmbeddingsResponse,
   buildVectorizeResult,
   URLS,
   SAMPLE_DATA,
   FIXTURES,
-  makeStream,
-} from '../helpers/index.mjs';
+} from '../helpers/data.mjs';
+import { createContext, makeStream } from '../helpers/mocks.mjs';
 
 test('/api/chat', async (t) => {
   await t.test('CORS', async (t) => {

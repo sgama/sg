@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { AI_CONFIG } from '../../functions/_lib/config.js';
-import { refreshCorpus, setCorpusNamespace, waitForMutation } from '../../scripts/refresh_ai_corpus.mjs';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { refreshCorpus, setCorpusNamespace, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
 
 const namespace = `corpus-${'a'.repeat(56)}`;
 const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';

@@ -6,15 +6,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { buildMessages } from '../../functions/_lib/config.js';
+import { buildMessages } from '../../functions/_lib/application.js';
 import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import {
-  makeEnv,
   buildEmbeddingsResponse,
   buildVectorizeResult,
   SAMPLE_DATA,
   FIXTURES,
-} from '../helpers/index.mjs';
+} from '../helpers/data.mjs';
+import { makeEnv } from '../helpers/mocks.mjs';
 
 test('prompt uses retrieved evidence without injecting a separate resume copy', () => {
   const context = '## Technical Skills\nProgramming: Go, Python, Bash, C/C++, Java, JavaScript, Rust';

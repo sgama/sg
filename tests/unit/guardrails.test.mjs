@@ -11,7 +11,7 @@ import {
   SAFE_NO_CONTEXT_MESSAGE,
   shouldAbstainForMissingContext,
 } from '../../functions/_lib/validation.js';
-import { SAMPLE_DATA } from '../helpers/index.mjs';
+import { SAMPLE_DATA } from '../helpers/data.mjs';
 
 test('Guardrails', async (t) => {
   await t.test('isPromptInjectionAttempt', async (t) => {

@@ -19,6 +19,7 @@ endif
 PROJECT_NAME      ?= sg
 BRANCH            ?= develop
 PUBLIC_DIR        ?= public
+DEV_PORT          ?= 8788
 REPORT_DIR        ?= reports
 AI_MODELS         ?= glm,gemma,llama
 AI_NAMESPACE      ?=
@@ -31,6 +32,7 @@ AI_RETRIEVAL_REPORT ?= $(REPORT_DIR)/ai-retrieval.json
 AI_COMPARISON_REPORT ?= $(REPORT_DIR)/ai-comparison.json
 export AI_MODELS AI_NAMESPACE AI_REPEATS AI_FIXTURE AI_MIN_HIT_RATE AI_MIN_ANSWER_RATE AI_TIMEOUT_MS
 export AI_RETRIEVAL_REPORT AI_COMPARISON_REPORT REPORT_DIR
+export PUBLIC_DIR
 
 HUGO              ?= hugo
 HUGO_FLAGS        ?= --gc --minify --cleanDestinationDir
@@ -75,18 +77,18 @@ check-wrangler-node: check-ai-tools
 serve: ## Start Hugo development server
 	@$(HUGO) server $(HUGO_SERVER_FLAGS)
 
-dev-ai: build ## Start local dev server with Cloudflare Workers AI
-	@$(WRANGLER) pages dev $(PUBLIC_DIR)
+dev-ai: check-wrangler-node build ## Start local dev server with Cloudflare Workers AI
+	@$(WRANGLER) pages dev "$(PUBLIC_DIR)" --port=$(DEV_PORT)
 
 ##@ Build
 build: check-tools ## Build the site (development)
-	@$(HUGO) $(HUGO_FLAGS)
+	@$(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 postcss-build: check-tools ## Run PostCSS + PurgeCSS (production CSS only)
 	@HUGO_ENV=production NODE_ENV=production npx postcss assets/css/site.css -o assets/css/site.purged.css
 
 build-prod: check-tools postcss-build ## Build the site for production (with PurgeCSS)
-	@HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS)
+	@HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 build-summary: ## Print a summary of the build output
 	@echo "=== Build Output ==="
@@ -100,12 +102,20 @@ build-summary: ## Print a summary of the build output
 	@echo "=== Largest files ==="
 	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
 
-clean: ## Remove the build output directory
-	@rm -rf $(PUBLIC_DIR)/
+clean: ## Remove generated output within the repository's public build tree
+	@test -n "$$PUBLIC_DIR" || { echo "Refusing cleanup: PUBLIC_DIR is empty"; exit 1; }
+	@root=$$(git rev-parse --show-toplevel); \
+	target=$$(realpath -m -- "$$PUBLIC_DIR"); \
+	case "$$target" in \
+		"$$root/public"|"$$root/public/"*) ;; \
+		*) echo "Refusing cleanup outside $$root/public: $$target"; exit 1 ;; \
+	esac; \
+	test -z "$$(git ls-files -- "$$target")" || { echo "Refusing cleanup of tracked files: $$target"; exit 1; }; \
+	rm -rf -- "$$target"
 
 ##@ Test & Audit
-deps: ## Install Node dependencies
-	@$(NPM) install --no-fund
+deps: check-ai-tools ## Install Node dependencies exactly from the lockfile
+	@$(NPM) ci --no-fund
 
 test: ## Run unit tests
 	@$(NODE) --test --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
@@ -130,11 +140,11 @@ install-actionlint: ## Install the pinned actionlint release using Go
 coverage: check-ai-tools ## Run offline tests with text, HTML and LCOV coverage
 	@$(NPM) --silent run test:coverage
 
-audit-content: check-tools deps ## Validate content front matter coverage
+audit-content: check-ai-tools ## Validate content front matter coverage (install dependencies first)
 	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs
 
-audit-urls: check-tools deps ## Check external links in content files
-	@find content -name "*.md" | xargs npx markdown-link-check --config .markdown-link-check.json --quiet
+audit-urls: check-ai-tools ## Check external links (install dependencies first)
+	@find content -name "*.md" -print0 | xargs -0 -r ./node_modules/.bin/markdown-link-check --config .markdown-link-check.json --quiet
 
 audit-site: audit-content audit-urls ## Run all content and link audits
 
@@ -212,15 +222,11 @@ cleanup-deployments: check-ai-tools check-env ## Keep active + five successful p
 favicons: ## Regenerate favicon assets
 	@bash scripts/generate_favicons.sh
 
-kill:
-	@kill -9 $(lsof -t -i:1313)
-
 ##@ CI
-ci-check: ## Run offline workflow/JS lint, coverage, corpus validation, Functions and production builds
-	@$(MAKE) --no-print-directory lint-workflows lint coverage ai-check ai-build build-prod
+ci-check: lint-workflows lint coverage ai-check ai-build build-prod ## Run independent offline checks (use -j2 --output-sync=target)
 
 ci: ## Run checks, refresh embeddings and deploy the matching chat corpus
-	@$(MAKE) --no-print-directory ci-check audit-site
+	@$(MAKE) --no-print-directory --jobs=2 --output-sync=target ci-check audit-site
 	@$(MAKE) --no-print-directory ai-refresh
 	@$(MAKE) --no-print-directory deploy-built
 	@$(MAKE) --no-print-directory build-summary

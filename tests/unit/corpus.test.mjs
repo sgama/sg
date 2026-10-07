@@ -4,7 +4,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import Cloudflare from 'cloudflare';
-import { buildCorpus, ingestCorpus } from '../../scripts/generate_embeddings.mjs';
+import { buildCorpus } from '../../scripts/lib/corpus.mjs';
+import { ingestCorpus } from '../../scripts/lib/corpus-deployment.mjs';
 
 test('published resume contains the supplied skills and employment facts', async () => {
     const resume = await readFile(new URL('../../content/resume/_index.md', import.meta.url), 'utf8');

@@ -5,11 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/config.js';
+import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
 import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile } from '../../scripts/lib/ai-evaluation.mjs';
 import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { makeStream } from '../helpers/index.mjs';
+import { makeStream } from '../helpers/mocks.mjs';
 
 const known = { id: 'known', query: 'What is the stack?', expectedSources: ['content/a.md'],
     answerTerms: [['hugo'], ['cloudflare']], forbiddenTerms: ['wordpress'] };

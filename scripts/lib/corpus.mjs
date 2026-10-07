@@ -4,7 +4,7 @@ import path from 'node:path';
 import { glob } from 'glob';
 import matter from 'gray-matter';
 import { MarkdownTextSplitter } from '@langchain/textsplitters';
-import { AI_CONFIG } from '../../functions/_lib/config.js';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
 
 export const CHUNK_CONFIG = Object.freeze({ chunkSize: 2000, chunkOverlap: 200 });
 const digest = (value) => createHash('sha256').update(value).digest('hex');

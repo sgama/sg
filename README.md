@@ -59,7 +59,7 @@ To enable the AI chatbot feature:
 ### AI Infrastructure and Model Evaluation
 
 AI configuration is shared by the runtime and evaluation tools in
-[`functions/_lib/config.js`](functions/_lib/config.js). Model aliases are
+[`functions/_lib/application.js`](functions/_lib/application.js). Model aliases are
 `glm`, `gemma`, and `llama`; each registry entry defines its model ID, generation
 parameters, completion-limit field, and dated token prices. Add an entry there to
 compare another Workers AI model without duplicating pipeline code. Model access
@@ -289,6 +289,7 @@ Use the Makefile for common development tasks:
 | Command | Description |
 | ------- | ----------- |
 | `make help` | Show all available commands |
+| `make deps` | Install dependencies reproducibly with npm ci |
 | `make serve` | Start Hugo development server |
 | `make dev-ai` | Run the site with Pages Functions through Wrangler |
 | `make build` | Build the site without the production CSS purge |
@@ -302,7 +303,7 @@ Use the Makefile for common development tasks:
 | `make audit-content` | Validate content front matter coverage |
 | `make audit-urls` | Check links using markdown-link-check |
 | `make audit-site` | Run content and link checks |
-| `make clean` | Remove generated files |
+| `make clean` | Remove generated output within the repository's public build tree |
 | `make deploy-pages` | Build production assets and deploy to Cloudflare Pages |
 | `make deploy-built` | Deploy an existing validated production build without rebuilding |
 | `make deploy-ai` | Validate and gate an AI corpus/model release before deployment |
@@ -321,8 +322,28 @@ or paid API calls. Production pushes run the same checks before refreshing the
 corpus, deploying the existing build, and pruning old deployments. Production
 runs remain serialized without cancellation to protect corpus/deployment updates.
 CI caches npm downloads (not `node_modules`) and scopes Hugo caches by version and
-module dependencies. `make ci` remains a paid production workflow, not an offline
+module dependencies. The actionlint binary is cached by its Makefile-pinned
+version, runner OS, and architecture; cache hits skip Go setup and compilation.
+Hugo's build cache is saved after successful offline validation, before paid
+refresh or deployment. `make ci` remains a paid production workflow, not an offline
 check; use `make ci-check` for local validation.
+
+Install dependencies explicitly with `make deps` before checks; audits never
+install packages or change the lockfile. `npm run build` delegates to
+`make build-prod`, including production CSS, and `npm run dev` delegates to
+`make dev-ai` (port 8788; override with `DEV_PORT`).
+
+CI runs independent offline checks with
+`make --jobs=2 --output-sync=target ci-check`. Make prerequisites preserve
+PostCSS-before-Hugo ordering, while target output stays grouped. Corpus refresh,
+deployment, and cleanup remain sequential. The paid `make ci` entry point also
+bounds its validation phase to two jobs.
+
+Build targets honor `PUBLIC_DIR`. Cleanup accepts only the repository's `public`
+directory or descendants, rejects paths resolving outside that tree and tracked
+files, and refuses an empty destination. Custom output elsewhere must be cleaned
+explicitly. Stop foreground development servers with Ctrl+C; the force-kill
+target has been removed.
 
 Workflow linting uses native actionlint, silent on success with source-located
 diagnostics on failure. CI installs the version pinned in the Makefile.

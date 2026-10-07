@@ -7,14 +7,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LogService } from '../../functions/_lib/log.js';
 import {
-  makeStream,
-  drainStream,
-  makeTimestamp,
   buildKvKey,
   TIMESTAMPS,
   PAGINATION,
   FIXTURES,
-} from '../helpers/index.mjs';
+} from '../helpers/data.mjs';
+import { makeStream, drainStream, makeTimestamp } from '../helpers/mocks.mjs';
 
 const now = makeTimestamp(TIMESTAMPS.FIXED_TS);
 const id = () => 'test-id';

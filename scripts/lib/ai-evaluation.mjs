@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AI_CONFIG, getModel, generationInput, contextFromMatches, buildMessages } from '../../functions/_lib/config.js';
+import { AI_CONFIG, getModel, generationInput, contextFromMatches, buildMessages } from '../../functions/_lib/application.js';
 import { normalizeChatStream } from '../../functions/_lib/chat-stream.js';
 import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../functions/_lib/validation.js';
 

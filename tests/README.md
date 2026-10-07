@@ -108,10 +108,15 @@ test('AiService', async (t) => {
 
 ## Shared Utilities
 
-Production configuration and prompt construction live in
-`functions/_lib/config.js`; request schemas and guardrail checks live in
+Shared application settings, prompt/context construction, and application errors live in
+`functions/_lib/application.js`; request schemas and guardrail checks live in
 `functions/_lib/validation.js`. SSE creation and provider normalization share
 `functions/_lib/chat-stream.js`.
+
+Corpus parsing stays in `scripts/lib/corpus.mjs`; ingestion, mutation readiness,
+and namespace activation share `scripts/lib/corpus-deployment.mjs`. CLI scripts
+import these libraries rather than importing one another. Test helpers are
+imported directly from `helpers/data.mjs` and `helpers/mocks.mjs`.
 
 Source-content regression tests are grouped by responsibility: published facts
 and chunk availability in `corpus.test.mjs`, prompt construction in
@@ -122,7 +127,7 @@ and chunk availability in `corpus.test.mjs`, prompt construction in
 Centralized test constants ensure consistency and make updates easier:
 
 ```javascript
-import { VALIDATION, PAGINATION, TIMESTAMPS, URLS, SAMPLE_DATA } from '../helpers/index.mjs';
+import { VALIDATION, PAGINATION, TIMESTAMPS, URLS, SAMPLE_DATA } from '../helpers/data.mjs';
 
 // Use in tests
 assert.equal(query.length, VALIDATION.MAX_QUERY_LENGTH);
@@ -142,7 +147,7 @@ assert.equal(limit, PAGINATION.DEFAULT_LIMIT);
 Reusable factory functions for creating mock objects:
 
 ```javascript
-import { makeEnv, makeKv, createContext, makeStream } from '../helpers/index.mjs';
+import { makeEnv, makeKv, createContext, makeStream } from '../helpers/mocks.mjs';
 
 // Create mock AI environment
 const env = makeEnv({
@@ -170,7 +175,7 @@ const ctx = createContext({
 Pre-built test data and builder patterns for complex objects:
 
 ```javascript
-import { buildHistory, buildKvKey, buildVectorizeResult, FIXTURES } from '../helpers/index.mjs';
+import { buildHistory, buildKvKey, buildVectorizeResult, FIXTURES } from '../helpers/data.mjs';
 
 // Use pre-built fixtures
 const history = FIXTURES.VALID_HISTORY;
@@ -194,7 +199,7 @@ const kvKey = buildKvKey({
 ### Async Stream Testing
 
 ```javascript
-import { makeStream, drainStream } from '../helpers/index.mjs';
+import { makeStream, drainStream } from '../helpers/mocks.mjs';
 
 test('handles SSE streams correctly', async () => {
   const stream = makeStream(
@@ -211,7 +216,8 @@ test('handles SSE streams correctly', async () => {
 ### Deterministic Timestamps
 
 ```javascript
-import { makeTimestamp, TIMESTAMPS } from '../helpers/index.mjs';
+import { makeTimestamp } from '../helpers/mocks.mjs';
+import { TIMESTAMPS } from '../helpers/data.mjs';
 
 const now = makeTimestamp(TIMESTAMPS.FIXED_TS);
 
@@ -223,7 +229,8 @@ assert.equal(result.timestamp, TIMESTAMPS.FIXED_TS);
 ### Request Context Testing
 
 ```javascript
-import { createContext, URLS } from '../helpers/index.mjs';
+import { createContext } from '../helpers/mocks.mjs';
+import { URLS } from '../helpers/data.mjs';
 
 test('handles CORS correctly', async () => {
   const response = await onRequest(createContext({
@@ -286,7 +293,8 @@ Focus on meaningful coverage, not just numbers.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { NewModule } from '../../functions/_lib/new-module.js';
-import { makeEnv, SAMPLE_DATA } from '../helpers/index.mjs';
+import { makeEnv } from '../helpers/mocks.mjs';
+import { SAMPLE_DATA } from '../helpers/data.mjs';
 
 test('NewModule', async (t) => {
   await t.test('methodName', async (t) => {

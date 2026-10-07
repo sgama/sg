@@ -28,16 +28,34 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Read pinned actionlint version
+        id: actionlint-version
+        run: |
+          version=$(awk '$1 == "ACTIONLINT_VERSION" && $2 == ":=" { print $3 }' Makefile)
+          test -n "$version"
+          echo "version=$version" >> "${GITHUB_OUTPUT}"
+
+      - name: Cache actionlint binary
+        id: actionlint-cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/actionlint
+          key: ${{ runner.os }}-${{ runner.arch }}-actionlint-${{ steps.actionlint-version.outputs.version }}
+
       - name: Set up Go for actionlint
+        if: steps.actionlint-cache.outputs.cache-hit != 'true'
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: false
 
       - name: Install actionlint
+        if: steps.actionlint-cache.outputs.cache-hit != 'true'
+        run: GOBIN="${RUNNER_TEMP}/actionlint" make install-actionlint
+
+      - name: Add actionlint to PATH
         run: |
-          GOBIN="${RUNNER_TEMP}/bin" make install-actionlint
-          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+          echo "${RUNNER_TEMP}/actionlint" >> "${GITHUB_PATH}"
 
       - name: Cache Hugo binary
         id: hugo-binary-cache
@@ -74,10 +92,17 @@ jobs:
           cache: npm
 
       - name: Install Node dependencies
-        run: npm ci --no-fund
+        run: make deps
 
       - name: Validate JavaScript, corpus, Functions and production site
-        run: make ci-check
+        run: make --jobs=2 --output-sync=target ci-check
+
+      - name: Save Hugo build cache
+        if: success()
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ env.HUGO_CACHEDIR }}
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Upload JavaScript coverage
         if: always()
@@ -101,13 +126,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: make deploy-built
-
-      - name: Save Hugo build cache
-        if: success()
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Retain rollback deployments and prune unreferenced corpora
         if: github.event_name == 'push'

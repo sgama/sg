@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONFIG } from './config.js';
+import { CONFIG } from './application.js';
 
 const PROMPT_INJECTION_PATTERNS = [
     /ignore\s+(all\s+)?(previous|prior|above)\s+instructions?/i,

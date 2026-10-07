@@ -7,13 +7,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/logs.js';
 import {
-  makeKv,
-  createContext,
   buildKvKey,
   PAGINATION,
   TIMESTAMPS,
   URLS,
-} from '../helpers/index.mjs';
+} from '../helpers/data.mjs';
+import { makeKv, createContext } from '../helpers/mocks.mjs';
 
 test('/api/logs', async (t) => {
   await t.test('Request validation', async (t) => {

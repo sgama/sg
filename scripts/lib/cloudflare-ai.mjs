@@ -1,5 +1,5 @@
 import Cloudflare from 'cloudflare';
-import { AI_CONFIG } from '../../functions/_lib/config.js';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
 
 export function createCloudflareAi({
     accountId = process.env.CLOUDFLARE_ACCOUNT_ID,

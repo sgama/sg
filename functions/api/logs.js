@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
-import { CONFIG } from '../_lib/config.js';
+import { CONFIG } from '../_lib/application.js';
 import { LogService } from '../_lib/log.js';
 
 const app = new Hono();

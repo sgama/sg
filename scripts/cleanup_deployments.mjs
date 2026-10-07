@@ -3,8 +3,8 @@ import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { AI_CONFIG } from '../functions/_lib/config.js';
-import { waitForMutation } from './refresh_ai_corpus.mjs';
+import { AI_CONFIG } from '../functions/_lib/application.js';
+import { waitForMutation } from './lib/corpus-deployment.mjs';
 
 const VERSIONED_NAMESPACE = /^corpus-[a-f0-9]{56}$/;
 const successful = deployment => !deployment.is_skipped

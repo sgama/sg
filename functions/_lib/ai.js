@@ -1,4 +1,4 @@
-import { AI_CONFIG, AppError, buildMessages, getModel, generationInput, contextFromMatches } from './config.js';
+import { AI_CONFIG, AppError, buildMessages, getModel, generationInput, contextFromMatches } from './application.js';
 import { normalizeChatStream } from './chat-stream.js';
 
 export class AiService {
