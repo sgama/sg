@@ -1,485 +1,293 @@
-/**
- * <ai-chat-widget> — custom element that owns the AI chat dialog.
- * Light-DOM custom element: keeps the existing chat-widget__* CSS in site.css
- * applicable, while moving all chat behaviour, state, and DOM ownership inside
- * a single class with proper lifecycle.
- *
- * Public API (on the element):
- *   .open(), .close(), .toggle(), .setPendingQuestion(text)
- *
- * Events emitted: chat-open, chat-close.
- */
-(() => {
-    if (customElements.get("ai-chat-widget")) return;
+import { createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from "./chat/history.js";
+import { streamAnswer } from "./chat/stream.js";
+import { createChatScroller } from "./chat/scroll.js";
 
-    const STORAGE_KEY = "ai-chat-history";
-    const SESSION_OPEN_KEY = "ai-chat-open";
-    const API_ENDPOINT = "/api/chat";
-    const WELCOME_MESSAGE = "Hello! I'm an AI assistant trained on this portfolio. Ask me anything about my projects or background.";
+const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information from this portfolio. Ask me about my projects or background.";
+let renderMarkdown = null;
+let markdownLoader = null;
 
-    // ---- Helpers ----
-
-    const debounce = (func, wait) => {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
-        };
-    };
-
-    const normalizeSender = (sender) => (sender === "user" ? "user" : "bot");
-
-    let renderMarkdown = null;
-    let markdownLoader = null;
-    const loadMarkdown = () => {
-        return markdownLoader ??= Promise.all([
-            import("https://esm.sh/marked@13"),
-            import("https://esm.sh/dompurify@3"),
-        ]).then(([markedMod, purifyMod]) => {
-            const marked = markedMod.marked || markedMod.default || markedMod;
-            const purify = purifyMod.default || purifyMod;
-            marked.setOptions({ gfm: true, breaks: true });
-            renderMarkdown = (text) => purify.sanitize(marked.parse(text));
-            return true;
-        }).catch(() => {
-            renderMarkdown = null;
-            return false;
-        });
-    };
-
-    const createSafeStore = (store, { json = false } = {}) => ({
-        get: (key, fallback) => {
-            try {
-                const raw = store.getItem(key);
-                if (!json) return raw ?? fallback;
-                return raw ? JSON.parse(raw) : fallback;
-            } catch { return fallback; }
-        },
-        set: (key, value) => {
-            try { store.setItem(key, json ? JSON.stringify(value) : value); } catch {}
-        },
-        remove: (key) => {
-            try { store.removeItem(key); } catch {}
-        },
+function loadMarkdown() {
+    return markdownLoader ??= Promise.all([
+        import("https://esm.sh/marked@13"),
+        import("https://esm.sh/dompurify@3"),
+    ]).then(([markedModule, purifyModule]) => {
+        const marked = markedModule.marked;
+        const purify = purifyModule.default;
+        renderMarkdown = (text) => purify.sanitize(marked.parse(text, { gfm: true, breaks: true }));
+    }).catch((error) => {
+        console.warn("Chat markdown unavailable; displaying plain text.", error);
     });
+}
 
-    const createSseResponseParser = (onDelta) => {
-        let buffer = "";
-        const handleLine = (line) => {
-            if (!line.startsWith("data: ")) return;
-            const dataStr = line.slice(6).trim();
-            if (!dataStr || dataStr === "[DONE]") return;
-            const json = JSON.parse(dataStr);
-            if (json?.error) throw new Error(json.error);
-            if (json?.response) onDelta(json.response);
-        };
-        return {
-            push: (chunk) => {
-                buffer += chunk;
-                const lines = buffer.split("\n");
-                buffer = lines.pop() ?? "";
-                lines.forEach(handleLine);
-            },
-            flush: () => {
-                if (buffer) { handleLine(buffer); buffer = ""; }
-            },
-        };
-    };
+class AiChatWidget extends HTMLElement {
+    #dom;
+    #events;
+    #scroller;
+    #request = null;
+    #history = [];
+    #pendingQuestion = null;
+    #opener = null;
+    #openFrame = null;
+    #storage = createStore(() => localStorage, { json: true });
+    #session = createStore(() => sessionStorage);
 
-    const createRafThrottler = (update) => {
-        let frame = null;
-        let pending = "";
-        return {
-            schedule: (next) => {
-                pending = next;
-                if (!frame) {
-                    frame = requestAnimationFrame(() => {
-                        frame = null;
-                        update(pending);
-                    });
-                }
-            },
-            cancel: () => {
-                if (frame) { cancelAnimationFrame(frame); frame = null; }
-            },
-        };
-    };
-
-    // ---- Custom element ----
-
-    class AiChatWidget extends HTMLElement {
-        #dom = {};
-        #abortController = null;
-        #eventAborter = null;
-        #pendingQuestion = null;
-        #initialised = false;
-        #safeStorage = createSafeStore(localStorage, { json: true });
-        #safeSession = createSafeStore(sessionStorage);
-
-        // --- Public API ---
-
-        open() {
-            if (!this.#initialised || !this.#dom.dialog) return;
-            if (this.#dom.dialog.open) {
-                this.#applyPendingQuestion();
-                this.#focusInput();
+    connectedCallback() {
+        if (this.#events) return;
+        if (!this.querySelector('[data-role="window"]')) {
+            const template = document.getElementById("ai-chat-template");
+            if (!template) {
+                console.error("Chat widget template is missing.");
                 return;
             }
-            this.classList.add("is-open");
-            document.body.classList.add("ai-chat-open");
-            
-            if (typeof this.#dom.dialog.show === "function") {
-                this.#dom.dialog.show();
-            } else {
-                this.#dom.dialog.setAttribute("open", "");
-            }
-
-            this.#applyPendingQuestion();
-            this.#focusInput();
-            this.#safeSession.set(SESSION_OPEN_KEY, "true");
-            this.dispatchEvent(new CustomEvent("chat-open", { bubbles: true }));
+            this.append(template.content.cloneNode(true));
         }
-
-        close() {
-            if (!this.#initialised || !this.#dom.dialog) return;
-            if (!this.#dom.dialog.open && !this.#dom.dialog.hasAttribute("open")) return;
-            
-            this.classList.remove("is-open");
-            document.body.classList.remove("ai-chat-open");
-            
-            if (typeof this.#dom.dialog.close === "function") {
-                this.#dom.dialog.close();
-            } else {
-                this.#dom.dialog.removeAttribute("open");
-            }
-            
-            this.#safeSession.remove(SESSION_OPEN_KEY);
-            this.#cancelInflight();
-            this.dispatchEvent(new CustomEvent("chat-close", { bubbles: true }));
+        const roles = ["toggle", "window", "close", "clear", "form", "input", "send",
+            "stop", "messages", "transcript", "latest", "status"];
+        this.#dom = Object.fromEntries(roles.map((role) => [role, this.querySelector(`[data-role="${role}"]`)]));
+        if (roles.some((role) => !this.#dom[role])) {
+            console.error("Chat widget template is incomplete.");
+            return;
         }
-
-        toggle() {
-            if (!this.#initialised || !this.#dom.dialog) return;
-            const action = () => {
-                this.#dom.dialog.open ? this.close() : this.open();
-            };
-            
-            if (document.startViewTransition) {
-                document.startViewTransition(action);
-            } else {
-                action();
-            }
-        }
-
-        setPendingQuestion(text) {
-            this.#pendingQuestion = text;
-            if (this.#dom.dialog?.open) this.#applyPendingQuestion();
-        }
-
-        // --- Lifecycle ---
-
-        connectedCallback() {
-            if (this.#initialised) return;
-            this.classList.add("chat-widget");
-            const template = document.getElementById("ai-chat-template");
-            if (template) {
-                this.appendChild(template.content.cloneNode(true));
-            }
-            
-            const q = (role) => this.querySelector(`[data-role="${role}"]`);
-            this.#dom = {
-                toggleBtn: q("toggle"),
-                dialog: q("window"),
-                closeBtn: q("close"),
-                clearBtn: q("clear"),
-                form: q("form"),
-                input: q("input"),
-                sendBtn: q("send"),
-                messages: q("messages"),
-            };
-
-            this.#bindEvents();
-            this.#loadHistory();
-
-            if (this.#safeSession.get(SESSION_OPEN_KEY) === "true") {
-                this.open();
-            }
-
-            loadMarkdown().then((success) => {
-                if (success && this.#dom.messages) {
-                    const botMessages = this.#dom.messages.querySelectorAll('.message--bot');
-                    botMessages.forEach((el) => {
-                        if (el.dataset.rawText) {
-                            this.#writeMessageContent(el, el.dataset.rawText, "bot");
-                        }
-                    });
-                }
-            });
-            this.#initialised = true;
-        }
-
-        disconnectedCallback() {
-            this.#cancelInflight();
-            this.#eventAborter?.abort();
-            this.#eventAborter = null;
-            this.
-            document.body.classList.remove("ai-chat-open");
-            this.#initialised = false;
-        }
-
-        // --- Internals ---
-
-        #focusInput() {
-            if (!this.#dom.input) return;
-            requestAnimationFrame(() => {
-                if (!this.#dom.dialog?.open) return;
-                this.#dom.input.focus({ preventScroll: true });
-                const end = this.#dom.input.value.length;
-                try { this.#dom.input.setSelectionRange(end, end); } catch {}
-            });
-        }
-
-        #bindEvents() {
-            this.#eventAborter = new AbortController();
-            const { signal } = this.#eventAborter;
-            const { toggleBtn, closeBtn, clearBtn, form, dialog, input, messages } = this.#dom;
-            toggleBtn?.addEventListener("click", () => this.toggle(), { signal });
-            
-            closeBtn?.addEventListener("click", (e) => {
-                e.stopPropagation();
-                this.close();
-            }, { signal });
-
-            clearBtn?.addEventListener("click", () => {
-                if (!window.confirm("Delete chat history?")) return;
-                this.#safeStorage.remove(STORAGE_KEY);
-                if (messages) messages.innerHTML = "";
-                this.#loadHistory();
-            }, { signal });
-
-            form?.addEventListener("submit", (e) => this.#handleSubmit(e), { signal });
-
-            dialog?.addEventListener("close", () => {
-                this.classList.remove("is-open");
-                document.body.classList.remove("ai-chat-open");
-                this.#safeSession.remove(SESSION_OPEN_KEY);
-                this.#cancelInflight();
-            }, { signal });
-
-            dialog?.addEventListener("keydown", (e) => {
-                if (e.key === "Tab") {
-                    const focusableElements = dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-                    const firstElement = focusableElements[0];
-                    const lastElement = focusableElements[focusableElements.length - 1];
-
-                    if (e.shiftKey) { 
-                        if (document.activeElement === firstElement) {
-                            lastElement?.focus();
-                            e.preventDefault();
-                        }
-                    } else { 
-                        if (document.activeElement === lastElement) {
-                            firstElement?.focus();
-                            e.preventDefault();
-                        }
-                    }
-                }
-            }, { signal });
-
-            input?.addEventListener("keydown", (e) => {
-                if (e.key === "Escape") this.close();
-                else if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    form?.requestSubmit();
-                }
-            }, { signal });
-        }
-
-        // --- History ---
-
-        #getHistory() {
-            return this.#safeStorage.get(STORAGE_KEY, []);
-        }
-
-        #saveMessage(msg) {
-            const history = this.#getHistory();
-            history.push(msg);
-            this.#safeStorage.set(STORAGE_KEY, history);
-        }
-
-        #loadHistory() {
-            let history = this.#getHistory();
-            if (!history.length) {
-                history = [{ text: WELCOME_MESSAGE, sender: "bot" }];
-                this.#saveMessage(history[0]);
-            }
-            
-            const fragment = document.createDocumentFragment();
-            history.forEach(({ text, sender }) => {
-                fragment.appendChild(this.#buildMessageEl(text, sender ?? "bot"));
-            });
-            
-            if (this.#dom.messages) {
-                this.#dom.messages.insertBefore(fragment, this.#dom.messages.querySelector(".scroll-anchor") || null);
-            }
-        }
-
-        #applyPendingQuestion() {
-            if (!this.#pendingQuestion || !this.#dom.input) return;
-            this.#dom.input.value = this.#pendingQuestion;
-            this.#pendingQuestion = null;
-        }
-
-        // --- Message rendering ---
-
-        #writeMessageContent(el, text, sender) {
-            if (sender === "bot" && renderMarkdown) {
-                const html = renderMarkdown(text);
-                if (el.innerHTML !== html) el.innerHTML = html;
-            } else if (el.textContent !== text) {
-                el.textContent = text;
-            }
-        }
-
-        #buildMessageEl(text, sender) {
-            const div = document.createElement("div");
-            const normalized = normalizeSender(sender);
-            div.classList.add("message", `message--${normalized}`);
-            div.setAttribute("role", normalized === "bot" ? "status" : "article");
-            div.setAttribute("aria-live", normalized === "bot" ? "polite" : "off");
-            if (normalized === "bot") div.dataset.rawText = text;
-            this.#writeMessageContent(div, text, normalized);
-            return div;
-        }
-
-        #addMessage(text, sender) {
-            const { messages } = this.#dom;
-            if (!messages) return null;
-            const div = this.#buildMessageEl(text, sender);
-            messages.insertBefore(div, messages.querySelector(".scroll-anchor") || null);
-            return div;
-        }
-
-        #updateMessage(messageEl, text, forceScroll = false) {
-            if (!messageEl) return;
-            const sender = messageEl.classList.contains("message--user") ? "user" : "bot";
-            
-            const { messages } = this.#dom;
-
-            messageEl.classList.toggle("message--loading", !text);
-            this.#writeMessageContent(messageEl, text || "...", sender);
-        }
-
-        #debouncedUpdateStorage = debounce((text) => {
-            const history = this.#getHistory();
-            if (history.length && history[history.length - 1].sender === "bot") {
-                history[history.length - 1].text = text;
-            } else {
-                history.push({ text, sender: "bot" });
-            }
-            this.#safeStorage.set(STORAGE_KEY, history);
-        }, 500);
-
-        #setInputDisabled(disabled) {
-            const { input, sendBtn } = this.#dom;
-            if (input) input.disabled = disabled;
-            if (sendBtn) {
-                sendBtn.disabled = disabled;
-                sendBtn.setAttribute("aria-busy", String(disabled));
-            }
-        }
-
-        #cancelInflight() {
-            this.#abortController?.abort();
-            this.#abortController = null;
-        }
-
-        // --- Execute request & streaming ---
-
-        async #handleSubmit(event) {
-            event.preventDefault();
-            const { input } = this.#dom;
-            const text = input?.value?.trim() || "";
-            if (!text) return;
-
-            this.#addMessage(text, "user");
-            this.#saveMessage({ text, sender: "user" });
-
-            if (input) input.value = "";
-            this.#setInputDisabled(true);
-
-            this.#abortController = new AbortController();
-            let botMessage = null;
-            
-            const throttler = createRafThrottler((nextText) => {
-                this.#updateMessage(botMessage, nextText, true);
-                this.#debouncedUpdateStorage(nextText);
-            });
-
-            try {
-                botMessage = this.#addMessage("", "bot");
-                const accumulated = await this.#streamChat(text, (next) => throttler.schedule(next), this.#abortController.signal);
-                throttler.cancel();
-                this.#updateMessage(botMessage, accumulated, true);
-                this.#debouncedUpdateStorage(accumulated);
-            } catch (error) {
-                if (error.name === "AbortError") {
-                    botMessage?.remove();
-                } else {
-                    if (botMessage && !botMessage.textContent) botMessage.remove();
-                    const offline = !navigator.onLine || /offline/i.test(error.message ?? "");
-                    const errorMsg = offline
-                        ? "You appear to be offline. Please check your connection."
-                        : "Sorry, I'm having trouble connecting. Please try again.";
-                    this.#addMessage(errorMsg, "bot");
-                }
-            } finally {
-                throttler.cancel();
-                this.#abortController = null;
-                this.#setInputDisabled(false);
-                input?.focus({ preventScroll: true });
-            }
-        }
-
-        async #streamChat(query, onUpdate, signal) {
-            if (!navigator.onLine) throw new Error("Offline");
-
-            const response = await fetch(API_ENDPOINT, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query }),
-                signal,
-            });
-            
-            if (!response.ok || !response.body) {
-                const errorText = await response.text().catch(() => "Unknown error");
-                throw new Error(`Network error: ${response.status} - ${errorText}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let accumulated = "";
-            
-            const parser = createSseResponseParser((delta) => {
-                accumulated += delta;
-                onUpdate(accumulated, delta);
-            });
-
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    parser.push(decoder.decode(value, { stream: true }));
-                }
-                parser.push(decoder.decode());
-                parser.flush();
-                if (!accumulated.trim()) throw new Error("Chat completed without an answer");
-            } finally {
-                reader.releaseLock();
-            }
-            return accumulated;
-        }
+        this.#events = new AbortController();
+        this.#scroller = createChatScroller(this.#dom.messages, this.#dom.transcript, this.#dom.latest, {
+            isOpen: () => this.#dom.window.open,
+            signal: this.#events.signal,
+        });
+        this.#bindEvents();
+        this.#history = readHistory(this.#storage, WELCOME_MESSAGE);
+        this.#renderHistory();
+        this.#setBusy(false);
+        if (this.#session.get(SESSION_OPEN_KEY) === "true") this.open();
+        loadMarkdown().then(() => {
+            if (!this.isConnected || !renderMarkdown) return;
+            this.#dom.transcript.querySelectorAll(".message--bot").forEach((element) =>
+                this.#writeMessage(element, element.dataset.rawText, "bot"));
+            this.#scroller.changed();
+        });
     }
 
-    customElements.define("ai-chat-widget", AiChatWidget);
-})();
+    disconnectedCallback() {
+        this.#cancelRequest();
+        this.#events?.abort();
+        this.#events = null;
+        this.#scroller?.destroy();
+        if (this.#openFrame !== null) cancelAnimationFrame(this.#openFrame);
+        this.#openFrame = null;
+        if (this.#dom?.window.open) this.#dom.window.close();
+        this.classList.remove("is-open");
+        document.body.classList.remove("ai-chat-open");
+    }
+
+    open() {
+        if (!this.#events) return;
+        const dialog = this.#dom.window;
+        if (!dialog.open) {
+            this.#opener = document.activeElement;
+            dialog.show();
+            this.classList.add("is-open");
+            document.body.classList.add("ai-chat-open");
+            this.#dom.toggle.setAttribute("aria-expanded", "true");
+            this.#session.set(SESSION_OPEN_KEY, "true");
+            this.dispatchEvent(new CustomEvent("chat-open", { bubbles: true }));
+        }
+        this.#applyPendingQuestion();
+        this.#scroller.changed(true);
+        if (this.#openFrame !== null) cancelAnimationFrame(this.#openFrame);
+        this.#openFrame = requestAnimationFrame(() => {
+            this.#openFrame = null;
+            if (dialog.open) this.#dom.input.focus({ preventScroll: true });
+        });
+    }
+
+    close() {
+        if (!this.#dom?.window.open) return;
+        this.#dom.window.close();
+        this.#afterClose();
+    }
+
+    toggle() {
+        this.#dom?.window.open ? this.close() : this.open();
+    }
+
+    setPendingQuestion(text) {
+        this.#pendingQuestion = String(text);
+        if (this.#dom?.window.open) this.#applyPendingQuestion();
+    }
+
+    #afterClose() {
+        if (!this.classList.contains("is-open")) return;
+        this.classList.remove("is-open");
+        document.body.classList.remove("ai-chat-open");
+        this.#dom.toggle.setAttribute("aria-expanded", "false");
+        this.#session.remove(SESSION_OPEN_KEY);
+        this.#cancelRequest();
+        if (this.#opener?.isConnected) this.#opener.focus({ preventScroll: true });
+        this.dispatchEvent(new CustomEvent("chat-close", { bubbles: true }));
+    }
+
+    #bindEvents() {
+        const { signal } = this.#events;
+        const listen = (role, event, listener) => this.#dom[role].addEventListener(event, listener, { signal });
+        listen("toggle", "click", () => this.toggle());
+        listen("close", "click", () => this.close());
+        listen("window", "close", () => {
+            // A queued close event may arrive after the dialog has already reopened.
+            if (!this.#dom.window.open) this.#afterClose();
+        });
+        listen("window", "cancel", (event) => {
+            event.preventDefault();
+            this.close();
+        });
+        listen("window", "keydown", (event) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                this.close();
+            }
+        });
+        listen("input", "keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+                event.preventDefault();
+                if (!this.#request) this.#dom.form.requestSubmit();
+            }
+        });
+        listen("form", "submit", (event) => {
+            event.preventDefault();
+            this.#submit();
+        });
+        listen("stop", "click", () => {
+            this.#cancelRequest();
+            this.#dom.input.focus({ preventScroll: true });
+        });
+        listen("clear", "click", () => {
+            if (!window.confirm("Delete chat history on this device?")) return;
+            this.#cancelRequest();
+            this.#history = [{ sender: "bot", text: WELCOME_MESSAGE }];
+            this.#persist();
+            this.#renderHistory();
+            this.#scroller.changed(true);
+            this.#dom.status.textContent = "Chat history cleared.";
+            this.#dom.input.focus({ preventScroll: true });
+        });
+    }
+
+    #applyPendingQuestion() {
+        if (this.#pendingQuestion === null) return;
+        this.#dom.input.value = this.#pendingQuestion.slice(0, this.#dom.input.maxLength);
+        this.#pendingQuestion = null;
+    }
+
+    #persist() {
+        this.#storage.set(STORAGE_KEY, this.#history.filter((message) => message.text.trim()));
+    }
+
+    #renderHistory() {
+        this.#dom.transcript.replaceChildren(...this.#history.map((message) => this.#buildMessage(message)));
+        this.#scroller.changed();
+    }
+
+    #writeMessage(element, text, sender) {
+        element.dataset.rawText = text;
+        element.classList.toggle("message--loading", !text);
+        if (sender === "bot" && renderMarkdown && text) {
+            element.innerHTML = renderMarkdown(text);
+            element.querySelectorAll("a").forEach((link) => {
+                link.rel = "noopener noreferrer";
+                link.target = "_blank";
+            });
+        } else {
+            element.textContent = text || "Thinking…";
+        }
+        this.#scroller.changed();
+    }
+
+    #buildMessage(message) {
+        const element = document.createElement("div");
+        element.classList.add("message", `message--${message.sender}`);
+        element.setAttribute("aria-label", message.sender === "user" ? "You" : "Assistant");
+        this.#writeMessage(element, message.text, message.sender);
+        return element;
+    }
+
+    #appendMessage(message) {
+        this.#history.push(message);
+        const element = this.#buildMessage(message);
+        this.#dom.transcript.append(element);
+        this.#scroller.changed();
+        return element;
+    }
+
+    #setBusy(busy) {
+        this.#dom.send.disabled = busy;
+        this.#dom.stop.hidden = !busy;
+        this.#dom.send.hidden = busy;
+        this.#dom.transcript.setAttribute("aria-busy", String(busy));
+        this.#dom.status.textContent = busy ? "Assistant is responding." : "";
+    }
+
+    #finishRequest(request, text, status) {
+        if (this.#request !== request) return;
+        if (request.frame !== null) cancelAnimationFrame(request.frame);
+        request.message.text = text;
+        this.#writeMessage(request.element, text, "bot");
+        this.#persist();
+        this.#request = null;
+        this.#setBusy(false);
+        this.#dom.status.textContent = status;
+    }
+
+    #cancelRequest() {
+        const request = this.#request;
+        if (!request) return;
+        request.controller.abort();
+        this.#finishRequest(request,
+            request.answer ? `${request.answer}\n\n(Response stopped.)` : "Response stopped.",
+            "Response stopped.");
+    }
+
+    async #submit() {
+        const text = this.#dom.input.value.trim();
+        if (!text || this.#request || !this.#dom.form.reportValidity()) return;
+        this.#scroller.changed(true);
+        this.#appendMessage({ text, sender: "user" });
+        this.#dom.input.value = "";
+        const message = { text: "", sender: "bot" };
+        const request = {
+            controller: new AbortController(),
+            message,
+            element: this.#appendMessage(message),
+            answer: "",
+            frame: null,
+        };
+        this.#request = request;
+        this.#persist();
+        this.#setBusy(true);
+        this.#dom.input.focus({ preventScroll: true });
+        try {
+            if (!navigator.onLine) throw new Error("Offline");
+            const answer = await streamAnswer(text, {
+                signal: request.controller.signal,
+                onUpdate: (answer) => {
+                    if (this.#request !== request) return;
+                    request.answer = answer;
+                    if (request.frame !== null) return;
+                    request.frame = requestAnimationFrame(() => {
+                        request.frame = null;
+                        if (this.#request === request) this.#writeMessage(request.element, request.answer, "bot");
+                    });
+                },
+            });
+            this.#finishRequest(request, answer, "Response complete.");
+        } catch (error) {
+            if (this.#request !== request) return;
+            console.error("Chat request failed.", error);
+            const explanation = !navigator.onLine
+                ? "You appear to be offline. Check your connection and try again."
+                : "The response could not be completed. Please try again.";
+            this.#finishRequest(request,
+                request.answer ? `${request.answer}\n\n${explanation}` : explanation,
+                explanation);
+        }
+    }
+}
+
+if (!customElements.get("ai-chat-widget")) customElements.define("ai-chat-widget", AiChatWidget);

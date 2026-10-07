@@ -7,7 +7,9 @@ Those features are not implemented.
 ## Architecture
 
 - [`assets/js/ai-chat-widget.js`](assets/js/ai-chat-widget.js) registers
-  `<ai-chat-widget>` and owns the dialog, messages, storage, and request lifecycle.
+  `<ai-chat-widget>` and coordinates the dialog, messages, and request lifecycle.
+- [`assets/js/chat/`](assets/js/chat/) contains independent history, stream, and
+  scroll controllers. Hugo bundles these local modules into one widget script.
 - [`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
   supplies a light-DOM template and loads fingerprinted widget/site scripts.
 - [`assets/css/site.css`](assets/css/site.css) provides the widget styles.
@@ -25,9 +27,26 @@ The element exposes `open()`, `close()`, `toggle()`, and
 Links/buttons with `.js-chat-trigger` open it through the site script;
 `data-question` supplies an optional pending question.
 
-`connectedCallback()` clones the template and installs event handlers.
+`connectedCallback()` clones the template once and installs event handlers.
 `disconnectedCallback()` cancels requests and removes registered listeners.
-There is no `attributeChangedCallback()` or swipe-to-close implementation.
+Reconnecting the same element reuses its DOM without duplicating messages or
+handlers. There is no `attributeChangedCallback()` or swipe-to-close implementation.
+
+## Scrolling and Focus
+
+Opening always shows the latest message after the dialog has been laid out.
+New questions reset follow mode; streamed answers keep the transcript at the
+bottom while the reader is near it. Scrolling up pauses automatic following and
+reveals a "Latest messages" button. Clicking it or returning to the bottom resumes
+following. ResizeObserver handles delayed markdown/image layout and viewport
+changes without polling. Message heights are measured normally, not estimated
+with content-visibility placeholders.
+
+The non-modal desktop dialog does not trap Tab focus. Escape works throughout
+the dialog, and closing restores focus to the opener. Streaming does not move
+focus. The composer remains editable during generation, with a Stop control;
+duplicate submissions are blocked. Enter sends, Shift+Enter adds a newline, and
+IME composition does not trigger submission.
 
 ## Requests and Streaming
 
@@ -38,9 +57,14 @@ for clients that provide it.
 The server normalizes provider streams into `data: {"response":"..."}` answer
 events, optional usage events, and a `[DONE]` marker. Reasoning fields are omitted.
 The widget parses answer events, throttles rendering with animation frames, and
-displays an error for an explicit error event or a completed empty answer.
+displays an error for an explicit error event, a completed empty answer, or a
+stream that ends without its completion marker.
 
-Closing the widget aborts its in-flight browser request. Markdown rendering uses
+Closing, stopping, clearing history, or disconnecting aborts the in-flight browser
+request. Partial answers are retained with a stopped/error notice. Request
+identity guards prevent an older stream from modifying a newer conversation.
+Completed/stopped messages are saved synchronously; there are no delayed storage
+writes that can restore cleared history. Markdown rendering uses
 dynamically imported Marked and DOMPurify, falling back to text if loading fails.
 These imports begin during widget initialization, not only after its first open.
 
@@ -50,13 +74,14 @@ Chat history uses localStorage; open state uses sessionStorage. Storage access i
 guarded to allow operation when browser storage is unavailable.
 
 The template provides labeled controls, a textarea, and a native dialog.
-Bot messages receive `role="status"` and `aria-live="polite"`. Keyboard handlers
-support Enter to send, Shift+Enter for a newline, and Escape to close. The send
-button exposes busy state while a request runs.
+The transcript has `role="log"` and polite live announcements, with
+`aria-busy` during generation. A separate status region announces request state.
+The textarea enforces the backend's 500-character limit. The toggle exposes
+expanded state and references the dialog.
 
-The messages container is a div, not an article with `role="log"`. Screen-reader
-announcements, keyboard focus order, and mobile behavior still need browser testing;
-this document does not claim they have passed an accessibility audit.
+Screen-reader announcements and virtual-keyboard behavior still require testing
+on actual assistive technologies and mobile devices; this is not an accessibility
+audit certification.
 
 ## Validation
 
@@ -65,9 +90,10 @@ make ai-test
 make ai-build
 ```
 
-The unit suite covers backend validation, provider-stream normalization, KV
-logging, ingestion, evaluation, and release gates. It does not replace widget
-browser tests.
+The unit suite covers the widget's storage validation, stream parsing/UTF-8,
+completion/error handling, scroll following, resize handling, and cleanup, as well
+as backend validation, ingestion, evaluation, and release gates. It does not
+replace browser or assistive-technology tests.
 
 Manual checks before a UI release:
 

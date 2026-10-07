@@ -2,7 +2,8 @@
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-footer */}}
 
 <template id="ai-chat-template">
-    <button class="toggle" data-role="toggle" type="button" aria-label="Ask AI Assistant">
+    <button class="toggle" data-role="toggle" type="button" aria-label="Ask AI Assistant"
+        aria-expanded="false" aria-controls="ai-chat-window">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -12,7 +13,7 @@
         <span>Ask AI</span>
     </button>
 
-    <dialog class="window" data-role="window" aria-label="Chat with AI assistant">
+    <dialog id="ai-chat-window" class="window" data-role="window" aria-label="Chat with AI assistant">
         <header class="header">
             <span>Assistant</span>
             <div class="header-actions">
@@ -29,21 +30,26 @@
             </div>
         </header>
 
-        <div class="messages" data-role="messages">
-            <div class="scroll-anchor"></div>
+        <div class="messages" data-role="messages" tabindex="0" aria-label="Conversation">
+            <div class="transcript" data-role="transcript" role="log"
+                aria-label="Chat messages" aria-live="polite" aria-relevant="additions text"></div>
         </div>
+        <button class="latest" data-role="latest" type="button" hidden>Latest messages &darr;</button>
+        <span class="chat-status" data-role="status" role="status" aria-live="polite"></span>
 
         <form class="input-area" data-role="form">
             <textarea class="input" data-role="input" placeholder="Ask a question..."
-                aria-label="Question" autocomplete="off" enterkeyhint="send"></textarea>
+                aria-label="Question" autocomplete="off" enterkeyhint="send"
+                rows="1" maxlength="500" required></textarea>
             <button type="submit" class="send" data-role="send">Send</button>
+            <button type="button" class="send stop" data-role="stop" hidden>Stop</button>
         </form>
     </dialog>
 </template>
 
 <ai-chat-widget id="ai-chat-widget" class="chat-widget"></ai-chat-widget>
 
-{{ $chat_js := resources.Get "js/ai-chat-widget.js" | resources.Minify | resources.Fingerprint }}
+{{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js" "externals" (slice "https://esm.sh/*")) | resources.Minify | resources.Fingerprint }}
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
 {{ $site_js := resources.Get "js/site.js" | resources.Minify | resources.Fingerprint }}
