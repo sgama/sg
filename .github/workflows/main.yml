@@ -20,11 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      HUGO_VERSION: 0.161.1
+      HUGO_VERSION: 0.167.0
       HUGO_CACHEDIR: /tmp/hugo_cache
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
@@ -37,14 +37,14 @@ jobs:
 
       - name: Cache actionlint binary
         id: actionlint-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/actionlint
           key: ${{ runner.os }}-${{ runner.arch }}-actionlint-${{ steps.actionlint-version.outputs.version }}
 
       - name: Set up Go for actionlint
         if: steps.actionlint-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: false
@@ -59,7 +59,7 @@ jobs:
 
       - name: Cache Hugo binary
         id: hugo-binary-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/hugo
           key: ${{ runner.os }}-hugo-bin-${{ env.HUGO_VERSION }}
@@ -78,7 +78,7 @@ jobs:
 
       - name: Restore Hugo build cache
         id: cache-restore
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.HUGO_CACHEDIR }}
           key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
@@ -86,9 +86,9 @@ jobs:
             ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('go.sum') }}-
 
       - name: Set up Node for Wrangler
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
 
       - name: Install Node dependencies
@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload JavaScript coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: javascript-coverage
           path: coverage/

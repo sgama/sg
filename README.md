@@ -56,6 +56,78 @@ To enable the AI chatbot feature:
    This makes paid Cloudflare API calls. It does not activate or delete a corpus.
    Follow the evaluation and release procedure below before changing production.
 
+### Chat Widget Architecture
+
+[`assets/js/ai-chat-widget.js`](assets/js/ai-chat-widget.js) registers
+`<ai-chat-widget>` and coordinates the dialog, messages and request lifecycle.
+Independent history, stream and scroll controllers live in
+[`assets/js/chat/`](assets/js/chat/); Hugo bundles the local modules into one
+widget script. [`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
+supplies the light-DOM template and loads fingerprinted scripts.
+[`assets/css/site.css`](assets/css/site.css) supplies widget-scoped styles, and
+[`postcss.config.js`](postcss.config.js) preserves dynamically generated message
+classes during production CSS purging.
+
+The widget uses light DOM, not Shadow DOM. Settings are script constants, not
+custom-element attributes. Its native dialog opens with non-modal `show()` and
+does not trap Tab focus. There are no touch gestures or attribute-change handlers.
+White/slate and charcoal/slate surfaces follow the site's `.dark` or root
+`data-theme="dark"` state; blue accents mark actions and user messages. Controls
+have visible focus outlines, and the launcher has no continuous animation.
+
+#### Integration and lifecycle
+
+The public methods are `open()`, `close()`, `toggle()` and
+`setPendingQuestion(text)`, with bubbling `chat-open` and `chat-close` events.
+[`assets/js/site.js`](assets/js/site.js) wires `.js-chat-trigger` elements and
+their optional `data-question`, randomizes suggestion chips, and integrates
+accessibility-panel settings.
+
+Connection clones the template once and installs abortable event listeners.
+History reads, transcript rendering, resize observation and Markdown loading
+begin on first open, or immediately for a restored open session. Reopening reuses
+the conversation; reconnecting resets the lifecycle without duplicating messages
+or handlers. Disconnection cancels requests, listeners and pending frames.
+
+Opening shows the latest message after layout. Sending resumes scroll following;
+reading older messages pauses it and reveals a "Latest messages" button.
+ResizeObserver handles delayed content and viewport layout without polling.
+Escape closes the dialog and restores opener focus; streaming does not move focus.
+Enter sends, Shift+Enter adds a newline, and IME composition does not submit.
+The composer stays editable during generation; duplicate submissions are blocked.
+
+#### Streaming, storage and accessibility
+
+The browser posts `{ query }` to `/api/chat`; locally saved history is not sent
+as conversation context. The backend accepts bounded history from other clients.
+Normalized SSE carries `data: {"response":"..."}`, optional usage, and `[DONE]`;
+reasoning is omitted. Rendering is throttled with animation frames. Empty,
+malformed, interrupted and explicitly failed streams show errors rather than
+silently succeeding.
+
+Closing, stopping, clearing history or disconnecting aborts the browser request.
+Partial answers retain a stopped/error notice. Request-identity guards prevent
+older streams from overwriting newer conversations. Completed/stopped messages
+are persisted synchronously, so delayed writes cannot restore cleared history.
+Marked and DOMPurify load on demand for sanitized Markdown; loading failures
+fall back to plain text.
+
+History uses localStorage and open state uses sessionStorage, with guarded access
+when storage is unavailable. The template has labeled controls, a 500-character
+textarea, a transcript with `role="log"` and polite announcements, `aria-busy`
+during generation, and a separate request-status region. The launcher exposes
+expanded state and references the dialog.
+
+#### Widget validation
+
+Run `make ai-test` and `make ai-build` for unit tests and Functions compilation.
+Before a UI release, manually check buttons/external triggers/Escape, Enter and
+Shift+Enter, streaming/errors/cancellation/offline behavior, saved and cleared
+history, Markdown sanitization/text fallback, focus, mobile layout and
+screen-reader announcements. Unit DOM fixtures do not replace real-browser,
+assistive-technology or virtual-keyboard testing; this is not an accessibility
+certification.
+
 ### AI Infrastructure and Model Evaluation
 
 AI configuration is shared by the runtime and evaluation tools in

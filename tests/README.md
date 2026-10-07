@@ -65,7 +65,7 @@ Node scripts, tests, and tooling configuration with environment-specific globals
 Generated assets and dependency directories are ignored. The pre-commit hook
 lints changed JavaScript; CI lints the complete repository before paid ingestion.
 Install dependencies with `npm ci` first. ESLint 10 requires Node 20.19+ or
-22.13+; CI uses Node 22.
+22.13+, or 24+; CI uses Node 24.
 
 Coverage uses c8 with the native Node test runner, including unexecuted browser,
 Functions, and script files rather than reporting only imported modules.
