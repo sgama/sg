@@ -9,7 +9,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      HUGO_VERSION: 0.160.0
+      HUGO_VERSION: 0.161.1
       HUGO_CACHEDIR: /tmp/hugo_cache
     permissions:
       contents: read

@@ -201,7 +201,6 @@ keepWhitespace = false
 
 [module.hugoVersion]
 extended = true
-max = "0.154.5"
 min = "0.141.0"
 
 # Theme and module imports - https://gohugo.io/hugo-modules/use-modules/

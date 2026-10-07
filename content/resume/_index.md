@@ -1,12 +1,22 @@
 ---
 title: "Resume"
-summary: "Senior Software Engineer with 8+ years of experience in backend development, machine learning, and DevOps"
+summary: "Staff-oriented AI/SRE engineer with 8+ years building reliable distributed systems, incident response rigor, and automation at scale."
 showDate: false
 ---
 
 Senior SRE/Platform Engineer with 8+ years of experience designing, building, and operating distributed systems, Kubernetes platforms, cloud infrastructure, and high-scale production services. Experienced in reliability engineering, incident response, performance engineering, infrastructure automation, and observability, with recent experience operating GPU infrastructure for AI/HPC workloads. Strong background in Go, Kubernetes, Terraform, GitOps, and production systems at scale.
 
 ## 💼 Professional Experience
+
+### 🤖 AI Reliability Engineer
+
+**BitComplete (Clients confidential)** • Remote, US
+*March 2026 - June 2026*
+
+- Leading reliability engineering workstreams for AI-enabled client products under NDA constraints
+- Establishing operational readiness standards with runbooks, alert quality reviews, and incident response workflows
+
+---
 
 ### 🎮 Senior Service Reliability Engineer
 
@@ -148,11 +158,12 @@ First Class Honours - Royal Conservatory of Music piano certification
 | Category | Technologies |
 | --- | --- |
 | **Languages** | Rust • Go • Python • JavaScript • Java • C/C++ |
-| **Cloud & Containers** | Docker • Kubernetes • AWS • Azure • GCP |
+| **Cloud & Containers** | Docker • Kubernetes • AWS • Cloudflare • Azure • GCP |
 | **Databases** | MySQL • MongoDB • PostgreSQL • Redis • DynamoDB |
-| **Monitoring & Observability** | Prometheus • Datadog • ELK Stack |
+| **Monitoring & Observability** | Prometheus • Grafana • Datadog • ELK Stack |
 | **Web Infrastructure** | Nginx • Apache • HAProxy • Traefik • Varnish • Squid |
-| **Methodologies** | Machine Learning • AI • REST APIs • gRPC • Agile/Scrum • IaC |
+| **AI & Reliability** | AI/ML Inference Workflows • Incident Response • Capacity Planning • SLO-driven Operations • Infrastructure as Code |
+| **Methodologies** | Machine Learning • AI • REST APIs • gRPC • Agile/Scrum |
 
 ## 🔐 Cybersecurity & CTF Competitions
 
