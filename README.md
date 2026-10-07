@@ -114,6 +114,50 @@ reported separately and excluded from generation latency/cost samples. No GPU
 utilization, VRAM, FLOPS, server batching or prefix-cache metrics are available
 from this managed inference tooling.
 
+#### Source-grounded factual accuracy
+
+These checks test agreement with published source content, not whether answers
+are favorable to the site owner. They do not independently verify resume claims.
+The assistant should report documented facts neutrally, acknowledge unsupported
+claims, and avoid inventing either qualifications or limitations. The evaluation
+set includes factual questions, a misleading premise, unsupported proficiency
+ratings, and unavailable salary information.
+
+`content/resume/_index.md` is the canonical resume. Edit it rather than maintaining
+separate skills lists or proficiency ratings. The normal corpus builder indexes
+it with the rest of the website; there is no generated resume copy or separate
+resume build step. Only retrieved chunks reach the generation prompt, so retrieval
+can miss a relevant section. The assistant must acknowledge insufficient evidence
+rather than treat an omitted fact as confirmed or disproved.
+
+Retrieved resume evidence takes precedence over conflicting older excerpts and
+prior assistant messages. The internal source-reference document is not additional
+evidence of qualifications.
+
+Developer validation workflow:
+
+```bash
+make ai-check ai-test ai-plan
+# Paid: ingest the namespace printed above, then evaluate it
+make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
+make ai-retrieval-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
+make ai-compare-rag AI_NAMESPACE=corpus-HASH_FROM_PLAN AI_MODELS=glm AI_REPEATS=3
+```
+
+Review the actual answers, including citations and negations, before deployment.
+Resume regression cases marked `required` must pass every repetition in the local
+release gate, regardless of the aggregate pass-rate threshold. The corpus namespace
+changes when the resume changes, so reports from older corpora cannot pass that gate.
+Term checks are smoke tests, not semantic proof: add real failing questions,
+paraphrases, false premises, and contradictory-history tests as failures arise.
+
+This reduces contradictions, but it cannot guarantee arbitrary generated answers.
+For guarantees on a narrow fact such as a skills list, use a deterministic
+structured-data response instead of generation. A semantic verifier would need
+to buffer an entire answer before streaming to avoid exposing unchecked text.
+No such verifier is currently implemented. Production content refresh remains
+automatic; paid model quality evaluations remain developer-run.
+
 #### Safe corpus release and rollback
 
 Corpus namespaces are deterministic hashes of source contents and embedding/chunk

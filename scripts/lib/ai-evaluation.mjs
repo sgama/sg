@@ -19,6 +19,9 @@ export function validateFixture(fixture, chunks) {
             throw new Error('Evaluation cases need unique IDs and nonempty queries');
         }
         ids.add(item.id);
+        if (item.required !== undefined && typeof item.required !== 'boolean') {
+            throw new Error(`Invalid required flag for ${item.id}`);
+        }
         if (!Array.isArray(item.expectedSources) || !Array.isArray(item.answerTerms)
             || !Array.isArray(item.forbiddenTerms) || !item.answerTerms.length
             || item.answerTerms.some(group => !Array.isArray(group) || !group.length

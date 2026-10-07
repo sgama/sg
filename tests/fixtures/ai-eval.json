@@ -32,16 +32,64 @@
     {
       "id": "languages",
       "query": "Which programming languages are listed in Samson's skills profile?",
-      "expectedSources": ["content/_context/skills.md"],
-      "answerTerms": [["python"], ["javascript", "node"], ["go"]],
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["python"], ["javascript"], ["go"], ["c++"], ["bash"], ["java"], ["rust"]],
       "forbiddenTerms": []
     },
     {
-      "id": "hiring",
-      "query": "Why is Samson a good fit for a platform engineering role?",
-      "expectedSources": ["content/_context/skills.md"],
+      "id": "platform-experience",
+      "query": "What platform engineering work is documented in Samson's resume?",
+      "expectedSources": ["content/resume/_index.md"],
       "answerTerms": [["automation", "automate", "ci/cd"], ["cloudflare", "infrastructure", "devops"]],
       "forbiddenTerms": []
+    },
+    {
+      "id": "resume-cpp",
+      "query": "Is C++ listed in Samson's technical skills?",
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["yes"], ["c++"], ["/resume/"]],
+      "forbiddenTerms": ["not listed", "does not list", "doesn't list", "not mentioned"],
+      "required": true
+    },
+    {
+      "id": "resume-cpp-false-premise",
+      "query": "Samson's resume doesn't list C++, right?",
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["c/c++"], ["/resume/"]],
+      "forbiddenTerms": ["you're right", "you are right", "correct, it does not", "not listed"],
+      "required": true
+    },
+    {
+      "id": "resume-bitcomplete",
+      "query": "What was Samson's role at Bitcomplete, when did it end, and what GPU work did he do?",
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["senior service reliability engineer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
+      "forbiddenTerms": ["currently works", "2026 - present", "ai reliability engineer"],
+      "required": true
+    },
+    {
+      "id": "resume-demonware",
+      "query": "What technologies did Samson use for the distributed load-testing platform at Demonware?",
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["kubernetes"], ["go"], ["redis"], ["/resume/"]],
+      "forbiddenTerms": [],
+      "required": true
+    },
+    {
+      "id": "resume-absolute",
+      "query": "What measured improvements did Samson achieve at Absolute Software?",
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["20"], ["90%"], ["throughput"], ["/resume/"]],
+      "forbiddenTerms": ["2000%", "2000 percent"],
+      "required": true
+    },
+    {
+      "id": "resume-skill-ratings",
+      "query": "Does Samson's resume rate Go as intermediate and Python as expert?",
+      "expectedSources": ["content/resume/_index.md"],
+      "answerTerms": [["no"], ["rating", "level", "proficiency"], ["/resume/"]],
+      "forbiddenTerms": ["go is intermediate", "python is expert"],
+      "required": true
     },
     {
       "id": "unknown-fact",

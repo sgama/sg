@@ -1,14 +1,14 @@
 ---
 title: "About"
-summary: "Senior Software Engineer focused on reliability, continuous learning, and AI-powered engineering"
+summary: "Senior SRE/Platform Engineer focused on distributed systems, cloud infrastructure, and production reliability"
 showDate: false
 ---
 
-{{< figure src="/samson.webp" alt="Professional headshot photo" caption="Samson Gama - Senior Software Engineer" class="rounded-full mx-auto" width="300" fetchpriority="high">}}
+{{< figure src="/samson.webp" alt="Professional headshot photo" caption="Samson Gama - Senior SRE/Platform Engineer" class="rounded-full mx-auto" width="300" fetchpriority="high">}}
 
 ## Hi, I'm Samson 👋
 
-I’m a senior software engineer with 8+ years of experience in backend systems, DevOps, and service reliability. I care deeply about systems that hold up under real-world pressure, and I am equally driven by the process of learning: new tools, better patterns, and clearer ways to ship dependable software.
+I’m a Senior SRE/Platform Engineer with 8+ years of experience in distributed systems, Kubernetes, cloud infrastructure, and service reliability, including GPU infrastructure for AI/HPC workloads. I care deeply about systems that hold up under real-world pressure, and I am equally driven by the process of learning: new tools, better patterns, and clearer ways to ship dependable software.
 
 Right now, I am actively using AI to upgrade this website itself, from content quality and structure to workflow automation and faster iteration. I treat the site as a living engineering artifact where I can test ideas, refine implementation details, and show how I work in public.
 

@@ -63,6 +63,9 @@ export function validateComparisonReport(report, { namespace, fixture, model, mi
             if (entries.length !== 1 || entries[0].status !== 'ok' || typeof entries[0].answer !== 'string') {
                 throw new Error(`Comparison report missing successful answer for ${item.id}`);
             }
+            if (item.required && !scoreAnswer(entries[0].answer, item)) {
+                throw new Error(`Required resume regression failed for ${item.id} (repeat ${repeat})`);
+            }
         }
     }
     if (samples.length !== repeats.size * fixture.cases.length) throw new Error('Unexpected comparison samples');

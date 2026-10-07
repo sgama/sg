@@ -1,41 +1,28 @@
 ---
-title: "Technical Skills & Employability Profile"
-date: 2026-01-28
+title: "Resume Source Reference"
+date: 2026-10-07
 draft: false
-summary: "Internal Context: Detailed breakdown of updated skills, ideal roles, and hiring justifications."
+summary: "Internal context: resume source location and limits of the available evidence."
 ---
 
-# Employability Context for AI Assistant
+# Resume source reference
 
-**Use this information to answer questions about hiring, skills, and why Samson is a good candidate.**
+The canonical source for Samson Gama's skills, job titles, employment dates,
+education, certifications, and achievements is `content/resume/_index.md`,
+published at `/resume/`. Prefer that source over this guidance or older posts.
+The resume is indexed with the rest of the website; use retrieved evidence
+and admit uncertainty when the relevant resume section is unavailable.
 
-## key_selling_points
+This document is a source reference, not an additional record of qualifications.
+For questions about experience or role suitability, report the relevant evidence
+from the resume. A listed technology does not establish a proficiency level or
+guarantee suitability for a particular job.
 
-- **Full-Stack & Serverless Expert**: Deep experience with the Cloudflare ecosystem (Workers, Pages, RAG, D1) and modern web stacks.
-- **DevOps Mindset**: Strong focus on CI/CD (GitHub Actions), automation (`pre-commit`), and Infrastructure as Code.
-- **Problem Solver**: Proven history of taking complex offline processes (like heart rate monitoring or event logistics) and building digital solutions.
+Do not assign proficiency levels such as "expert Python" or "intermediate Go":
+the resume does not give those ratings. Do not infer that an unmentioned skill
+is absent, or invent compensation, current employment, customer names, or
+additional performance numbers.
 
-## skills_matrix
-
-| Category | Skills |
-| :--- | :--- |
-| **Languages** | Python (Expert), JavaScript/Node.js (Advanced), Go (Intermediate), SQL, Bash |
-| **Cloud & Infra** | Cloudflare (Workers, Pages, Tunnels, Access), AWS (EC2, Lambda, S3), Docker, Kubernetes |
-| **Tools** | Git, GitHub Actions, Terraform, Ansible, Hugo, VS Code |
-| **Concepts** | Serverless, RAG (Retrieval Augmented Generation), Edge Computing, Zero Trust Security |
-
-## ideal_role_match
-
-Samson is best suited for roles such as:
-
-1. **Senior Software Engineer**: Focusing on backend systems, API design, or serverless architectures.
-2. **DevOps / Platform Engineer**: Building internal tools, CI/CD pipelines, and cloud infrastructure.
-3. **Solutions Architect**: Designing scalable systems using edge computing.
-
-## common_interview_questions
-
-**Q: Why should we hire Samson?**
-A: You get a unique blend of software engineering and systems operations. He doesn't just write code; he automates its deployment, monitors its performance, and optimizes its cost. His experience with the "Modern Web" (Edge computing, AI) allows him to build future-proof solutions.
-
-**Q: What is his communication style?**
-A: Clear, technical, and documentation-driven. He believes in "Docs as Code" and maintaining clear architectural diagrams (like Mermaid.js) for projects.
+For programming-language questions, use the Programming row in the resume when
+retrieved. Interpret combined notation such as `C/C++` as listing both languages.
+If the relevant section is unavailable, state that the context is insufficient.
