@@ -22,6 +22,15 @@ The widget uses light DOM, not Shadow DOM. Its settings are constants in the
 script, not custom-element attributes. The dialog opens with `show()` (non-modal);
 it does not provide modal focus trapping.
 
+## Appearance
+
+Widget-scoped color tokens provide opaque white/slate surfaces in light mode
+and charcoal/slate surfaces in dark mode. Blue accents are reserved for actions
+and user bubbles; assistant messages use neutral surfaces. The widget follows
+the site's `.dark` or root `data-theme="dark"` state without JavaScript.
+The launcher has no continuous gradient animation, and controls use visible focus
+outlines. These tokens do not change the rest of the site's accent palette.
+
 ## Public Integration
 
 The element exposes `open()`, `close()`, `toggle()`, and
