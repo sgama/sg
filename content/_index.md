@@ -21,9 +21,9 @@ description: "DevOps Engineer | OSCP | CEH — SRE-led automation, zero‑trust 
                     <path d="M12 7v6"></path>
                     <path d="M9 10h6"></path>
                 </svg>
-                <span class="chat-cta__btn-text">Start Chat</span>
+                <span class="chat-cta__btn-text">Ask AI</span>
             </button>
-            <p class="chat-cta__proof">No signup • Instant answers</p>
+            <p class="chat-cta__proof">Serverless • Instant answers</p>
         </div>
     </section>
 </div>
