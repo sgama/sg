@@ -10,6 +10,8 @@ Those features are not implemented.
   `<ai-chat-widget>` and coordinates the dialog, messages, and request lifecycle.
 - [`assets/js/chat/`](assets/js/chat/) contains independent history, stream, and
   scroll controllers. Hugo bundles these local modules into one widget script.
+- [`postcss.config.js`](postcss.config.js) preserves dynamically generated message
+  classes when removing unused production CSS.
 - [`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
   supplies a light-DOM template and loads fingerprinted widget/site scripts.
 - [`assets/css/site.css`](assets/css/site.css) provides the widget styles.
