@@ -212,7 +212,8 @@ make deploy-pages
 
 After deployment, CI runs `make cleanup-deployments`. Cleanup preserves the
 project's active deployment and five previous successful production deployments
-on `develop`, plus preview, other-branch, and in-progress deployments. A rollback
+on `develop`, plus other-branch production and in-progress production deployments.
+All preview deployments are deleted, including in-progress previews. A rollback
 preserves the active deployment and its successful predecessors.
 
 Cleanup reads each retained deployment's environment snapshot to preserve its
@@ -220,6 +221,13 @@ Cleanup reads each retained deployment's environment snapshot to preserve its
 in every unreferenced `corpus-*` namespace, including undeployed evaluation
 candidates. Unversioned/foreign namespaces are untouched. Vector deletion waits
 for the accepted mutation to finish processing.
+
+Preview-only versioned corpora are pruned after preview deletion; corpora also
+referenced by retained production deployments remain protected. API rejection
+of preview deletion fails cleanup before vector pruning. A final inventory check
+detects deployments created during cleanup. Disable unwanted automatic preview
+builds in Pages branch controls and avoid concurrent external deployments:
+cleanup cannot prevent previews being created after its final check.
 
 Preview the plan without deletion:
 

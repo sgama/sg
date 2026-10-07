@@ -81,6 +81,11 @@ preserving warnings, errors, and exit codes without filtering. Tests use Node's
 `make test TEST_REPORTER=tap` (or `make ai-test TEST_REPORTER=tap`) selects TAP.
 ESLint is silent on success, and c8 prints its native coverage summary.
 
+AI-service, chat API, and stream error-path tests capture expected `console.error` calls with
+test-scoped `t.mock.method` and assert their arguments and call counts.
+Node restores the mocks after each test. Keep these tests sequential within a
+process; production logging and unrelated test output remain unchanged.
+
 ## Test Organization
 
 Tests use **nested test suites** for better organization and readability:

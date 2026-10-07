@@ -54,8 +54,8 @@ test('retains active deployment plus five successful predecessors, including rol
     deployments.push(deployment(11, { latest_stage: { name: 'deploy', status: 'failure' } }));
     deployments.push(deployment(12, { environment: 'preview' }));
     const plan = planRetention(deployments, 'd7', 'develop');
-    assert.deepEqual(plan.remove.map(item => item.id), ['d1', 'd8', 'd9', 'd11']);
-    assert.deepEqual(plan.retain.map(item => item.id), ['d2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd10', 'd12']);
+    assert.deepEqual(plan.remove.map(item => item.id), ['d1', 'd8', 'd9', 'd11', 'd12']);
+    assert.deepEqual(plan.retain.map(item => item.id), ['d2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd10']);
 });
 
 test('incomplete deployment metadata blocks destructive cleanup', () => {
@@ -82,12 +82,37 @@ test('dry run makes no destructive calls', async () => {
     assert.deepEqual(data.calls, []);
 });
 
-test('preview references protect otherwise unreferenced candidate vectors', async () => {
+test('deletes completed and in-progress previews before pruning their unreferenced vectors', async () => {
     const data = fixture();
     data.setDeployments([...Array.from({ length: 8 }, (_, index) => deployment(index + 1)),
+        deployment(99, { environment: 'preview', env_vars: {} }),
+        deployment(100, { environment: 'preview',
+            latest_stage: { name: 'build', status: 'active' }, env_vars: {} })]);
+    const result = await cleanupDeployments({ ...data, accountId: 'account' });
+    assert.deepEqual(result.removedDeployments, ['d1', 'd2', 'd99', 'd100']);
+    assert.deepEqual(data.calls, [
+        ['deployment', 'd1'], ['deployment', 'd2'],
+        ['deployment', 'd99'], ['deployment', 'd100'],
+        ['vectors', ['old', 'candidate']], ['ready', 'deleted'],
+    ]);
+});
+
+test('rejected preview deletion prevents vector pruning', async () => {
+    const data = fixture();
+    data.setDeployments([...Array.from({ length: 6 }, (_, index) => deployment(index + 3)),
         deployment(99, { environment: 'preview' })]);
-    await cleanupDeployments({ ...data, accountId: 'account' });
-    assert.deepEqual(data.calls.find(call => call[0] === 'vectors'), ['vectors', ['old']]);
+    data.client.pages.projects.deployments.delete = async () => { throw new Error('Preview deletion rejected'); };
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Preview deletion rejected/);
+    assert.deepEqual(data.calls, []);
+});
+
+test('preview created during vector deletion makes cleanup fail instead of claiming production-only completion', async () => {
+    const data = fixture();
+    data.wait = async () => {
+        data.setDeployments([...Array.from({ length: 6 }, (_, index) => deployment(index + 3)),
+            deployment(99, { environment: 'preview' })]);
+    };
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Deployment inventory changed/);
 });
 
 test('failed deployment deletion prevents all vector deletion', async () => {

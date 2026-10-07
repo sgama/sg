@@ -64,17 +64,37 @@ test('finishes a valid answer when upstream closes without a DONE event', async 
 });
 
 test('reports reasoning-only, empty, malformed, and provider-error streams explicitly', async (t) => {
-    const inputs = [
-        event({ choices: [{ index: 0, delta: { reasoning_content: 'private' } }] })
-            + event({ response: '' }) + 'data: [DONE]\n\n',
-        '',
-        'data: {bad json}\n\n',
-        event({ error: { message: 'provider failed' } }),
+    const cases = [
+        {
+            name: 'reasoning-only',
+            input: event({ choices: [{ index: 0, delta: { reasoning_content: 'private' } }] })
+                + event({ response: '' }) + 'data: [DONE]\n\n',
+            errorType: Error, message: /^AI stream completed without an answer$/,
+        },
+        {
+            name: 'empty', input: '',
+            errorType: Error, message: /^AI stream completed without an answer$/,
+        },
+        {
+            name: 'malformed JSON', input: 'data: {bad json}\n\n',
+            errorType: SyntaxError, message: /JSON/,
+        },
+        {
+            name: 'provider error', input: event({ error: { message: 'provider failed' } }),
+            errorType: Error, message: /^AI returned a streaming error$/,
+        },
     ];
-    for (const [index, input] of inputs.entries()) {
-        await t.test(`failure ${index}`, async () => {
+    for (const { name, input, errorType, message } of cases) {
+        await t.test(name, async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
             assert.equal(await normalize(input),
                 event({ error: 'AI response failed. Please try again.' }) + 'data: [DONE]\n\n');
+            assert.equal(logged.mock.callCount(), 1);
+            const [label, failure] = logged.mock.calls[0].arguments;
+            assert.equal(logged.mock.calls[0].arguments.length, 2);
+            assert.equal(label, 'Chat Stream Failed:');
+            assert.ok(failure instanceof errorType);
+            assert.match(failure.message, message);
         });
     }
 });

@@ -42,31 +42,51 @@ test('AiService', async (t) => {
       assert.deepEqual(result, vector);
     });
 
-    await t.test('reports service unavailable when AI throws', async () => {
+    await t.test('reports service unavailable when AI throws', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
+      const failure = new Error('AI unavailable');
       const svc = new AiService(makeEnv({
-        aiRun: async () => { throw new Error('AI unavailable'); },
+        aiRun: async () => { throw failure; },
       }));
 
-      await assert.rejects(svc.getEmbeddings('hello'), { status: 503 });
+      await assert.rejects(svc.getEmbeddings('hello'), {
+        status: 503, message: 'Embedding service unavailable',
+      });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments, ['Embedding Generation Failed:', failure]);
     });
   });
 
   await t.test('retrieveContext', async (t) => {
-    await t.test('reports service unavailable when VECTORIZE_INDEX is not bound', async () => {
+    await t.test('reports service unavailable when VECTORIZE_INDEX is not bound', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
       const svc = new AiService({
         AI: { run: async () => buildEmbeddingsResponse([0.1]) }
       });
 
-      await assert.rejects(svc.retrieveContext('query'), { status: 503 });
+      await assert.rejects(svc.retrieveContext('query'), {
+        status: 503, message: 'Retrieval service unavailable',
+      });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments,
+        ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
     });
 
-    await t.test('reports service unavailable when embedding fails', async () => {
+    await t.test('reports service unavailable when embedding fails', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
+      const failure = new Error('fail');
+      const query = t.mock.fn(async () => { throw new Error('should not be called'); });
       const svc = new AiService(makeEnv({
-        aiRun: async () => { throw new Error('fail'); },
-        vectorizeQuery: async () => { throw new Error('should not be called'); },
+        aiRun: async () => { throw failure; },
+        vectorizeQuery: query,
       }));
 
-      await assert.rejects(svc.retrieveContext('query'), { status: 503 });
+      await assert.rejects(svc.retrieveContext('query'), {
+        status: 503, message: 'Embedding service unavailable',
+      });
+      assert.equal(query.mock.callCount(), 0);
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments, ['Embedding Generation Failed:', failure]);
     });
 
     await t.test('joins matched text chunks with separator', async () => {
@@ -100,13 +120,19 @@ test('AiService', async (t) => {
       assert.equal(result, 'good chunk');
     });
 
-    await t.test('reports service unavailable when vectorize throws', async () => {
+    await t.test('reports service unavailable when vectorize throws', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
+      const failure = new Error('vectorize down');
       const svc = new AiService(makeEnv({
         aiRun: async () => buildEmbeddingsResponse([0.1]),
-        vectorizeQuery: async () => { throw new Error('vectorize down'); },
+        vectorizeQuery: async () => { throw failure; },
       }));
 
-      await assert.rejects(svc.retrieveContext('query'), { status: 503 });
+      await assert.rejects(svc.retrieveContext('query'), {
+        status: 503, message: 'Retrieval service unavailable',
+      });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments, ['Vector Search Failed:', failure]);
     });
 
     await t.test('returns empty string when no matches', async () => {
@@ -134,16 +160,31 @@ test('AiService', async (t) => {
       assert.equal(await svc.retrieveContext('query'), '');
     });
 
-    await t.test('rejects malformed embeddings instead of abstaining', async () => {
+    await t.test('rejects malformed embeddings instead of abstaining', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
       const svc = new AiService(makeEnv({ aiRun: async () => ({ data: [[]] }) }));
-      await assert.rejects(svc.getEmbeddings('query'), { status: 503 });
+      await assert.rejects(svc.getEmbeddings('query'), {
+        status: 503, message: 'Embedding service unavailable',
+      });
+      assert.equal(logged.mock.callCount(), 1);
+      const [label, failure] = logged.mock.calls[0].arguments;
+      assert.equal(logged.mock.calls[0].arguments.length, 2);
+      assert.equal(label, 'Embedding Generation Failed:');
+      assert.ok(failure instanceof Error);
+      assert.equal(failure.message, 'Invalid embedding response');
     });
   });
 
   await t.test('generateStream', async (t) => {
-    await t.test('reports generation service failure explicitly', async () => {
-      const svc = new AiService(makeEnv({ aiRun: async () => { throw new Error('model unavailable'); } }));
-      await assert.rejects(svc.generateStream('query', 'context'), { status: 503 });
+    await t.test('reports generation service failure explicitly', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
+      const failure = new Error('model unavailable');
+      const svc = new AiService(makeEnv({ aiRun: async () => { throw failure; } }));
+      await assert.rejects(svc.generateStream('query', 'context'), {
+        status: 503, message: 'Generation service unavailable',
+      });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments, ['Generation Failed:', failure]);
     });
     await t.test('passes system prompt, history, and user query to AI', async () => {
       const calls = [];

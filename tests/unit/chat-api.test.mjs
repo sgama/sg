@@ -74,7 +74,8 @@ test('/api/chat', async (t) => {
   });
 
   await t.test('Guardrails', async (t) => {
-    await t.test('returns 503 for a retrieval outage instead of a successful abstention', async () => {
+    await t.test('returns 503 for a retrieval outage instead of a successful abstention', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
       const response = await onRequest(createContext({
         method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`,
         body: { query: 'What do you build?' },
@@ -82,6 +83,9 @@ test('/api/chat', async (t) => {
       }));
       assert.equal(response.status, 503);
       assert.deepEqual(await response.json(), { error: 'Retrieval service unavailable' });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments,
+        ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
     });
     await t.test('rejects prompt injection style queries', async () => {
       const response = await onRequest(createContext({
@@ -141,7 +145,7 @@ test('/api/chat', async (t) => {
             if (payload?.text) {
               return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
             }
-            return createSseStream();
+            return createSseStream('Supported answer');
           }
         },
         VECTORIZE_INDEX: {
@@ -164,6 +168,7 @@ test('/api/chat', async (t) => {
       assert.equal(response.status, 200);
       assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
       assert.equal(response.headers.get('Cache-Control'), 'no-cache');
+      assert.match(await response.text(), /"response":"Supported answer"/);
 
       assert.equal(calls.length, 2);
       assert.equal(calls[1].payload.messages.at(-1).content, 'What do you build?');
@@ -258,7 +263,8 @@ test('/api/chat', async (t) => {
       assert.deepEqual(saved[0].usage, usage);
     });
 
-    await t.test('sends an explicit error when GLM finishes with reasoning but no answer', async () => {
+    await t.test('sends an explicit error when GLM finishes with reasoning but no answer', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
       const env = {
         AI: {
           async run(model, payload) {
@@ -286,6 +292,12 @@ test('/api/chat', async (t) => {
       assert.match(output, /"error":"AI response failed\. Please try again\."/);
       assert.doesNotMatch(output, /private|reasoning/);
       assert.match(output, /data: \[DONE\]/);
+      assert.equal(logged.mock.callCount(), 1);
+      const [label, failure] = logged.mock.calls[0].arguments;
+      assert.equal(logged.mock.calls[0].arguments.length, 2);
+      assert.equal(label, 'Chat Stream Failed:');
+      assert.ok(failure instanceof Error);
+      assert.equal(failure.message, 'AI stream completed without an answer');
     });
   });
 });

@@ -216,7 +216,7 @@ deploy-built: check-wrangler-node check-env ## Deploy an already validated produ
 		--commit-hash=$$COMMIT_HASH \
 		--commit-message="$$COMMIT_MESSAGE"
 
-cleanup-deployments: check-ai-tools check-env ## Keep active + five successful predecessors; prune unreferenced corpora
+cleanup-deployments: check-ai-tools check-env ## Keep production rollback history; delete previews and unreferenced corpora
 	@$(NODE) scripts/cleanup_deployments.mjs
 
 favicons: ## Regenerate favicon assets

@@ -127,7 +127,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: make deploy-built
 
-      - name: Retain rollback deployments and prune unreferenced corpora
+      - name: Remove previews and prune old deployments and unreferenced corpora
         if: github.event_name == 'push'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
