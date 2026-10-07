@@ -132,6 +132,7 @@ test('AiService', async (t) => {
 
       assert.equal(result, 'stream-stub');
       assert.equal(calls.length, 1);
+      assert.equal(calls[0].model, '@cf/zai-org/glm-4.7-flash');
 
       const { messages } = calls[0].payload;
       assert.equal(messages[0].role, 'system');
