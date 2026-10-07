@@ -18,6 +18,16 @@ const streamOf = (text, fragmentSize = 7) => {
 const normalize = async (text, fragmentSize) =>
     new Response(normalizeChatStream(streamOf(text, fragmentSize))).text();
 
+test('does not duplicate content when provider emits a final response summary', async () => {
+    const input = event(delta('Answer')) + event({ response: 'Answer' }) + 'data: [DONE]\n\n';
+    assert.equal(await normalize(input), event({ response: 'Answer' }) + 'data: [DONE]\n\n');
+});
+
+test('finishes a valid answer when upstream closes without a DONE event', async () => {
+    assert.equal(await normalize(event(delta('Answer'))),
+        event({ response: 'Answer' }) + 'data: [DONE]\n\n');
+});
+
 test('normalizes GLM deltas, strips reasoning, and preserves final aggregate usage', async () => {
     const usage = { prompt_tokens: 1195, completion_tokens: 787, total_tokens: 1982 };
     const input = event({ choices: [{ index: 0, delta: { reasoning: 'private', reasoning_content: 'private' } }] })
@@ -32,19 +42,6 @@ test('normalizes GLM deltas, strips reasoning, and preserves final aggregate usa
         + event({ usage }) + 'data: [DONE]\n\n');
 });
 
-test('supports CRLF, SSE comments, multiline data, and byte-fragmented UTF-8', async () => {
-    const input = ': heartbeat\r\n\r\ndata: {"choices":\r\n'
-        + 'data: [{"index":0,"delta":{"content":"Hi \u{1f44b}"}}]}\r\n\r\n'
-        + 'data: [DONE]';
-    assert.equal(await normalize(input, 1),
-        event({ response: 'Hi \u{1f44b}' }) + 'data: [DONE]\n\n');
-});
-
-test('preserves the legacy response stream contract', async () => {
-    const output = await new Response(normalizeChatStream(createSseMessageStream('Legacy answer'))).text();
-    assert.equal(output, event({ response: 'Legacy answer' }) + 'data: [DONE]\n\n');
-});
-
 test('preserves a standalone OpenAI aggregate usage event without chunk-usage inflation', async () => {
     const usage = { prompt_tokens: 30, completion_tokens: 2, total_tokens: 32 };
     const input = event(delta('Answer'))
@@ -53,14 +50,18 @@ test('preserves a standalone OpenAI aggregate usage event without chunk-usage in
         event({ response: 'Answer' }) + event({ usage }) + 'data: [DONE]\n\n');
 });
 
-test('does not duplicate content when provider emits a final response summary', async () => {
-    const input = event(delta('Answer')) + event({ response: 'Answer' }) + 'data: [DONE]\n\n';
-    assert.equal(await normalize(input), event({ response: 'Answer' }) + 'data: [DONE]\n\n');
+test('preserves the legacy response stream contract', async () => {
+    const output = await new Response(normalizeChatStream(createSseMessageStream('Legacy answer'))).text();
+    assert.equal(output, event({ response: 'Legacy answer' }) + 'data: [DONE]\n\n');
 });
 
-test('finishes a valid answer when upstream closes without a DONE event', async () => {
-    assert.equal(await normalize(event(delta('Answer'))),
-        event({ response: 'Answer' }) + 'data: [DONE]\n\n');
+test('propagates upstream stream failures', async () => {
+    const upstream = new ReadableStream({
+        start(controller) {
+            controller.error(new Error('upstream disconnected'));
+        },
+    });
+    await assert.rejects(new Response(normalizeChatStream(upstream)).text(), /upstream disconnected/);
 });
 
 test('reports reasoning-only, empty, malformed, and provider-error streams explicitly', async (t) => {
@@ -99,11 +100,10 @@ test('reports reasoning-only, empty, malformed, and provider-error streams expli
     }
 });
 
-test('propagates upstream stream failures', async () => {
-    const upstream = new ReadableStream({
-        start(controller) {
-            controller.error(new Error('upstream disconnected'));
-        },
-    });
-    await assert.rejects(new Response(normalizeChatStream(upstream)).text(), /upstream disconnected/);
+test('supports CRLF, SSE comments, multiline data, and byte-fragmented UTF-8', async () => {
+    const input = ': heartbeat\r\n\r\ndata: {"choices":\r\n'
+        + 'data: [{"index":0,"delta":{"content":"Hi \u{1f44b}"}}]}\r\n\r\n'
+        + 'data: [DONE]';
+    assert.equal(await normalize(input, 1),
+        event({ response: 'Hi \u{1f44b}' }) + 'data: [DONE]\n\n');
 });

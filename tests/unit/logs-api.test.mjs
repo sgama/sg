@@ -14,44 +14,7 @@ import {
 } from '../helpers/data.mjs';
 import { makeKv, createContext } from '../helpers/mocks.mjs';
 
-test('transcript access is intentionally public without credentials or an admin secret', async (t) => {
-  const list = t.mock.fn(async () => ({ keys: [], list_complete: true }));
-  const context = createContext({ url: `${URLS.TEST_API_ENDPOINT}/logs`,
-    env: { CHAT_LOGS: { list } } });
-  const response = await onRequest(context);
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('Cache-Control'), 'no-store');
-  assert.deepEqual((await response.json()).data, []);
-  assert.equal(list.mock.callCount(), 1);
-});
-
 test('/api/logs', async (t) => {
-  await t.test('Request validation', async (t) => {
-    await t.test('rejects non-GET requests', async () => {
-      const res = await onRequest(createContext({
-        method: 'POST',
-        url: `${URLS.TEST_API_ENDPOINT}/logs`,
-        env: { CHAT_LOGS: makeKv() },
-      }));
-
-      assert.equal(res.status, 405);
-      const body = await res.json();
-      assert.ok(body.error.includes('Method not allowed'));
-    });
-
-    await t.test('returns 503 when KV binding is missing', async () => {
-      const res = await onRequest(createContext({
-        method: 'GET',
-        url: `${URLS.TEST_API_ENDPOINT}/logs`,
-        env: {},
-      }));
-
-      assert.equal(res.status, 503);
-      const body = await res.json();
-      assert.ok(body.error.includes('KV binding missing'));
-    });
-  });
-
   await t.test('Data retrieval', async (t) => {
     await t.test('returns empty data when KV has no keys', async () => {
       const res = await onRequest(createContext({
@@ -105,6 +68,67 @@ test('/api/logs', async (t) => {
   });
 
   await t.test('Pagination', async (t) => {
+    await t.test('clamps limit to DEFAULT_LIMIT when exceeding MAX_LIMIT', async () => {
+      let capturedLimit;
+      const kv = {
+        async list({ limit }) {
+          capturedLimit = limit;
+          return { keys: [], list_complete: true };
+        }
+      };
+
+      await onRequest(createContext({
+        method: 'GET',
+        url: `${URLS.TEST_API_ENDPOINT}/logs?limit=999`,
+        env: { CHAT_LOGS: kv },
+      }));
+
+      // Falls back to default when over MAX_LIMIT (50)
+      assert.equal(capturedLimit, PAGINATION.DEFAULT_LIMIT);
+    });
+
+    await t.test('echoes limit in meta response', async () => {
+      const res = await onRequest(createContext({
+        method: 'GET',
+        url: `${URLS.TEST_API_ENDPOINT}/logs?limit=10`,
+        env: { CHAT_LOGS: makeKv() },
+      }));
+
+      const body = await res.json();
+      assert.equal(body.meta.limit, 10);
+    });
+
+    await t.test('exposes has_more and cursor in meta', async () => {
+      const kv = makeKv({ keys: [], cursor: 'next-page', list_complete: false });
+      const res = await onRequest(createContext({
+        method: 'GET',
+        url: `${URLS.TEST_API_ENDPOINT}/logs`,
+        env: { CHAT_LOGS: kv },
+      }));
+
+      const body = await res.json();
+      assert.equal(body.meta.has_more, true);
+      assert.equal(body.meta.cursor, 'next-page');
+    });
+
+    await t.test('forwards cursor param to KV list', async () => {
+      let capturedCursor;
+      const kv = {
+        async list({ cursor }) {
+          capturedCursor = cursor;
+          return { keys: [], list_complete: true };
+        }
+      };
+
+      await onRequest(createContext({
+        method: 'GET',
+        url: `${URLS.TEST_API_ENDPOINT}/logs?cursor=abc123`,
+        env: { CHAT_LOGS: kv },
+      }));
+
+      assert.equal(capturedCursor, 'abc123');
+    });
+
     await t.test('uses default limit when limit param is absent', async () => {
       let capturedLimit;
       const kv = {
@@ -140,66 +164,31 @@ test('/api/logs', async (t) => {
 
       assert.equal(capturedLimit, 5);
     });
+  });
 
-    await t.test('echoes limit in meta response', async () => {
+  await t.test('Request validation', async (t) => {
+    await t.test('rejects non-GET requests', async () => {
       const res = await onRequest(createContext({
-        method: 'GET',
-        url: `${URLS.TEST_API_ENDPOINT}/logs?limit=10`,
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/logs`,
         env: { CHAT_LOGS: makeKv() },
       }));
 
+      assert.equal(res.status, 405);
       const body = await res.json();
-      assert.equal(body.meta.limit, 10);
+      assert.ok(body.error.includes('Method not allowed'));
     });
 
-    await t.test('clamps limit to DEFAULT_LIMIT when exceeding MAX_LIMIT', async () => {
-      let capturedLimit;
-      const kv = {
-        async list({ limit }) {
-          capturedLimit = limit;
-          return { keys: [], list_complete: true };
-        }
-      };
-
-      await onRequest(createContext({
-        method: 'GET',
-        url: `${URLS.TEST_API_ENDPOINT}/logs?limit=999`,
-        env: { CHAT_LOGS: kv },
-      }));
-
-      // Falls back to default when over MAX_LIMIT (50)
-      assert.equal(capturedLimit, PAGINATION.DEFAULT_LIMIT);
-    });
-
-    await t.test('forwards cursor param to KV list', async () => {
-      let capturedCursor;
-      const kv = {
-        async list({ cursor }) {
-          capturedCursor = cursor;
-          return { keys: [], list_complete: true };
-        }
-      };
-
-      await onRequest(createContext({
-        method: 'GET',
-        url: `${URLS.TEST_API_ENDPOINT}/logs?cursor=abc123`,
-        env: { CHAT_LOGS: kv },
-      }));
-
-      assert.equal(capturedCursor, 'abc123');
-    });
-
-    await t.test('exposes has_more and cursor in meta', async () => {
-      const kv = makeKv({ keys: [], cursor: 'next-page', list_complete: false });
+    await t.test('returns 503 when KV binding is missing', async () => {
       const res = await onRequest(createContext({
         method: 'GET',
         url: `${URLS.TEST_API_ENDPOINT}/logs`,
-        env: { CHAT_LOGS: kv },
+        env: {},
       }));
 
+      assert.equal(res.status, 503);
       const body = await res.json();
-      assert.equal(body.meta.has_more, true);
-      assert.equal(body.meta.cursor, 'next-page');
+      assert.ok(body.error.includes('KV binding missing'));
     });
   });
 
@@ -216,4 +205,15 @@ test('/api/logs', async (t) => {
       assert.equal(res.headers.get('X-Content-Type-Options'), 'nosniff');
     });
   });
+});
+
+test('transcript access is intentionally public without credentials or an admin secret', async (t) => {
+  const list = t.mock.fn(async () => ({ keys: [], list_complete: true }));
+  const context = createContext({ url: `${URLS.TEST_API_ENDPOINT}/logs`,
+    env: { CHAT_LOGS: { list } } });
+  const response = await onRequest(context);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual((await response.json()).data, []);
+  assert.equal(list.mock.callCount(), 1);
 });

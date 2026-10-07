@@ -18,6 +18,18 @@ import { createContext, makeStream } from '../helpers/mocks.mjs';
 
 test('/api/chat', async (t) => {
   await t.test('CORS', async (t) => {
+    await t.test('blocks OPTIONS requests from disallowed origins', async () => {
+      const response = await onRequest(createContext({
+        method: 'OPTIONS',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        origin: URLS.DISALLOWED_ORIGIN,
+      }));
+
+      // Hono returns 204 but omits ACAO header — browser will block the actual request
+      assert.equal(response.status, 204);
+      assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
+    });
+
     await t.test('returns CORS headers for OPTIONS requests from allowed origin', async () => {
       const response = await onRequest(createContext({
         method: 'OPTIONS',
@@ -30,151 +42,9 @@ test('/api/chat', async (t) => {
       assert.match(response.headers.get('Access-Control-Allow-Methods'), /POST/);
       assert.equal(response.headers.get('Access-Control-Max-Age'), '86400');
     });
-
-    await t.test('blocks OPTIONS requests from disallowed origins', async () => {
-      const response = await onRequest(createContext({
-        method: 'OPTIONS',
-        url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        origin: URLS.DISALLOWED_ORIGIN,
-      }));
-
-      // Hono returns 204 but omits ACAO header — browser will block the actual request
-      assert.equal(response.status, 204);
-      assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
-    });
-  });
-
-  await t.test('Validation', async (t) => {
-    await t.test('rejects blank queries after trimming whitespace', async () => {
-      const response = await onRequest(createContext({
-        method: 'POST',
-        url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        body: { query: '   ' },
-      }));
-
-      assert.equal(response.status, 400);
-      assert.match(response.headers.get('Content-Type'), /application\/json/);
-      assert.deepEqual(await response.json(), {
-        error: 'Invalid query. Must be a string < 500 chars.'
-      });
-    });
-
-    await t.test('returns 503 when AI binding is missing', async () => {
-      const response = await onRequest(createContext({
-        method: 'POST',
-        url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        body: { query: 'hello' },
-      }));
-
-      assert.equal(response.status, 503);
-      assert.deepEqual(await response.json(), {
-        error: 'Service Unavailable: AI binding missing'
-      });
-    });
-  });
-
-  await t.test('Guardrails', async (t) => {
-    await t.test('returns 503 for a retrieval outage instead of a successful abstention', async (t) => {
-      const logged = t.mock.method(console, 'error', () => {});
-      const response = await onRequest(createContext({
-        method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        body: { query: 'What do you build?' },
-        env: { AI: { run: async () => { throw new Error('Should not be called'); } } },
-      }));
-      assert.equal(response.status, 503);
-      assert.deepEqual(await response.json(), { error: 'Retrieval service unavailable' });
-      assert.equal(logged.mock.callCount(), 1);
-      assert.deepEqual(logged.mock.calls[0].arguments,
-        ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
-    });
-    await t.test('rejects prompt injection style queries', async () => {
-      const response = await onRequest(createContext({
-        method: 'POST',
-        url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        body: { query: SAMPLE_DATA.INJECTION_QUERY },
-      }));
-
-      assert.equal(response.status, 400);
-      assert.deepEqual(await response.json(), {
-        error: 'Query rejected by guardrails.'
-      });
-    });
-
-    await t.test('returns grounded fallback when retrieval has no context', async () => {
-      const calls = [];
-      const env = {
-        AI: {
-          async run(model, payload) {
-            calls.push({ model, payload });
-            if (payload?.text) {
-              return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
-            }
-            return createSseStream('Should not generate');
-          }
-        },
-        VECTORIZE_INDEX: {
-          async query() {
-            return buildVectorizeResult([]);
-          }
-        }
-      };
-
-      const response = await onRequest(createContext({
-        method: 'POST',
-        url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        env,
-        body: { query: 'Tell me unknown details' },
-      }));
-
-      const body = await response.text();
-      assert.equal(response.status, 200);
-      assert.match(body, /don't have enough reliable context/i);
-
-      // Only embeddings should run; generation should be skipped due to abstain guardrail.
-      assert.equal(calls.length, 1);
-    });
   });
 
   await t.test('End-to-end flow', async (t) => {
-    await t.test('passes trimmed query and sanitized history into generation', async () => {
-      const calls = [];
-      const env = {
-        AI: {
-          async run(model, payload) {
-            calls.push({ model, payload });
-            if (payload?.text) {
-              return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
-            }
-            return createSseStream('Supported answer');
-          }
-        },
-        VECTORIZE_INDEX: {
-          async query() {
-            return buildVectorizeResult([SAMPLE_DATA.CONTEXT_TEXT]);
-          }
-        }
-      };
-
-      const response = await onRequest(createContext({
-        method: 'POST',
-        url: `${URLS.TEST_API_ENDPOINT}/chat`,
-        env,
-        body: {
-          query: '  What do you build?  ',
-          history: FIXTURES.VALID_HISTORY,
-        },
-      }));
-
-      assert.equal(response.status, 200);
-      assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
-      assert.equal(response.headers.get('Cache-Control'), 'no-cache');
-      assert.match(await response.text(), /"response":"Supported answer"/);
-
-      assert.equal(calls.length, 2);
-      assert.equal(calls[1].payload.messages.at(-1).content, 'What do you build?');
-      assert.deepEqual(calls[1].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
-    });
-
     await t.test('logs streamed output to KV when CHAT_LOGS is configured', async () => {
       const savedEntries = [];
       const pending = [];
@@ -263,6 +133,45 @@ test('/api/chat', async (t) => {
       assert.deepEqual(saved[0].usage, usage);
     });
 
+    await t.test('passes trimmed query and sanitized history into generation', async () => {
+      const calls = [];
+      const env = {
+        AI: {
+          async run(model, payload) {
+            calls.push({ model, payload });
+            if (payload?.text) {
+              return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
+            }
+            return createSseStream('Supported answer');
+          }
+        },
+        VECTORIZE_INDEX: {
+          async query() {
+            return buildVectorizeResult([SAMPLE_DATA.CONTEXT_TEXT]);
+          }
+        }
+      };
+
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        env,
+        body: {
+          query: '  What do you build?  ',
+          history: FIXTURES.VALID_HISTORY,
+        },
+      }));
+
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
+      assert.equal(response.headers.get('Cache-Control'), 'no-cache');
+      assert.match(await response.text(), /"response":"Supported answer"/);
+
+      assert.equal(calls.length, 2);
+      assert.equal(calls[1].payload.messages.at(-1).content, 'What do you build?');
+      assert.deepEqual(calls[1].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
+    });
+
     await t.test('sends an explicit error when GLM finishes with reasoning but no answer', async (t) => {
       const logged = t.mock.method(console, 'error', () => {});
       const env = {
@@ -298,6 +207,97 @@ test('/api/chat', async (t) => {
       assert.equal(label, 'Chat Stream Failed:');
       assert.ok(failure instanceof Error);
       assert.equal(failure.message, 'AI stream completed without an answer');
+    });
+  });
+
+  await t.test('Guardrails', async (t) => {
+    await t.test('rejects prompt injection style queries', async () => {
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: SAMPLE_DATA.INJECTION_QUERY },
+      }));
+
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), {
+        error: 'Query rejected by guardrails.'
+      });
+    });
+    await t.test('returns 503 for a retrieval outage instead of a successful abstention', async (t) => {
+      const logged = t.mock.method(console, 'error', () => {});
+      const response = await onRequest(createContext({
+        method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: 'What do you build?' },
+        env: { AI: { run: async () => { throw new Error('Should not be called'); } } },
+      }));
+      assert.equal(response.status, 503);
+      assert.deepEqual(await response.json(), { error: 'Retrieval service unavailable' });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments,
+        ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
+    });
+
+    await t.test('returns grounded fallback when retrieval has no context', async () => {
+      const calls = [];
+      const env = {
+        AI: {
+          async run(model, payload) {
+            calls.push({ model, payload });
+            if (payload?.text) {
+              return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
+            }
+            return createSseStream('Should not generate');
+          }
+        },
+        VECTORIZE_INDEX: {
+          async query() {
+            return buildVectorizeResult([]);
+          }
+        }
+      };
+
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        env,
+        body: { query: 'Tell me unknown details' },
+      }));
+
+      const body = await response.text();
+      assert.equal(response.status, 200);
+      assert.match(body, /don't have enough reliable context/i);
+
+      // Only embeddings should run; generation should be skipped due to abstain guardrail.
+      assert.equal(calls.length, 1);
+    });
+  });
+
+  await t.test('Validation', async (t) => {
+    await t.test('rejects blank queries after trimming whitespace', async () => {
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: '   ' },
+      }));
+
+      assert.equal(response.status, 400);
+      assert.match(response.headers.get('Content-Type'), /application\/json/);
+      assert.deepEqual(await response.json(), {
+        error: 'Invalid query. Must be a string < 500 chars.'
+      });
+    });
+
+    await t.test('returns 503 when AI binding is missing', async () => {
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: 'hello' },
+      }));
+
+      assert.equal(response.status, 503);
+      assert.deepEqual(await response.json(), {
+        error: 'Service Unavailable: AI binding missing'
+      });
     });
   });
 });

@@ -81,6 +81,9 @@ preserving warnings, errors, and exit codes without filtering. Tests use Node's
 ESLint is silent on success, and c8 prints its native coverage summary.
 
 Make and npm test/coverage commands use Node's native 30-second test timeout.
+Files use Node's default parallel execution; console output need not be alphabetical.
+Test cases and nested suites are ordered alphabetically by name,
+case-insensitively; maintain that order when adding tests.
 CLI subprocess tests also use a 10-second `spawnSync` timeout and assert that no
 spawn error occurred, so a timeout cannot count as an expected command failure.
 

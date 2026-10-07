@@ -13,6 +13,12 @@ const make = (...args) => {
     return result;
 };
 
+test('audits do not implicitly install dependencies', () => {
+    const result = make('-n', 'audit-site');
+    assert.equal(result.status, 0);
+    assert.doesNotMatch(result.stdout, /\bnpm (?:ci|install)\b/);
+});
+
 test('cleanup rejects empty, broad, source, and out-of-tree destinations', () => {
     for (const destination of ['', '/', root, process.env.HOME, 'content', 'public/..', '../outside']) {
         const result = make('clean', `PUBLIC_DIR=${destination}`);
@@ -21,10 +27,18 @@ test('cleanup rejects empty, broad, source, and out-of-tree destinations', () =>
     }
 });
 
-test('audits do not implicitly install dependencies', () => {
-    const result = make('-n', 'audit-site');
+test('Make and npm bound tests and coverage with native Node timeouts', () => {
+    const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    for (const name of ['test', 'test:coverage']) {
+        assert.match(scripts[name], /--test-timeout=30000\b/);
+        assert.doesNotMatch(scripts[name], /--test-concurrency\b/);
+    }
+    const result = make('-n', 'test', 'ai-test');
     assert.equal(result.status, 0);
-    assert.doesNotMatch(result.stdout, /\bnpm (?:ci|install)\b/);
+    const commands = result.stdout.split('\n').filter(line => line.includes('--test-reporter'));
+    assert.equal(commands.length, 2);
+    assert.ok(commands.every(command => command.includes('--test-timeout=30000')));
+    assert.ok(commands.every(command => !command.includes('--test-concurrency')));
 });
 
 test('npm build and development delegate to Make without cycles', () => {
@@ -35,16 +49,4 @@ test('npm build and development delegate to Make without cycles', () => {
     assert.equal(result.status, 0);
     assert.doesNotMatch(result.stdout, /npm.*run (build|dev)\b/);
     assert.match(result.stdout, /--port=8788/);
-});
-
-test('Make and npm bound tests and coverage with native Node timeouts', () => {
-    const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    for (const name of ['test', 'test:coverage']) {
-        assert.match(scripts[name], /--test-timeout=30000\b/);
-    }
-    const result = make('-n', 'test', 'ai-test');
-    assert.equal(result.status, 0);
-    const commands = result.stdout.split('\n').filter(line => line.includes('--test-reporter'));
-    assert.equal(commands.length, 2);
-    assert.ok(commands.every(command => command.includes('--test-timeout=30000')));
 });

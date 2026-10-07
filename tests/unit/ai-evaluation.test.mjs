@@ -17,14 +17,6 @@ const unknown = { id: 'unknown', query: 'Salary?', expectedSources: [],
     answerTerms: [["don't have enough reliable context"]], forbiddenTerms: [] };
 const fixture = { version: 1, cases: [known, unknown] };
 
-test('source-grounded answer checks reject a contradictory claim', async () => {
-    const labeled = JSON.parse(await fs.readFile(new URL('../fixtures/ai-eval.json', import.meta.url), 'utf8'));
-    const cpp = labeled.cases.find(item => item.id === 'resume-cpp');
-    assert.equal(scoreAnswer('Yes, C/C++ is listed in the [resume](/resume/).', cpp), true);
-    assert.equal(scoreAnswer('C++ is not listed in the [resume](/resume/).', cpp), false);
-    assert.equal(cpp.required, true);
-});
-
 test('a required resume failure blocks release even when aggregate threshold permits it', () => {
     const model = getModel('glm');
     const labeled = { cases: [{ id: 'cpp', answerTerms: [['yes']], forbiddenTerms: [], required: true }] };
@@ -39,22 +31,6 @@ test('a required resume failure blocks release even when aggregate threshold per
     assert.throws(() => validateComparisonReport(report, {
         namespace: 'test', fixture: labeled, model, minAnswerRate: 0, retrievalReport,
     }), /Required answer regression failed/);
-});
-
-test('model registry is modular and rejects unknown models', () => {
-    assert.equal(getModel('glm').id, getModel('@cf/zai-org/glm-4.7-flash').id);
-    assert.throws(() => getModel('typo'), /Unknown AI model/);
-    const llamaInput = generationInput(getModel('llama'), []);
-    assert.equal(llamaInput.max_tokens, AI_CONFIG.generation.maxCompletionTokens);
-    assert.equal(llamaInput.max_completion_tokens, undefined);
-    assert.equal(generationInput(getModel('gemma'), []).chat_template_kwargs.enable_thinking, false);
-});
-
-test('evaluation fixtures validate actual source labels and unique cases', () => {
-    validateFixture(fixture, [{ metadata: { source: 'content/a.md' } }]);
-    assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
-    assert.throws(() => validateFixture({ version: 1, cases: [known, known] },
-        [{ metadata: { source: 'content/a.md' } }]), /unique IDs/);
 });
 
 test('compares multiple models on identical contexts, preserving aggregate cost and answer checks', async () => {
@@ -84,6 +60,13 @@ test('compares multiple models on identical contexts, preserving aggregate cost 
     assert.ok(report.results.every(item => !item.answer.includes('private')));
 });
 
+test('evaluation fixtures validate actual source labels and unique cases', () => {
+    validateFixture(fixture, [{ metadata: { source: 'content/a.md' } }]);
+    assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
+    assert.throws(() => validateFixture({ version: 1, cases: [known, known] },
+        [{ metadata: { source: 'content/a.md' } }]), /unique IDs/);
+});
+
 test('failed and usage-less runs are explicit, not zero-cost successful results', async () => {
     const report = await compareModels({
         cases: [known], models: ['glm', 'gemma'], contexts: { known: 'Enough context for a model response' },
@@ -104,44 +87,13 @@ test('failed and usage-less runs are explicit, not zero-cost successful results'
     assert.equal(percentile([3, 1, 2], 0.95), 3);
 });
 
-test('retrieval measures expected source hits, not keyword presence', async () => {
-    const report = await evaluateRetrieval({
-        cases: [known],
-        retrieve: async () => ({ matches: [{ metadata: { text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
-            embeddingMs: 5, searchMs: 7 }),
-    });
-    assert.equal(report.hitRate, 0);
-    assert.equal(report.results[0].embeddingMs, 5);
-    const failed = await evaluateRetrieval({ cases: [known], retrieve: async () => { throw new Error('down'); } });
-    assert.equal(failed.hitRate, 0);
-    assert.equal(failed.results[0].error, 'down');
-});
-
-test('release reports must match corpus, labels and retrieval configuration', () => {
-    const report = {
-        version: 2, kind: 'retrieval', namespace: 'candidate', fixtureHash: fixtureHash(fixture),
-        topK: AI_CONFIG.retrieval.topK, maxContextChars: AI_CONFIG.retrieval.maxContextChars,
-        embeddingModel: AI_CONFIG.embedding.model,
-        indexName: AI_CONFIG.retrieval.indexName, hitRate: 1,
-        results: [
-            { caseId: 'known', sources: ['content/a.md'], context: 'Some context' },
-            { caseId: 'unknown', sources: ['content/a.md'], context: 'Irrelevant retrieved context' },
-        ],
-    };
-    const options = { namespace: 'candidate', fixture, minHitRate: 0.9 };
-    validateRetrievalReport(report, options);
-    assert.throws(() => validateRetrievalReport({ ...report, version: 1 }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, results: [report.results[0]] }, options),
-        /incomplete/);
-    assert.throws(() => validateRetrievalReport({ ...report, results: [
-        report.results[0], { ...report.results[1], error: 'negative retrieval failed' },
-    ] }, options), /missing successful query unknown/);
-    assert.throws(() => validateRetrievalReport({ ...report, namespace: 'old' }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, results: [] }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, results: [
-        { ...report.results[0], sources: ['content/wrong.md'] },
-    ] }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, topK: 99 }, options));
+test('model registry is modular and rejects unknown models', () => {
+    assert.equal(getModel('glm').id, getModel('@cf/zai-org/glm-4.7-flash').id);
+    assert.throws(() => getModel('typo'), /Unknown AI model/);
+    const llamaInput = generationInput(getModel('llama'), []);
+    assert.equal(llamaInput.max_tokens, AI_CONFIG.generation.maxCompletionTokens);
+    assert.equal(llamaInput.max_completion_tokens, undefined);
+    assert.equal(generationInput(getModel('gemma'), []).chat_template_kwargs.enable_thinking, false);
 });
 
 test('negative questions retrieve real context and exercise generation rather than forced abstention', async () => {
@@ -172,6 +124,33 @@ test('negative questions retrieve real context and exercise generation rather th
     assert.match(run[0].messages[0].content, /no compensation information/);
     assert.equal(comparison.results[0].abstained, false);
     assert.equal(comparison.results[0].passed, true);
+});
+
+test('release reports must match corpus, labels and retrieval configuration', () => {
+    const report = {
+        version: 2, kind: 'retrieval', namespace: 'candidate', fixtureHash: fixtureHash(fixture),
+        topK: AI_CONFIG.retrieval.topK, maxContextChars: AI_CONFIG.retrieval.maxContextChars,
+        embeddingModel: AI_CONFIG.embedding.model,
+        indexName: AI_CONFIG.retrieval.indexName, hitRate: 1,
+        results: [
+            { caseId: 'known', sources: ['content/a.md'], context: 'Some context' },
+            { caseId: 'unknown', sources: ['content/a.md'], context: 'Irrelevant retrieved context' },
+        ],
+    };
+    const options = { namespace: 'candidate', fixture, minHitRate: 0.9 };
+    validateRetrievalReport(report, options);
+    assert.throws(() => validateRetrievalReport({ ...report, version: 1 }, options));
+    assert.throws(() => validateRetrievalReport({ ...report, results: [report.results[0]] }, options),
+        /incomplete/);
+    assert.throws(() => validateRetrievalReport({ ...report, results: [
+        report.results[0], { ...report.results[1], error: 'negative retrieval failed' },
+    ] }, options), /missing successful query unknown/);
+    assert.throws(() => validateRetrievalReport({ ...report, namespace: 'old' }, options));
+    assert.throws(() => validateRetrievalReport({ ...report, results: [] }, options));
+    assert.throws(() => validateRetrievalReport({ ...report, results: [
+        { ...report.results[0], sources: ['content/wrong.md'] },
+    ] }, options));
+    assert.throws(() => validateRetrievalReport({ ...report, topK: 99 }, options));
 });
 
 test('release-check CLI gates actual Wrangler settings and retrieved-context model results offline', async () => {
@@ -230,4 +209,25 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
     } finally {
         await fs.rm(root, { recursive: true, force: true });
     }
+});
+
+test('retrieval measures expected source hits, not keyword presence', async () => {
+    const report = await evaluateRetrieval({
+        cases: [known],
+        retrieve: async () => ({ matches: [{ metadata: { text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
+            embeddingMs: 5, searchMs: 7 }),
+    });
+    assert.equal(report.hitRate, 0);
+    assert.equal(report.results[0].embeddingMs, 5);
+    const failed = await evaluateRetrieval({ cases: [known], retrieve: async () => { throw new Error('down'); } });
+    assert.equal(failed.hitRate, 0);
+    assert.equal(failed.results[0].error, 'down');
+});
+
+test('source-grounded answer checks reject a contradictory claim', async () => {
+    const labeled = JSON.parse(await fs.readFile(new URL('../fixtures/ai-eval.json', import.meta.url), 'utf8'));
+    const cpp = labeled.cases.find(item => item.id === 'resume-cpp');
+    assert.equal(scoreAnswer('Yes, C/C++ is listed in the [resume](/resume/).', cpp), true);
+    assert.equal(scoreAnswer('C++ is not listed in the [resume](/resume/).', cpp), false);
+    assert.equal(cpp.required, true);
 });
