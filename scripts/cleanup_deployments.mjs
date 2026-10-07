@@ -136,10 +136,10 @@ export async function cleanupDeployments({
             remaining.delete(deployment.id);
         }
         // Never remove vectors until all obsolete deployments have been deleted.
-        for (let offset = 0; offset < staleIds.length; offset += 1000) {
+        for (let offset = 0; offset < staleIds.length; offset += 100) {
             await assertStable(remaining);
             const result = await client.vectorize.indexes.deleteByIds(indexName, {
-                account_id: accountId, ids: staleIds.slice(offset, offset + 1000),
+                account_id: accountId, ids: staleIds.slice(offset, offset + 100),
             });
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
                 throw new Error('Vector deletion did not return a mutation ID');
