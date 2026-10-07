@@ -52,6 +52,35 @@ npm run test:coverage
 node --test --watch tests/unit/
 ```
 
+### JavaScript lint and coverage
+
+```bash
+make lint
+make lint-fix
+make coverage
+make test TEST_REPORTER=tap
+```
+
+ESLint's recommended correctness rules cover browser scripts, Workers/Functions,
+Node scripts, tests, and tooling configuration with environment-specific globals.
+Generated assets and dependency directories are ignored. The pre-commit hook
+lints changed JavaScript; CI lints the complete repository before paid ingestion.
+Install dependencies with `npm ci` first. ESLint 10 requires Node 20.19+ or
+22.13+; CI uses Node 22.
+
+Coverage uses c8 with the native Node test runner, including unexecuted browser,
+Functions, and script files rather than reporting only imported modules.
+Outputs are `coverage/index.html`, `coverage/lcov.info`, and
+`coverage/coverage-summary.json`; CI retains reports for 14 days.
+Coverage is reported, not threshold-gated. Browser unit mocks are not a substitute
+for real-browser coverage or accessibility tests.
+
+Make validation targets suppress recipe echo and stream native tool output,
+preserving warnings, errors, and exit codes without filtering. Tests use Node's
+`spec` reporter for shorter output than TAP with failure details intact.
+`make test TEST_REPORTER=tap` (or `make ai-test TEST_REPORTER=tap`) selects TAP.
+ESLint is silent on success, and c8 prints its native coverage summary.
+
 ## Test Organization
 
 Tests use **nested test suites** for better organization and readability:

@@ -7,6 +7,8 @@ assets/css/site.purged.css
 # Node / JS
 node_modules/
 .npm
+coverage/
+.nyc_output/
 
 # OS / System
 .DS_Store

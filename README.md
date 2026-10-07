@@ -294,14 +294,42 @@ Use the Makefile for common development tasks:
 | `make build` | Build the site without the production CSS purge |
 | `make build-prod` | Build production assets with PostCSS and PurgeCSS |
 | `make test` | Run the Node.js unit tests |
+| `make lint` | Lint browser, Functions, scripts, and test JavaScript |
+| `make lint-fix` | Apply ESLint automatic fixes |
+| `make lint-workflows` | Validate all GitHub Actions workflows with actionlint |
+| `make coverage` | Run tests and write HTML/LCOV coverage reports |
+| `make ci-check` | Run offline checks and build the production site and Functions (Node 22+) |
 | `make audit-content` | Validate content front matter coverage |
 | `make audit-urls` | Check links using markdown-link-check |
 | `make audit-site` | Run content and link checks |
 | `make clean` | Remove generated files |
 | `make deploy-pages` | Build production assets and deploy to Cloudflare Pages |
+| `make deploy-built` | Deploy an existing validated production build without rebuilding |
 | `make deploy-ai` | Validate and gate an AI corpus/model release before deployment |
 | `make ai-refresh` | Rebuild and index the current corpus, then update Wrangler's namespace |
 | `make pre-commit` | Run all pre-commit hooks manually |
+
+Validation commands suppress recipe echo and stream tools' native output without
+filtering warnings or errors. Tests use Node's `spec` reporter; use
+`make test TEST_REPORTER=tap` for TAP output. JavaScript coverage includes unexecuted
+source files; reports are written to ignored `coverage/`. CI runs lint and
+coverage before paid embedding refresh. See [tests/README.md](tests/README.md)
+for scope, Node requirements, and report formats.
+
+Pull requests targeting `develop` run `make ci-check` without Cloudflare credentials
+or paid API calls. Production pushes run the same checks before refreshing the
+corpus, deploying the existing build, and pruning old deployments. Production
+runs remain serialized without cancellation to protect corpus/deployment updates.
+CI caches npm downloads (not `node_modules`) and scopes Hugo caches by version and
+module dependencies. `make ci` remains a paid production workflow, not an offline
+check; use `make ci-check` for local validation.
+
+Workflow linting uses native actionlint, silent on success with source-located
+diagnostics on failure. CI installs the version pinned in the Makefile.
+Install it locally with `make install-actionlint` (requires Go)
+and add `$(go env GOPATH)/bin` to PATH, or pass
+`ACTIONLINT=/path/to/actionlint` to Make. If ShellCheck is available, actionlint
+also checks embedded shell scripts.
 
 ## 📁 Project Structure
 

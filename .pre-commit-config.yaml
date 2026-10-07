@@ -45,6 +45,12 @@ repos:
   # Hugo specific checks
   - repo: local
     hooks:
+      - id: javascript-eslint
+        name: ESLint JavaScript
+        entry: npm exec -- eslint --max-warnings=0
+        language: system
+        files: \.(js|mjs)$
+
       # - id: hugo-build-check
       #   name: Hugo build test
       #   entry: hugo

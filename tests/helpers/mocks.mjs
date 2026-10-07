@@ -55,10 +55,10 @@ export function makeEnv({ aiRun, vectorizeQuery } = {}) {
  */
 export function makeKv({ keys = [], cursor = undefined, list_complete = true } = {}) {
   return {
-    async list({ prefix, limit, cursor: inputCursor } = {}) {
+    async list() {
       return { keys, cursor, list_complete };
     },
-    async put(key, value, options) {
+    async put() {
       // Default mock does nothing; override in specific tests
     },
   };

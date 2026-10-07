@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "hugo && npx wrangler pages dev public --port 8788",
     "build": "hugo --minify",
-    "test": "node --test tests/unit/*.test.mjs"
+    "test": "node --test --test-reporter=spec tests/unit/*.test.mjs",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "npm run lint -- --fix",
+    "test:coverage": "c8 node --test --test-reporter=spec tests/unit/*.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -26,18 +29,40 @@
     "cloudflare": "^5.2.0",
     "dotenv": "^17.2.4",
     "glob": "^13.0.2",
-    "gray-matter": "^4.0.3",
+    "gray-matter": "^2.0.1",
     "hono": "^4.12.14",
     "p-limit": "^7.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@fullhuman/postcss-purgecss": "^8.0.0",
     "@langchain/textsplitters": "^1.0.1",
     "autoprefixer": "^10.4.21",
-    "markdown-link-check": "^3.14.2",
+    "c8": "^12.0.0",
+    "eslint": "^10.0.0",
+    "globals": "^17.0.0",
+    "markdown-link-check": "^3.11.2",
     "postcss": "^8.5.3",
-    "postcss-cli": "^11.0.1",
-    "wrangler": "^4.84.0"
+    "postcss-cli": "^12.0.0",
+    "wrangler": "^4.15.2"
+  },
+  "c8": {
+    "all": true,
+    "include": [
+      "assets/js/**/*.js",
+      "functions/**/*.js",
+      "scripts/**/*.mjs"
+    ],
+    "exclude": [
+      "**/node_modules/**"
+    ],
+    "reporter": [
+      "text-summary",
+      "html",
+      "lcov",
+      "json-summary"
+    ],
+    "reports-dir": "coverage"
   }
 }

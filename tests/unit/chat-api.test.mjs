@@ -189,7 +189,7 @@ test('/api/chat', async (t) => {
           }
         },
         CHAT_LOGS: {
-          async put(key, value, options) {
+          async put(key, value) {
             savedEntries.push({ key, value: JSON.parse(value) });
           }
         }
@@ -237,7 +237,7 @@ test('/api/chat', async (t) => {
           },
         },
         CHAT_LOGS: {
-          async put(key, value, options) {
+          async put(_key, value) {
             saved.push(JSON.parse(value));
           },
         },

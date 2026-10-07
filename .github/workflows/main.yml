@@ -4,39 +4,56 @@ on:
   push:
     branches:
       - develop
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
 
 concurrency:
-  group: production-pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       HUGO_VERSION: 0.161.1
       HUGO_CACHEDIR: /tmp/hugo_cache
-    permissions:
-      contents: read
-      deployments: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.sha }}
           fetch-depth: 1
+
+      - name: Set up Go for actionlint
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Install actionlint
+        run: |
+          GOBIN="${RUNNER_TEMP}/bin" make install-actionlint
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
 
       - name: Cache Hugo binary
         id: hugo-binary-cache
         uses: actions/cache@v5
         with:
           path: ${{ runner.temp }}/hugo
-          key: hugo-bin-${{ env.HUGO_VERSION }}
+          key: ${{ runner.os }}-hugo-bin-${{ env.HUGO_VERSION }}
 
       - name: Install Hugo
         if: steps.hugo-binary-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p "${{ runner.temp }}/hugo"
-          curl -sL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" | tar -xz -C "${{ runner.temp }}/hugo"
+          release="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}"
+          curl --fail --silent --show-error --location \
+            "${release}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" \
+            | tar -xz -C "${{ runner.temp }}/hugo"
 
       - name: Add Hugo to PATH
         run: echo "${{ runner.temp }}/hugo" >> "${GITHUB_PATH}"
@@ -46,56 +63,54 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ${{ env.HUGO_CACHEDIR }}
-          key: hugo-${{ github.run_id }}
-          restore-keys: hugo-
-
-      - name: Restore npm cache
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('go.sum') }}-
 
       - name: Set up Node for Wrangler
         uses: actions/setup-node@v6
         with:
           node-version: "22"
+          cache: npm
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm ci --no-fund
 
-      - name: Run unit tests
-        run: npm test
+      - name: Validate JavaScript, corpus, Functions and production site
+        run: make ci-check
 
-      # - name: Audit content front matter
-      #   run: make audit-content
-
-      # - name: Audit external links
-      #   run: make audit-urls
+      - name: Upload JavaScript coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: javascript-coverage
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Rebuild and prepare chat embeddings
+        if: github.event_name == 'push'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: make ai-refresh
 
       - name: Deploy to Cloudflare Pages
+        if: github.event_name == 'push'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: make deploy-pages
+        run: make deploy-built
 
       - name: Save Hugo build cache
-        if: always()
+        if: success()
         uses: actions/cache/save@v5
         with:
           path: ${{ env.HUGO_CACHEDIR }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Retain rollback deployments and prune unreferenced corpora
+        if: github.event_name == 'push'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

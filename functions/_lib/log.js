@@ -32,7 +32,7 @@ export class LogService {
                             if (parsed.response) accumulatedResponse += parsed.response;
                             if (parsed.usage) usageData = parsed.usage;
                             if (parsed.error) streamError = parsed.error;
-                        } catch (e) { /* partial JSON */ }
+                        } catch (_error) { /* partial JSON */ }
                     }
                 }
             },

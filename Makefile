@@ -5,10 +5,10 @@ SHELL := /bin/bash
 .PHONY: \
 	help serve dev-ai \
 	build build-prod postcss-build build-summary clean \
-	deps test audit-content audit-urls audit-site rag-eval pre-commit \
+	deps test lint lint-fix lint-workflows install-actionlint coverage audit-content audit-urls audit-site rag-eval pre-commit \
 	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
-	deploy-pages cleanup-deployments \
-	ci check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
+	deploy-pages deploy-built cleanup-deployments \
+	ci ci-check check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
 
 ifneq (,$(wildcard .env))
 include .env
@@ -38,6 +38,10 @@ HUGO_SERVER_FLAGS ?= --gc --ignoreCache
 NODE              ?= node
 NPM               ?= npm
 WRANGLER          ?= npx wrangler
+TEST_REPORTER     ?= spec
+ACTIONLINT        ?= actionlint
+ACTIONLINT_VERSION := v1.7.7
+export ACTIONLINT_VERSION
 
 REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM)
 
@@ -69,20 +73,20 @@ check-wrangler-node: check-ai-tools
 
 ##@ Development
 serve: ## Start Hugo development server
-	$(HUGO) server $(HUGO_SERVER_FLAGS)
+	@$(HUGO) server $(HUGO_SERVER_FLAGS)
 
 dev-ai: build ## Start local dev server with Cloudflare Workers AI
-	$(WRANGLER) pages dev $(PUBLIC_DIR)
+	@$(WRANGLER) pages dev $(PUBLIC_DIR)
 
 ##@ Build
 build: check-tools ## Build the site (development)
-	$(HUGO) $(HUGO_FLAGS)
+	@$(HUGO) $(HUGO_FLAGS)
 
 postcss-build: check-tools ## Run PostCSS + PurgeCSS (production CSS only)
-	HUGO_ENV=production NODE_ENV=production npx postcss assets/css/site.css -o assets/css/site.purged.css
+	@HUGO_ENV=production NODE_ENV=production npx postcss assets/css/site.css -o assets/css/site.purged.css
 
 build-prod: check-tools postcss-build ## Build the site for production (with PurgeCSS)
-	HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS)
+	@HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS)
 
 build-summary: ## Print a summary of the build output
 	@echo "=== Build Output ==="
@@ -97,20 +101,40 @@ build-summary: ## Print a summary of the build output
 	@find $(PUBLIC_DIR) -type f -exec du -h {} + | sort -rh | head -10
 
 clean: ## Remove the build output directory
-	rm -rf $(PUBLIC_DIR)/
+	@rm -rf $(PUBLIC_DIR)/
 
 ##@ Test & Audit
 deps: ## Install Node dependencies
-	$(NPM) install
+	@$(NPM) install --no-fund
 
 test: ## Run unit tests
-	$(NPM) test
+	@$(NODE) --test --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+
+lint: check-ai-tools ## Lint all JavaScript with ESLint
+	@$(NPM) --silent run lint
+
+lint-fix: check-ai-tools ## Apply safe ESLint fixes
+	@$(NPM) --silent run lint:fix
+
+lint-workflows: ## Validate GitHub Actions with native actionlint
+	@command -v $(ACTIONLINT) >/dev/null || { \
+		echo "Missing actionlint; install with: go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)"; \
+		echo 'Add $$(go env GOPATH)/bin to PATH or set ACTIONLINT=/path/to/actionlint'; \
+		exit 1; \
+	}
+	@$(ACTIONLINT)
+
+install-actionlint: ## Install the pinned actionlint release using Go
+	@go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
+
+coverage: check-ai-tools ## Run offline tests with text, HTML and LCOV coverage
+	@$(NPM) --silent run test:coverage
 
 audit-content: check-tools deps ## Validate content front matter coverage
 	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs
 
 audit-urls: check-tools deps ## Check external links in content files
-	find content -name "*.md" | xargs npx markdown-link-check --config .markdown-link-check.json --quiet
+	@find content -name "*.md" | xargs npx markdown-link-check --config .markdown-link-check.json --quiet
 
 audit-site: audit-content audit-urls ## Run all content and link audits
 
@@ -122,54 +146,58 @@ pre-commit: ## Run pre-commit hooks against all files
 
 ##@ AI
 ai-models: check-ai-tools ## List model aliases, parameters and dated prices (offline)
-	$(NODE) scripts/ai-eval.mjs models
+	@$(NODE) scripts/ai-eval.mjs models
 
 ai-plan: check-ai-tools ## Validate corpus and write candidate manifest (offline)
-	$(NODE) scripts/generate_embeddings.mjs --check --manifest "$$REPORT_DIR/ai-corpus.json"
+	@$(NODE) scripts/generate_embeddings.mjs --check --manifest "$$REPORT_DIR/ai-corpus.json"
 
 ai-check: check-ai-tools ## Validate corpus IDs, model selection and evaluation labels (offline)
-	$(NODE) scripts/generate_embeddings.mjs --check
-	$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
+	@$(NODE) scripts/generate_embeddings.mjs --check
+	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
 ai-test: check-ai-tools ## Run offline AI infrastructure and API tests
-	$(NODE) --test tests/unit/*.test.mjs
+	@$(NODE) --test --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 ai-build: check-wrangler-node ## Bundle Pages Functions locally (Node 22+, no deployment)
-	mkdir -p "$$REPORT_DIR"
-	$(WRANGLER) pages functions build functions --outfile="$$REPORT_DIR/ai-functions-worker.js"
+	@mkdir -p "$$REPORT_DIR"
+	@$(WRANGLER) pages functions build functions --outfile="$$REPORT_DIR/ai-functions-worker.js"
 
 ai-embeddings: check-ai-tools check-env check-ai-namespace ## Ingest explicit candidate namespace (paid API; no activation/deletion)
-	$(NODE) scripts/generate_embeddings.mjs --namespace "$$AI_NAMESPACE" --manifest "$$REPORT_DIR/ai-corpus.json"
+	@$(NODE) scripts/generate_embeddings.mjs --namespace "$$AI_NAMESPACE" --manifest "$$REPORT_DIR/ai-corpus.json"
 
 ai-refresh: check-ai-tools check-env ## Rebuild embeddings, wait for indexing and update Wrangler namespace (paid API)
-	$(NODE) scripts/refresh_ai_corpus.mjs
+	@$(NODE) scripts/refresh_ai_corpus.mjs
 
 ai-retrieval-eval: check-ai-tools check-env check-ai-namespace ## Evaluate live hit@k against labeled sources (paid API)
-	$(NODE) scripts/ai-eval.mjs retrieval --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
+	@$(NODE) scripts/ai-eval.mjs retrieval --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
 		--min-hit-rate "$$AI_MIN_HIT_RATE" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_RETRIEVAL_REPORT"
 
 ai-compare: check-ai-tools check-env ## Compare models using identical labeled-source contexts (paid API)
-	$(NODE) scripts/ai-eval.mjs compare --models "$$AI_MODELS" --fixture "$$AI_FIXTURE" \
+	@$(NODE) scripts/ai-eval.mjs compare --models "$$AI_MODELS" --fixture "$$AI_FIXTURE" \
 		--repeats "$$AI_REPEATS" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_COMPARISON_REPORT"
 
 ai-compare-rag: check-ai-tools check-env check-ai-namespace ## Compare models using a validated live retrieval report (paid API)
-	$(NODE) scripts/ai-eval.mjs compare --namespace "$$AI_NAMESPACE" --models "$$AI_MODELS" \
+	@$(NODE) scripts/ai-eval.mjs compare --namespace "$$AI_NAMESPACE" --models "$$AI_MODELS" \
 		--fixture "$$AI_FIXTURE" --retrieval-report "$$AI_RETRIEVAL_REPORT" --min-hit-rate "$$AI_MIN_HIT_RATE" \
 		--repeats "$$AI_REPEATS" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_COMPARISON_REPORT"
 
 ai-release-check: check-ai-tools check-ai-namespace ## Gate activation using retrieval/model reports and Wrangler settings (offline)
-	$(NODE) scripts/ai-eval.mjs release-check --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
+	@$(NODE) scripts/ai-eval.mjs release-check --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
 		--retrieval-report "$$AI_RETRIEVAL_REPORT" --comparison-report "$$AI_COMPARISON_REPORT" \
 		--min-hit-rate "$$AI_MIN_HIT_RATE" --min-answer-rate "$$AI_MIN_ANSWER_RATE"
 
 deploy-ai: ## Run offline checks and candidate release gate before Pages deployment
-	$(MAKE) ai-check ai-test
-	$(MAKE) ai-release-check
-	$(MAKE) ai-build
-	$(MAKE) deploy-pages
+	@$(MAKE) --no-print-directory ai-check ai-test
+	@$(MAKE) --no-print-directory ai-release-check
+	@$(MAKE) --no-print-directory ai-build
+	@$(MAKE) --no-print-directory deploy-pages
 
 ##@ Deploy
-deploy-pages: check-tools check-env build-prod ## Build (prod) and deploy to Cloudflare Pages
+deploy-pages: build-prod ## Build (prod) and deploy to Cloudflare Pages
+	@$(MAKE) --no-print-directory deploy-built
+
+deploy-built: check-wrangler-node check-env ## Deploy an already validated production build (no rebuild)
+	@test -f "$(PUBLIC_DIR)/index.html" || { echo "Missing site build; run make build-prod first"; exit 1; }
 	@COMMIT_HASH=$$(git rev-parse HEAD); \
 	COMMIT_MESSAGE=$$(git log -1 --pretty=%s); \
 	$(WRANGLER) pages deploy $(PUBLIC_DIR) \
@@ -179,17 +207,20 @@ deploy-pages: check-tools check-env build-prod ## Build (prod) and deploy to Clo
 		--commit-message="$$COMMIT_MESSAGE"
 
 cleanup-deployments: check-ai-tools check-env ## Keep active + five successful predecessors; prune unreferenced corpora
-	$(NODE) scripts/cleanup_deployments.mjs
+	@$(NODE) scripts/cleanup_deployments.mjs
 
 favicons: ## Regenerate favicon assets
 	@bash scripts/generate_favicons.sh
 
 kill:
-	kill -9 $(lsof -t -i:1313)
+	@kill -9 $(lsof -t -i:1313)
 
 ##@ CI
+ci-check: ## Run offline workflow/JS lint, coverage, corpus validation, Functions and production builds
+	@$(MAKE) --no-print-directory lint-workflows lint coverage ai-check ai-build build-prod
+
 ci: ## Run checks, refresh embeddings and deploy the matching chat corpus
-	$(MAKE) test ai-check audit-site
-	$(MAKE) ai-refresh
-	$(MAKE) deploy-pages
-	$(MAKE) build-summary
+	@$(MAKE) --no-print-directory ci-check audit-site
+	@$(MAKE) --no-print-directory ai-refresh
+	@$(MAKE) --no-print-directory deploy-built
+	@$(MAKE) --no-print-directory build-summary
