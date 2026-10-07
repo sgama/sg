@@ -14,6 +14,17 @@ import {
 } from '../helpers/data.mjs';
 import { makeKv, createContext } from '../helpers/mocks.mjs';
 
+test('transcript access is intentionally public without credentials or an admin secret', async (t) => {
+  const list = t.mock.fn(async () => ({ keys: [], list_complete: true }));
+  const context = createContext({ url: `${URLS.TEST_API_ENDPOINT}/logs`,
+    env: { CHAT_LOGS: { list } } });
+  const response = await onRequest(context);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.deepEqual((await response.json()).data, []);
+  assert.equal(list.mock.callCount(), 1);
+});
+
 test('/api/logs', async (t) => {
   await t.test('Request validation', async (t) => {
     await t.test('rejects non-GET requests', async () => {

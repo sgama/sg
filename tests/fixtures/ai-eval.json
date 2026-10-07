@@ -95,8 +95,9 @@
       "id": "unknown-fact",
       "query": "What is Samson's exact current salary?",
       "expectedSources": [],
-      "answerTerms": [["don't have enough reliable context"]],
-      "forbiddenTerms": ["$100,000"]
+      "answerTerms": [["don't have enough reliable context", "not available", "not provided", "not disclosed", "cannot determine", "can't determine", "do not have", "don't have"]],
+      "forbiddenTerms": ["$100,000"],
+      "required": true
     }
   ]
 }

@@ -23,6 +23,7 @@ DEV_PORT          ?= 8788
 REPORT_DIR        ?= reports
 AI_MODELS         ?= glm,gemma,llama
 AI_NAMESPACE      ?=
+AI_REFRESH_FLAGS  ?=
 AI_REPEATS        ?= 1
 AI_FIXTURE        ?= tests/fixtures/ai-eval.json
 AI_MIN_HIT_RATE   ?= 0.9
@@ -175,8 +176,8 @@ ai-build: check-wrangler-node ## Bundle Pages Functions locally (Node 22+, no de
 ai-embeddings: check-ai-tools check-env check-ai-namespace ## Ingest explicit candidate namespace (paid API; no activation/deletion)
 	@$(NODE) scripts/generate_embeddings.mjs --namespace "$$AI_NAMESPACE" --manifest "$$REPORT_DIR/ai-corpus.json"
 
-ai-refresh: check-ai-tools check-env ## Rebuild embeddings, wait for indexing and update Wrangler namespace (paid API)
-	@$(NODE) scripts/refresh_ai_corpus.mjs
+ai-refresh: check-ai-tools check-env ## Index changed corpus and set namespace (force: AI_REFRESH_FLAGS=--force)
+	@$(NODE) scripts/refresh_ai_corpus.mjs $(AI_REFRESH_FLAGS)
 
 ai-retrieval-eval: check-ai-tools check-env check-ai-namespace ## Evaluate live hit@k against labeled sources (paid API)
 	@$(NODE) scripts/ai-eval.mjs retrieval --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \

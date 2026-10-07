@@ -91,19 +91,38 @@ export async function waitForMutation(client, accountId, mutationId, {
 export async function refreshCorpus({
     client, accountId, root = process.cwd(),
     configPath = path.join(root, 'wrangler.toml'),
-    wait = waitForMutation,
+    project = 'sg', force = false, wait = waitForMutation,
 }) {
     const original = await readFile(configPath, 'utf8');
     const corpus = await buildCorpus({ root });
     const updated = setCorpusNamespace(original, corpus.namespace);
+    let activeNamespace;
+    if (!force) {
+        const info = await client.pages.projects.get(project, { account_id: accountId });
+        if (info.canonical_deployment?.id) {
+            const active = await client.pages.projects.deployments.get(
+                project, info.canonical_deployment.id, { account_id: accountId });
+            if (active?.id !== info.canonical_deployment.id || active.environment !== 'production') {
+                throw new Error('Invalid active production deployment snapshot');
+            }
+            const setting = active.env_vars?.AI_CORPUS_NAMESPACE;
+            if (setting && (setting.type !== 'plain_text' || !/^corpus-[a-f0-9]{56}$/.test(setting.value))) {
+                throw new Error('Invalid active corpus namespace');
+            }
+            activeNamespace = setting?.value;
+        }
+    }
+    const skipped = activeNamespace === corpus.namespace;
     // Process one upload batch at a time so no later batch can hide its readiness marker.
-    const result = await ingestCorpus(client, accountId, corpus, {
-        namespace: corpus.namespace,
-        afterMutation: mutationId => wait(client, accountId, mutationId),
-    });
+    const result = skipped
+        ? { namespace: corpus.namespace, count: corpus.chunks.length, mutationIds: [] }
+        : await ingestCorpus(client, accountId, corpus, {
+            namespace: corpus.namespace,
+            afterMutation: mutationId => wait(client, accountId, mutationId),
+        });
     if (await readFile(configPath, 'utf8') !== original) {
         throw new Error('Wrangler configuration changed during ingestion; refusing to overwrite');
     }
     await writeFile(configPath, updated);
-    return result;
+    return { ...result, skipped };
 }

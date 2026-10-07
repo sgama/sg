@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { buildMessages } from '../../functions/_lib/application.js';
+import { AI_CONFIG, buildMessages, contextFromMatches } from '../../functions/_lib/application.js';
 import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import {
   buildEmbeddingsResponse,
@@ -27,6 +27,21 @@ test('prompt uses retrieved evidence without injecting a separate resume copy', 
   assert.match(messages[0].content, /Do not exaggerate qualifications or suppress source-supported limitations/);
   assert.equal(messages.at(-1).content, 'Is C++ listed?');
   assert.ok(!buildMessages('Skills?', '')[0].content.includes('Mar 2026 - Jun 2026'));
+});
+
+test('retrieved context preserves source identity within the character budget', () => {
+  const context = contextFromMatches([
+    { metadata: { source: 'content/resume/_index.md', title: 'Resume', url: '/resume/',
+      text: 'Programming: C/C++' } },
+    { metadata: { source: 'content/posts/old/index.md', title: 'Older post', url: '/posts/old/',
+      text: 'Older evidence' } },
+  ]);
+  assert.match(context, /Source: .*"source":"content\/resume\/_index.md".*"url":"\/resume\/"/);
+  assert.match(context, /Source: .*"title":"Older post"/);
+  assert.match(context, /Programming: C\/C\+\+\n---\nSource:/);
+  const bounded = contextFromMatches([{ metadata: { source: 'resume', url: '/resume/',
+    text: 'x'.repeat(AI_CONFIG.retrieval.maxContextChars * 2) } }]);
+  assert.equal(bounded.length, AI_CONFIG.retrieval.maxContextChars);
 });
 
 test('AiService', async (t) => {

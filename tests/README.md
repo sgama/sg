@@ -127,6 +127,17 @@ Source-content regression tests are grouped by responsibility: published facts
 and chunk availability in `corpus.test.mjs`, prompt construction in
 `ai-service.test.mjs`, and answer scoring/release gates in `ai-evaluation.test.mjs`.
 
+Retrieved-context evaluations include negative questions with their actual
+retrieved passages; source hit-rate excludes unlabeled negatives. Version-2
+retrieval reports must include every case. Model answer checks are substring
+regressions, not semantic accuracy. Source headers preserve excerpt identity and
+URLs within the context budget. Refresh scenarios use separate fixtures so a
+failure names its specific activation/skip/error path.
+
+Logs API tests verify intentionally public access without credentials or an admin
+secret, along with pagination, method restrictions, and no-store headers.
+Authentication is temporarily disabled for demonstration.
+
 ### Constants (`helpers/data.mjs`)
 
 Centralized test constants ensure consistency and make updates easier:

@@ -16,13 +16,13 @@ async function writeReport(output, report) {
 }
 
 export function validateRetrievalReport(report, { namespace, fixture, minHitRate }) {
-    if (report.kind !== 'retrieval' || report.namespace !== namespace || report.fixtureHash !== fixtureHash(fixture)
+    if (report.version !== 2 || report.kind !== 'retrieval' || report.namespace !== namespace || report.fixtureHash !== fixtureHash(fixture)
         || !Number.isFinite(report.hitRate) || report.hitRate < minHitRate
         || report.topK !== AI_CONFIG.retrieval.topK || report.embeddingModel !== AI_CONFIG.embedding.model
         || report.maxContextChars !== AI_CONFIG.retrieval.maxContextChars
         || report.indexName !== AI_CONFIG.retrieval.indexName
         || !Array.isArray(report.results)) throw new Error('Retrieval report does not pass this corpus/fixture release gate');
-    const expected = fixture.cases.filter(item => item.expectedSources.length);
+    const expected = fixture.cases;
     if (report.results.length !== expected.length) throw new Error('Retrieval report is incomplete');
     for (const item of expected) {
         const matches = report.results.filter(result => result.caseId === item.id);
@@ -31,10 +31,11 @@ export function validateRetrievalReport(report, { namespace, fixture, minHitRate
         }
 
     }
+    const positives = expected.filter(item => item.expectedSources.length);
     const actualHitRate = report.results.filter(result => {
         const item = expected.find(entry => entry.id === result.caseId);
         return Array.isArray(result.sources) && item.expectedSources.some(source => result.sources.includes(source));
-    }).length / expected.length;
+    }).length / positives.length;
     if (!Number.isFinite(actualHitRate) || actualHitRate < minHitRate
         || actualHitRate !== report.hitRate) throw new Error('Retrieval report source labels do not meet the release gate');
 }
@@ -63,7 +64,7 @@ export function validateComparisonReport(report, { namespace, fixture, model, mi
                 throw new Error(`Comparison report missing successful answer for ${item.id}`);
             }
             if (item.required && !scoreAnswer(entries[0].answer, item)) {
-                throw new Error(`Required resume regression failed for ${item.id} (repeat ${repeat})`);
+                throw new Error(`Required answer regression failed for ${item.id} (repeat ${repeat})`);
             }
         }
     }
@@ -115,7 +116,7 @@ export async function main(args = process.argv.slice(2)) {
     const namespace = values.namespace ?? corpus.namespace;
     if (namespace !== corpus.namespace) throw new Error('Namespace does not match current corpus; rebuild the candidate');
     const base = {
-        version: 1, namespace, fixtureHash: fixtureHash(fixture), timestamp: new Date().toISOString(),
+        version: 2, namespace, fixtureHash: fixtureHash(fixture), timestamp: new Date().toISOString(),
         embeddingModel: AI_CONFIG.embedding.model, indexName: AI_CONFIG.retrieval.indexName,
         topK: AI_CONFIG.retrieval.topK,
         maxContextChars: AI_CONFIG.retrieval.maxContextChars,
@@ -124,7 +125,7 @@ export async function main(args = process.argv.slice(2)) {
     if (command === 'validate' || values['dry-run']) {
         console.log(JSON.stringify({ ...base, models, cases: fixture.cases.length,
             maxGenerationCalls: command === 'compare'
-                ? fixture.cases.filter(item => item.expectedSources.length).length * models.length * repeats : 0,
+                ? fixture.cases.length * models.length * repeats : 0,
             dryRun: true }, null, 2));
         return;
     }
@@ -161,7 +162,6 @@ export async function main(args = process.argv.slice(2)) {
             validateRetrievalReport(retrieval, { namespace, fixture, minHitRate });
             retrievalHash = fixtureHash(retrieval);
             contexts = Object.fromEntries(retrieval.results.map(item => [item.caseId, item.context]));
-            for (const item of fixture.cases.filter(item => !item.expectedSources.length)) contexts[item.id] = '';
         } else {
             contexts = Object.fromEntries(fixture.cases.map(item => [item.id, contextFromMatches(
                 corpus.chunks.filter(chunk => item.expectedSources.includes(chunk.metadata.source))

@@ -99,14 +99,14 @@ export async function readAnswer(stream, { start, clock = () => performance.now(
 export async function evaluateRetrieval({ cases, retrieve, clock = () => performance.now() }) {
     const results = [];
     for (const item of cases) {
-        if (!item.expectedSources.length) continue;
         const start = clock();
         try {
             const { matches, embeddingMs, searchMs } = await retrieve(item.query);
             const sources = matches.map(match => match.metadata?.source).filter(Boolean);
             results.push({
                 caseId: item.id,
-                passed: item.expectedSources.some(source => sources.includes(source)),
+                passed: item.expectedSources.length
+                    ? item.expectedSources.some(source => sources.includes(source)) : null,
                 sources,
                 matches: matches.map(match => ({ id: match.id, score: match.score, metadata: match.metadata })),
                 context: contextFromMatches(matches),
@@ -116,8 +116,10 @@ export async function evaluateRetrieval({ cases, retrieve, clock = () => perform
             results.push({ caseId: item.id, passed: false, error: error.message, totalMs: clock() - start });
         }
     }
-    const hits = results.filter(item => item.passed).length;
-    return { results, hitRate: results.length ? hits / results.length : 0 };
+    const positives = results.filter(result =>
+        cases.find(item => item.id === result.caseId).expectedSources.length);
+    const hits = positives.filter(item => item.passed).length;
+    return { results, hitRate: positives.length ? hits / positives.length : 0 };
 }
 
 export async function compareModels({

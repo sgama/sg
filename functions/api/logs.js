@@ -17,7 +17,6 @@ app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/logs', (c) => {
 
 app.get('/api/logs', async (c) => {
     const env = c.env;
-
     if (!env.CHAT_LOGS) {
         return c.json({ error: 'Service Unavailable: KV binding missing' }, 503);
     }

@@ -87,13 +87,35 @@ no automatic retries, and an explicit per-inference timeout. This bounds cost
 and prevents accidental load tests. Developers run these Make targets locally
 and review the reports before changing models or retrieval settings. Model
 evaluation and quality-release validation are not GitHub Actions jobs. Production
-CI does rebuild embeddings automatically for every commit pushed to `develop`.
+CI prepares the corpus on each production push, skipping ingestion when its
+namespace matches the active deployment.
 
 The labeled fixture in [`tests/fixtures/ai-eval.json`](tests/fixtures/ai-eval.json)
 checks expected source paths rather than keyword-only retrieval hits. Its answer
 checks are deterministic term assertions, not a substitute for human groundedness
 review. Extend the small starter set with paraphrases, project-specific facts,
 negative questions, and production failures before trusting a model ranking.
+
+Negative questions run through real retrieval in retrieved-context comparisons,
+including irrelevant matches; they are not assigned an artificial empty context.
+Source hit@k is computed only for questions with labeled relevant sources.
+All cases, including negatives, must have successful retrieval records.
+Version-2 reports are required; regenerate older positive-only retrieval reports.
+Labeled-source comparisons still use oracle context and cannot establish
+end-to-end abstention performance. Empty-context fallback is tested separately.
+
+### Benchmark evidence status
+
+No measured provider retrieval/model comparison reports are currently published
+in this repository. Unit tests use mocks and do not measure model quality,
+production latency, or production cost. No model ranking is established here.
+Before publishing a ranking, run the developer evaluation commands and review
+answers, then publish a sanitized summary with corpus/fixture/prompt hashes,
+model settings, run date, repetitions, sample counts, hit@k, answer-check rate,
+latency percentiles, generation-only cost, and representative failures.
+Include a baseline and human claim-level review; substring checks are regression
+signals, not factual-accuracy measurements. Never publish credentials or visitor
+transcripts as benchmark examples.
 
 Reports include:
 
@@ -126,7 +148,8 @@ ratings, and unavailable salary information.
 `content/resume/_index.md` is the canonical resume. Edit it rather than maintaining
 separate skills lists or proficiency ratings. The normal corpus builder indexes
 it with the rest of the website; there is no generated resume copy or separate
-resume build step. Only retrieved chunks reach the generation prompt, so retrieval
+resume build step. Retrieved chunks include source-path, title, and URL headers in the generation
+prompt. Source labels count toward the context budget. Retrieval
 can miss a relevant section. The assistant must acknowledge insufficient evidence
 rather than treat an omitted fact as confirmed or disproved.
 
@@ -187,10 +210,11 @@ No inference is performed during the offline gate.
 
 ### Automatic content updates in production CI
 
-Every push to `develop` runs unit tests, `make ai-refresh`, then builds/deploys the
-site. The refresh builds the exact commit's corpus, generates all embeddings,
-upserts them into its versioned namespace, and waits for each accepted mutation
-to finish indexing. Only then does it update `AI_CORPUS_NAMESPACE` in the runner's
+Every push to `develop` validates code and builds the production site before
+`make ai-refresh` and deployment. Refresh builds the exact commit's corpus and
+compares its namespace with the active deployment snapshot. Unchanged corpora
+skip embeddings/uploads; changed corpora are ingested and each accepted mutation
+must finish indexing. Both paths update `AI_CORPUS_NAMESPACE` in the runner's
 Wrangler configuration. The subsequent Pages deployment includes that setting;
 the runner does not commit the generated configuration back to Git.
 
@@ -246,11 +270,17 @@ refresh/deploy/cleanup window. Inventory rechecks reduce races but do not provid
 a distributed lock against external writers. Re-ingest a candidate if cleanup
 prunes it before your developer evaluation or deployment.
 
-`ai-refresh` makes paid API calls and edits local `wrangler.toml` only after
-indexing succeeds. Refresh itself does not delete older namespaces; post-deploy
-cleanup prunes unreferenced versioned vectors. Every production push
-currently regenerates the corpus, even when content is unchanged; incremental
-embedding reuse is a future cost optimization. Deleted content is absent from
+`ai-refresh` compares the computed corpus namespace with the active production
+deployment snapshot. Matching corpora skip paid embeddings and uploads; changed
+corpora are ingested and indexing must succeed before local `wrangler.toml` is
+updated. Both paths set the deployment namespace. Pages lookup failures stop
+refresh; initial deployments or legacy snapshots without a namespace require ingestion.
+Use `make ai-refresh AI_REFRESH_FLAGS=--force` (or the CLI's `--force`) to rebuild
+a missing or damaged index explicitly. Force refresh bypasses the Pages lookup.
+Refresh itself does not delete older namespaces; post-deploy cleanup prunes
+unreferenced versioned vectors. The hash includes source files, embedding and
+chunking settings, including draft/front-matter changes. Individual unchanged
+chunk reuse is not implemented. Deleted content is absent from
 the new active namespace. Retained rollback namespaces continue consuming storage.
 Leaving `AI_CORPUS_NAMESPACE` unset is only a migration fallback for deployments
 not using the refresh flow. Rollback to an existing deployment retains its pinned
@@ -258,6 +288,25 @@ namespace; a manual rollback deployment must restore the previous namespace/mode
 configuration and avoid running refresh against newer content.
 
 Runtime retrieval outages return 503 instead of pretending no context was found.
+
+### Operational protections and remaining limits
+
+`/api/logs` is intentionally public for demonstration; authentication is currently
+disabled. Anyone can read stored visitor questions and answers, including older
+entries, without an admin secret. Do not submit sensitive information.
+Transcript responses use `Cache-Control: no-store`, which is not access control
+and does not prevent viewers from copying transcripts. Chat transcripts are
+stored for 30 days when the KV logging binding is enabled. Restore authentication
+before treating transcripts as private; access does not expire automatically.
+
+The public chat endpoint's CORS policy is not authentication or abuse prevention.
+Regex injection checks are narrow heuristics, not a security boundary. No
+application-level rate limit, calibrated relevance cutoff, or runtime
+embedding/generation deadline is currently implemented. Configure and verify
+Cloudflare edge abuse controls separately; do not infer they exist from this
+repository. The 20-character abstention check detects empty/short context, not
+whether evidence supports a claim. Quality evaluation remains developer-run,
+not an automatic production release gate.
 Chat logs store transcripts in KV values with small versioned metadata and unique
 keys; the logs API can still read legacy metadata-only entries.
 

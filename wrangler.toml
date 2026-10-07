@@ -24,4 +24,4 @@ binding = "VECTORIZE_INDEX"
 index_name = "portfolio-index"
 
 # OPENAI_API_KEY = "" # If using OpenAI instead of Cloudflare AI
-# ADMIN_API_KEY = "needs-to-be-set-in-dashboard" # Protects /api/logs
+# /api/logs is intentionally public for demonstration; transcript authentication is disabled.
