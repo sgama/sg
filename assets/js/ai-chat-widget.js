@@ -69,10 +69,9 @@
             if (!line.startsWith("data: ")) return;
             const dataStr = line.slice(6).trim();
             if (!dataStr || dataStr === "[DONE]") return;
-            try {
-                const json = JSON.parse(dataStr);
-                if (json?.response) onDelta(json.response);
-            } catch {}
+            const json = JSON.parse(dataStr);
+            if (json?.error) throw new Error(json.error);
+            if (json?.response) onDelta(json.response);
         };
         return {
             push: (chunk) => {
@@ -474,6 +473,7 @@
                 }
                 parser.push(decoder.decode());
                 parser.flush();
+                if (!accumulated.trim()) throw new Error("Chat completed without an answer");
             } finally {
                 reader.releaseLock();
             }

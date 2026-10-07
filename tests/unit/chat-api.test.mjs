@@ -14,6 +14,7 @@ import {
   URLS,
   SAMPLE_DATA,
   FIXTURES,
+  makeStream,
 } from '../helpers/index.mjs';
 
 test('/api/chat', async (t) => {
@@ -202,6 +203,81 @@ test('/api/chat', async (t) => {
       assert.ok(savedEntries[0].key.startsWith('chat:'));
       assert.equal(savedEntries[0].value.query, 'Persist this');
       assert.equal(savedEntries[0].value.response, 'Logged response');
+    });
+
+    await t.test('normalizes GLM output before streaming to the widget and saving to KV', async () => {
+      const saved = [];
+      const pending = [];
+      const usage = { prompt_tokens: 1195, completion_tokens: 787, total_tokens: 1982 };
+      const env = {
+        AI: {
+          async run(model, payload) {
+            if (payload.text) return buildEmbeddingsResponse([0.1]);
+            assert.equal(payload.chat_template_kwargs.enable_thinking, false);
+            return makeStream(
+              'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
+              'data: {"choices":[{"index":0,"delta":{"content":"Visible answer"}}]}\n',
+              `data: ${JSON.stringify({ response: '', usage })}\n`,
+              'data: [DONE]\n',
+            );
+          },
+        },
+        VECTORIZE_INDEX: {
+          async query() {
+            return buildVectorizeResult(['Relevant portfolio context for response.']);
+          },
+        },
+        CHAT_LOGS: {
+          async put(key, value, options) {
+            saved.push(options.metadata);
+          },
+        },
+      };
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: 'What do you build?' },
+        env,
+        waitUntil(promise) { pending.push(promise); },
+      }));
+      const output = await response.text();
+      await Promise.all(pending);
+      assert.equal(response.status, 200);
+      assert.match(output, /"response":"Visible answer"/);
+      assert.doesNotMatch(output, /private|reasoning|choices/);
+      assert.equal(saved.length, 1);
+      assert.equal(saved[0].response, 'Visible answer');
+      assert.deepEqual(saved[0].usage, usage);
+    });
+
+    await t.test('sends an explicit error when GLM finishes with reasoning but no answer', async () => {
+      const env = {
+        AI: {
+          async run(model, payload) {
+            if (payload.text) return buildEmbeddingsResponse([0.1]);
+            return makeStream(
+              'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
+              'data: {"response":""}\n',
+              'data: [DONE]\n',
+            );
+          },
+        },
+        VECTORIZE_INDEX: {
+          async query() {
+            return buildVectorizeResult(['Relevant portfolio context for response.']);
+          },
+        },
+      };
+      const response = await onRequest(createContext({
+        method: 'POST',
+        url: `${URLS.TEST_API_ENDPOINT}/chat`,
+        body: { query: 'What do you build?' },
+        env,
+      }));
+      const output = await response.text();
+      assert.match(output, /"error":"AI response failed\. Please try again\."/);
+      assert.doesNotMatch(output, /private|reasoning/);
+      assert.match(output, /data: \[DONE\]/);
     });
   });
 });

@@ -13,6 +13,7 @@ tests/
 ├── unit/                    # Unit tests for individual modules
 │   ├── ai-service.test.mjs       # AiService (embeddings, context, generation)
 │   ├── chat-api.test.mjs         # /api/chat endpoint
+│   ├── chat-stream.test.mjs      # Provider SSE normalization
 │   ├── guardrails.test.mjs       # Security and safety checks
 │   ├── history.test.mjs          # Schema validation
 │   ├── log-service.test.mjs      # LogService (persistence, retrieval)
@@ -25,6 +26,12 @@ tests/
 ```
 
 ## Running Tests
+
+Generation uses GLM-4.7-Flash with thinking disabled. The server normalizes
+OpenAI-style content deltas to `data: {"response":"..."}` events for the widget
+and KV logger, omits reasoning, and forwards the final Workers AI usage summary.
+Empty or malformed responses emit an error event rather than silently succeeding.
+Stream tests cover fragmented UTF-8, legacy events, and provider completion events.
 
 ```bash
 # Run all tests

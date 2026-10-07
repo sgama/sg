@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { normalizeChatStream } from './chat-stream.js';
 
 export class AiService {
     constructor(env) {
@@ -43,6 +44,11 @@ export class AiService {
             ...history,
             { role: "user", content: query }
         ];
-        return await this.ai.run(CONFIG.MODELS.GENERATION, { messages, stream: true });
+        const stream = await this.ai.run(CONFIG.MODELS.GENERATION, {
+            messages,
+            stream: true,
+            chat_template_kwargs: { enable_thinking: false },
+        });
+        return normalizeChatStream(stream);
     }
 }

@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
+import { createSseMessageStream } from '../../functions/_lib/guardrails.js';
 import {
   makeEnv,
   buildEmbeddingsResponse,
@@ -120,7 +121,7 @@ test('AiService', async (t) => {
       const svc = new AiService(makeEnv({
         aiRun: async (model, payload) => {
           calls.push({ model, payload });
-          return 'stream-stub';
+          return createSseMessageStream('Answer');
         },
       }));
 
@@ -130,7 +131,7 @@ test('AiService', async (t) => {
         FIXTURES.SIMPLE_HISTORY
       );
 
-      assert.equal(result, 'stream-stub');
+      assert.match(await new Response(result).text(), /"response":"Answer"/);
       assert.equal(calls.length, 1);
       assert.equal(calls[0].model, '@cf/zai-org/glm-4.7-flash');
 
@@ -141,6 +142,7 @@ test('AiService', async (t) => {
       assert.equal(messages.at(-1).role, 'user');
       assert.equal(messages.at(-1).content, SAMPLE_DATA.SAFE_QUERY);
       assert.equal(calls[0].payload.stream, true);
+      assert.deepEqual(calls[0].payload.chat_template_kwargs, { enable_thinking: false });
     });
 
     await t.test('defaults history to empty array when omitted', async () => {
@@ -148,7 +150,7 @@ test('AiService', async (t) => {
       const svc = new AiService(makeEnv({
         aiRun: async (model, payload) => {
           calls.push(payload);
-          return 'stream';
+          return createSseMessageStream('Answer');
         },
       }));
 
