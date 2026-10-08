@@ -48,9 +48,14 @@ export function percentile(values, p) {
     return sorted[Math.max(0, Math.ceil(sorted.length * p) - 1)];
 }
 
+function validUsage(usage) {
+    return Boolean(usage && Number.isFinite(usage.prompt_tokens) && Number.isFinite(usage.completion_tokens)
+        && usage.prompt_tokens >= 0 && usage.completion_tokens >= 0);
+}
+
 export function estimateCost(usage, model) {
-    if (!usage || !Number.isFinite(usage.prompt_tokens) || !Number.isFinite(usage.completion_tokens)
-        || usage.prompt_tokens < 0 || usage.completion_tokens < 0) return null;
+    if (!Number.isFinite(model.inputPerMillion) || !Number.isFinite(model.outputPerMillion)
+        || !validUsage(usage)) return null;
     return (usage.prompt_tokens * model.inputPerMillion
         + usage.completion_tokens * model.outputPerMillion) / 1e6;
 }
@@ -123,7 +128,7 @@ export async function evaluateRetrieval({ cases, retrieve, clock = () => perform
 }
 
 export async function compareModels({
-    cases, models, contexts, run, repeats = 1, clock = () => performance.now(),
+    cases, models, contexts, run, repeats = 1, clock = () => performance.now(), resolveModel = getModel,
 }) {
     const results = [];
     // Interleave models within each case to reduce ordering bias. Keep concurrency bounded at one.
@@ -132,7 +137,7 @@ export async function compareModels({
             const context = contexts[item.id];
             if (typeof context !== 'string') throw new Error(`Missing context for ${item.id}`);
             for (const name of models) {
-                const model = getModel(name);
+                const model = resolveModel(name);
                 const start = clock();
                 try {
                     const abstain = shouldAbstainForMissingContext(context);
@@ -171,7 +176,7 @@ export async function compareModels({
             interChunkP95Ms: percentile(generated.flatMap(item => item.chunkGapsMs), 0.95),
             estimatedGenerationCostUsd: samples.every(item => item.status === 'ok') && costs.every(cost => cost !== null)
                 ? costs.reduce((sum, cost) => sum + cost, 0) : null,
-            usageCoverage: generated.length ? costs.filter(cost => cost !== null).length / generated.length : null,
+            usageCoverage: generated.length ? generated.filter(item => validUsage(item.usage)).length / generated.length : null,
             costComplete: samples.every(item => item.status === 'ok')
                 && costs.every(cost => cost !== null),
         };

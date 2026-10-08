@@ -176,6 +176,108 @@ Version-2 reports are required; regenerate older positive-only retrieval reports
 Labeled-source comparisons still use oracle context and cannot establish
 end-to-end abstention performance. Empty-context fallback is tested separately.
 
+### Local Docker/GPU validation
+
+For fully local RAG validation on an NVIDIA GPU:
+
+```bash
+make ai-local-check       # Offline settings/corpus/fixture validation
+make ai-local-validate    # Download/cache models, evaluate on GPU, tear down and exit
+make ai-local-hybrid      # Local BGE retrieval + paid Cloudflare GLM generation
+make ai-local-clean       # Explicitly delete the owned model-cache volume
+
+# Override model, repetitions, cache or report destination
+make ai-local-validate AI_REPEATS=3 AI_LOCAL_CONTEXT=4096 \
+  AI_LOCAL_VOLUME=sg-ollama-models AI_LOCAL_REPORT=reports/ai-local-glm.json
+```
+
+Requires Docker Compose v2, NVIDIA Container Toolkit configured for Docker,
+Node dependencies (`make deps`) and curl. Embeddings now default to the production
+model family, `BAAI/bge-base-en-v1.5` (768 dimensions), served by Hugging Face
+Text Embeddings Inference (TEI) with its CUDA image and float32 weights.
+Local generation defaults to
+`hf.co/unsloth/GLM-4.7-Flash-GGUF:GLM-4.7-Flash-UD-IQ3_XXS.gguf`
+through Ollama with thinking disabled. This is a community quantization of the
+deployed GLM-4.7-Flash model family, not the same precision or serving engine.
+The GGUF download is 12,907,368,800 bytes (about 12.0 GiB); runtime buffers and
+KV cache need additional VRAM. `AI_LOCAL_CONTEXT=4096` bounds context memory
+for the 16 GB RTX 4080, but full GPU residency is not guaranteed. The GPU check
+requires some GPU residency, not all layers; partial CPU offload can slow runs.
+Override `AI_LOCAL_MODEL` to choose another model or quantization.
+Override `AI_LOCAL_EMBED_IMAGE` to pin TEI (default
+`ghcr.io/huggingface/text-embeddings-inference:cuda-1.9`).
+Override `AI_LOCAL_IMAGE` to pin an
+Ollama version or image digest; the default is `ollama/ollama:latest`, and the
+resolved image ID and loaded model digests are recorded in the local report.
+First use downloads several GB; subsequent runs reuse the named model cache.
+Ollama's local API is bound only to loopback on a dynamically assigned port.
+The default local mode makes no Cloudflare calls. `make ai-local-hybrid` uses
+local retrieval followed by paid Cloudflare generation, defaulting to the
+shared `glm` model registry entry. Override `AI_LOCAL_CLOUD_MODEL` for another
+registered model. Credentials remain on the host and are not passed into either
+container. Neither mode changes cloud indexes or deployments.
+
+[`docker-compose.yml`](docker-compose.yml) defines GPU reservations and an
+external named volume (`sg-ollama-models` by default). Each invocation gets its
+own Compose project and network. The TEI embedding container runs first and is
+stopped before the Ollama generation container starts; GPU inference does not
+overlap. Hybrid mode never starts Ollama. Exit, validation failure, Ctrl-C and
+termination trigger teardown without deleting the model cache. SIGKILL or host
+failure cannot run cleanup: the printed project name can be recovered with
+`docker compose -f docker-compose.yml -p PROJECT_NAME down --remove-orphans`.
+Cache cleanup checks the ownership label and uses non-forced volume deletion;
+Docker refuses removal while any container still uses it. Existing unowned
+volumes are rejected rather than adopted or deleted. Never use a shared
+production volume as `AI_LOCAL_VOLUME`.
+
+The evaluator embeds the current corpus locally in batches, uses exact in-memory
+cosine search (no database container needed for this small corpus), and reuses
+the existing retrieval fixture, source headers, prompt, answer checks and timing
+logic. BGE receives unprefixed text, matching the production request payload;
+vectors are normalized for cosine search. TEI truncates inputs to its model's
+512-token limit; this is recorded explicitly in local report preprocessing.
+The production character-based chunks can exceed that token limit.
+Matching model weights does not guarantee
+identical provider preprocessing or numerical results. Override
+`AI_LOCAL_EMBED_MODEL` and its matching `AI_LOCAL_DIMENSIONS` together.
+TEI uses the explicit CUDA image and NVIDIA device reservation, and its reported
+model identity is checked. Ollama generation GPU residency is checked explicitly.
+Local generation is serial with temperature 0, 512 completion tokens, and
+`AI_LOCAL_TIMEOUT_MS=120000` per API request. Model downloads and initial
+indexing are outside answer latency measurements.
+Generation model loading is included in the first answer's latency; p95 over
+13 samples includes that cold start. Use repetitions to inspect warm samples
+separately rather than interpreting the aggregate p95 as steady-state latency.
+
+`reports/ai-local.json` is private and ignored, with local model/corpus provenance
+and retrieval/comparison results. The command exits nonzero on transport/GPU
+errors, hit rate below `AI_MIN_HIT_RATE`, answer-check rate below
+`AI_MIN_ANSWER_RATE`, or any required regression failure. Threshold overrides
+can make a diagnostic run less restrictive but do not disable required checks.
+Cloud pricing is absent for local generation; hybrid mode estimates generation
+cost from the shared registry. Local hardware/electricity costs are not measured.
+Exact search differs from Vectorize, and quantized local GLM can differ from deployed GLM,
+so **local reports cannot satisfy the Cloudflare release gate** or establish
+Cloudflare latency, cost, or factual accuracy.
+
+The initial Nomic/Qwen run (before switching embeddings to BGE) on 2026-10-07
+verified GPU residency for both models
+(approximately 0.60 GB embedding / 5.98 GB generation VRAM reported by Ollama),
+completed all 13 generation requests and removed its container and network.
+It failed quality validation: source hit@3 was 5/12 (41.7%) and answer checks
+were 3/13 (23.1%). First-answer p50 was 217 ms; the 25.2-second p95 included
+the first model load. Retrieval often missed the resume entirely, so this run
+does not isolate generation quality. Token usage was present for 13/13 answers;
+the initial summary incorrectly reported zero usage coverage because local
+models have no cloud token price. Usage coverage now counts valid token usage
+independently of pricing; estimated dollar cost remains unavailable.
+
+The subsequent BGE/Qwen staged run on the same date completed 13/13 generations,
+with source hit@3 of 8/12 (66.7%) and answer checks of 4/13 (30.8%).
+Both services and the network were removed afterward; the embedding service
+was stopped before generation started. This is still below validation thresholds
+and is not a measurement of deployed GLM generation.
+
 ### Measured GLM baseline
 
 On 2026-10-07, a developer-run baseline used the current production corpus,

@@ -27,6 +27,15 @@ test('cleanup rejects empty, broad, source, and out-of-tree destinations', () =>
     }
 });
 
+test('local GPU targets do not invoke cloud commands and have explicit cache cleanup', () => {
+    const result = make('-n', 'ai-local-validate', 'ai-local-clean');
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /ai-local-eval\.mjs --dry-run/);
+    assert.match(result.stdout, /bash scripts\/run_local_ai\.sh\n/);
+    assert.match(result.stdout, /bash scripts\/run_local_ai\.sh clean/);
+    assert.doesNotMatch(result.stdout, /check-env|ai-refresh|ai-eval\.mjs|wrangler|deploy/);
+});
+
 test('Make and npm bound tests and coverage with native Node timeouts', () => {
     const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
     for (const name of ['test', 'test:coverage']) {

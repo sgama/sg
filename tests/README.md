@@ -26,6 +26,8 @@ tests/
 │   ├── guardrails.test.mjs       # Security and safety checks
 │   ├── log-service.test.mjs      # Persistence, retrieval and KV failures
 │   ├── logs-api.test.mjs         # /api/logs endpoint
+│   ├── local-ai-lifecycle.test.mjs # Compose teardown and owned-volume cleanup
+│   ├── local-ai.test.mjs         # Local embeddings, cosine search and streaming
 │   ├── makefile.test.mjs         # Native command wiring
 │   ├── mocks.test.mjs            # Shared mock contracts
 │   ├── site.test.mjs             # Site browser script behavior
@@ -122,6 +124,12 @@ generation. No Cloudflare credentials or network calls are needed.
 Embedding contracts assert the literal model path, including unencoded slashes.
 The shared embedding helper uses the SDK's native `post` method because SDK 7's
 generated `ai.run` route encodes model slashes that Workers AI rejects.
+Local GPU tests mock Ollama HTTP and Docker CLI boundaries; normal unit tests
+do not start containers or download models. `make ai-local-validate` is the
+explicit real-GPU integration check, separate from CI and cloud release gates.
+Tests also exercise TEI BGE requests, replay provenance validation, stopping
+embeddings before generation, and hybrid Cloudflare generation through injected
+fetch. Hybrid tests never make paid calls or start the local generation service.
 
 KV mocks reject writes unless `put` is explicitly configured. Use a test-scoped
 `t.mock.fn` to assert write arguments and counts. Stream helpers use native

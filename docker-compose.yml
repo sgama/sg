@@ -1,0 +1,39 @@
+services:
+  embeddings:
+    image: ${AI_LOCAL_EMBED_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cuda-1.9}
+    command: ["--model-id", "${AI_LOCAL_EMBED_MODEL:-BAAI/bge-base-en-v1.5}", "--dtype", "float32"]
+    ports:
+      - "127.0.0.1::80"
+    volumes:
+      - ollama-models:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    init: true
+    restart: "no"
+    stop_grace_period: 10s
+  ollama:
+    image: ${AI_LOCAL_IMAGE:-ollama/ollama:latest}
+    ports:
+      - "127.0.0.1::11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    init: true
+    restart: "no"
+    stop_grace_period: 10s
+
+volumes:
+  ollama-models:
+    external: true
+    name: ${AI_LOCAL_VOLUME:-sg-ollama-models}

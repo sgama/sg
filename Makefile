@@ -6,7 +6,7 @@ SHELL := /bin/bash
 	help serve dev-ai \
 	build build-prod postcss-build build-summary clean \
 	deps test lint lint-fix lint-workflows install-actionlint coverage audit-content audit-urls audit-site rag-eval pre-commit \
-	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
+	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
 	ci ci-check check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
 
@@ -31,6 +31,22 @@ AI_MIN_ANSWER_RATE ?= 0.8
 AI_TIMEOUT_MS     ?= 60000
 AI_RETRIEVAL_REPORT ?= $(REPORT_DIR)/ai-retrieval.json
 AI_COMPARISON_REPORT ?= $(REPORT_DIR)/ai-comparison.json
+DOCKER            ?= docker
+AI_LOCAL_IMAGE    ?= ollama/ollama:latest
+AI_LOCAL_VOLUME   ?= sg-ollama-models
+AI_LOCAL_MODEL    ?= hf.co/unsloth/GLM-4.7-Flash-GGUF:GLM-4.7-Flash-UD-IQ3_XXS.gguf
+AI_LOCAL_CONTEXT  ?= 4096
+AI_LOCAL_EMBED_MODEL ?= BAAI/bge-base-en-v1.5
+AI_LOCAL_EMBED_IMAGE ?= ghcr.io/huggingface/text-embeddings-inference:cuda-1.9
+AI_LOCAL_GENERATION ?= local
+AI_LOCAL_CLOUD_MODEL ?= glm
+AI_LOCAL_DIMENSIONS ?= 768
+AI_LOCAL_TIMEOUT_MS ?= 120000
+AI_LOCAL_REPORT   ?= $(REPORT_DIR)/ai-local.json
+export DOCKER AI_LOCAL_IMAGE AI_LOCAL_VOLUME AI_LOCAL_MODEL AI_LOCAL_EMBED_MODEL
+export AI_LOCAL_DIMENSIONS AI_LOCAL_TIMEOUT_MS AI_LOCAL_REPORT
+export AI_LOCAL_EMBED_IMAGE AI_LOCAL_GENERATION AI_LOCAL_CLOUD_MODEL
+export AI_LOCAL_CONTEXT
 export AI_MODELS AI_NAMESPACE AI_REPEATS AI_FIXTURE AI_MIN_HIT_RATE AI_MIN_ANSWER_RATE AI_TIMEOUT_MS
 export AI_RETRIEVAL_REPORT AI_COMPARISON_REPORT REPORT_DIR
 export PUBLIC_DIR
@@ -39,6 +55,7 @@ HUGO              ?= hugo
 HUGO_FLAGS        ?= --gc --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?= --gc --ignoreCache
 NODE              ?= node
+export NODE
 NPM               ?= npm
 WRANGLER          ?= npx wrangler
 TEST_REPORTER     ?= spec
@@ -156,6 +173,26 @@ pre-commit: ## Run pre-commit hooks against all files
 	@pre-commit run --all-files --color auto
 
 ##@ AI
+ai-local-check: check-ai-tools ## Validate local RAG settings and fixture without Docker or inference
+	@$(NODE) scripts/ai-local-eval.mjs --dry-run --model "$$AI_LOCAL_MODEL" \
+		--context-tokens "$$AI_LOCAL_CONTEXT" \
+		--generation "$$AI_LOCAL_GENERATION" --cloud-model "$$AI_LOCAL_CLOUD_MODEL" \
+		--embedding-model "$$AI_LOCAL_EMBED_MODEL" --dimensions "$$AI_LOCAL_DIMENSIONS" \
+		--fixture "$$AI_FIXTURE" --repeats "$$AI_REPEATS" --timeout-ms "$$AI_LOCAL_TIMEOUT_MS" \
+		--min-hit-rate "$$AI_MIN_HIT_RATE" --min-answer-rate "$$AI_MIN_ANSWER_RATE"
+
+ai-local-validate: ai-local-check ## Run full local RAG on Docker/GPU; report, remove container and exit
+	@command -v "$(DOCKER)" >/dev/null || { echo "Missing Docker"; exit 1; }
+	@command -v curl >/dev/null || { echo "Missing curl"; exit 1; }
+	@bash scripts/run_local_ai.sh
+
+ai-local-clean: ## Delete the owned local model-cache volume (fails if in use)
+	@bash scripts/run_local_ai.sh clean
+
+ai-local-hybrid: check-env ## Local BGE retrieval + Cloudflare generation (paid); tear down and exit
+	@$(MAKE) --no-print-directory ai-local-validate AI_LOCAL_GENERATION=cloudflare \
+		AI_LOCAL_REPORT="$(REPORT_DIR)/ai-local-hybrid.json"
+
 ai-models: check-ai-tools ## List model aliases, parameters and dated prices (offline)
 	@$(NODE) scripts/ai-eval.mjs models
 
