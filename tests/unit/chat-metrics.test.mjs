@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { formatResponseMetrics } from '../../assets/js/chat/metrics.js';
 import { AI_CONFIG, getModel, estimateCost } from '../../functions/_lib/application.js';
 import { AiService } from '../../functions/_lib/ai.js';
+import { makeProviderStream } from '../helpers/mocks.mjs';
 
 test('response footer formats timings, token counts and scoped estimated cost', () => {
     const formatted = formatResponseMetrics({
@@ -58,10 +59,10 @@ test('service emits one final metrics event with actual model, aggregate usage a
             async run(_model, input) {
                 if (input.stream === false) return { response: 'Standalone question', usage: rewriteUsage };
                 if (input.text) return { data: [[0.1, 0.2]] };
-                return new Response(`data: {"response":"Answer"}\n\ndata: ${JSON.stringify({ response: '', usage })}\n\ndata: [DONE]\n\n`).body;
+                return makeProviderStream('Answer', usage);
             },
         },
-        VECTORIZE_INDEX: { query: async () => ({ matches: [{ metadata: { text: 'Evidence' } }] }) },
+        VECTORIZE_INDEX: { query: async () => ({ matches: [{ metadata: { recordType: 'chunk', text: 'Evidence' } }] }) },
     });
     const context = await svc.retrieveContext('Follow-up?', [{ role: 'user', content: 'Earlier question' }]);
     const output = await new Response(await svc.generateStream('Follow-up?', context)).text();

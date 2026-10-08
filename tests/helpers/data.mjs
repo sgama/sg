@@ -41,7 +41,7 @@ export function buildHistory(...turns) {
 }
 
 /**
- * Build a KV key with metadata
+ * Build a versioned KV fixture with its stored value
  * @param {Object} options
  * @param {string} options.name - Key name
  * @param {string} options.query - Query text
@@ -61,6 +61,10 @@ export function buildKvKey({
         name,
         metadata: {
             timestamp,
+            version: 2,
+        },
+        value: {
+            timestamp,
             query,
             response,
             usage,
@@ -76,7 +80,7 @@ export function buildKvKey({
 export function buildVectorizeResult(chunks = []) {
     return {
         matches: chunks.map((chunk) => ({
-            metadata: typeof chunk === 'string' ? { text: chunk } : chunk,
+            metadata: { recordType: 'chunk', ...(typeof chunk === 'string' ? { text: chunk } : chunk) },
         })),
     };
 }

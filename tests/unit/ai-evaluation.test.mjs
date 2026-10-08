@@ -81,7 +81,7 @@ test('compares multiple models on identical contexts, preserving aggregate cost 
             return makeStream(
                 'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
                 'data: {"choices":[{"index":0,"delta":{"content":"Hugo and Cloudflare"}}]}\n',
-                `data: ${JSON.stringify({ response: '', usage })}\n`,
+                `data: ${JSON.stringify({ choices: [], usage })}\n`,
                 'data: [DONE]\n',
             );
         },
@@ -98,9 +98,12 @@ test('compares multiple models on identical contexts, preserving aggregate cost 
 });
 
 test('evaluation fixtures validate actual source labels and unique cases', () => {
-    validateFixture(fixture, [{ metadata: { source: 'content/a.md' } }]);
+    validateFixture(fixture, [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }]);
     assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
-    assert.throws(() => validateFixture({ version: 1, cases: [known, known] }, [{ metadata: { source: 'content/a.md' } }]), /unique IDs/);
+    assert.throws(
+        () => validateFixture({ version: 1, cases: [known, known] }, [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }]),
+        /unique IDs/,
+    );
 });
 
 test('evidence assertions score bounded context rather than a document hit or metadata title', async () => {
@@ -112,6 +115,7 @@ test('evidence assertions score bounded context rather than a document hit or me
                 {
                     id: 'intro',
                     metadata: {
+                        recordType: 'chunk',
                         source: 'content/a.md',
                         title: 'Hugo Cloudflare',
                         text: 'An introduction without the required facts.',
@@ -131,6 +135,7 @@ test('evidence assertions score bounded context rather than a document hit or me
             matches: [
                 {
                     metadata: {
+                        recordType: 'chunk',
                         source: 'content/a.md',
                         text: 'Hugo ' + 'x'.repeat(AI_CONFIG.retrieval.maxContextChars) + ' Cloudflare',
                     },
@@ -166,7 +171,8 @@ test('evidence assertions score bounded context rather than a document hit or me
     );
     for (const evidenceTerms of [[], [[]], [['']], 'hugo']) {
         assert.throws(
-            () => validateFixture({ version: 1, cases: [{ ...item, evidenceTerms }] }, [{ metadata: { source: 'content/a.md' } }]),
+            () =>
+                validateFixture({ version: 1, cases: [{ ...item, evidenceTerms }] }, [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }]),
             /Invalid evidence/,
         );
     }
@@ -190,7 +196,7 @@ test('conversational retrieval evaluates the contextualized query and passes his
             received.push({ query, history });
             return {
                 retrievalQuery: 'What is Samson Gama’s latest listed role?',
-                matches: [{ metadata: { source: 'content/a.md', text: 'Samson’s latest role ended in June 2026.' } }],
+                matches: [{ metadata: { recordType: 'chunk', source: 'content/a.md', text: 'Samson’s latest role ended in June 2026.' } }],
             };
         },
     });
@@ -205,7 +211,7 @@ test('conversational retrieval evaluates the contextualized query and passes his
         contexts: { followup: 'The latest role ended in June 2026.' },
         run: async (_model, input) => {
             generations.push(input);
-            return makeStream('data: {"response":"Supported."}\n', 'data: [DONE]\n');
+            return makeStream('data: {"choices":[{"index":0,"delta":{"content":"Supported."}}]}\n', 'data: [DONE]\n');
         },
     });
     assert.deepEqual(generations[0].messages.slice(1, -1), conversationalCase.history);
@@ -269,7 +275,7 @@ test('failed and usage-less runs are explicit, not zero-cost successful results'
         contexts: { known: 'Enough context for a model response' },
         async run(model) {
             if (model === getModel('glm').id) throw new Error('timeout');
-            return makeStream('data: {"response":"Hugo and Cloudflare"}\n', 'data: [DONE]\n');
+            return makeStream('data: {"choices":[{"index":0,"delta":{"content":"Hugo and Cloudflare"}}]}\n', 'data: [DONE]\n');
         },
     });
     assert.equal(report.results[0].status, 'error');
@@ -287,7 +293,7 @@ test('failed and usage-less runs are explicit, not zero-cost successful results'
 test('failed streams mark cost incomplete and preserve explicit errors', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     for (const stream of [
-        makeStream('data: {"response":"Partial"}\n', 'data: {"error":"provider unavailable"}\n'),
+        makeStream('data: {"choices":[{"index":0,"delta":{"content":"Partial"}}]}\n', 'data: {"error":"provider unavailable"}\n'),
         new ReadableStream({
             start(controller) {
                 controller.error(new Error('Connection lost'));
@@ -323,7 +329,9 @@ test('invalid fixture labels and missing comparison contexts fail explicitly', a
         { expectedSources: ['missing'] },
         { query: ' ' },
     ]) {
-        assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, ...changes }] }, [{ metadata: { source: 'content/a.md' } }]));
+        assert.throws(() =>
+            validateFixture({ version: 1, cases: [{ ...item, ...changes }] }, [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }]),
+        );
     }
     await assert.rejects(
         compareModels({
@@ -352,7 +360,7 @@ test('missing and invalid usage is unpriced rather than free', async () => {
         cases: [item],
         models: ['glm'],
         contexts: { known: 'Reliable Hugo project evidence.' },
-        run: async () => makeStream('data: {"response":"Hugo"}\n', 'data: [DONE]\n'),
+        run: async () => makeStream('data: {"choices":[{"index":0,"delta":{"content":"Hugo"}}]}\n', 'data: [DONE]\n'),
     });
     assert.equal(report.results[0].estimatedGenerationCostUsd, null);
     assert.equal(report.summaries[0].usageCoverage, 0);
@@ -380,6 +388,7 @@ test('negative questions retrieve real context and exercise generation rather th
                 matches: [
                     {
                         metadata: {
+                            recordType: 'chunk',
                             source: 'content/a.md',
                             url: '/a/',
                             text: 'The website uses Hugo and Cloudflare; no compensation information.',
@@ -401,7 +410,10 @@ test('negative questions retrieve real context and exercise generation rather th
         contexts: Object.fromEntries(retrieval.results.map((item) => [item.caseId, item.context])),
         run: async (_, input) => {
             run.push(input);
-            return makeStream('data: {"response":"I don\'t have enough reliable context to establish a salary."}\n', 'data: [DONE]\n');
+            return makeStream(
+                'data: {"choices":[{"index":0,"delta":{"content":"I don\'t have enough reliable context to establish a salary."}}]}\n',
+                'data: [DONE]\n',
+            );
         },
     });
     assert.equal(run.length, 1);
@@ -613,7 +625,7 @@ test('retrieval measures expected source hits, not keyword presence', async () =
     const report = await evaluateRetrieval({
         cases: [known],
         retrieve: async () => ({
-            matches: [{ metadata: { text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
+            matches: [{ metadata: { recordType: 'chunk', text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
             embeddingMs: 5,
             searchMs: 7,
         }),
@@ -642,9 +654,9 @@ test('stream timing records first answer and interchunk gaps with provider usage
     let time = 0;
     const result = await readAnswer(
         makeStream(
-            'data: {"response":"Hu"}\n',
-            'data: {"response":"go"}\n',
-            'data: {"usage":{"prompt_tokens":2,"completion_tokens":1}}\n',
+            'data: {"choices":[{"index":0,"delta":{"content":"Hu"}}]}\n',
+            'data: {"choices":[{"index":0,"delta":{"content":"go"}}]}\n',
+            'data: {"choices":[],"usage":{"prompt_tokens":2,"completion_tokens":1,"total_tokens":3}}\n',
             'data: [DONE]\n',
         ),
         { start: 0, clock: () => ++time },
@@ -653,5 +665,5 @@ test('stream timing records first answer and interchunk gaps with provider usage
     assert.equal(result.ttftMs, 1);
     assert.deepEqual(result.chunkGapsMs, [1]);
     assert.equal(result.generationMs, 3);
-    assert.deepEqual(result.usage, { prompt_tokens: 2, completion_tokens: 1 });
+    assert.deepEqual(result.usage, { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 });
 });

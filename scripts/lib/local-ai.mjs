@@ -104,16 +104,20 @@ export function createLocalAi({ url, embeddingModel, dimensions, timeoutMs, cont
                 const item = JSON.parse(line);
                 if (item.error) throw new Error(`Local AI: ${item.error}`);
                 if (item.message?.content) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: item.message.content })}\n\n`));
+                    controller.enqueue(
+                        encoder.encode(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: item.message.content } }] })}\n\n`),
+                    );
                 }
                 if (item.done) {
                     done = true;
                     controller.enqueue(
                         encoder.encode(
                             `data: ${JSON.stringify({
+                                choices: [],
                                 usage: {
                                     prompt_tokens: item.prompt_eval_count,
                                     completion_tokens: item.eval_count,
+                                    total_tokens: item.prompt_eval_count + item.eval_count,
                                 },
                             })}\n\ndata: [DONE]\n\n`,
                         ),

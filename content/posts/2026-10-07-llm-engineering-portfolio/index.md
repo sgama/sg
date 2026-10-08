@@ -99,7 +99,7 @@ The application is built locally before any paid evaluation:
 
 ```bash
 make ai-check   # Validate corpus identities and evaluation labels
-make ai-test    # Run offline unit and integration-style tests
+make test    # Run offline unit and integration-style tests
 make ai-build   # Compile Pages Functions; requires Node.js 22+
 make dev-ai     # Run Hugo output with Wrangler and the chat API
 ```

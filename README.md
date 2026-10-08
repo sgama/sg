@@ -139,7 +139,7 @@ expanded state and references the dialog.
 
 #### Widget validation
 
-Run `make ai-test` and `make ai-build` for unit tests and Functions compilation.
+Run `make test` and `make ai-build` for unit tests and Functions compilation.
 Before a UI release, manually check buttons/external triggers/Escape, Enter and
 Shift+Enter, streaming/errors/cancellation/offline behavior, saved and cleared
 history, Markdown sanitization/text fallback, focus, mobile layout and
@@ -159,7 +159,7 @@ and pricing must be verified against your Cloudflare account.
 ```bash
 # Offline checks: Hugo required for canonical URLs; no credentials or inference calls
 make ai-models
-make ai-check ai-test ai-plan
+make ai-check test ai-plan
 make ai-build
 node scripts/ai-eval.mjs compare --models glm,gemma --repeats 3 --dry-run
 
@@ -254,9 +254,9 @@ with a keyboard-accessible Details disclosure for timing and token-count tables.
 
 ### Authoring employer-facing RAG context
 
-`make audit-content` uses separate policies: posts require title/date and recommend tags plus description/summary; public pages (including section indexes) and internal context require title and recommend description/summary. The internal context's headless cascade configuration index is excluded, not public section indexes. Required dates must be parseable dates, not merely present values. Environment field overrides apply explicitly to every type. `make test` is the canonical complete offline suite; `make ai-test` is a compatibility alias.
+`make audit-content` uses separate policies: posts require title/date and recommend tags plus description/summary; public pages (including section indexes) and internal context require title and recommend description/summary. The internal context's headless cascade configuration index is excluded, not public section indexes. Required dates must be parseable dates, not merely present values. Environment field overrides apply explicitly to every type. `make test` is the canonical complete offline suite.
 
-Newly built corpora require explicit record types and normalization version 3. Runtime section expansion separately retains compatibility with deployed records without parent/canonical metadata; this does not weaken build validation.
+Newly built corpora require explicit record types and normalization version 3. Runtime section expansion rejects records without an explicit current record type. Rebuild and activate the current corpus before serving these stricter Functions.
 
 `make favicons` uses the existing WebP portrait and supports ImageMagick 7 (`magick`) or 6 (`convert`). It never installs system packages. Override `FAVICON_SOURCE` and `FAVICON_OUTPUT_DIR` to use a different source or validate into a temporary directory.
 
@@ -579,7 +579,7 @@ evidence of qualifications.
 Developer validation workflow:
 
 ```bash
-make ai-check ai-test ai-plan
+make ai-check test ai-plan
 # Paid: ingest the namespace printed above, then evaluate it
 make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
 make ai-retrieval-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
@@ -756,7 +756,9 @@ repository. The 20-character abstention check detects empty/short context, not
 whether evidence supports a claim. Quality evaluation remains developer-run,
 not an automatic production release gate.
 Chat logs store transcripts in KV values with small versioned metadata and unique
-keys; the logs API can still read legacy metadata-only entries.
+keys; the logs API requires version-2 records stored in KV values and rejects legacy metadata-only entries with an explicit API error. Existing legacy keys are not migrated or deleted automatically.
+
+Generation accepts content deltas and aggregate usage, including the current Workers binding terminal usage summary after answer deltas. Response-only provider answers are no longer accepted. The widget's normalized response events and manually managed browser history remain unchanged.
 
 ### Local Development
 

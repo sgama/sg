@@ -75,8 +75,7 @@ export class LogService {
                 .slice()
                 .reverse()
                 .map(async (key) => {
-                    if (!key.metadata) return null;
-                    if (key.metadata.version !== 2) return { id: key.name, ...key.metadata };
+                    if (key.metadata?.version !== 2) throw new Error(`Unsupported log record version: ${key.name}`);
                     const record = await kv.get(key.name, 'json');
                     if (!record) {
                         console.error('Log record missing:', key.name);

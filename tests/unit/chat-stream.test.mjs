@@ -17,11 +17,6 @@ const streamOf = (text, fragmentSize = 7) => {
 };
 const normalize = async (text, fragmentSize) => new Response(normalizeChatStream(streamOf(text, fragmentSize))).text();
 
-test('does not duplicate content when provider emits a final response summary', async () => {
-    const input = event(delta('Answer')) + event({ response: 'Answer' }) + 'data: [DONE]\n\n';
-    assert.equal(await normalize(input), event({ response: 'Answer' }) + 'data: [DONE]\n\n');
-});
-
 test('finishes a valid answer when upstream closes without a DONE event', async () => {
     assert.equal(await normalize(event(delta('Answer'))), event({ response: 'Answer' }) + 'data: [DONE]\n\n');
 });
@@ -35,7 +30,7 @@ test('normalizes GLM deltas, strips reasoning, and preserves final aggregate usa
         event({ ...delta('Hello '), usage: { completion_tokens: 1 } }) +
         event(delta('world')) +
         event({ choices: [], usage: { total_tokens: 0 } }) +
-        event({ response: '', usage }) +
+        event({ choices: [], usage }) +
         'data: [DONE]\n\n';
 
     assert.equal(await normalize(input), event({ response: 'Hello ' }) + event({ response: 'world' }) + event({ usage }) + 'data: [DONE]\n\n');
@@ -47,9 +42,15 @@ test('preserves a standalone OpenAI aggregate usage event without chunk-usage in
     assert.equal(await normalize(input), event({ response: 'Answer' }) + event({ usage }) + 'data: [DONE]\n\n');
 });
 
-test('preserves the legacy response stream contract', async () => {
-    const output = await new Response(normalizeChatStream(createSseMessageStream('Legacy answer'))).text();
-    assert.equal(output, event({ response: 'Legacy answer' }) + 'data: [DONE]\n\n');
+test('accepts the current Workers binding usage summary only after content deltas', async () => {
+    const usage = { prompt_tokens: 30, completion_tokens: 2, total_tokens: 32 };
+    const input = event(delta('Answer')) + event({ response: '', usage }) + 'data: [DONE]\n\n';
+    assert.equal(await normalize(input), event({ response: 'Answer' }) + event({ usage }) + 'data: [DONE]\n\n');
+});
+
+test('creates the current widget response stream directly', async () => {
+    const output = await new Response(createSseMessageStream('Answer')).text();
+    assert.equal(output, event({ response: 'Answer' }) + 'data: [DONE]\n\n');
 });
 
 test('propagates upstream stream failures', async () => {
@@ -65,9 +66,21 @@ test('reports reasoning-only, empty, malformed, and provider-error streams expli
     const cases = [
         {
             name: 'reasoning-only',
-            input: event({ choices: [{ index: 0, delta: { reasoning_content: 'private' } }] }) + event({ response: '' }) + 'data: [DONE]\n\n',
+            input: event({ choices: [{ index: 0, delta: { reasoning_content: 'private' } }] }) + 'data: [DONE]\n\n',
             errorType: Error,
             message: /^AI stream completed without an answer$/,
+        },
+        {
+            name: 'legacy response',
+            input: event({ response: 'Legacy answer' }),
+            errorType: Error,
+            message: /^Unsupported AI stream event: expected choices$/,
+        },
+        {
+            name: 'usage summary without preceding content deltas',
+            input: event({ response: '', usage: { total_tokens: 20 } }),
+            errorType: Error,
+            message: /^Unsupported AI stream event: expected choices$/,
         },
         {
             name: 'empty',

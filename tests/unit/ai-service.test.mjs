@@ -15,9 +15,8 @@ import {
     parentSectionIds,
     expandSectionMatches,
 } from '../../functions/_lib/application.js';
-import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
-import { makeEnv } from '../helpers/mocks.mjs';
+import { makeEnv, makeProviderStream } from '../helpers/mocks.mjs';
 
 test('section expansion preserves ranked source order, bounds evidence and rejects invalid references', async () => {
     const source = 'content/project.md';
@@ -25,8 +24,8 @@ test('section expansion preserves ranked source order, bounds evidence and rejec
         id: await corpusRecordId('corpus-test', source, -1),
         metadata: { source, recordType: 'section', sectionIndex: -1, text: 'Full project section' },
     };
-    const child = { id: 'child', score: 0.8, metadata: { source, parentIndex: -1, text: 'Partial section' } };
-    const other = { id: 'other', score: 0.9, metadata: { source: 'content/other.md', text: 'Other source' } };
+    const child = { id: 'child', score: 0.8, metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Partial section' } };
+    const other = { id: 'other', score: 0.9, metadata: { recordType: 'chunk', source: 'content/other.md', text: 'Other source' } };
     assert.deepEqual(await parentSectionIds([other, child, child], 'corpus-test'), [parent.id]);
     const expanded = expandSectionMatches([other, child, child, parent], [parent]);
     assert.deepEqual(
@@ -35,12 +34,12 @@ test('section expansion preserves ranked source order, bounds evidence and rejec
     );
     assert.equal(expanded[1].score, child.score);
     await assert.rejects(parentSectionIds([child], undefined), /namespace/);
-    await assert.rejects(parentSectionIds([{ metadata: { source, parentIndex: 0 } }], 'corpus-test'), /Invalid parent/);
+    await assert.rejects(parentSectionIds([{ metadata: { recordType: 'chunk', source, parentIndex: 0 } }], 'corpus-test'), /Invalid parent/);
     for (const sections of [
         null,
         [],
-        [{ ...parent, metadata: { ...parent.metadata, source: 'content/other.md' } }],
-        [{ ...parent, metadata: { ...parent.metadata, text: 'x'.repeat(AI_CONFIG.retrieval.maxSectionChars + 1) } }],
+        [{ ...parent, metadata: { recordType: 'chunk', ...parent.metadata, source: 'content/other.md' } }],
+        [{ ...parent, metadata: { recordType: 'chunk', ...parent.metadata, text: 'x'.repeat(AI_CONFIG.retrieval.maxSectionChars + 1) } }],
     ]) {
         assert.throws(() => expandSectionMatches([child], sections), /Invalid section|Missing or invalid parent/);
     }
@@ -65,6 +64,7 @@ test('canonical evidence supplements curated facts without exposing internal exc
         id: 'curated',
         score: 0.9,
         metadata: {
+            recordType: 'chunk',
             source: 'content/_context/project.md',
             type: 'context',
             title: 'Curated project',
@@ -102,7 +102,7 @@ test('AiService', async (t) => {
                 makeEnv({
                     aiRun: async (model, payload) => {
                         calls.push(payload);
-                        return createSseMessageStream('Answer');
+                        return makeProviderStream('Answer');
                     },
                 }),
             );
@@ -121,7 +121,7 @@ test('AiService', async (t) => {
                 makeEnv({
                     aiRun: async (model, payload) => {
                         calls.push({ model, payload });
-                        return createSseMessageStream('Answer');
+                        return makeProviderStream('Answer');
                     },
                 }),
             );
@@ -326,8 +326,8 @@ test('AiService', async (t) => {
                 VECTORIZE_INDEX: {
                     query: async () => ({
                         matches: [
-                            { id: 'child-one', metadata: { source, parentIndex: -1, text: 'Deploy with Hugo.' } },
-                            { id: 'child-two', metadata: { source, parentIndex: -1, text: 'Roll back with Cloudflare.' } },
+                            { id: 'child-one', metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Deploy with Hugo.' } },
+                            { id: 'child-two', metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Roll back with Cloudflare.' } },
                             section,
                         ],
                     }),
@@ -349,7 +349,9 @@ test('AiService', async (t) => {
                 AI_CORPUS_NAMESPACE: 'corpus-test',
                 AI: { run: async () => buildEmbeddingsResponse([0.1]) },
                 VECTORIZE_INDEX: {
-                    query: async () => ({ matches: [{ metadata: { source: 'content/page.md', parentIndex: -1, text: 'Partial evidence' } }] }),
+                    query: async () => ({
+                        matches: [{ metadata: { recordType: 'chunk', source: 'content/page.md', parentIndex: -1, text: 'Partial evidence' } }],
+                    }),
                     getByIds: async () => [],
                 },
             });
@@ -358,7 +360,7 @@ test('AiService', async (t) => {
         });
 
         await t.test('does not fetch unrelated sections for unlinked hits or empty search results', async () => {
-            for (const matches of [[], [{ id: 'legacy', metadata: { text: 'Original evidence' } }]]) {
+            for (const matches of [[], [{ id: 'current', metadata: { recordType: 'chunk', text: 'Original evidence' } }]]) {
                 const svc = new AiService({
                     AI_CORPUS_NAMESPACE: 'corpus-test',
                     AI: { run: async () => buildEmbeddingsResponse([0.1]) },
@@ -369,6 +371,20 @@ test('AiService', async (t) => {
                 });
                 assert.equal(await svc.retrieveContext('question'), matches.length ? 'Original evidence' : '');
             }
+        });
+
+        await t.test('rejects legacy corpus records without an explicit type', async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
+            const svc = new AiService(
+                makeEnv({
+                    aiRun: async () => buildEmbeddingsResponse([0.1]),
+                    vectorizeQuery: async () => ({ matches: [{ id: 'old', metadata: { text: 'Old evidence' } }] }),
+                }),
+            );
+            await assert.rejects(svc.retrieveContext('query'), { status: 503, message: 'Retrieval service unavailable' });
+            assert.equal(logged.mock.callCount(), 1);
+            assert.match(logged.mock.calls[0].arguments[1].message, /Unsupported corpus record type/);
+            assert.throws(() => expandSectionMatches([{ metadata: { text: 'Old evidence' } }], []), /Unsupported corpus record type/);
         });
 
         await t.test('reports service unavailable when embedding fails', async (t) => {
@@ -447,7 +463,7 @@ test('AiService', async (t) => {
                 makeEnv({
                     aiRun: async () => buildEmbeddingsResponse([0.1]),
                     vectorizeQuery: async () => ({
-                        matches: [{ metadata: { text: 'good chunk' } }, { metadata: {} }, {}],
+                        matches: [{ metadata: { recordType: 'chunk', text: 'good chunk' } }, { metadata: { recordType: 'chunk' } }],
                     }),
                 }),
             );
@@ -487,20 +503,10 @@ test('contextualized query parsing accepts known response shapes and rejects unb
 test('retrieved context preserves source identity within the character budget', () => {
     const context = contextFromMatches([
         {
-            metadata: {
-                source: 'content/resume/_index.md',
-                title: 'Resume',
-                url: '/resume/',
-                text: 'Programming: C/C++',
-            },
+            metadata: { recordType: 'chunk', source: 'content/resume/_index.md', title: 'Resume', url: '/resume/', text: 'Programming: C/C++' },
         },
         {
-            metadata: {
-                source: 'content/posts/old/index.md',
-                title: 'Older post',
-                url: '/posts/old/',
-                text: 'Older evidence',
-            },
+            metadata: { recordType: 'chunk', source: 'content/posts/old/index.md', title: 'Older post', url: '/posts/old/', text: 'Older evidence' },
         },
     ]);
     assert.match(context, /Source: .*"title":"Resume".*"url":"\/resume\/"/);
@@ -509,11 +515,7 @@ test('retrieved context preserves source identity within the character budget', 
     assert.match(context, /Programming: C\/C\+\+\n---\nSource:/);
     const bounded = contextFromMatches([
         {
-            metadata: {
-                source: 'resume',
-                url: '/resume/',
-                text: 'x'.repeat(AI_CONFIG.retrieval.maxContextChars * 2),
-            },
+            metadata: { recordType: 'chunk', source: 'resume', url: '/resume/', text: 'x'.repeat(AI_CONFIG.retrieval.maxContextChars * 2) },
         },
     ]);
     assert.equal(bounded.length, AI_CONFIG.retrieval.maxContextChars);
@@ -523,8 +525,8 @@ test('evidence callbacks expose only excerpts that fit the exact generation cont
     const excerpts = [];
     const context = contextFromMatches(
         [
-            { metadata: { url: '/first/', title: 'First', text: 'a'.repeat(AI_CONFIG.retrieval.maxContextChars + 100) } },
-            { metadata: { url: '/omitted/', text: 'Must not be exposed' } },
+            { metadata: { recordType: 'chunk', url: '/first/', title: 'First', text: 'a'.repeat(AI_CONFIG.retrieval.maxContextChars + 100) } },
+            { metadata: { recordType: 'chunk', url: '/omitted/', text: 'Must not be exposed' } },
         ],
         (excerpt) => excerpts.push(excerpt),
     );
@@ -539,6 +541,7 @@ test('internal education evidence exposes public citations but not corpus filena
     const context = contextFromMatches([
         {
             metadata: {
+                recordType: 'chunk',
                 source: 'content/_context/education-security.md',
                 title: 'Education',
                 text: 'University of British Columbia, B.A.Sc., Computer Engineering, 2017.\nSources: [resume](/resume/) and [about](/about/).',

@@ -7,7 +7,7 @@ SHELL := /bin/bash
 	build build-prod postcss-build build-summary clean \
 	bom metrics metrics-json check-scc install-scc \
 	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
-	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
+	ai-models ai-check ai-plan ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
 	ci ci-check check-tools check-env check-ai-tools check-corpus-tools check-ai-namespace check-wrangler-node
 
@@ -241,8 +241,6 @@ ai-check: check-corpus-tools ## Validate corpus IDs, model selection and evaluat
 	@$(NODE) scripts/generate_embeddings.mjs --check
 	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
-ai-test: test ## Compatibility alias for the complete offline unit suite
-
 ai-build: check-wrangler-node ## Bundle Pages Functions locally (Node 22+, no deployment)
 	@mkdir -p "$$REPORT_DIR"
 	@$(WRANGLER) pages functions build functions --outfile="$$REPORT_DIR/ai-functions-worker.js"
@@ -272,7 +270,7 @@ ai-release-check: check-ai-tools check-ai-namespace ## Gate activation using ret
 		--min-hit-rate "$$AI_MIN_HIT_RATE" --min-answer-rate "$$AI_MIN_ANSWER_RATE"
 
 deploy-ai: ## Run offline checks and candidate release gate before Pages deployment
-	@$(MAKE) --no-print-directory ai-check ai-test
+	@$(MAKE) --no-print-directory ai-check test
 	@$(MAKE) --no-print-directory ai-release-check
 	@$(MAKE) --no-print-directory ai-build
 	@$(MAKE) --no-print-directory deploy-pages

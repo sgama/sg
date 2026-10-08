@@ -9,7 +9,6 @@ Install dependencies with `make deps`. The complete unit suite and coverage requ
 ```bash
 make test
 npm test                         # Delegates to make test
-make ai-test                     # Compatibility alias for make test
 make coverage
 npm run test:coverage             # Delegates to make coverage
 make test TEST_REPORTER=tap
@@ -75,7 +74,7 @@ Hugo layout tests use temporary content, assets, and output directories. They ve
 
 Normalization tests compare Markdown structure and preserve nested lists, indented/fenced code, literal angle brackets, inline shortcodes, balanced image destinations, and Setext headings. Corpus assembly tests check content-driven hashes, namespaces, and full-source-path IDs. Contract tests deliberately recompute hashes after malformed edits to exercise semantic invariants independently of hash integrity.
 
-Parent expansion replaces narrow child evidence with its bounded section. Canonical expansion supplements curated facts with public evidence; unique internal facts remain in model context, while only public excerpts are displayed. Runtime/cloud/local tests verify deduplication, ordering, context budgets, and explicit missing-vector errors. Legacy records without section references require no parent lookup; strict new-corpus validation does not accept missing current fields.
+Parent expansion replaces narrow child evidence with its bounded section. Canonical expansion supplements curated facts with public evidence; unique internal facts remain in model context, while only public excerpts are displayed. Runtime/cloud/local tests verify deduplication, ordering, context budgets, and explicit missing-vector errors. Current chunks without section references require no parent lookup. Legacy records without an explicit record type are rejected by runtime retrieval.
 
 Cloudflare contract tests use the installed SDK with injected fetch and native `Request`/`Response` objects. They verify actual payload bytes, model paths, pagination, mutations, readiness, and safe deletion acknowledgements. Local AI tests mock HTTP and container CLI boundaries. `make ai-local-validate` is the separate explicit real-GPU integration check; hybrid generation can make paid cloud calls and is not part of offline tests.
 
@@ -91,9 +90,9 @@ Answer checks are substring regressions, not semantic accuracy measurements. A c
 
 Browser suites execute source scripts with isolated DOM/VM fixtures. They cover submit/stop/retry, offline errors, confirmed history clearing, session restoration, public evidence, rendering boundaries, and metrics persistence without sending evidence or metrics as conversation history.
 
-Stream tests cover fragmented UTF-8, current content deltas, legacy provider events, reasoning omission, final usage summaries, stage ordering, and explicit errors after streaming starts. Empty or malformed provider responses must not silently succeed. Use native `Response.text()` to test decoding and error propagation.
+Stream tests cover fragmented UTF-8, current content deltas, rejection of response-only provider answers, reasoning omission, final usage summaries, stage ordering, and explicit errors after streaming starts. The current Workers binding terminal usage summary is accepted only after answer deltas. Local NDJSON is adapted to content deltas and aggregate usage rather than relying on a response-only fallback. Empty or malformed provider responses must not silently succeed. Use native `Response.text()` to test decoding and error propagation.
 
-Use `t.mock.method` for expected logging and assert messages and call counts. Node restores test-scoped mocks. Keep tests that mutate process globals sequential within their file and restore those globals in cleanup. Log API tests currently verify intentionally public access, pagination, method restrictions, and no-store headers; they do not assert an authentication requirement.
+Use `t.mock.method` for expected logging and assert messages and call counts. Node restores test-scoped mocks. Keep tests that mutate process globals sequential within their file and restore those globals in cleanup. Log API tests currently verify intentionally public access, version-2 value reads, explicit rejection of unsupported records, pagination, method restrictions, and no-store headers; they do not assert an authentication requirement.
 
 ## Adding and maintaining tests
 

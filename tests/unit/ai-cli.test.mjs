@@ -76,7 +76,7 @@ async function fixture(t) {
             };
         } else {
             assert.match(pathname, /\/ai\/run\/@cf\/zai-org\/glm-4.7-flash$/);
-            return new Response('data: {"response":"Hugo; salary unknown."}\n\ndata: [DONE]\n\n', {
+            return new Response('data: {"choices":[{"index":0,"delta":{"content":"Hugo; salary unknown."}}]}\n\ndata: [DONE]\n\n', {
                 headers: { 'content-type': 'text/event-stream' },
             });
         }
@@ -135,7 +135,9 @@ test('oracle comparisons use the same supplemental canonical evidence semantics 
             const payload = await new Request(url, init).json();
             assert.match(payload.messages[0].content, /Canonical Hugo and Cloudflare/);
             assert.match(payload.messages[0].content, /Unique curated rollback/);
-            return new Response('data: {"response":"Hugo architecture."}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+            return new Response('data: {"choices":[{"index":0,"delta":{"content":"Hugo architecture."}}]}\n\ndata: [DONE]\n\n', {
+                headers: { 'content-type': 'text/event-stream' },
+            });
         },
     });
     assert.equal(calls, 1);

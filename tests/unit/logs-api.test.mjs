@@ -28,7 +28,7 @@ test('/api/logs', async (t) => {
             assert.equal(body.meta.has_more, false);
         });
 
-        await t.test('returns logs from KV metadata in reverse chronological order', async () => {
+        await t.test('returns versioned KV values in reverse chronological order', async () => {
             const keys = [
                 buildKvKey({
                     name: 'chat:2026-01-01T00:00:00.000Z',
@@ -60,11 +60,9 @@ test('/api/logs', async (t) => {
             assert.equal(body.data[1].query, 'hello');
         });
 
-        await t.test('skips keys with no metadata', async () => {
-            const keys = [
-                buildKvKey({ name: 'chat:a', query: 'q', response: 'r', timestamp: 't' }),
-                { name: 'chat:b' }, // no metadata
-            ];
+        await t.test('reports unsupported log formats explicitly', async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
+            const keys = [{ name: 'chat:old', metadata: { query: 'q', response: 'r' } }];
             const res = await onRequest(
                 createContext({
                     method: 'GET',
@@ -74,7 +72,10 @@ test('/api/logs', async (t) => {
             );
 
             const body = await res.json();
-            assert.equal(body.data.length, 1);
+            assert.equal(res.status, 500);
+            assert.deepEqual(body, { error: 'Internal Server Error' });
+            assert.equal(logged.mock.callCount(), 1);
+            assert.deepEqual(logged.mock.calls[0].arguments, ['Logs API Error: Unsupported log record version: chat:old']);
         });
     });
 

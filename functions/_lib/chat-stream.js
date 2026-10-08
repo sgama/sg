@@ -16,7 +16,6 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
     let buffer = '';
     let dataLines = [];
     let hasAnswer = false;
-    let hasContentDeltas = false;
     let finished = false;
 
     const emit = (controller, payload) => {
@@ -38,23 +37,16 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
         }
         const payload = JSON.parse(data);
         if (payload.error) throw new Error('AI returned a streaming error');
+        const bindingUsageSummary = hasAnswer && payload.response === '' && payload.usage && payload.choices === undefined;
+        if (!Array.isArray(payload.choices) && !bindingUsageSummary) throw new Error('Unsupported AI stream event: expected choices');
         const choice = payload.choices?.find((item) => item.index === 0);
         const content = choice?.delta?.content;
         if (typeof content === 'string' && content) {
             if (!hasAnswer && content.trim()) onFirstToken?.();
-            hasContentDeltas = true;
             hasAnswer ||= content.trim().length > 0;
             emit(controller, { response: content });
-        } else if (!hasContentDeltas && typeof payload.response === 'string' && payload.response) {
-            if (!hasAnswer && payload.response.trim()) onFirstToken?.();
-            hasAnswer ||= payload.response.trim().length > 0;
-            emit(controller, { response: payload.response });
         }
-        // Workers AI's final legacy event contains aggregate usage; chunk usage is incremental.
-        if (
-            payload.usage &&
-            (typeof payload.response === 'string' || !payload.choices || (payload.choices.length === 0 && payload.usage.total_tokens > 0))
-        ) {
+        if (payload.usage && (bindingUsageSummary || (payload.choices.length === 0 && payload.usage.total_tokens > 0))) {
             onUsage?.(payload.usage);
             emit(controller, { usage: payload.usage });
         }

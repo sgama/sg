@@ -10,6 +10,9 @@ export async function corpusRecordId(namespace, source, index) {
 }
 
 export async function parentSectionIds(matches, namespace) {
+    for (const match of matches) {
+        if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');
+    }
     const children = matches.flatMap((match) =>
         ['parent', 'canonical']
             .filter((prefix) => match.metadata?.[`${prefix}Index`] !== undefined)
@@ -49,6 +52,7 @@ export function expandSectionMatches(matches, sections) {
         expanded.push(evidence);
     };
     for (const match of matches) {
+        if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');
         let evidence = match;
         for (const prefix of ['canonical', 'parent']) {
             if (match.metadata?.[`${prefix}Index`] === undefined) continue;

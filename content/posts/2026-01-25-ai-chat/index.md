@@ -105,7 +105,7 @@ Conversation history persists on the device across deployments until manually cl
 
 ```bash
 make ai-check   # Corpus identities, Hugo URL provenance and evaluation labels
-make test       # Offline regressions; ai-test is a compatibility alias
+make test       # Offline regressions
 make ai-build   # Compile Functions with Node.js 22+
 make dev-ai     # Local site with the chat API
 ```

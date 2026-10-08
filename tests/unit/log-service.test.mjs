@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LogService } from '../../functions/_lib/log.js';
 import { buildKvKey, TIMESTAMPS, PAGINATION, FIXTURES } from '../helpers/data.mjs';
-import { makeStream, drainStream, makeTimestamp, createContext } from '../helpers/mocks.mjs';
+import { makeStream, drainStream, makeTimestamp, createContext, makeKv } from '../helpers/mocks.mjs';
 import { onRequest } from '../../functions/api/logs.js';
 
 /**
@@ -61,36 +61,21 @@ test('LogService', async (t) => {
             assert.equal(captured.limit, 5);
             assert.equal(captured.cursor, 'cursor-token');
         });
-        await t.test('omits keys with no metadata', async () => {
-            const kv = {
-                async list() {
-                    return {
-                        keys: [
-                            buildKvKey({
-                                name: 'chat:a',
-                                query: 'q',
-                                response: 'r',
-                                timestamp: 't',
-                            }),
-                            { name: 'chat:b' }, // Missing metadata
-                        ],
-                        list_complete: true,
-                    };
-                },
-            };
-
-            const result = await LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT, undefined);
-
-            assert.equal(result.data.length, 1);
-            assert.equal(result.data[0].id, 'chat:a');
+        await t.test('rejects unversioned and unsupported records before reading values', async () => {
+            for (const metadata of [undefined, {}, { query: 'old', response: 'old' }, { version: 1 }, { version: 3 }]) {
+                const kv = {
+                    list: async () => ({ keys: [{ name: 'chat:old', metadata }], list_complete: true }),
+                    get: async () => assert.fail('Unsupported record must not be read'),
+                };
+                await assert.rejects(LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT), /Unsupported log record version: chat:old/);
+            }
         });
 
-        await t.test('reads versioned values alongside legacy metadata records', async () => {
+        await t.test('reads full records from versioned values', async () => {
             const kv = {
                 async list() {
                     return {
                         keys: [
-                            buildKvKey({ name: 'chat:old', query: 'legacy' }),
                             {
                                 name: 'chat:new',
                                 metadata: { version: 2, timestamp: TIMESTAMPS.FIXED_TS },
@@ -108,7 +93,7 @@ test('LogService', async (t) => {
             const result = await LogService.fetchLogs(kv, 10);
             assert.equal(result.data[0].query, 'new');
             assert.equal(result.data[0].response.length, 5000);
-            assert.equal(result.data[1].query, 'legacy');
+            assert.equal(result.data.length, 1);
         });
 
         await t.test('reports has_more correctly', async () => {
@@ -126,28 +111,22 @@ test('LogService', async (t) => {
         });
 
         await t.test('returns logs in reverse chronological order', async () => {
-            const kv = {
-                async list() {
-                    return {
-                        keys: [
-                            buildKvKey({
-                                name: 'chat:2026-01-01',
-                                query: 'first',
-                                response: 'a',
-                                timestamp: '2026-01-01',
-                            }),
-                            buildKvKey({
-                                name: 'chat:2026-01-02',
-                                query: 'second',
-                                response: 'b',
-                                timestamp: '2026-01-02',
-                            }),
-                        ],
-                        list_complete: true,
-                        cursor: undefined,
-                    };
-                },
-            };
+            const kv = makeKv({
+                keys: [
+                    buildKvKey({
+                        name: 'chat:2026-01-01',
+                        query: 'first',
+                        response: 'a',
+                        timestamp: '2026-01-01',
+                    }),
+                    buildKvKey({
+                        name: 'chat:2026-01-02',
+                        query: 'second',
+                        response: 'b',
+                        timestamp: '2026-01-02',
+                    }),
+                ],
+            });
 
             const result = await LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT, undefined);
 

@@ -62,7 +62,11 @@ export function makeEnv({ aiRun, vectorizeQuery } = {}) {
 export function makeKv({ keys = [], cursor = undefined, list_complete = true, put } = {}) {
     return {
         async list() {
-            return { keys, cursor, list_complete };
+            return { keys: keys.map(({ value: _value, ...key }) => key), cursor, list_complete };
+        },
+        async get(name, type) {
+            if (type !== 'json') throw new Error('Mock KV only supports JSON reads');
+            return keys.find((key) => key.name === name)?.value ?? null;
         },
         put:
             put ??
@@ -121,6 +125,14 @@ export function makeStream(...sseLines) {
             controller.close();
         },
     });
+}
+
+export function makeProviderStream(response, usage) {
+    return makeStream(
+        `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: response } }] })}\n`,
+        ...(usage ? [`data: ${JSON.stringify({ choices: [], usage })}\n`] : []),
+        'data: [DONE]\n',
+    );
 }
 
 /**

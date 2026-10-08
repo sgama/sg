@@ -44,7 +44,7 @@ test('npm delegates tests and coverage to bounded Make commands without cycles',
     const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
     assert.equal(scripts.test, 'make --no-print-directory test');
     assert.equal(scripts['test:coverage'], 'make --no-print-directory coverage');
-    const result = make('-n', 'test', 'ai-test', 'coverage', 'NODE=custom-node', 'HUGO=custom-hugo', 'TEST_REPORTER=dot');
+    const result = make('-n', 'test', 'coverage', 'NODE=custom-node', 'HUGO=custom-hugo', 'TEST_REPORTER=dot');
     assert.equal(result.status, 0);
     const commands = result.stdout.split('\n').filter((line) => line.includes('--test-reporter'));
     assert.equal(commands.length, 2);
@@ -57,6 +57,9 @@ test('npm delegates tests and coverage to bounded Make commands without cycles',
     assert.doesNotMatch(result.stdout, /npm.*(?:run test:coverage|test)\b/);
     const coverage = make('-n', 'coverage');
     assert.match(coverage.stdout, /Missing Hugo/);
+    const removed = make('-n', 'ai-test');
+    assert.notEqual(removed.status, 0);
+    assert.match(removed.stderr, /No rule to make target/);
 });
 
 test('metrics delegate to native scc without installing or counting generated trees', () => {

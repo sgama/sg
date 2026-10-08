@@ -50,7 +50,7 @@ test('embeddings require complete finite vectors and actual GPU residency', asyn
 });
 
 test('exact cosine search ranks chunks deterministically without a database', () => {
-    const chunks = ['b', 'a', 'c'].map((id) => ({ id, metadata: { source: id } }));
+    const chunks = ['b', 'a', 'c'].map((id) => ({ id, metadata: { recordType: 'chunk', source: id } }));
     const matches = searchVectors(
         chunks,
         [
@@ -74,8 +74,8 @@ test('local retrieval expands only the matched section and deduplicates siblings
     const source = 'content/project.md';
     const parent = { id: 'parent', metadata: { source, recordType: 'section', sectionIndex: -1, text: 'Deploy and roll back the project' } };
     const chunks = [
-        { id: 'a', metadata: { source, parentIndex: -1, text: 'Deploy' } },
-        { id: 'b', metadata: { source, parentIndex: -1, text: 'Roll back' } },
+        { id: 'a', metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Deploy' } },
+        { id: 'b', metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Roll back' } },
         parent,
         { id: 'unrelated', metadata: { source: 'content/resume/_index.md', recordType: 'section', sectionIndex: -1, text: 'Unrelated resume' } },
     ];
@@ -187,9 +187,12 @@ test('local CLI writes private provenance, reuses evaluator and gates required a
             const body = JSON.parse(init.body);
             assert.equal(body.chat_template_kwargs.enable_thinking, false);
             assert.equal(body.max_completion_tokens, 512);
-            return new Response('data: {"response":"Hugo"}\n\ndata: {"usage":{"prompt_tokens":10,"completion_tokens":2}}\n\ndata: [DONE]\n\n', {
-                headers: { 'Content-Type': 'text/event-stream' },
-            });
+            return new Response(
+                'data: {"choices":[{"index":0,"delta":{"content":"Hugo"}}]}\n\ndata: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":2,"total_tokens":12}}\n\ndata: [DONE]\n\n',
+                {
+                    headers: { 'Content-Type': 'text/event-stream' },
+                },
+            );
         },
     });
     assert.equal(hybrid.generationBackend, 'cloudflare');
@@ -228,7 +231,7 @@ test('local streaming adapts fragmented NDJSON, omits thinking and retains usage
         start: performance.now(),
     });
     assert.equal(output.answer, 'Café');
-    assert.deepEqual(output.usage, { prompt_tokens: 10, completion_tokens: 3 });
+    assert.deepEqual(output.usage, { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 });
 });
 
 test('TEI embeds BGE without task prefixes and rejects mismatched model identity', async () => {

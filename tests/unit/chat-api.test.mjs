@@ -6,13 +6,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
-import { createSseMessageStream as createSseStream } from '../../functions/_lib/chat-stream.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, URLS, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
-import { createContext, makeStream } from '../helpers/mocks.mjs';
+import { createContext, makeStream, makeProviderStream } from '../helpers/mocks.mjs';
 
 test('/api/chat', async (t) => {
     await t.test('streams real stage events and only public excerpts actually supplied to generation', async () => {
-        const usage = { prompt_tokens: 10, completion_tokens: 2 };
+        const usage = { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 };
         const response = await onRequest(
             createContext({
                 method: 'POST',
@@ -24,14 +23,29 @@ test('/api/chat', async (t) => {
                             if (payload.stream === false) return { response: 'Standalone query' };
                             if (payload.text) return buildEmbeddingsResponse([0.1]);
                             assert.ok(payload.messages[0].content.includes('Public evidence'));
-                            return makeStream(`data: ${JSON.stringify({ response: 'Answer', usage })}\n\ndata: [DONE]\n\n`);
+                            return makeProviderStream('Answer', usage);
                         },
                     },
                     VECTORIZE_INDEX: {
                         query: async () => ({
                             matches: [
-                                { metadata: { title: 'Resume', url: '/resume/', section: 'Experience', text: 'Public evidence' } },
-                                { metadata: { title: 'Private corpus label', source: 'content/_context/profile.md', text: 'Internal evidence' } },
+                                {
+                                    metadata: {
+                                        recordType: 'chunk',
+                                        title: 'Resume',
+                                        url: '/resume/',
+                                        section: 'Experience',
+                                        text: 'Public evidence',
+                                    },
+                                },
+                                {
+                                    metadata: {
+                                        recordType: 'chunk',
+                                        title: 'Private corpus label',
+                                        source: 'content/_context/profile.md',
+                                        text: 'Internal evidence',
+                                    },
+                                },
                             ],
                         }),
                     },
@@ -116,7 +130,7 @@ test('/api/chat', async (t) => {
                         if (payload?.text) {
                             return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
                         }
-                        return createSseStream('Logged response');
+                        return makeProviderStream('Logged response');
                     },
                 },
                 VECTORIZE_INDEX: {
@@ -164,7 +178,7 @@ test('/api/chat', async (t) => {
                         return makeStream(
                             'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
                             'data: {"choices":[{"index":0,"delta":{"content":"Visible answer"}}]}\n',
-                            `data: ${JSON.stringify({ response: '', usage })}\n`,
+                            `data: ${JSON.stringify({ choices: [], usage })}\n`,
                             'data: [DONE]\n',
                         );
                     },
@@ -221,7 +235,7 @@ test('/api/chat', async (t) => {
                         if (payload?.text) {
                             return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
                         }
-                        return createSseStream('Supported answer');
+                        return makeProviderStream('Supported answer');
                     },
                 },
                 VECTORIZE_INDEX: {
@@ -261,11 +275,7 @@ test('/api/chat', async (t) => {
                 AI: {
                     async run(model, payload) {
                         if (payload.text) return buildEmbeddingsResponse([0.1]);
-                        return makeStream(
-                            'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
-                            'data: {"response":""}\n',
-                            'data: [DONE]\n',
-                        );
+                        return makeStream('data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n', 'data: [DONE]\n');
                     },
                 },
                 VECTORIZE_INDEX: {
@@ -341,7 +351,7 @@ test('/api/chat', async (t) => {
                         if (payload?.text) {
                             return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
                         }
-                        return createSseStream('Should not generate');
+                        return makeProviderStream('Should not generate');
                     },
                 },
                 VECTORIZE_INDEX: {

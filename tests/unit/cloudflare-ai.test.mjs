@@ -1,7 +1,7 @@
+import { makeProviderStream } from '../helpers/mocks.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createCloudflareAi } from '../../scripts/lib/cloudflare-ai.mjs';
-import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import { AI_CONFIG, corpusRecordId } from '../../functions/_lib/application.js';
 
 const options = { accountId: 'test-account', apiToken: 'test-token', namespace: 'corpus-test' };
@@ -17,7 +17,7 @@ test('generation adapter posts streaming inputs with a timeout and returns raw S
         ...options,
         async fetchImpl(url, init) {
             captured = { url, init };
-            return new Response(createSseMessageStream('Answer'), {
+            return new Response(makeProviderStream('Answer'), {
                 headers: { 'Content-Type': 'text/event-stream' },
             });
         },
@@ -78,7 +78,7 @@ test('malformed search responses fail explicitly', async () => {
 test('retrieval uses injected fetch for SDK embeddings and Vectorize query', async () => {
     const requests = [];
     const vector = Array(AI_CONFIG.embedding.dimensions).fill(0.1);
-    const matches = [{ id: 'source', score: 0.9, metadata: { text: 'Evidence' } }];
+    const matches = [{ id: 'source', score: 0.9, metadata: { recordType: 'chunk', text: 'Evidence' } }];
     const client = createCloudflareAi({
         ...options,
         async fetchImpl(url, init) {
@@ -168,7 +168,9 @@ test('cloud retrieval expands a semantic hit using its namespace-specific parent
             assert.ok(pathname.endsWith('/query'));
             return Response.json({
                 success: true,
-                result: { matches: [{ id: 'child', score: 0.9, metadata: { source, parentIndex: -1, text: 'Hugo deployment' } }] },
+                result: {
+                    matches: [{ id: 'child', score: 0.9, metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Hugo deployment' } }],
+                },
             });
         },
     });
@@ -185,7 +187,7 @@ test('cloud retrieval expands a semantic hit using its namespace-specific parent
                 if (pathname.endsWith('/get_by_ids')) return Response.json({ success: true, result: [] });
                 return Response.json({
                     success: true,
-                    result: { matches: [{ metadata: { source: 'content/project.md', parentIndex: -1, text: 'Partial' } }] },
+                    result: { matches: [{ metadata: { recordType: 'chunk', source: 'content/project.md', parentIndex: -1, text: 'Partial' } }] },
                 });
             },
         });
