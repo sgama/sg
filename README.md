@@ -231,6 +231,8 @@ Metrics persist with local chat history but are never sent as conversation
 evidence. Historical messages without metrics remain readable.
 The non-selectable response footer includes an accuracy warning encouraging
 readers to verify important details against the original sources.
+The footer shows a compact total/first-token latency and estimated-cost summary,
+with a keyboard-accessible Details disclosure for timing and token-count tables.
 
 ### Authoring employer-facing RAG context
 

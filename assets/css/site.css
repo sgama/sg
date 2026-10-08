@@ -518,8 +518,68 @@
         color: var(--chat-muted);
         font-size: 0.65rem;
         line-height: 1.45;
-        white-space: pre-line;
         user-select: none;
+    }
+
+    .chat-widget .metrics-details {
+        display: inline;
+    }
+
+    .chat-widget .metrics-details summary {
+        display: inline;
+        cursor: pointer;
+    }
+
+    .chat-widget .metrics-details summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .chat-widget .metrics-details summary:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+    }
+
+    .chat-widget .metrics-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+        gap: 0.75rem;
+        margin-block: 0.5rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .chat-widget .metrics-timing-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.25rem;
+    }
+
+    .chat-widget .metrics-grid table {
+        width: 100%;
+        margin: 0;
+        font-size: inherit;
+    }
+
+    .chat-widget .metrics-grid th,
+    .chat-widget .metrics-grid td {
+        padding: 0 0.2rem;
+        border: none;
+        text-align: right;
+        font-weight: 400;
+    }
+
+    .chat-widget .metrics-grid th:first-child {
+        text-align: left;
+        padding-inline-start: 0;
+    }
+
+    .chat-widget .metrics-grid thead th {
+        font-weight: 600;
+    }
+
+    .chat-widget .metrics-warning {
+        display: block;
+        margin-block-start: 0.35rem;
+        font-size: inherit;
     }
 
     .chat-widget .header-btn {

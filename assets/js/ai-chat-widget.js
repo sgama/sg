@@ -2,7 +2,7 @@ import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } f
 import { streamAnswer } from './chat/stream.js';
 import { createChatScroller } from './chat/scroll.js';
 import { messageRenderer } from './chat/render.js';
-import { formatResponseMetrics } from './chat/metrics.js';
+import { formatResponseMetrics, createMetricsFooter } from './chat/metrics.js';
 
 const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information from this portfolio. Ask me about my projects or background.";
 class AiChatWidget extends HTMLElement {
@@ -186,14 +186,8 @@ class AiChatWidget extends HTMLElement {
     #writeMessage(element, text, sender) {
         messageRenderer.write(element, text, sender);
         const metrics = sender === 'bot' ? this.#metrics.get(element) : null;
-        const details = formatResponseMetrics(metrics);
-        if (details) {
-            const footer = document.createElement('small');
-            footer.classList.add('response-metrics');
-            footer.textContent = details;
-            footer.title = `Server-side timings; TTFT is time to first answer token. Estimated model token cost, not a billed amount. Pricing: ${metrics.pricingDate || 'unknown'}.`;
-            element.append(footer);
-        }
+        const footer = createMetricsFooter(metrics, document);
+        if (footer) element.append(footer);
         this.#scroller.changed();
     }
 

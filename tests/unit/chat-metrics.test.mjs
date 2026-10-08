@@ -5,7 +5,7 @@ import { AI_CONFIG, getModel, estimateCost } from '../../functions/_lib/applicat
 import { AiService } from '../../functions/_lib/ai.js';
 
 test('response footer formats timings, token counts and scoped estimated cost', () => {
-    const text = formatResponseMetrics({
+    const formatted = formatResponseMetrics({
         totalMs: 2400,
         firstTokenMs: 1250,
         embeddingMs: 45,
@@ -16,24 +16,29 @@ test('response footer formats timings, token counts and scoped estimated cost', 
         rewriteUsage: { prompt_tokens: 50, completion_tokens: 10 },
         estimatedLlmCostUsd: 0.0001,
     });
-    assert.match(text, /TTFT 1.25s · Total 2.40s · Embed 45ms · Search 12ms · Rewrite 250ms/);
-    assert.match(text, /Answer tokens: 1000 in \/ 100 out/);
-    assert.match(text, /Rewrite tokens: 50 in \/ 10 out/);
-    assert.match(text, /Cost: \$0.000100/);
-    assert.equal(text.split('\n').length, 3);
-    assert.equal(text.split('\n')[2], 'AI answers may be inaccurate. Verify important details against the original sources.');
-    assert.doesNotMatch(text, /Cost excludes/);
+    assert.equal(formatted.summary, '🕧2.40s · 🪙1.25s · 💲0.000100');
+    assert.deepEqual(formatted.timing, [
+        ['Rewrite', '250ms'],
+        ['Embed', '45ms'],
+        ['Search', '12ms'],
+    ]);
+    assert.deepEqual(formatted.usage, [
+        ['Answer', '1,000', '100'],
+        ['Rewrite', '50', '10'],
+    ]);
+    assert.equal(formatted.warning, 'AI answers may be inaccurate. 🤥🤖');
 });
 
 test('missing usage never becomes a zero-cost success or invented token count', () => {
-    const text = formatResponseMetrics({ totalMs: 10, firstTokenMs: null, estimatedLlmCostUsd: null });
-    assert.match(text, /Answer tokens: unavailable/);
-    assert.match(text, /Cost: unavailable/);
-    assert.doesNotMatch(text, /\$|TTFT|Rewrite/);
+    const formatted = formatResponseMetrics({ totalMs: 10, firstTokenMs: null, estimatedLlmCostUsd: null });
+    assert.deepEqual(formatted.usage, [['Answer', 'Unavailable', 'Unavailable']]);
+    assert.equal(formatted.summary, '🕧10ms · Cost unavailable');
+    assert.deepEqual(formatted.timing, []);
     for (const metrics of [null, {}, { totalMs: -1 }, { totalMs: NaN }]) assert.equal(formatResponseMetrics(metrics), null);
     const abstain = formatResponseMetrics({ totalMs: 10, abstained: true, estimatedLlmCostUsd: 0 });
-    assert.match(abstain, /No answer model call/);
-    assert.match(abstain, /\$0.000000/);
+    assert.equal(abstain.abstained, true);
+    assert.deepEqual(abstain.usage, []);
+    assert.match(abstain.summary, /💲0.000000/);
 });
 
 test('shared token pricing rejects invalid usage and uses the configured model rates', () => {
