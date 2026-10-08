@@ -2,16 +2,17 @@
 title: "Athletics Profile"
 date: 2026-01-28
 draft: false
-summary: "Internal Context: Detailed breakdown of athlethics."
+summary: "Dated athletics background and personal interests."
 ---
 
-# Athletics Context for AI Assistant
+# Samson Gama's athletics background
 
-## Current Training
+## Training reported on 2026-01-28
 
-- Weightlifting and boxing for the last 3 years, with only a few breaks in between.
+- Reported weightlifting and boxing for approximately three years, with a few breaks.
 - Made steady progress over that time.
-- Looking to prepare for professional fights
+- Reported an interest in preparing for professional fights; this does not
+  establish professional competition experience.
 
 ## Ski Racing (High School)
 
@@ -25,3 +26,7 @@ summary: "Internal Context: Detailed breakdown of athlethics."
 - Long jump
 - Javelin
 - Hurdles
+
+<!-- FILL IN: Confirm current training and goals with an as-of date. Add only
+competition results you want shared publicly. This is personal background,
+not evidence of engineering performance or job suitability. -->

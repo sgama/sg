@@ -1,5 +1,5 @@
 <ul class="chat-cta__chips">
-    {{- range $i, $q := site.Data.chat_suggestions.suggestions -}}
+    {{- range $i, $q := site.Data.prompts.prompts -}}
     <li class="chat-cta__chip-item">
         <button class="chat-cta__chip js-chat-trigger" type="button" data-question="{{ $q }}"{{ if ge $i 4 }} hidden{{ end }}>{{ $q }}</button>
     </li>

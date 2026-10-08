@@ -71,17 +71,22 @@ export async function buildCorpus({
         const source = file.split(path.sep).join('/');
         const raw = await readFile(path.resolve(root, file), 'utf8');
         const { data, content } = matter(raw);
-        const status = data.draft ? 'draft' : content.trim() ? 'included' : 'empty';
+        const isContext = source.startsWith('content/_context/');
+        let indexContent = content;
+        if (isContext) {
+            indexContent = content.replace(/<!--[\s\S]*?-->/g, '');
+            if (indexContent.includes('<!--')) throw new Error(`Unclosed authoring comment in ${source}`);
+        }
+        const status = data.draft ? 'draft' : indexContent.trim() ? 'included' : 'empty';
         corpus.sources.push({ source, hash: digest(raw), status });
         if (status !== 'included') {
             corpus.counts[status === 'draft' ? 'draftFiles' : 'emptyFiles']++;
             continue;
         }
         corpus.counts.includedFiles++;
-        const isContext = source.startsWith('content/_context/');
         const url = '/' + source.slice('content/'.length)
             .replace(/\.md$/, '').replace(/(^|\/)_?index$/, '');
-        const segments = await splitter.splitText(content);
+        const segments = await splitter.splitText(indexContent);
         segments.forEach((text, chunkIndex) => {
             corpus.chunks.push({
                 chunkIndex,

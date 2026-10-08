@@ -5,7 +5,7 @@ SHELL := /bin/bash
 .PHONY: \
 	help serve dev-ai \
 	build build-prod postcss-build build-summary clean \
-	deps test lint lint-fix lint-workflows install-actionlint coverage audit-content audit-urls audit-site rag-eval pre-commit \
+	deps test lint lint-fix lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
 	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
 	ci ci-check check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
@@ -165,6 +165,9 @@ audit-urls: check-ai-tools ## Check external links (install dependencies first)
 	@find content -name "*.md" -print0 | xargs -0 -r ./node_modules/.bin/markdown-link-check --config .markdown-link-check.json --quiet
 
 audit-site: audit-content audit-urls ## Run all content and link audits
+
+audit-rag: check-ai-tools ## Audit RAG prompt coverage, provenance and authoring gaps (offline)
+	@$(NODE) scripts/audit_rag.mjs
 
 rag-eval: ai-retrieval-eval ## Run labeled source retrieval evaluation (alias)
 

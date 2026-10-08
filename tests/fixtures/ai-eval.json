@@ -3,6 +3,7 @@
   "cases": [
     {
       "id": "site-stack",
+      "evidenceTerms": [["hugo"], ["cloudflare"]],
       "query": "What is Samson's website built with?",
       "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
       "answerTerms": [["hugo"], ["cloudflare"]],
@@ -10,6 +11,7 @@
     },
     {
       "id": "site-stack-paraphrase",
+      "evidenceTerms": [["cloudflare"], ["github"]],
       "query": "Which services publish and host this portfolio?",
       "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
       "answerTerms": [["cloudflare"], ["github"]],
@@ -17,6 +19,7 @@
     },
     {
       "id": "chat-architecture",
+      "evidenceTerms": [["vectorize"], ["retrieval", "rag"]],
       "query": "How does Samson's portfolio chat retrieve information?",
       "expectedSources": ["content/posts/2026-01-25-ai-chat/index.md"],
       "answerTerms": [["vectorize"], ["rag", "retrieval"]],
@@ -24,6 +27,7 @@
     },
     {
       "id": "analytics",
+      "evidenceTerms": [["umami"]],
       "query": "What analytics platform does Samson self-host?",
       "expectedSources": ["content/posts/2024-06-05-self-hosted-analytics/index.md"],
       "answerTerms": [["umami"]],
@@ -31,62 +35,70 @@
     },
     {
       "id": "languages",
+      "evidenceTerms": [["python"], ["javascript"], ["go"], ["c/c++", "c++"], ["bash"], ["java"], ["rust"]],
       "query": "Which programming languages are listed in Samson's skills profile?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
       "answerTerms": [["python"], ["javascript"], ["go"], ["c++"], ["bash"], ["java"], ["rust"]],
       "forbiddenTerms": []
     },
     {
       "id": "platform-experience",
+      "evidenceTerms": [["automation", "automate"], ["infrastructure", "kubernetes"]],
       "query": "What platform engineering work is documented in Samson's resume?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/reliability-practice.md", "content/_context/profile.md"],
       "answerTerms": [["automation", "automate", "ci/cd"], ["cloudflare", "infrastructure", "devops"]],
       "forbiddenTerms": []
     },
     {
       "id": "resume-cpp",
+      "evidenceTerms": [["programming"], ["c/c++", "c++"]],
       "query": "Is C++ listed in Samson's technical skills?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
       "answerTerms": [["yes"], ["c++"], ["/resume/"]],
       "forbiddenTerms": ["not listed", "does not list", "doesn't list", "not mentioned"],
       "required": true
     },
     {
       "id": "resume-cpp-false-premise",
+      "evidenceTerms": [["programming"], ["c/c++", "c++"]],
       "query": "Samson's resume doesn't list C++, right?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
       "answerTerms": [["c/c++"], ["/resume/"]],
       "forbiddenTerms": ["you're right", "you are right", "correct, it does not", "not listed"],
       "required": true
     },
     {
       "id": "resume-bitcomplete",
+      "evidenceTerms": [["bitcomplete"], ["senior service reliability engineer"], ["jun 2026", "june 2026"], ["gpu"], ["argocd"]],
       "query": "What was Samson's role at Bitcomplete, when did it end, and what GPU work did he do?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/experience-bitcomplete.md"],
       "answerTerms": [["senior service reliability engineer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
       "forbiddenTerms": ["currently works", "2026 - present", "ai reliability engineer"],
       "required": true
     },
     {
       "id": "resume-demonware",
+      "evidenceTerms": [["load-testing", "load testing"], ["kubernetes"], ["go"], ["redis"]],
       "query": "What technologies did Samson use for the distributed load-testing platform at Demonware?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/experience-demonware.md"],
       "answerTerms": [["kubernetes"], ["go"], ["redis"], ["/resume/"]],
       "forbiddenTerms": [],
       "required": true
     },
     {
       "id": "resume-absolute",
+      "evidenceTerms": [["20x"], ["90%"], ["throughput"]],
       "query": "What measured improvements did Samson achieve at Absolute Software?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/experience-absolute.md", "content/portfolio/2017-06-05-absolute/index.md"],
       "answerTerms": [["20"], ["90%"], ["throughput"], ["/resume/"]],
       "forbiddenTerms": ["2000%", "2000 percent"],
       "required": true
     },
     {
       "id": "resume-skill-ratings",
+      "evidenceTerms": [["programming", "programming languages"], ["python"], ["go"]],
       "query": "Does Samson's resume rate Go as intermediate and Python as expert?",
-      "expectedSources": ["content/resume/_index.md"],
+      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
       "answerTerms": [["no"], ["rating", "level", "proficiency"], ["/resume/"]],
       "forbiddenTerms": ["go is intermediate", "python is expert"],
       "required": true

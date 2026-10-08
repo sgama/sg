@@ -176,6 +176,81 @@ Version-2 reports are required; regenerate older positive-only retrieval reports
 Labeled-source comparisons still use oracle context and cannot establish
 end-to-end abstention performance. Empty-context fallback is tested separately.
 
+### Authoring employer-facing RAG context
+
+[`content/_context/`](content/_context/) holds headless Markdown: indexed for
+chat responses but not rendered as website pages. Its focused documents cover
+career overview, skills, employer-specific contributions, early career,
+reliability practice, leadership, projects, education/security, hiring logistics
+and athletics. The career excerpts are sourced from the canonical
+[`content/resume/_index.md`](content/resume/_index.md) and the about page.
+Keep these excerpts synchronized when the resume changes; they are curated
+retrieval material, not an independent record of qualifications.
+
+Each document includes `<!-- FILL IN: ... -->` authoring comments describing
+useful missing interview evidence. The corpus builder strips HTML comments
+from internal context before chunking; comment-only files are treated as empty,
+and unclosed comments fail validation. Replace comments with confirmed,
+public-safe prose when ready. Never leave placeholder facts or guessed
+metrics in ordinary Markdown: they would be indexed as evidence.
+
+Keep each topic self-contained: name the employer/project, your contribution,
+relevant tools, dates, measured result and source. Short factual sections are
+more useful to retrieval than a document that merely says to consult the resume.
+Add a dated situation/action/result story for incidents, trade-offs and
+collaboration. Preserve the distinction between individual and team ownership,
+production and lab experience, preferences and demonstrated capabilities.
+
+**Headless does not mean confidential.** Indexed prose can be disclosed in
+public chat, files in a public repository are accessible, and transcripts are
+currently public. Even excluded authoring comments remain visible in the
+repository. Do not commit secrets, private customer details, references'
+contact information or sensitive hiring documents.
+
+After edits, run `make ai-check ai-plan` for offline corpus/fixture validation.
+Use the local GPU targets for separate model experiments if desired. Production
+CI indexes the changed corpus on deployment; editing these files alone does not
+update the live index. Old benchmark reports are not evidence for the new corpus.
+
+#### Offline RAG audit
+
+Run `make audit-rag` to write a private, ignored `reports/rag-audit.json`.
+It needs installed Node dependencies but no credentials, Docker, inference or
+automatic dependency installation.
+
+[`data/rag_audit.json`](data/rag_audit.json) maps the UI questions in
+[`data/prompts.yml`](data/prompts.yml) to context documents and required evidence
+groups, and records canonical source SHA-256 fingerprints and a review date.
+The audit checks whether approved corpus text contains every evidence group,
+not whether semantic retrieval will find it. It reports documented, partial
+and unmapped questions and counts remaining `FILL IN` authoring comments.
+Sources changed since review, missing document provenance, unfinished sections
+and reviews older than 90 days produce warnings. Broken source paths, invalid
+hash/date metadata, missing mapped documents and malformed configuration fail.
+
+After changing a canonical source, review the dependent excerpts before updating
+its fingerprint and the review date. Compute a fingerprint with
+`sha256sum content/resume/_index.md` (or the relevant source). Never refresh
+fingerprints automatically just to suppress warnings. Update question mappings
+when changing UI prompts. The current mappings cover factual introductory
+answers; authoring warnings still identify missing deeper interview stories.
+
+Retrieval fixture cases now define `evidenceTerms`: each group needs at least
+one matching term in the actual bounded context supplied to generation.
+Source-header metadata is excluded from this evidence check. Source `hitRate`
+and `evidenceRate` are reported separately; both must meet `AI_MIN_HIT_RATE`
+in cloud and local quality validation. Salary remains an unlabeled negative
+case and is excluded from both retrieval-rate denominators.
+Release validation recomputes evidence from report contexts rather than trusting
+a claimed score. Curated internal excerpts are accepted as relevant sources
+alongside the canonical resume where appropriate.
+
+These are deterministic regression assertions, not semantic proof, exhaustive
+coverage or factual-accuracy scores. Regenerate retrieval/comparison reports:
+the changed fixture hash invalidates earlier reports. Historical benchmark
+numbers below used the earlier fixture and must not be compared as identical
+tests. Evidence assertions and the audit do not publish or re-index content.
+
 ### Local Docker/GPU validation
 
 For fully local RAG validation on an NVIDIA GPU:

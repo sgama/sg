@@ -1,28 +1,32 @@
 ---
-title: "Resume Source Reference"
+title: "Samson Gama: Programming Languages and Technical Skills"
 date: 2026-10-07
 draft: false
-summary: "Internal context: resume source location and limits of the available evidence."
+summary: "Resume-backed skills inventory without inferred proficiency ratings."
 ---
 
-# Resume source reference
+# Which programming languages does Samson list?
 
-The canonical source for Samson Gama's skills, job titles, employment dates,
-education, certifications, and achievements is `content/resume/_index.md`,
-published at `/resume/`. Prefer that source over this guidance or older posts.
-The resume is indexed with the rest of the website; use retrieved evidence
-and admit uncertainty when the relevant resume section is unavailable.
+Samson Gama's resume at /resume/ lists Go, Python, Bash, C/C++, Java,
+JavaScript, and Rust. C/C++ lists both C and C++. The resume does not assign
+ratings such as intermediate Go or expert Python.
 
-This document is a source reference, not an additional record of qualifications.
-For questions about experience or role suitability, report the relevant evidence
-from the resume. A listed technology does not establish a proficiency level or
-guarantee suitability for a particular job.
+## What infrastructure and operations tools are listed?
 
-Do not assign proficiency levels such as "expert Python" or "intermediate Go":
-the resume does not give those ratings. Do not infer that an unmentioned skill
-is absent, or invent compensation, current employment, customer names, or
-additional performance numbers.
+- Cloud and infrastructure: AWS, GCP, Azure, Kubernetes, Terraform, Ansible,
+  Packer, Helm, Linux.
+- CI/CD and GitOps: ArgoCD, Jenkins, GitOps, CloudFormation, SaltStack.
+- Observability: Prometheus, Grafana, StatsD, Graphite, VictoriaMetrics,
+  OpenTelemetry.
+- Databases and distributed data: MySQL, PostgreSQL, MongoDB, Redis, Cassandra,
+  Kafka, Vitess.
+- Networking: Cilium, Nginx, HAProxy, OpenResty, MikroTik.
+- Security: Linux Hardening, Offensive Security, OSCP, CEH.
 
-For programming-language questions, use the Programming row in the resume when
-retrieved. Interpret combined notation such as `C/C++` as listing both languages.
-If the relevant section is unavailable, state that the context is insufficient.
+Source: [canonical resume](/resume/), reviewed 2026-10-07. A listed technology
+does not establish a proficiency level or a particular number of years of use.
+
+<!-- FILL IN: For priority skills, add dated examples with employer/project,
+your personal contribution, production versus lab use, recency and constraints.
+Do not invent ratings or years. Update the canonical resume first when changing
+this inventory, then reconcile this excerpt. -->

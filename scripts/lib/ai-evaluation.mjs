@@ -18,6 +18,12 @@ export function validateFixture(fixture, chunks) {
             throw new Error('Evaluation cases need unique IDs and nonempty queries');
         }
         ids.add(item.id);
+        if (item.evidenceTerms !== undefined && (!Array.isArray(item.evidenceTerms)
+            || !item.evidenceTerms.length || !item.expectedSources?.length
+            || item.evidenceTerms.some(group => !Array.isArray(group) || !group.length
+                || group.some(term => typeof term !== 'string' || !term.trim())))) {
+            throw new Error(`Invalid evidence labels for ${item.id}`);
+        }
         if (item.required !== undefined && typeof item.required !== 'boolean') {
             throw new Error(`Invalid required flag for ${item.id}`);
         }
@@ -40,6 +46,22 @@ export function scoreAnswer(answer, item) {
     const text = answer.toLowerCase();
     return item.answerTerms.every(group => group.some(term => text.includes(term.toLowerCase())))
         && !item.forbiddenTerms.some(term => text.includes(term.toLowerCase()));
+}
+
+export function scoreEvidence(context, item) {
+    if (!item.evidenceTerms) return null;
+    const text = context.replace(/^Source: \{[^\n]*\}\r?\n/gm, '').toLowerCase();
+    return item.evidenceTerms.every(group => group.some(term => text.includes(term.toLowerCase())));
+}
+
+export function retrievalEvidenceRate(results, cases) {
+    const labeled = cases.filter(item => item.evidenceTerms);
+    if (!labeled.length) return null;
+    return labeled.filter(item => {
+        const result = results.find(result => result.caseId === item.id);
+        return result && !result.error && typeof result.context === 'string'
+            && scoreEvidence(result.context, item);
+    }).length / labeled.length;
 }
 
 export function percentile(values, p) {
@@ -108,13 +130,15 @@ export async function evaluateRetrieval({ cases, retrieve, clock = () => perform
         try {
             const { matches, embeddingMs, searchMs } = await retrieve(item.query);
             const sources = matches.map(match => match.metadata?.source).filter(Boolean);
+            const context = contextFromMatches(matches);
             results.push({
                 caseId: item.id,
                 passed: item.expectedSources.length
                     ? item.expectedSources.some(source => sources.includes(source)) : null,
                 sources,
                 matches: matches.map(match => ({ id: match.id, score: match.score, metadata: match.metadata })),
-                context: contextFromMatches(matches),
+                context,
+                evidencePassed: scoreEvidence(context, item),
                 embeddingMs, searchMs, totalMs: clock() - start,
             });
         } catch (error) {
@@ -124,7 +148,8 @@ export async function evaluateRetrieval({ cases, retrieve, clock = () => perform
     const positives = results.filter(result =>
         cases.find(item => item.id === result.caseId).expectedSources.length);
     const hits = positives.filter(item => item.passed).length;
-    return { results, hitRate: positives.length ? hits / positives.length : 0 };
+    return { results, hitRate: positives.length ? hits / positives.length : 0,
+        evidenceRate: retrievalEvidenceRate(results, cases) };
 }
 
 export async function compareModels({

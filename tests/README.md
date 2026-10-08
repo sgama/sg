@@ -30,6 +30,7 @@ tests/
 │   ├── local-ai.test.mjs         # Local embeddings, cosine search and streaming
 │   ├── makefile.test.mjs         # Native command wiring
 │   ├── mocks.test.mjs            # Shared mock contracts
+│   ├── rag-audit.test.mjs        # Offline question coverage, provenance and authoring gaps
 │   ├── site.test.mjs             # Site browser script behavior
 │   └── validation.test.mjs       # Request/history schemas and exact boundaries
 └── helpers/                 # Shared test utilities
@@ -130,6 +131,10 @@ explicit real-GPU integration check, separate from CI and cloud release gates.
 Tests also exercise TEI BGE requests, replay provenance validation, stopping
 embeddings before generation, and hybrid Cloudflare generation through injected
 fetch. Hybrid tests never make paid calls or start the local generation service.
+Retrieval evidence tests distinguish document hits from facts in bounded context,
+exclude source-header terms, and reject forged evidence scores at release gates.
+RAG audit tests use temporary content to exercise source drift, incomplete
+question coverage, authoring warnings and invalid provenance without inference.
 
 KV mocks reject writes unless `put` is explicitly configured. Use a test-scoped
 `t.mock.fn` to assert write arguments and counts. Stream helpers use native

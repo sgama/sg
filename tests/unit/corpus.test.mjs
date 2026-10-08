@@ -7,6 +7,25 @@ import Cloudflare from 'cloudflare';
 import { buildCorpus, validateCorpus } from '../../scripts/lib/corpus.mjs';
 import { createMaintenanceClient, ingestCorpus, refreshCorpus } from '../../scripts/lib/corpus-deployment.mjs';
 
+test('authoring comments are excluded from internal chunks and comment-only files are empty', async t => {
+    const root = await fixture(t, {
+        'content/_context/profile.md': '---\ntitle: Profile\n---\nKnown fact.\n<!-- FILL IN: private placeholder\nmore instructions -->\nAnother fact.',
+        'content/_context/placeholder.md': '<!-- FILL IN: availability -->',
+        'content/page.md': 'Public body. <!-- Existing public comment -->',
+    });
+    const corpus = await buildCorpus({ root });
+    assert.equal(corpus.counts.emptyFiles, 1);
+    const internal = corpus.chunks.filter(chunk => chunk.metadata.type === 'context');
+    assert.equal(internal.length, 1);
+    assert.match(internal[0].text, /Known fact/);
+    assert.match(internal[0].text, /Another fact/);
+    assert.doesNotMatch(internal[0].text, /FILL IN|private placeholder|<!--/);
+    assert.ok(!Object.hasOwn(internal[0].metadata, 'url'));
+    assert.match(corpus.chunks.find(chunk => chunk.metadata.type === 'content').text, /Existing public comment/);
+    await writeFile(path.join(root, 'content/_context/profile.md'), 'Known fact. <!-- unfinished');
+    await assert.rejects(buildCorpus({ root }), /Unclosed authoring comment/);
+});
+
 test('concurrent configuration edits survive refresh without activation overwrite', async (t) => {
     const { root, configPath, corpus } = await integrityFixture(t);
     const changed = '[vars]\nAI_MODEL = "gemma"\n';
@@ -290,6 +309,20 @@ test('published resume skills remain available in the indexed corpus', async () 
     const corpus = await buildCorpus();
     const chunks = corpus.chunks.filter(chunk => chunk.metadata.source === 'content/resume/_index.md');
     assert.ok(chunks.some(chunk => chunk.text.includes('C/C++')));
+});
+
+test('recruiter context contains sourced facts without authoring placeholders or public URLs', async () => {
+    const corpus = await buildCorpus();
+    const internal = corpus.chunks.filter(chunk => chunk.metadata.type === 'context');
+    assert.ok(internal.length >= 13);
+    assert.ok(internal.every(chunk => !Object.hasOwn(chunk.metadata, 'url')));
+    assert.ok(internal.every(chunk => !/<!--|FILL IN:/.test(chunk.text)));
+    const skills = internal.filter(chunk => chunk.metadata.source === 'content/_context/skills.md');
+    assert.ok(skills.some(chunk => /Go, Python, Bash, C\/C\+\+, Java,/.test(chunk.text)));
+    const demonware = internal.filter(chunk => chunk.metadata.source === 'content/_context/experience-demonware.md');
+    assert.ok(demonware.some(chunk => /Kubernetes, Go, Redis/.test(chunk.text)));
+    const bitcomplete = internal.filter(chunk => chunk.metadata.source === 'content/_context/experience-bitcomplete.md');
+    assert.ok(bitcomplete.some(chunk => /role ended in June 2026/.test(chunk.text)));
 });
 
 test('SDK transport sends uploaded NDJSON bytes, not a JSON file wrapper (mock fetch only)', async (t) => {

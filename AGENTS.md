@@ -36,7 +36,7 @@ test patterns. Keep general documentation there rather than duplicating it here.
 
 - `content/posts/` and `content/portfolio/` contain public content;
   `content/_context/` is internal RAG corpus, not user-facing pages.
-- `data/chat_suggestions.yml` feeds the chat suggestion shortcode.
+- `data/prompts.yml` feeds the chat suggestion shortcode with employer questions.
 - Shared model settings, prompts and limits live in
   `functions/_lib/application.js`; corpus logic lives in `scripts/lib/`.
 - Corpus CLI scripts use `.mjs`, including `scripts/generate_embeddings.mjs`.

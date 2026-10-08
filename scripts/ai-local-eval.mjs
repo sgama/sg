@@ -6,7 +6,7 @@ import 'dotenv/config';
 import { AI_CONFIG, buildMessages, getModel } from '../functions/_lib/application.js';
 import { createCloudflareAi } from './lib/cloudflare-ai.mjs';
 import { buildCorpus } from './lib/corpus.mjs';
-import { compareModels, evaluateRetrieval, fixtureHash, validateFixture } from './lib/ai-evaluation.mjs';
+import { compareModels, evaluateRetrieval, fixtureHash, validateFixture, retrievalEvidenceRate } from './lib/ai-evaluation.mjs';
 import { createLocalAi, searchVectors } from './lib/local-ai.mjs';
 
 export async function main(args = process.argv.slice(2), { fetchImpl = fetch } = {}) {
@@ -89,6 +89,10 @@ export async function main(args = process.argv.slice(2), { fetchImpl = fetch } =
             throw new Error('Local retrieval report does not match corpus, fixture or settings');
         }
         report.retrieval = saved.retrieval;
+        const evidenceRate = retrievalEvidenceRate(saved.retrieval.results, fixture.cases);
+        if (evidenceRate !== null && saved.retrieval.evidenceRate !== evidenceRate) {
+            throw new Error('Local retrieval evidence score does not match contexts');
+        }
         report.embeddingGpu = saved.embeddingGpu;
         report.embeddingContainerImageId = saved.containerImageId;
         report.indexingMs = saved.indexingMs;
@@ -143,6 +147,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = fetch } =
             },
         });
         report.passed = report.retrieval.hitRate >= minHitRate
+            && (report.retrieval.evidenceRate === null || report.retrieval.evidenceRate >= minHitRate)
             && report.comparison.summaries[0].answerCheckRate >= minAnswerRate
             && report.comparison.results.every(item => item.status === 'ok'
                 && (!fixture.cases.find(entry => entry.id === item.caseId).required || item.passed));
@@ -150,6 +155,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = fetch } =
     await fs.mkdir(path.dirname(values.output), { recursive: true });
     await fs.writeFile(values.output, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
     console.log(JSON.stringify({ passed: report.passed, hitRate: report.retrieval.hitRate,
+        evidenceRate: report.retrieval.evidenceRate,
         summaries: report.comparison?.summaries, report: values.output }, null, 2));
     if (!report.passed) throw new Error('Local RAG validation failed; inspect the report (not a Cloudflare release report)');
     return report;

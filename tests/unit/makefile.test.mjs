@@ -14,9 +14,11 @@ const make = (...args) => {
 };
 
 test('audits do not implicitly install dependencies', () => {
-    const result = make('-n', 'audit-site');
+    const result = make('-n', 'audit-site', 'audit-rag');
     assert.equal(result.status, 0);
     assert.doesNotMatch(result.stdout, /\bnpm (?:ci|install)\b/);
+    assert.match(result.stdout, /scripts\/audit_rag\.mjs/);
+    assert.doesNotMatch(result.stdout, /scripts\/(?:ai-eval|generate_embeddings|refresh_ai_corpus)\.mjs/);
 });
 
 test('cleanup rejects empty, broad, source, and out-of-tree destinations', () => {

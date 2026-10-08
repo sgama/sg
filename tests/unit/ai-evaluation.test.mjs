@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
-import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile, readAnswer } from '../../scripts/lib/ai-evaluation.mjs';
+import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile, readAnswer, retrievalEvidenceRate } from '../../scripts/lib/ai-evaluation.mjs';
 import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { makeStream } from '../helpers/mocks.mjs';
@@ -65,6 +65,35 @@ test('evaluation fixtures validate actual source labels and unique cases', () =>
     assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
     assert.throws(() => validateFixture({ version: 1, cases: [known, known] },
         [{ metadata: { source: 'content/a.md' } }]), /unique IDs/);
+});
+
+test('evidence assertions score bounded context rather than a document hit or metadata title', async () => {
+    const item = { ...known, evidenceTerms: [['hugo'], ['cloudflare']] };
+    const result = await evaluateRetrieval({ cases: [item], retrieve: async () => ({
+        matches: [{ id: 'intro', metadata: { source: 'content/a.md', title: 'Hugo Cloudflare',
+            text: 'An introduction without the required facts.' } }],
+    }) });
+    assert.equal(result.hitRate, 1);
+    // Source identity is not evidence, even if its title contains expected words.
+    assert.equal(result.evidenceRate, 0);
+    assert.equal(result.results[0].evidencePassed, false);
+    assert.equal(retrievalEvidenceRate([{ caseId: item.id, context: 'Hugo and Cloudflare' }], [item]), 1);
+    const truncated = await evaluateRetrieval({ cases: [item], retrieve: async () => ({
+        matches: [{ metadata: { source: 'content/a.md',
+            text: 'Hugo ' + 'x'.repeat(AI_CONFIG.retrieval.maxContextChars) + ' Cloudflare' } }],
+    }) });
+    assert.equal(truncated.evidenceRate, 0);
+    const report = { version: 2, kind: 'retrieval', namespace: 'test', fixtureHash: fixtureHash({ cases: [item] }),
+        ...result, topK: AI_CONFIG.retrieval.topK, embeddingModel: AI_CONFIG.embedding.model,
+        maxContextChars: AI_CONFIG.retrieval.maxContextChars, indexName: AI_CONFIG.retrieval.indexName,
+        evidenceRate: 1 };
+    assert.throws(() => validateRetrievalReport(report, {
+        namespace: 'test', fixture: { cases: [item] }, minHitRate: 0,
+    }), /evidence/);
+    for (const evidenceTerms of [[], [[]], [['']], 'hugo']) {
+        assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, evidenceTerms }] },
+            [{ metadata: { source: 'content/a.md' } }]), /Invalid evidence/);
+    }
 });
 
 test('failed and usage-less runs are explicit, not zero-cost successful results', async () => {

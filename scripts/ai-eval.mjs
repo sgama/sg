@@ -6,7 +6,7 @@ import 'dotenv/config';
 import { AI_CONFIG, AI_MODELS, getModel, contextFromMatches, buildMessages } from '../functions/_lib/application.js';
 import { buildCorpus } from './lib/corpus.mjs';
 import { createCloudflareAi } from './lib/cloudflare-ai.mjs';
-import { validateFixture, fixtureHash, scoreAnswer, evaluateRetrieval, compareModels } from './lib/ai-evaluation.mjs';
+import { validateFixture, fixtureHash, scoreAnswer, evaluateRetrieval, compareModels, retrievalEvidenceRate } from './lib/ai-evaluation.mjs';
 
 const promptHash = () => fixtureHash(buildMessages('__query__', '__context__'));
 
@@ -38,6 +38,10 @@ export function validateRetrievalReport(report, { namespace, fixture, minHitRate
     }).length / positives.length;
     if (!Number.isFinite(actualHitRate) || actualHitRate < minHitRate
         || actualHitRate !== report.hitRate) throw new Error('Retrieval report source labels do not meet the release gate');
+    const evidenceRate = retrievalEvidenceRate(report.results, fixture.cases);
+    if (evidenceRate !== null && (evidenceRate < minHitRate || report.evidenceRate !== evidenceRate)) {
+        throw new Error('Retrieval report evidence does not meet the release gate');
+    }
 }
 
 export function validateComparisonReport(report, { namespace, fixture, model, minAnswerRate, retrievalReport }) {
@@ -183,9 +187,11 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     }
     const output = values.output ?? `reports/ai-${command}.json`;
     await writeReport(output, report);
-    console.log(JSON.stringify(report.summaries ?? { hitRate: report.hitRate }, null, 2));
+    console.log(JSON.stringify(report.summaries ?? { hitRate: report.hitRate, evidenceRate: report.evidenceRate }, null, 2));
     console.log(`Report: ${output}`);
-    if (command === 'retrieval' && (report.hitRate < minHitRate || report.results.some(item => item.error))) {
+    if (command === 'retrieval' && (report.hitRate < minHitRate
+        || (report.evidenceRate !== null && report.evidenceRate < minHitRate)
+        || report.results.some(item => item.error))) {
         throw new Error('Retrieval evaluation failed; inspect the report');
     }
     if (command === 'compare' && report.results.some(item => item.status === 'error')) {
