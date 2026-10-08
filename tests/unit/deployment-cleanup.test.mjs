@@ -56,6 +56,58 @@ test('changed active deployment stops cleanup before writes', async () => {
     assert.deepEqual(data.calls, []);
 });
 
+test('waits for acknowledged deployment deletions to disappear before pruning vectors', async () => {
+    const data = fixture();
+    const remove = data.client.pages.projects.deployments.delete;
+    let pending;
+    let sleeps = 0;
+    data.client.pages.projects.deployments.delete = async (...args) => {
+        assert.equal(pending, undefined);
+        pending = args;
+    };
+    data.sleep = async (ms) => {
+        assert.equal(ms, 1000);
+        assert.ok(pending);
+        assert.ok(!data.calls.some(([kind]) => kind === 'vectors'));
+        sleeps++;
+        await remove(...pending);
+        pending = undefined;
+    };
+    const result = await cleanupDeployments({ ...data, accountId: 'account' });
+    assert.equal(sleeps, 2);
+    assert.equal(result.removedVectors, 2);
+});
+
+test('persistent deletion visibility fails after bounded polling without vector writes', async () => {
+    const data = fixture();
+    let sleeps = 0;
+    data.client.pages.projects.deployments.delete = async (id) => data.calls.push(['deployment', id]);
+    data.sleep = async () => sleeps++;
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /acknowledged deletions still listed: d1/);
+    assert.equal(sleeps, 4);
+    assert.deepEqual(data.calls, [['deployment', 'd1']]);
+});
+
+test('a new deployment during deletion polling stops cleanup without accepting a new plan', async () => {
+    const data = fixture();
+    data.client.pages.projects.deployments.delete = async (id) => data.calls.push(['deployment', id]);
+    data.sleep = async () => data.setDeployments(Array.from({ length: 9 }, (_, index) => deployment(index + 1)));
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /unexpected: d9/);
+    assert.deepEqual(data.calls, [['deployment', 'd1']]);
+});
+
+test('a missing retained deployment stops cleanup immediately rather than polling', async () => {
+    const data = fixture();
+    const listVectors = data.client.vectorize.indexes.listVectors;
+    data.client.vectorize.indexes.listVectors = async (...args) => {
+        data.setDeployments(Array.from({ length: 7 }, (_, index) => deployment(index + 1)));
+        return listVectors(...args);
+    };
+    data.sleep = async () => assert.fail('Unexpected polling for missing retained deployment');
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /missing: d8/);
+    assert.deepEqual(data.calls, []);
+});
+
 const namespace = (number) => `corpus-${number.toString(16).padStart(56, '0')}`;
 const deployment = (number, overrides = {}) => ({
     id: `d${number}`,

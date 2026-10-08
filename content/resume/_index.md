@@ -7,9 +7,9 @@ showDate: false
 
 # Samson Gama
 
-**Senior SRE / DevOps Engineer | Kubernetes | Go | Cloud Infrastructure | OSCP**
+Senior SRE / DevOps Engineer | Kubernetes | Go | Cloud Infrastructure | OSCP
 
-Vancouver, BC | +1-778-772-2794 | [resume@samsongama.com](mailto:resume@samsongama.com) | [samsongama.com](https://samsongama.com) | [LinkedIn](https://linkedin.com/in/samsongama/)
+Vancouver, BC
 
 ## Summary
 
@@ -19,14 +19,14 @@ Senior SRE/Platform Engineer with 8+ years of experience designing, building, an
 
 ### Bitcomplete
 
-**Senior Service Reliability Engineer, GPU Infrastructure | Mar 2026 - Jun 2026**
+Senior Service Reliability Engineer, GPU Infrastructure | Mar 2026 - Jun 2026
 
 - Improved operational readiness for GPU infrastructure, establishing standardized runbooks, alerting, and incident-response workflows to improve reliability and accelerate incident resolution across AI/HPC workloads
 - Designed and executed the consolidation of fragmented ArgoCD-managed GPU environments, eliminating deployment drift and standardizing NVIDIA tooling across clusters, reducing customer workload downtime
 
 ### Demonware
 
-**Senior Service Reliability Engineer | Aug 2020 - Jan 2026**
+Senior Service Reliability Engineer | Aug 2020 - Jan 2026
 
 - Applied SRE practices to improve reliability, scalability, and operational efficiency across production systems, establishing company-wide conf.d configuration standards and improving resource utilization
 - Designed, built, and owned a distributed load-testing platform used by engineering teams company-wide to validate services against large-scale traffic spikes, using Kubernetes, Go, Redis, and distributed rate limiting
@@ -37,7 +37,7 @@ Senior SRE/Platform Engineer with 8+ years of experience designing, building, an
 
 ### Mastercard (Nudata Security)
 
-**Senior Software Engineer (DevOps) | Oct 2018 - Jul 2020**
+Senior Software Engineer (DevOps) | Oct 2018 - Jul 2020
 
 - Designed and developed highly available microservice infrastructure across AWS regions using CloudFormation and SaltStack, including backup strategies, disaster recovery procedures, and operational runbooks
 - Implemented transparent production traffic mirroring to reproduce and debug live production issues safely, improving root-cause analysis and reducing time to resolution
@@ -46,7 +46,7 @@ Senior SRE/Platform Engineer with 8+ years of experience designing, building, an
 
 ### Absolute Software
 
-**Software Developer | Jun 2017 - Sep 2018**
+Software Developer | Jun 2017 - Sep 2018
 
 - Developed and executed MongoDB data migrations that improved production performance by 20% while maintaining application compatibility
 - Re-engineered a microservice from Python to Go, achieving a 20x increase in throughput and 90% reduction in CPU and memory utilization while maintaining integration test coverage
@@ -54,9 +54,9 @@ Senior SRE/Platform Engineer with 8+ years of experience designing, building, an
 - Collaborated with engineers on Docker, Python, Go, Kubernetes, and infrastructure best practices, improving consistency across development and production environments
 - Automated repetitive deployment workflows through Jenkins, reducing manual operational work and improving engineering productivity
 
-### Prizm Media Inc.
+### Prizm Media Inc
 
-**Software Developer Intern | Dec 2015 - Aug 2016**
+Software Developer Intern | Dec 2015 - Aug 2016
 
 - Developed Android and iOS applications for an AWS-hosted fitness-oriented social networking platform, contributing across mobile application development, and backend services
 - Developed and evaluated machine-learning solutions using support vector machines (SVMs) and neural networks to address application-specific problems, applying model development and performance evaluation techniques
@@ -64,14 +64,14 @@ Senior SRE/Platform Engineer with 8+ years of experience designing, building, an
 
 ### Ericsson
 
-**Software Developer Intern | Sep 2015 - Dec 2015**
+Software Developer Intern | Sep 2015 - Dec 2015
 
 - Developed an OpenStack Neutron plugin in Python to automate lifecycle management of virtual Ericsson routers, integrating network infrastructure with OpenStack and improving infrastructure provisioning consistency
 - Troubleshot containerized virtual-router environments and automated test pipelines on Mirantis OpenStack, diagnosing infrastructure, networking, and deployment issues to improve reliability and test consistency
 
 ### Grin Technologies
 
-**Software Developer Intern | May 2014 - Aug 2014**
+Software Developer Intern | May 2014 - Aug 2014
 
 - Developed two web applications that processed and visualized raw electric-vehicle telemetry data, enabling users to plot trip data and generate customized wheel configurations using dynamic frontend and backend data
 - Administered an electric-vehicle forum serving 5,000+ daily users on AWS through 2020 - [endless-sphere.com](https://endless-sphere.com)

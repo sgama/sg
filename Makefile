@@ -52,8 +52,8 @@ export AI_RETRIEVAL_REPORT AI_COMPARISON_REPORT REPORT_DIR
 export PUBLIC_DIR
 
 HUGO              ?= hugo
-HUGO_FLAGS        ?= --gc --minify --cleanDestinationDir
-HUGO_SERVER_FLAGS ?= --gc --ignoreCache
+HUGO_FLAGS        ?= --minify --cleanDestinationDir
+HUGO_SERVER_FLAGS ?=
 NODE              ?= node
 export NODE
 NPM               ?= npm

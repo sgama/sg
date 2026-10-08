@@ -2,6 +2,7 @@ import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { setTimeout as delay } from 'node:timers/promises';
 import { AI_CONFIG } from '../functions/_lib/application.js';
 import { createMaintenanceClient, waitForMutation } from './lib/corpus-deployment.mjs';
 
@@ -140,6 +141,7 @@ export async function cleanupDeployments({
     indexName = AI_CONFIG.retrieval.indexName,
     dryRun = false,
     wait = waitForMutation,
+    sleep = delay,
 }) {
     const activeId = await activeDeployment(client, project, accountId);
     const deployments = await inventory(client, project, accountId);
@@ -151,18 +153,32 @@ export async function cleanupDeployments({
     const staleIds = vectors
         .filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && !referenced.has(vector.namespace))
         .map((vector) => vector.id);
+    const deletedIds = new Set();
     const assertStable = async (expected) => {
-        if ((await activeDeployment(client, project, accountId)) !== activeId) {
-            throw new Error('Active deployment changed during cleanup; stopping');
-        }
-        const latest = await inventory(client, project, accountId);
-        const currentIds = latest.map((deployment) => deployment.id).sort();
-        if (JSON.stringify(currentIds) !== JSON.stringify([...expected].sort())) {
-            throw new Error('Deployment inventory changed during cleanup; stopping');
-        }
-        const currentReferences = await references(latest.filter((deployment) => retainedIds.has(deployment.id)));
-        if (JSON.stringify([...currentReferences].sort()) !== JSON.stringify([...referenced].sort())) {
-            throw new Error('Deployment inventory changed during cleanup; stopping');
+        for (let attempt = 0; attempt < 5; attempt++) {
+            if ((await activeDeployment(client, project, accountId)) !== activeId) {
+                throw new Error('Active deployment changed during cleanup; stopping');
+            }
+            const latest = await inventory(client, project, accountId);
+            const currentIds = new Set(latest.map((deployment) => deployment.id));
+            const added = [...currentIds].filter((id) => !expected.has(id) && !deletedIds.has(id));
+            const missing = [...expected].filter((id) => !currentIds.has(id));
+            if (added.length || missing.length) {
+                throw new Error(
+                    `Deployment inventory changed during cleanup; stopping (unexpected: ${added.join(', ') || 'none'}; missing: ${missing.join(', ') || 'none'})`,
+                );
+            }
+            const currentReferences = await references(latest.filter((deployment) => retainedIds.has(deployment.id)));
+            if (JSON.stringify([...currentReferences].sort()) !== JSON.stringify([...referenced].sort())) {
+                throw new Error('Deployment inventory changed during cleanup; stopping (retained corpus namespaces changed)');
+            }
+            const pending = [...currentIds].filter((id) => deletedIds.has(id));
+            if (!pending.length) return;
+            if (attempt === 4) {
+                throw new Error(`Deployment inventory changed during cleanup; stopping (acknowledged deletions still listed: ${pending.join(', ')})`);
+            }
+            // Only our acknowledged deletions may be stale; never retry unrelated inventory changes.
+            await sleep(1000);
         }
     };
     const remaining = new Set(deployments.map((deployment) => deployment.id));
@@ -175,6 +191,7 @@ export async function cleanupDeployments({
                 project_name: project,
                 ...(deployment.environment === 'preview' ? { force: true } : {}),
             });
+            deletedIds.add(deployment.id);
             remaining.delete(deployment.id);
         }
         // Never remove vectors until all obsolete deployments have been deleted.

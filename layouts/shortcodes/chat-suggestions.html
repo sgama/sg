@@ -1,7 +1,12 @@
-<ul class="chat-cta__chips">
-    {{- range $i, $q := site.Data.prompts.prompts -}}
+<ul class="chat-cta__chips" aria-label="Suggested questions">
+    {{- range $i, $q := hugo.Data.prompts.prompts -}}
     <li class="chat-cta__chip-item">
-        <button class="chat-cta__chip js-chat-trigger" type="button" data-question="{{ $q }}"{{ if ge $i 4 }} hidden{{ end }}>{{ $q }}</button>
+        <button class="chat-cta__chip js-chat-trigger" type="button" data-question="{{ $q }}" title="{{ $q }}"{{ if ge $i 4 }} hidden{{ end }}>
+            <span class="chat-cta__chip-label">{{ $q }}</span>
+            <svg class="chat-cta__chip-icon" aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 17 17 7M7 7h10v10"></path>
+            </svg>
+        </button>
     </li>
     {{- end -}}
 </ul>

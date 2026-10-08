@@ -25,7 +25,7 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - `layouts/` contains theme overrides, not the complete theme.
 - Posts need `description` front matter for page metadata and social previews.
 - Do not duplicate OG/Twitter tags or `<html lang>`; Blowfish already emits them.
-- Template data lookups use `site.Data.X`, not deprecated `.Site.Data.X`.
+- Template data lookups use `hugo.Data.X`; both `site.Data.X` and `.Site.Data.X` are deprecated.
 - Prefer `resources.Minify` and `resources.Fingerprint` in new pipeline code.
 - Valid Hugo cache names are `assets`, `getresource`, `images`, `modules`, `misc`;
   do not restore removed `getcsv`/`getjson` entries.

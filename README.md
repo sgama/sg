@@ -583,6 +583,14 @@ fetched. Retained namespace snapshots are re-read before each deletion.
 Corpus refresh and direct ingestion use the same maintenance retry/timeout
 policy for Pages and Vectorize operations. Paid embedding requests explicitly
 disable retries to avoid automatic repeat inference charges.
+
+After an acknowledged deployment deletion, cleanup allows up to five inventory
+checks, one second apart, for that deleted ID to disappear from the Pages list.
+Vectors are not pruned while deleted deployments remain visible. New or missing
+deployment IDs, active-deployment changes, and retained corpus namespace changes
+still stop cleanup immediately. Errors distinguish unexpected inventory changes
+from acknowledged deletions that remain listed; the cleanup plan is never
+automatically replaced.
 The first embedding failure aborts in-flight requests and prevents queued
 inference from starting; already-started inference may still incur charges.
 Mutation readiness has an end-to-end three-minute deadline across requests,
@@ -676,6 +684,12 @@ keys; the logs API can still read legacy metadata-only entries.
    ```bash
    make serve
    ```
+
+   Normal builds and the development server preserve Hugo's shared module cache:
+   they do not use `--gc` or `--ignoreCache`. Avoid cache cleanup while a Hugo
+   server is running, since it can invalidate theme assets used by hot reload.
+   If a theme asset disappears, stop the server, run `hugo mod graph` to restore
+   the pinned modules, then restart with `make serve`.
 
 4. **Visit your site**
    Open [http://localhost:1313](http://localhost:1313) in your browser
