@@ -532,13 +532,18 @@
     }
 
     .chat-widget .metrics-details summary::after {
-        content: '\1F87B';
+        content: '';
         display: inline-block;
-        margin-inline-start: 0.2rem;
+        width: 0.4rem;
+        height: 0.4rem;
+        margin-inline-start: 0.35rem;
+        border-inline-end: 1.5px solid currentColor;
+        border-block-end: 1.5px solid currentColor;
+        transform: translateY(-0.1rem) rotate(45deg);
     }
 
     .chat-widget .metrics-details[open] summary::after {
-        transform: rotate(180deg);
+        transform: translateY(0.1rem) rotate(225deg);
     }
 
     .chat-widget .metrics-details summary::-webkit-details-marker {
