@@ -90,6 +90,7 @@ test('generated layouts preserve structured types, public indexes, image selecti
             },
         );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
+        assert.match(home, /aria-label=["']?Close Chat["']?[^>]*title=["']?Close Chat/);
         assert.match(home, /Answer \+ rewrite: glm-4.7-flash/);
         assert.match(home, /Answer: @cf\/zai-org\/glm-4.7-flash; rewrite: @cf\/zai-org\/glm-4.7-flash/);
         assert.match(home, /Embed: bge-base-en-v1.5/);

@@ -17,6 +17,16 @@ test('answer parser handles split CRLF events, usage, and completion', () => {
     assert.equal(parser.finished, true);
 });
 
+test('loading the widget preserves saved conversation history', async (t) => {
+    const f = await widgetFixture(t, {
+        history: [{ sender: 'bot', text: 'Saved answer' }],
+    });
+    assert.equal(f.local.has(STORAGE_KEY), true);
+    f.widget.open();
+    assert.equal(f.roles.transcript.children.length, 1);
+    assert.equal(f.roles.transcript.children[0].dataset.rawText, 'Saved answer');
+});
+
 test('answer parser forwards metrics separately without including them in the answer', () => {
     const answers = [];
     const metrics = [];

@@ -219,6 +219,8 @@ No CI or pre-commit formatting gate is added by this rollout.
 
 ### Chat model details and response metrics
 
+Chat history persists across deployments until the visitor clears it.
+
 The chat header renders two compact model-information rows at Hugo build time.
 [`data/chat_ai.json`](data/chat_ai.json) is the shared model/configuration and
 dated pricing source for Hugo, the API and evaluations; the answer model is
