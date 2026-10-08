@@ -1,4 +1,4 @@
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG, expandSectionMatches } from '../../functions/_lib/application.js';
 
 export function normalizeVector(vector, dimensions) {
     if (!Array.isArray(vector) || vector.length !== dimensions || !vector.every(Number.isFinite)) {
@@ -11,7 +11,7 @@ export function normalizeVector(vector, dimensions) {
 
 export function searchVectors(chunks, vectors, query, topK = AI_CONFIG.retrieval.topK) {
     if (chunks.length !== vectors.length) throw new Error('Incomplete local vector index');
-    return chunks
+    const matches = chunks
         .map((chunk, index) => ({
             id: chunk.id,
             metadata: chunk.metadata,
@@ -19,6 +19,8 @@ export function searchVectors(chunks, vectors, query, topK = AI_CONFIG.retrieval
         }))
         .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
         .slice(0, topK);
+    const sections = chunks.filter((chunk) => chunk.metadata.recordType === 'section').map((chunk) => ({ id: chunk.id, metadata: chunk.metadata }));
+    return expandSectionMatches(matches, sections);
 }
 
 export function createLocalAi({ url, embeddingModel, dimensions, timeoutMs, contextTokens = 4096, embeddingBackend = 'ollama', fetchImpl = fetch }) {

@@ -70,6 +70,44 @@ test('exact cosine search ranks chunks deterministically without a database', ()
     assert.throws(() => normalizeVector([Infinity, 0], 2), /Invalid/);
 });
 
+test('local retrieval expands only the matched section and deduplicates siblings', () => {
+    const source = 'content/project.md';
+    const parent = { id: 'parent', metadata: { source, recordType: 'section', sectionIndex: -1, text: 'Deploy and roll back the project' } };
+    const chunks = [
+        { id: 'a', metadata: { source, parentIndex: -1, text: 'Deploy' } },
+        { id: 'b', metadata: { source, parentIndex: -1, text: 'Roll back' } },
+        parent,
+        { id: 'unrelated', metadata: { source: 'content/resume/_index.md', recordType: 'section', sectionIndex: -1, text: 'Unrelated resume' } },
+    ];
+    const matches = searchVectors(
+        chunks,
+        [
+            [1, 0],
+            [0.9, 0.1],
+            [0, 1],
+            [0, 1],
+        ],
+        [1, 0],
+        2,
+    );
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].id, parent.id);
+    assert.equal(matches[0].metadata.text, parent.metadata.text);
+    assert.equal(matches[0].score, 1);
+    assert.throws(
+        () =>
+            searchVectors(
+                chunks.slice(0, 2),
+                [
+                    [1, 0],
+                    [1, 0],
+                ],
+                [1, 0],
+            ),
+        /Missing or invalid parent/,
+    );
+});
+
 test('local CLI writes private provenance, reuses evaluator and gates required answers', async (t) => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'sg-local-eval-'));
     const original = process.cwd();

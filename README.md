@@ -186,8 +186,9 @@ checks expected source paths rather than keyword-only retrieval hits. Its answer
 checks are deterministic term assertions, not a substitute for human groundedness
 review. Extend the small starter set with paraphrases, project-specific facts,
 negative questions, and production failures before trusting a model ranking.
-Follow-up cases include bounded recent chat history. The API rewrites only
-history-dependent queries before embedding; retrieval reports record that query
+Follow-up cases include bounded recent chat history. When history is present,
+the API passes it as JSON data to a dedicated rewrite task before embedding,
+rather than asking the model to continue the conversation. Retrieval reports record that query
 and score labeled rewrite terms, source hits, and evidence separately. Add
 conversation histories to the fixture to cover pronouns, elliptical follow-ups,
 topic changes, and ambiguity.
@@ -224,6 +225,19 @@ career overview, skills, employer-specific contributions, early career,
 reliability practice, leadership, projects, education/security, hiring logistics
 and athletics. The career excerpts are sourced from the canonical
 [`content/resume/_index.md`](content/resume/_index.md) and the about page.
+Ingestion splits every included source at level-one/two Markdown headings,
+retaining nested subsections together. Sections larger than a retrieval chunk
+also get addressable parent records, bounded to 6,000 characters; oversized
+sections are split into overlapping windows. Short sections remain single chunks.
+Runtime and cloud evaluation expand semantic hits into their parent sections by
+namespace-specific ID. Local evaluation uses the same expansion. Sibling hits
+are deduplicated in search order within the existing 12,000-character context
+budget. This applies equally to resumes, projects, posts, and internal context;
+there is no topic-specific lookup or generated career summary.
+A missing referenced parent is an explicit retrieval error. Existing corpora
+without parent metadata retain semantic-only retrieval; reindex the updated
+corpus to enable expansion. Expansion improves evidence coverage around a hit,
+but cannot recover a source that semantic search never matches.
 Keep these excerpts synchronized when the resume changes; they are curated
 retrieval material, not an independent record of qualifications.
 

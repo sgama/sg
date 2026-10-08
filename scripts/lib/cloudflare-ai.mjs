@@ -1,5 +1,12 @@
 import Cloudflare from 'cloudflare';
-import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
+import {
+    AI_CONFIG,
+    contextualizationInput,
+    contextualizedQueryFromResponse,
+    getModel,
+    parentSectionIds,
+    expandSectionMatches,
+} from '../../functions/_lib/application.js';
 
 export async function runEmbedding(client, accountId, model, text, options = {}) {
     // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
@@ -64,8 +71,15 @@ export function createCloudflareAi({
                 returnMetadata: 'all',
             });
             if (!Array.isArray(response.matches)) throw new Error('Invalid retrieval result');
+            const ids = await parentSectionIds(response.matches, namespace);
+            const sections = ids.length
+                ? await client.vectorize.indexes.getByIDs(AI_CONFIG.retrieval.indexName, {
+                      account_id: accountId,
+                      ids,
+                  })
+                : [];
             return {
-                matches: response.matches,
+                matches: expandSectionMatches(response.matches, sections),
                 retrievalQuery,
                 embeddingMs: embedded - start,
                 searchMs: performance.now() - embedded,

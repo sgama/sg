@@ -97,6 +97,34 @@
       "required": true
     },
     {
+      "id": "followup-immediately-previous-role",
+      "history": [
+        { "role": "user", "content": "What did he do last" },
+        { "role": "assistant", "content": "Samson Gama was a Senior Service Reliability Engineer, GPU Infrastructure at Bitcomplete, ending in June 2026 [Resume](/resume/)." }
+      ],
+      "query": "before that",
+      "retrievalTerms": [["samson"], ["before", "preceding", "prior"], ["bitcomplete"]],
+      "evidenceTerms": [["demonware"], ["aug 2020", "august 2020"], ["jan 2026", "january 2026"]],
+      "expectedSources": ["content/_context/experience-demonware.md", "content/resume/_index.md"],
+      "answerTerms": [["demonware"], ["aug 2020", "august 2020"], ["jan 2026", "january 2026"], ["/resume/"]],
+      "forbiddenTerms": ["mastercard", "june 2022", "june 2025", "medusa"],
+      "required": true
+    },
+    {
+      "id": "followup-site-deployment",
+      "history": [
+        { "role": "user", "content": "What is Samson's website built with?" },
+        { "role": "assistant", "content": "It is a Hugo static site hosted on Cloudflare Pages." }
+      ],
+      "query": "How is it deployed?",
+      "retrievalTerms": [["website", "site", "portfolio"], ["deploy", "publish"]],
+      "evidenceTerms": [["github actions"], ["cloudflare pages"]],
+      "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
+      "answerTerms": [["github actions"], ["cloudflare pages"]],
+      "forbiddenTerms": [],
+      "required": true
+    },
+    {
       "id": "followup-topic-change",
       "history": [
         { "role": "user", "content": "What did Samson build at Grin Technologies?" },

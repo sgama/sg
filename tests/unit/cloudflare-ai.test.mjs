@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createCloudflareAi } from '../../scripts/lib/cloudflare-ai.mjs';
 import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG, corpusRecordId } from '../../functions/_lib/application.js';
 
 const options = { accountId: 'test-account', apiToken: 'test-token', namespace: 'corpus-test' };
 
@@ -141,4 +141,59 @@ test('retrieval contextualizes follow-ups before generating embeddings', async (
     assert.equal(requests.length, 3);
     assert.equal(requests[0].body.stream, false);
     assert.equal(requests[0].body.max_completion_tokens, AI_CONFIG.contextualization.maxCompletionTokens);
+});
+
+test('cloud retrieval expands a semantic hit using its namespace-specific parent section', async () => {
+    const source = 'content/posts/project/index.md';
+    const id = await corpusRecordId(options.namespace, source, -1);
+    const section = {
+        id,
+        metadata: { source, recordType: 'section', sectionIndex: -1, text: 'Hugo deployment and Cloudflare rollback', url: '/posts/project' },
+    };
+    const calls = [];
+    const client = createCloudflareAi({
+        ...options,
+        async fetchImpl(url, init) {
+            const request = new Request(url, init);
+            const pathname = new URL(request.url).pathname;
+            const body = await request.json();
+            calls.push(pathname);
+            if (pathname.includes('/ai/run/')) {
+                return Response.json({ success: true, result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } });
+            }
+            if (pathname.endsWith('/get_by_ids')) {
+                assert.deepEqual(body.ids, [id]);
+                return Response.json({ success: true, result: [section] });
+            }
+            assert.ok(pathname.endsWith('/query'));
+            return Response.json({
+                success: true,
+                result: { matches: [{ id: 'child', score: 0.9, metadata: { source, parentIndex: -1, text: 'Hugo deployment' } }] },
+            });
+        },
+    });
+
+    test('cloud retrieval fails when a matched parent cannot be fetched', async () => {
+        const client = createCloudflareAi({
+            ...options,
+            async fetchImpl(url, init) {
+                const request = new Request(url, init);
+                const pathname = new URL(request.url).pathname;
+                if (pathname.includes('/ai/run/')) {
+                    return Response.json({ success: true, result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } });
+                }
+                if (pathname.endsWith('/get_by_ids')) return Response.json({ success: true, result: [] });
+                return Response.json({
+                    success: true,
+                    result: { matches: [{ metadata: { source: 'content/project.md', parentIndex: -1, text: 'Partial' } }] },
+                });
+            },
+        });
+        await assert.rejects(client.retrieve('question'), /Missing or invalid parent/);
+    });
+    const result = await client.retrieve('How is the project deployed?');
+    assert.equal(result.matches[0].id, id);
+    assert.equal(result.matches[0].score, 0.9);
+    assert.match(result.matches[0].metadata.text, /rollback/);
+    assert.equal(calls.length, 3);
 });

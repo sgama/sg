@@ -7,6 +7,8 @@ import {
     getModel,
     generationInput,
     contextFromMatches,
+    parentSectionIds,
+    expandSectionMatches,
 } from './application.js';
 import { normalizeChatStream } from './chat-stream.js';
 
@@ -60,7 +62,9 @@ export class AiService {
                 ...(this.namespace ? { namespace: this.namespace } : {}),
             });
             if (!Array.isArray(results.matches)) throw new Error('Invalid Vectorize response');
-            return contextFromMatches(results.matches);
+            const ids = await parentSectionIds(results.matches, this.namespace);
+            const sections = ids.length ? await this.vectorize.getByIds(ids) : [];
+            return contextFromMatches(expandSectionMatches(results.matches, sections));
         } catch (err) {
             console.error('Vector Search Failed:', err);
             throw new AppError('Retrieval service unavailable', 503);

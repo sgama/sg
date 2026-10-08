@@ -6,10 +6,46 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { AI_CONFIG, buildMessages, contextualizedQueryFromResponse, contextFromMatches } from '../../functions/_lib/application.js';
+import {
+    AI_CONFIG,
+    buildMessages,
+    contextualizedQueryFromResponse,
+    contextFromMatches,
+    corpusRecordId,
+    parentSectionIds,
+    expandSectionMatches,
+} from '../../functions/_lib/application.js';
 import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { makeEnv } from '../helpers/mocks.mjs';
+
+test('section expansion preserves ranked source order, bounds evidence and rejects invalid references', async () => {
+    const source = 'content/project.md';
+    const parent = {
+        id: await corpusRecordId('corpus-test', source, -1),
+        metadata: { source, recordType: 'section', sectionIndex: -1, text: 'Full project section' },
+    };
+    const child = { id: 'child', score: 0.8, metadata: { source, parentIndex: -1, text: 'Partial section' } };
+    const other = { id: 'other', score: 0.9, metadata: { source: 'content/other.md', text: 'Other source' } };
+    assert.deepEqual(await parentSectionIds([other, child, child], 'corpus-test'), [parent.id]);
+    const expanded = expandSectionMatches([other, child, child, parent], [parent]);
+    assert.deepEqual(
+        expanded.map((match) => match.id),
+        ['other', parent.id],
+    );
+    assert.equal(expanded[1].score, child.score);
+    await assert.rejects(parentSectionIds([child], undefined), /namespace/);
+    await assert.rejects(parentSectionIds([{ metadata: { source, parentIndex: 0 } }], 'corpus-test'), /Invalid parent/);
+    for (const sections of [
+        null,
+        [],
+        [{ ...parent, metadata: { ...parent.metadata, source: 'content/other.md' } }],
+        [{ ...parent, metadata: { ...parent.metadata, text: 'x'.repeat(AI_CONFIG.retrieval.maxSectionChars + 1) } }],
+    ]) {
+        assert.throws(() => expandSectionMatches([child], sections), /Invalid section|Missing or invalid parent/);
+    }
+    assert.ok(contextFromMatches(expanded).length <= AI_CONFIG.retrieval.maxContextChars);
+});
 
 test('AiService', async (t) => {
     await t.test('generateStream', async (t) => {
@@ -147,11 +183,13 @@ test('AiService', async (t) => {
                 { role: 'assistant', content: 'He had an internship in 2016.' },
             ]);
 
-            assert.deepEqual(requests[0].messages.slice(1), [
-                { role: 'user', content: 'What did he do last?' },
-                { role: 'assistant', content: 'He had an internship in 2016.' },
-                { role: 'user', content: 'Most recently?' },
-            ]);
+            assert.deepEqual(JSON.parse(requests[0].messages[1].content), {
+                history: [
+                    { role: 'user', content: 'What did he do last?' },
+                    { role: 'assistant', content: 'He had an internship in 2016.' },
+                ],
+                query: 'Most recently?',
+            });
             assert.equal(requests[0].stream, false);
             assert.equal(requests[0].max_completion_tokens, AI_CONFIG.contextualization.maxCompletionTokens);
             assert.deepEqual(requests[1].text, ["What was Samson Gama's most recently listed role?"]);
@@ -219,6 +257,71 @@ test('AiService', async (t) => {
             assert.equal(label, 'Embedding Generation Failed:');
             assert.ok(failure instanceof Error);
             assert.equal(failure.message, 'Invalid embedding response');
+        });
+
+        await t.test('expands matching chunks to their source section and deduplicates sibling hits', async () => {
+            const source = 'content/posts/project/index.md';
+            const section = {
+                id: await corpusRecordId('corpus-test', source, -1),
+                metadata: {
+                    source,
+                    recordType: 'section',
+                    sectionIndex: -1,
+                    title: 'Project',
+                    url: '/posts/project',
+                    section: 'Deployment',
+                    text: 'Deploy with Hugo. Roll back with Cloudflare.',
+                },
+            };
+            const svc = new AiService({
+                AI_CORPUS_NAMESPACE: 'corpus-test',
+                AI: { run: async () => buildEmbeddingsResponse([0.1]) },
+                VECTORIZE_INDEX: {
+                    query: async () => ({
+                        matches: [
+                            { id: 'child-one', metadata: { source, parentIndex: -1, text: 'Deploy with Hugo.' } },
+                            { id: 'child-two', metadata: { source, parentIndex: -1, text: 'Roll back with Cloudflare.' } },
+                            section,
+                        ],
+                    }),
+                    getByIds: async (ids) => {
+                        assert.deepEqual(ids, [section.id]);
+                        return [section];
+                    },
+                },
+            });
+            const context = await svc.retrieveContext('How is the project deployed?');
+            assert.equal(context.split('Roll back with Cloudflare.').length, 2);
+            assert.match(context, /"url":"\/posts\/project"/);
+            assert.match(context, /"section":"Deployment"/);
+        });
+
+        await t.test('missing parent section fails explicitly rather than silently using incomplete evidence', async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
+            const svc = new AiService({
+                AI_CORPUS_NAMESPACE: 'corpus-test',
+                AI: { run: async () => buildEmbeddingsResponse([0.1]) },
+                VECTORIZE_INDEX: {
+                    query: async () => ({ matches: [{ metadata: { source: 'content/page.md', parentIndex: -1, text: 'Partial evidence' } }] }),
+                    getByIds: async () => [],
+                },
+            });
+            await assert.rejects(svc.retrieveContext('before that'), { status: 503, message: 'Retrieval service unavailable' });
+            assert.match(logged.mock.calls[0].arguments[1].message, /Missing or invalid parent section/);
+        });
+
+        await t.test('does not fetch unrelated sections for unlinked hits or empty search results', async () => {
+            for (const matches of [[], [{ id: 'legacy', metadata: { text: 'Original evidence' } }]]) {
+                const svc = new AiService({
+                    AI_CORPUS_NAMESPACE: 'corpus-test',
+                    AI: { run: async () => buildEmbeddingsResponse([0.1]) },
+                    VECTORIZE_INDEX: {
+                        query: async () => ({ matches }),
+                        getByIds: async () => assert.fail('Unrelated parent lookup'),
+                    },
+                });
+                assert.equal(await svc.retrieveContext('question'), matches.length ? 'Original evidence' : '');
+            }
         });
 
         await t.test('reports service unavailable when embedding fails', async (t) => {

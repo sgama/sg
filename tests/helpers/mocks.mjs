@@ -32,6 +32,7 @@ export function makeVectorizeIndex(queryFn) {
     if (!queryFn) return undefined;
     return {
         query: queryFn,
+        getByIds: async () => [],
     };
 }
 

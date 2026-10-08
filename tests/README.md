@@ -1,16 +1,23 @@
 # Test Suite Documentation
 
-The RAG fixture includes 31 cases: technical regressions plus recruiter/HR
+The RAG fixture includes 33 cases: technical regressions plus recruiter/HR
 screening for background, location, contact, education, mentoring, stakeholders
 and working style. Required negative cases cover unconfirmed start dates,
 authorization, relocation, work arrangement, compensation, departure reasons,
 direct reports, references and behavioral stories. These exercise abstention
 against actual retrieved context, not invented candidate preferences.
-Conversational cases cover an elliptical follow-up and a topic change. For these,
+Conversational cases cover elliptical follow-ups, the role immediately preceding
+Bitcomplete, website deployment, and a topic change. For these,
 retrieval reports record the bounded standalone query and gate its labeled terms
 alongside expected sources and evidence. One full comparison can now make up to
-31 generation calls per model/repetition; negative cases are excluded from
+33 generation calls per model/repetition; negative cases are excluded from
 source-hit and evidence-rate denominators.
+Corpus tests check generic heading boundaries, fenced-code handling, bounded
+parent sections, source-specific deterministic IDs, and content-driven namespace
+changes. Runtime, cloud and local retrieval tests verify parent expansion,
+deduplication, search-order preservation, and explicit errors for missing parent
+vectors. Short/legacy chunks need no parent lookup, and unrelated source sections
+are never injected into context.
 
 Enterprise-grade test suite for the SG application using Node.js native test runner.
 

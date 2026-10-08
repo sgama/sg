@@ -4,9 +4,68 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import Cloudflare from 'cloudflare';
-import { buildCorpus, validateCorpus } from '../../scripts/lib/corpus.mjs';
+import { buildCorpus, validateCorpus, sourceSections } from '../../scripts/lib/corpus.mjs';
+import { AI_CONFIG, corpusRecordId } from '../../functions/_lib/application.js';
 import { createMaintenanceClient, ingestCorpus, refreshCorpus } from '../../scripts/lib/corpus-deployment.mjs';
 
+test('canonical resume uses the same addressable parent sections as other sources', async () => {
+    const corpus = await buildCorpus();
+    const section = corpus.chunks.find(
+        (chunk) =>
+            chunk.metadata.source === 'content/resume/_index.md' &&
+            chunk.metadata.section === 'Professional Experience' &&
+            chunk.metadata.recordType === 'section',
+    );
+    assert.ok(section);
+    assert.match(section.text, /Bitcomplete/);
+    assert.match(section.text, /Demonware/);
+    assert.match(section.text, /Aug 2020 - Jan 2026/);
+    assert.match(section.text, /Oct 2018 - Jul 2020/);
+    assert.equal(section.id, await corpusRecordId(corpus.namespace, section.metadata.source, section.chunkIndex));
+    assert.equal(section.metadata.url, '/resume');
+    assert.doesNotMatch(section.text, /## Technical Skills/);
+    assert.doesNotMatch(corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/profile.md').text, /Employment chronology/);
+});
+
+test('section boundaries retain subsections and ignore headings inside fenced code', () => {
+    const content =
+        '# Project\n\nIntro\n\n## Deployment\n\n### Steps\n\n```markdown\n## Not a section\n```\n\n~~~\n## Also code\n~~~\n\n## Monitoring\n\nAlerts';
+    const sections = sourceSections(content);
+    assert.deepEqual(
+        sections.map((section) => section.heading),
+        ['Project', 'Deployment', 'Monitoring'],
+    );
+    assert.match(sections[1].text, /### Steps/);
+    assert.match(sections[1].text, /## Not a section/);
+    assert.match(sections[1].text, /## Also code/);
+    assert.doesNotMatch(sections[1].text, /## Monitoring/);
+    assert.deepEqual(sourceSections('Plain source'), [{ heading: '', text: 'Plain source' }]);
+    assert.deepEqual(sourceSections(' \n'), []);
+});
+
+test('generic parent records are bounded, linked, source-specific and updated with content', async (t) => {
+    const body = 'Deployment detail and rollback instructions. '.repeat(200);
+    const root = await fixture(t, {
+        'content/posts/project/index.md': `---\ntitle: Project\n---\n## Deployment\n\n${body}\n\n## Monitoring\n\nAlerts`,
+        'content/_context/project.md': `## Deployment\n\n${body}`,
+    });
+    const corpus = await buildCorpus({ root });
+    assert.equal(corpus.version, 2);
+    const parents = corpus.chunks.filter((chunk) => chunk.metadata.recordType === 'section');
+    assert.ok(parents.length >= 4);
+    assert.ok(parents.every((chunk) => chunk.text.length <= AI_CONFIG.retrieval.maxSectionChars));
+    assert.ok(parents.filter((chunk) => chunk.metadata.type === 'context').every((chunk) => !Object.hasOwn(chunk.metadata, 'url')));
+    const children = corpus.chunks.filter((chunk) => Number.isInteger(chunk.metadata.parentIndex));
+    assert.ok(children.length);
+    for (const child of children) {
+        const parent = parents.find((chunk) => chunk.metadata.source === child.metadata.source && chunk.chunkIndex === child.metadata.parentIndex);
+        assert.ok(parent.text.includes(child.text));
+        assert.equal(parent.id, await corpusRecordId(corpus.namespace, child.metadata.source, child.metadata.parentIndex));
+        assert.equal(parent.metadata.section, 'Deployment');
+    }
+    await writeFile(path.join(root, 'content/posts/project/index.md'), '## Deployment\n\nUpdated source.');
+    assert.notEqual((await buildCorpus({ root })).namespace, corpus.namespace);
+});
 test('authoring comments are excluded from internal chunks and comment-only files are empty', async (t) => {
     const root = await fixture(t, {
         'content/_context/profile.md':
