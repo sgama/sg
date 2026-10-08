@@ -5,6 +5,7 @@ SHELL := /bin/bash
 .PHONY: \
 	help serve dev-ai \
 	build build-prod postcss-build build-summary clean \
+	bom metrics metrics-json check-scc install-scc \
 	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
 	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
@@ -61,6 +62,10 @@ WRANGLER          ?= npx wrangler
 TEST_REPORTER     ?= spec
 ACTIONLINT        ?= actionlint
 ACTIONLINT_VERSION := v1.7.7
+SCC               ?= scc
+SCC_VERSION       := v4.1.0
+SCC_FLAGS         := --no-cocomo --exclude-dir .git,node_modules,public,resources,reports,coverage,.wrangler,.npm \
+	--exclude-file site.purged.css,package-lock.json,go.sum
 export ACTIONLINT_VERSION
 
 REQUIRED_TOOLS := $(HUGO) $(NODE) $(NPM)
@@ -132,6 +137,24 @@ clean: ## Remove generated output within the repository's public build tree
 	rm -rf -- "$$target"
 
 ##@ Test & Audit
+check-scc:
+	@command -v $(SCC) >/dev/null || { \
+		echo "Missing scc; install with: make install-scc" >&2; \
+		echo 'Add $$(go env GOPATH)/bin to PATH or set SCC=/path/to/scc' >&2; \
+		exit 1; \
+	}
+
+install-scc: ## Install the pinned source metrics tool using Go
+	@go install github.com/boyter/scc/v4@$(SCC_VERSION)
+
+bom: metrics ## Alias for source metrics (not a dependency SBOM)
+
+metrics: check-scc ## Print native scc source inventory, line counts, size and complexity estimates
+	@$(SCC) $(SCC_FLAGS) --wide .
+
+metrics-json: check-scc ## Print native scc source inventory as JSON to stdout
+	@$(SCC) $(SCC_FLAGS) --format json .
+
 deps: check-ai-tools ## Install Node dependencies exactly from the lockfile
 	@$(NPM) ci --no-fund
 

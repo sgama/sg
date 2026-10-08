@@ -903,6 +903,31 @@ summary: "A brief description of the post"
 
 ## 🚀 Deployment
 
+### Source metrics
+
+```bash
+make install-scc                 # Explicit install of pinned scc v4.1.0; requires Go 1.26.4+
+export PATH="$(go env GOPATH)/bin:$PATH"
+make metrics                     # Native per-language table; make bom is an alias
+make metrics-json                # Native JSON to stdout
+make --no-print-directory metrics-json > reports/source-metrics.json
+```
+
+Create `reports/` before redirecting a report there. Metrics commands never
+install tools implicitly; `SCC=/path/to/scc` selects an existing binary.
+The inventory measures the current working tree, including nonignored untracked
+source, documentation, tests, configuration and RAG Markdown. It respects
+`.gitignore` and excludes dependencies, build/cache/report trees, generated
+purged CSS and dependency lock inventories. Binary images are not counted as
+source lines.
+
+The table shows files, total/blank/comment/code lines and approximate complexity,
+with repository size; JSON retains native per-language metrics. Hugo templates
+are classified by the tool rather than fully analyzed as Go-template programs.
+Complexity is a heuristic, not a quality score, and generated site output remains
+separate under `make build-summary`. COCOMO cost estimates are disabled.
+`make bom` is a source inventory, **not** an SPDX/CycloneDX dependency SBOM.
+
 ### Layout validation
 
 Run `make test-layouts` after changing Hugo overrides. The generated-output checks

@@ -81,8 +81,17 @@ test('generated layouts preserve structured types, public indexes, image selecti
     }
 
     await t.test('default site emits typed JSON-LD, excludes internal context and preloads its actual WebP avatar', async () => {
-        const destination = await build('default');
+        const destination = await build(
+            'default',
+            {},
+            {
+                menus: { footer: [{ name: 'About', url: '/about/' }] },
+            },
+        );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
+        const footer = home.match(/<footer\b[^>]*id=["']?site-footer[^>]*>(.*?)<\/footer>/s)?.[1];
+        assert.ok(footer, 'Site footer must render');
+        assert.ok(tags(footer, 'nav').some((tag) => tag['aria-label'] === 'Footer menu'));
         assert.equal([...home.matchAll(/<h2\b[^>]*>Recent<\/h2>/g)].length, 1, 'Homepage must render recent articles exactly once');
         const person = schema(home).find((node) => node['@type'] === 'Person');
         assert.ok(Array.isArray(person.sameAs));

@@ -247,7 +247,7 @@ highlightCurrentMenuArea = true
 mainSections = ["portfolio", "posts"]  # https://gohugo.io/methods/site/mainsections/
 replyByEmail = false
 smartTOC = true
-smartTOCHideUnfocusedChildren = ""
+smartTOCHideUnfocusedChildren = false
 
 # Article layout - https://blowfish.page/docs/content-examples/#articles
 [params.article]
@@ -255,6 +255,7 @@ editAppendPath = true
 heroStyle = "background"  # Options: basic, big, background, thumbAndBackground
 invertPagination = false
 layoutBackgroundBlur = true
+layoutBackgroundBlurStyle = "fade"
 layoutBackgroundHeaderSpace = false
 relatedContentLimit = 3
 seriesOpened = false
@@ -273,6 +274,7 @@ showHero = true
 showLikes = false
 showPagination = true
 showReadingTime = true
+showReadingProgress = true
 showRelatedContent = true
 showTableOfContents = true
 showTaxonomies = true
@@ -304,6 +306,10 @@ showThemeAttribution = false
 # Header configuration - https://blowfish.page/docs/configuration/#header
 [params.header]
 layout = "fixed-gradient"  # Options: basic, fixed, fixed-fill, fixed-gradient, fixed-fill-blur
+mobileMenuStyle = "dropdown"
+
+[params.seo]
+metaDescriptionOrder = ["description", "summary", "site"]
 
 # Homepage configuration - https://blowfish.page/docs/homepage-layout/
 [params.homepage]
@@ -351,7 +357,7 @@ showViews = false
 
 # Term layout - https://blowfish.page/docs/content-examples/#taxonomy-terms
 [params.term]
-cardView = ""
+cardView = false
 cardViewScreenWidth = false
 groupByYear = false
 showBreadcrumbs = false

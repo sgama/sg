@@ -54,6 +54,22 @@ test('Make and npm bound tests and coverage with native Node timeouts', () => {
     assert.ok(commands.every((command) => !command.includes('--test-concurrency')));
 });
 
+test('metrics delegate to native scc without installing or counting generated trees', () => {
+    for (const target of ['bom', 'metrics', 'metrics-json']) {
+        const result = make('-n', target);
+        assert.equal(result.status, 0);
+        assert.match(result.stdout, /--exclude-dir \.git,node_modules,public,resources,reports,coverage,\.wrangler,\.npm/);
+        assert.match(result.stdout, /--exclude-file site\.purged\.css,package-lock\.json,go\.sum/);
+        assert.match(result.stdout, /--no-cocomo/);
+        assert.match(result.stdout, target === 'metrics-json' ? /--format json \./ : /--wide \./);
+        assert.doesNotMatch(result.stdout, /^\s*(?:go install|npm|hugo|wrangler)\b/m);
+    }
+    const missing = make('metrics-json', 'SCC=sg-nonexistent-scc-command');
+    assert.notEqual(missing.status, 0);
+    assert.equal(missing.stdout, '');
+    assert.match(missing.stderr, /Missing scc/);
+});
+
 test('npm build and development delegate to Make without cycles', () => {
     const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
     assert.equal(scripts.build, 'make --no-print-directory build-prod');
