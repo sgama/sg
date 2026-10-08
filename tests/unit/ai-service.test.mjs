@@ -307,4 +307,8 @@ test('internal education evidence exposes public citations but not corpus filena
     assert.match(prompt, /Use readable Markdown citations/);
     assert.match(prompt, /Do not concatenate citation URLs/);
     assert.match(prompt, /answer directly in one sentence/);
+    assert.match(prompt, /use Resume for \/resume\/ and About for \/about\//);
+    assert.match(prompt, /Do not use an internal excerpt's title/);
+    assert.match(prompt, /Do not introduce answers with "Based on the retrieved context"/);
+    assert.match(prompt, /Put the citation directly after the supported fact/);
 });

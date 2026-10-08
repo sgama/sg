@@ -62,6 +62,9 @@ Model-facing retrieval headers include titles and public URLs, not repository
 filenames. Internal context may cite public pages through its Markdown source
 links. The answer prompt requests readable linked citations and prohibits
 internal corpus paths or concatenated URLs in reader-facing answers.
+Answers should lead with the fact rather than retrieval boilerplate, with citations
+beside the claim and labels matching the public destination (for example, Resume
+or About), not the title of an internal excerpt.
 
 [`assets/js/ai-chat-widget.js`](assets/js/ai-chat-widget.js) registers
 `<ai-chat-widget>` and coordinates the dialog, messages and request lifecycle.
