@@ -7,13 +7,13 @@ retrievalSection: "Technical Skills"
 summary: "Resume-backed skills inventory without inferred proficiency ratings."
 ---
 
-# Which programming languages does Samson list?
+# Which programming languages does Samson list
 
 Samson Gama's resume at /resume/ lists Go, Python, Bash, C/C++, Java,
 JavaScript, and Rust. C/C++ lists both C and C++. The resume does not assign
 ratings such as intermediate Go or expert Python.
 
-## What infrastructure and operations tools are listed?
+## What infrastructure and operations tools are listed
 
 - Cloud and infrastructure: AWS, GCP, Azure, Kubernetes, Terraform, Ansible,
   Packer, Helm, Linux.

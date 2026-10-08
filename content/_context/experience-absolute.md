@@ -6,7 +6,7 @@ retrievalSource: "content/resume/_index.md"
 retrievalSection: "Professional Experience"
 ---
 
-# What measured improvements did Samson achieve at Absolute Software?
+# What measured improvements did Samson achieve at Absolute Software
 
 Samson Gama was Software Developer at Absolute Software,
 Jun 2017 - Sep 2018.

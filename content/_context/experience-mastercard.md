@@ -6,7 +6,7 @@ retrievalSource: "content/resume/_index.md"
 retrievalSection: "Professional Experience"
 ---
 
-# What did Samson do at Mastercard / Nudata Security?
+# What did Samson do at Mastercard / Nudata Security
 
 Samson Gama was Senior Software Engineer (DevOps) at Mastercard
 (Nudata Security), Oct 2018 - Jul 2020.
