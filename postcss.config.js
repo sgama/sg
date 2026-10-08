@@ -14,6 +14,7 @@ export default {
                   purgecss({
                       content: ['./layouts/**/*.html', './layouts/**/*.md', './content/**/*.md', './assets/**/*.js', './data/**/*.*'],
                       safelist: [
+                          'dark',
                           'article-link--card',
                           'ai-chat-open',
                           'disable-stars',

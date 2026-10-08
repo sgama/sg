@@ -47,6 +47,7 @@ Keep detailed behavior tests with the module that owns it. Keep cross-module reg
 | `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior |
 | `log-service.test.mjs`, `logs-api.test.mjs` | KV persistence, pagination, public log access, and failures |
 | `content-audit.test.mjs`, `rag-audit.test.mjs`, `favicons.test.mjs`, `makefile.test.mjs` | Content policies, provenance review, favicon command wiring, and build/test commands |
+| `postcss.test.mjs` | Production purging preserves theme-owned dark selectors and chat colors |
 | `deployment-cleanup.test.mjs`, `local-ai-lifecycle.test.mjs` | Retention and owned-resource teardown safety |
 | `integration/layouts.test.mjs` | Generated Hugo schema, public LLM index, image preloads, and theme settings |
 
