@@ -1,15 +1,16 @@
-export function createSseMessageStream(message) {
+export function createSseMessageStream(message, metrics) {
     const encoder = new TextEncoder();
     return new ReadableStream({
         start(controller) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: message })}\n\n`));
+            if (metrics) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ metrics })}\n\n`));
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             controller.close();
         },
     });
 }
 
-export function normalizeChatStream(stream) {
+export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } = {}) {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
     let buffer = '';
@@ -23,6 +24,7 @@ export function normalizeChatStream(stream) {
     };
     const complete = (controller) => {
         if (!hasAnswer) throw new Error('AI stream completed without an answer');
+        if (metrics) emit(controller, { metrics: metrics() });
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         finished = true;
     };
@@ -39,10 +41,12 @@ export function normalizeChatStream(stream) {
         const choice = payload.choices?.find((item) => item.index === 0);
         const content = choice?.delta?.content;
         if (typeof content === 'string' && content) {
+            if (!hasAnswer && content.trim()) onFirstToken?.();
             hasContentDeltas = true;
             hasAnswer ||= content.trim().length > 0;
             emit(controller, { response: content });
         } else if (!hasContentDeltas && typeof payload.response === 'string' && payload.response) {
+            if (!hasAnswer && payload.response.trim()) onFirstToken?.();
             hasAnswer ||= payload.response.trim().length > 0;
             emit(controller, { response: payload.response });
         }
@@ -51,6 +55,7 @@ export function normalizeChatStream(stream) {
             payload.usage &&
             (typeof payload.response === 'string' || !payload.choices || (payload.choices.length === 0 && payload.usage.total_tokens > 0))
         ) {
+            onUsage?.(payload.usage);
             emit(controller, { usage: payload.usage });
         }
     };

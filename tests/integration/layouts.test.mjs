@@ -90,6 +90,10 @@ test('generated layouts preserve structured types, public indexes, image selecti
             },
         );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
+        assert.match(home, /Answer \+ rewrite: glm-4.7-flash/);
+        assert.match(home, /Answer: @cf\/zai-org\/glm-4.7-flash; rewrite: @cf\/zai-org\/glm-4.7-flash/);
+        assert.match(home, /Embed: bge-base-en-v1.5/);
+        assert.match(home, /768d/);
         assert.match(home, /fixed inset-x-0 top-3 z-100/);
         assert.match(home, /backdrop-blur-xl/);
         assert.ok(tags(home, 'img').some((tag) => tag.class?.includes('group-hover:scale-[1.03]')));

@@ -17,6 +17,40 @@ test('answer parser handles split CRLF events, usage, and completion', () => {
     assert.equal(parser.finished, true);
 });
 
+test('answer parser forwards metrics separately without including them in the answer', () => {
+    const answers = [];
+    const metrics = [];
+    const parser = createAnswerParser(
+        (text) => answers.push(text),
+        (value) => metrics.push(value),
+    );
+    parser.push('data: {"response":"Answer"}\ndata: {"metrics":{"totalMs":123}}\ndata: [DONE]\n');
+    assert.deepEqual(answers, ['Answer']);
+    assert.deepEqual(metrics, [{ totalMs: 123 }]);
+    for (const value of [null, [], 123, 'invalid']) {
+        assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify({ metrics: value })}\n`), /metrics/);
+    }
+});
+
+test('widget renders and persists response metrics outside answer text and API history', async (t) => {
+    const f = await widgetFixture(t);
+    const metrics = { totalMs: 1200, firstTokenMs: 300, estimatedLlmCostUsd: null, generationUsage: null };
+    t.mock.method(
+        globalThis,
+        'fetch',
+        async () => new Response(`data: {"response":"Answer"}\n\ndata: ${JSON.stringify({ metrics })}\n\ndata: [DONE]\n\n`),
+    );
+    f.widget.open();
+    await f.submit('Question');
+    const saved = JSON.parse(f.local.get(STORAGE_KEY));
+    assert.equal(saved.at(-1).text, 'Answer');
+    assert.deepEqual(saved.at(-1).metrics, metrics);
+    const footer = f.roles.transcript.children.at(-1).children.at(-1);
+    assert.ok(footer.classList.contains('response-metrics'));
+    assert.match(footer.textContent, /Total 1.20s/);
+    assert.match(footer.textContent, /LLM cost unavailable/);
+    assert.deepEqual(apiHistory(saved, saved[0].text).at(-1), { role: 'assistant', content: 'Answer' });
+});
 test('answer parser reports provider errors and malformed answer fields', () => {
     for (const event of [{ error: 'Provider failed' }, { response: 42 }, null, [], 'invalid', 42]) {
         const parser = createAnswerParser(() => {});

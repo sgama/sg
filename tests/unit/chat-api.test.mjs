@@ -135,6 +135,14 @@ test('/api/chat', async (t) => {
             assert.equal(saved.length, 1);
             assert.equal(saved[0].response, 'Visible answer');
             assert.deepEqual(saved[0].usage, usage);
+            const metrics = output
+                .split('\n')
+                .filter((line) => line.startsWith('data: {'))
+                .map((line) => JSON.parse(line.slice(6)))
+                .find((event) => event.metrics)?.metrics;
+            assert.deepEqual(metrics.generationUsage, usage);
+            assert.ok(metrics.totalMs >= metrics.firstTokenMs);
+            assert.ok(metrics.estimatedLlmCostUsd > 0);
         });
 
         await t.test('passes trimmed query and sanitized history into generation', async () => {

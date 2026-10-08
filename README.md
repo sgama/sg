@@ -217,6 +217,19 @@ formatting pass, including `assets/css/site.purged.css`. YAML linting and
 TOML tooling remain unchanged; CSS formatting does not add CSS linting.
 No CI or pre-commit formatting gate is added by this rollout.
 
+### Chat model details and response metrics
+
+The chat header renders two compact model-information rows at Hugo build time.
+[`data/chat_ai.json`](data/chat_ai.json) is the shared model/configuration and
+dated pricing source for Hugo, the API and evaluations; the answer model is
+selected from `AI_MODEL` in [`wrangler.toml`](wrangler.toml).
+Completed responses include server-side total/time-to-first-answer-token,
+embedding/search/rewrite timings, reported answer and rewrite token counts, and
+estimated LLM token cost. Cost excludes embeddings, Vectorize and hosting and
+is unavailable when required usage is missing, rather than reported as zero.
+Metrics persist with local chat history but are never sent as conversation
+evidence. Historical messages without metrics remain readable.
+
 ### Authoring employer-facing RAG context
 
 [`content/_context/`](content/_context/) holds headless Markdown: indexed for

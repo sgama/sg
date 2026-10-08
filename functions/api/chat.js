@@ -44,7 +44,7 @@ app.post('/api/chat', async (c) => {
     let stream;
 
     if (shouldAbstainForMissingContext(contextText)) {
-        stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE);
+        stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
     } else {
         stream = await aiService.generateStream(query, contextText, history);
     }

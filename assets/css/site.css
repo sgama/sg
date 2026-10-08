@@ -484,6 +484,41 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .chat-widget .assistant-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        min-width: 0;
+    }
+
+    .chat-widget .chat-models {
+        min-width: 0;
+        color: var(--chat-muted);
+        font-weight: 400;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-widget .chat-models small {
+        display: block;
+        font-size: 0.6rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .chat-widget .response-metrics {
+        display: block;
+        margin-block-start: 0.6rem;
+        padding-block-start: 0.5rem;
+        border-block-start: 1px solid var(--chat-border);
+        color: var(--chat-muted);
+        font-size: 0.65rem;
+        line-height: 1.45;
+        white-space: pre-line;
     }
 
     .chat-widget .header-btn {

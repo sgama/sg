@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { AI_CONFIG, getModel, generationInput, contextFromMatches, buildMessages } from '../../functions/_lib/application.js';
+import { AI_CONFIG, getModel, generationInput, contextFromMatches, buildMessages, estimateCost } from '../../functions/_lib/application.js';
+export { estimateCost } from '../../functions/_lib/application.js';
 import { normalizeChatStream } from '../../functions/_lib/chat-stream.js';
 import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../functions/_lib/validation.js';
 
@@ -123,11 +124,6 @@ function validUsage(usage) {
         usage.prompt_tokens >= 0 &&
         usage.completion_tokens >= 0,
     );
-}
-
-export function estimateCost(usage, model) {
-    if (!Number.isFinite(model.inputPerMillion) || !Number.isFinite(model.outputPerMillion) || !validUsage(usage)) return null;
-    return (usage.prompt_tokens * model.inputPerMillion + usage.completion_tokens * model.outputPerMillion) / 1e6;
 }
 
 export async function readAnswer(stream, { start, clock = () => performance.now() }) {

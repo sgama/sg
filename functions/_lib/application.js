@@ -1,10 +1,7 @@
-export const AI_CONFIG = {
-    embedding: { model: '@cf/baai/bge-base-en-v1.5', dimensions: 768 },
-    retrieval: { indexName: 'portfolio-index', topK: 3, maxContextChars: 12000, maxSectionChars: 6000 },
-    generation: { defaultModel: 'glm', maxCompletionTokens: 512 },
-    contextualization: { model: 'glm', maxCompletionTokens: 96, maxQueryChars: 500 },
-    pricingDate: '2026-10-07',
-};
+import chatAi from '../../data/chat_ai.json' with { type: 'json' };
+
+export const AI_CONFIG = chatAi.config;
+export const AI_MODELS = chatAi.models;
 
 export async function corpusRecordId(namespace, source, index) {
     const bytes = new TextEncoder().encode(`${namespace}\0${source}\0${index}`);
@@ -62,34 +59,23 @@ export function expandSectionMatches(matches, sections) {
     return expanded;
 }
 
-export const AI_MODELS = {
-    glm: {
-        id: '@cf/zai-org/glm-4.7-flash',
-        inputPerMillion: 0.0605,
-        outputPerMillion: 0.4,
-        completionLimitKey: 'max_completion_tokens',
-        parameters: { chat_template_kwargs: { enable_thinking: false } },
-    },
-    gemma: {
-        id: '@cf/google/gemma-4-26b-a4b-it',
-        inputPerMillion: 0.1,
-        outputPerMillion: 0.3,
-        completionLimitKey: 'max_completion_tokens',
-        parameters: { chat_template_kwargs: { enable_thinking: false } },
-    },
-    llama: {
-        id: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-        inputPerMillion: 0.293,
-        outputPerMillion: 2.253,
-        completionLimitKey: 'max_tokens',
-        parameters: {},
-    },
-};
-
 export function getModel(name = AI_CONFIG.generation.defaultModel) {
     const model = AI_MODELS[name] ?? Object.values(AI_MODELS).find((item) => item.id === name);
     if (!model) throw new Error(`Unknown AI model: ${name}. Choose ${Object.keys(AI_MODELS).join(', ')}`);
     return model;
+}
+
+export function estimateCost(usage, model) {
+    if (
+        !Number.isFinite(model.inputPerMillion) ||
+        !Number.isFinite(model.outputPerMillion) ||
+        !Number.isFinite(usage?.prompt_tokens) ||
+        !Number.isFinite(usage?.completion_tokens) ||
+        usage.prompt_tokens < 0 ||
+        usage.completion_tokens < 0
+    )
+        return null;
+    return (usage.prompt_tokens * model.inputPerMillion + usage.completion_tokens * model.outputPerMillion) / 1e6;
 }
 
 export function generationInput(model, messages) {

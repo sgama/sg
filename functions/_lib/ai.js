@@ -9,6 +9,7 @@ import {
     contextFromMatches,
     parentSectionIds,
     expandSectionMatches,
+    estimateCost,
 } from './application.js';
 import { normalizeChatStream } from './chat-stream.js';
 
@@ -19,6 +20,12 @@ export class AiService {
         this.namespace = env.AI_CORPUS_NAMESPACE;
         this.model = getModel(env.AI_MODEL);
         this.contextualizationModel = getModel(AI_CONFIG.contextualization.model);
+        this.started = performance.now();
+        this.timings = { rewriteMs: 0, embeddingMs: 0, retrievalMs: 0 };
+        this.rewriteUsed = false;
+        this.rewriteUsage = null;
+        this.generationUsage = null;
+        this.firstTokenMs = null;
     }
 
     async getEmbeddings(text) {
@@ -37,8 +44,12 @@ export class AiService {
 
     async contextualizeQuery(query, history = []) {
         if (!history.length) return query;
+        this.rewriteUsed = true;
+        const start = performance.now();
         try {
             const response = await this.ai.run(this.contextualizationModel.id, contextualizationInput(this.contextualizationModel, query, history));
+            this.timings.rewriteMs = performance.now() - start;
+            this.rewriteUsage = response?.usage ?? null;
             return contextualizedQueryFromResponse(response);
         } catch (err) {
             console.error('Query Contextualization Failed:', err);
@@ -53,9 +64,12 @@ export class AiService {
         }
 
         const retrievalQuery = await this.contextualizeQuery(query, history);
+        const embeddingStart = performance.now();
         const vector = await this.getEmbeddings(retrievalQuery);
+        this.timings.embeddingMs = performance.now() - embeddingStart;
 
         try {
+            const searchStart = performance.now();
             const results = await this.vectorize.query(vector, {
                 topK: AI_CONFIG.retrieval.topK,
                 returnMetadata: 'all',
@@ -64,6 +78,7 @@ export class AiService {
             if (!Array.isArray(results.matches)) throw new Error('Invalid Vectorize response');
             const ids = await parentSectionIds(results.matches, this.namespace);
             const sections = ids.length ? await this.vectorize.getByIds(ids) : [];
+            this.timings.retrievalMs = performance.now() - searchStart;
             return contextFromMatches(expandSectionMatches(results.matches, sections));
         } catch (err) {
             console.error('Vector Search Failed:', err);
@@ -71,11 +86,36 @@ export class AiService {
         }
     }
 
+    responseMetrics({ abstained = false } = {}) {
+        const generationCost = abstained ? 0 : estimateCost(this.generationUsage, this.model);
+        const rewriteCost = this.rewriteUsed ? estimateCost(this.rewriteUsage, this.contextualizationModel) : 0;
+        return {
+            ...Object.fromEntries(Object.entries(this.timings).map(([key, value]) => [key, Math.round(value)])),
+            totalMs: Math.round(performance.now() - this.started),
+            firstTokenMs: this.firstTokenMs === null ? null : Math.round(this.firstTokenMs),
+            generationModel: abstained ? null : this.model.id,
+            generationUsage: this.generationUsage,
+            rewriteUsage: this.rewriteUsage,
+            rewriteUsed: this.rewriteUsed,
+            estimatedLlmCostUsd: generationCost === null || rewriteCost === null ? null : generationCost + rewriteCost,
+            pricingDate: AI_CONFIG.pricingDate,
+            abstained,
+        };
+    }
+
     async generateStream(query, contextText, history = []) {
         const messages = buildMessages(query, contextText, history);
         try {
             const stream = await this.ai.run(this.model.id, generationInput(this.model, messages));
-            return normalizeChatStream(stream);
+            return normalizeChatStream(stream, {
+                onFirstToken: () => {
+                    this.firstTokenMs = performance.now() - this.started;
+                },
+                onUsage: (usage) => {
+                    this.generationUsage = usage;
+                },
+                metrics: () => this.responseMetrics(),
+            });
         } catch (err) {
             console.error('Generation Failed:', err);
             throw new AppError('Generation service unavailable', 503);

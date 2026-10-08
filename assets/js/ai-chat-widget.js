@@ -2,6 +2,7 @@ import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } f
 import { streamAnswer } from './chat/stream.js';
 import { createChatScroller } from './chat/scroll.js';
 import { messageRenderer } from './chat/render.js';
+import { formatResponseMetrics } from './chat/metrics.js';
 
 const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information from this portfolio. Ask me about my projects or background.";
 class AiChatWidget extends HTMLElement {
@@ -14,6 +15,7 @@ class AiChatWidget extends HTMLElement {
     #opener = null;
     #openFrame = null;
     #conversationReady = false;
+    #metrics = new WeakMap();
     #storage = createStore(() => localStorage, { json: true });
     #session = createStore(() => sessionStorage);
 
@@ -183,6 +185,15 @@ class AiChatWidget extends HTMLElement {
 
     #writeMessage(element, text, sender) {
         messageRenderer.write(element, text, sender);
+        const metrics = sender === 'bot' ? this.#metrics.get(element) : null;
+        const details = formatResponseMetrics(metrics);
+        if (details) {
+            const footer = document.createElement('small');
+            footer.classList.add('response-metrics');
+            footer.textContent = details;
+            footer.title = `Server-side timings; TTFT is time to first answer token. Estimated model token cost, not a billed amount. Pricing: ${metrics.pricingDate || 'unknown'}.`;
+            element.append(footer);
+        }
         this.#scroller.changed();
     }
 
@@ -190,6 +201,7 @@ class AiChatWidget extends HTMLElement {
         const element = document.createElement('div');
         element.classList.add('message', `message--${message.sender}`);
         element.setAttribute('aria-label', message.sender === 'user' ? 'You' : 'Assistant');
+        if (message.metrics) this.#metrics.set(element, message.metrics);
         this.#writeMessage(element, message.text, message.sender);
         return element;
     }
@@ -251,6 +263,12 @@ class AiChatWidget extends HTMLElement {
             const answer = await streamAnswer(text, {
                 history: apiHistory(this.#history.slice(0, -2), WELCOME_MESSAGE),
                 signal: request.controller.signal,
+                onMetrics: (metrics) => {
+                    if (this.#request !== request) return;
+                    if (!formatResponseMetrics(metrics)) throw new Error('Invalid response metrics');
+                    request.message.metrics = metrics;
+                    this.#metrics.set(request.element, metrics);
+                },
                 onUpdate: (answer) => {
                     if (this.#request !== request) return;
                     request.answer = answer;

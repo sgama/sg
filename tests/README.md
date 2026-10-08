@@ -21,6 +21,11 @@ are never injected into context.
 
 Enterprise-grade test suite for the SG application using Node.js native test runner.
 
+Chat telemetry tests cover aggregate streamed usage, timing events, missing-usage
+handling, answer/rewrite cost estimates, footer formatting, and persistence without
+including metrics in conversation history sent to the API. Layout tests verify
+the build-time model labels derived from the shared AI configuration.
+
 ## Overview
 
 This test suite follows industry best practices for modular, maintainable, and comprehensive testing. Tests are organized into logical suites with shared utilities, constants, and fixtures to eliminate duplication and improve maintainability.

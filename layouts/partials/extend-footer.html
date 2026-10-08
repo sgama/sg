@@ -1,5 +1,15 @@
 {{/* Extended footer partial — loads the custom-element-based AI chat widget. */}}
 {{/* Documentation: https://blowfish.page/docs/partials/#extend-footer */}}
+{{ $ai := hugo.Data.chat_ai }}
+{{ $modelSettings := findRESubmatch `(?m)^AI_MODEL\s*=\s*"([^"]+)"` (readFile "wrangler.toml") }}
+{{ $modelName := $ai.config.generation.defaultModel }}
+{{ with $modelSettings }}{{ $modelName = index (index . 0) 1 }}{{ end }}
+{{ $model := index $ai.models $modelName }}
+{{ if not $model }}
+    {{ range $ai.models }}{{ if eq .id $modelName }}{{ $model = . }}{{ end }}{{ end }}
+{{ end }}
+{{ if not $model }}{{ errorf "Unknown chat generation model: %s" $modelName }}{{ end }}
+{{ $rewrite := index $ai.models $ai.config.contextualization.model }}
 
 <template id="ai-chat-template">
     <button class="toggle" data-role="toggle" type="button" aria-label="Ask AI Assistant"
@@ -15,7 +25,19 @@
 
     <dialog id="ai-chat-window" class="window" data-role="window" aria-label="Chat with AI assistant">
         <header class="header">
-            <span>Assistant</span>
+            <div class="assistant-heading">
+                <span>Assistant</span>
+                <div class="chat-models" aria-label="AI models configured at build time">
+                    <small title="Answer: {{ $model.id }}; rewrite: {{ $rewrite.id }}">
+                        {{- if eq $model.id $rewrite.id -}}
+                            Answer + rewrite: {{ path.Base $model.id }}
+                        {{- else -}}
+                            Answer: {{ path.Base $model.id }} · Rewrite: {{ path.Base $rewrite.id }}
+                        {{- end -}}
+                    </small>
+                    <small title="Embedding: {{ $ai.config.embedding.model }}">Embed: {{ path.Base $ai.config.embedding.model }} · {{ $ai.config.embedding.dimensions }}d</small>
+                </div>
+            </div>
             <div class="header-actions">
                 <button class="header-btn header-btn--clear"
                     data-role="clear" type="button" aria-label="Clear History" title="Clear History">

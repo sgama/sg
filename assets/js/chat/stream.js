@@ -1,4 +1,4 @@
-export function createAnswerParser(onDelta) {
+export function createAnswerParser(onDelta, onMetrics) {
     let buffer = '';
     let finished = false;
     const readLine = (line) => {
@@ -12,6 +12,10 @@ export function createAnswerParser(onDelta) {
         const event = JSON.parse(data);
         if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error('Invalid chat answer event');
         if (event.error) throw new Error(String(event.error));
+        if (event.metrics !== undefined) {
+            if (!event.metrics || typeof event.metrics !== 'object' || Array.isArray(event.metrics)) throw new Error('Invalid chat metrics event');
+            onMetrics?.(event.metrics);
+        }
         if (event.response !== undefined) {
             if (typeof event.response !== 'string') throw new Error('Invalid chat answer event');
             onDelta(event.response);
@@ -34,7 +38,7 @@ export function createAnswerParser(onDelta) {
     };
 }
 
-export async function streamAnswer(query, { history = [], signal, onUpdate, fetcher = fetch }) {
+export async function streamAnswer(query, { history = [], signal, onUpdate, onMetrics, fetcher = fetch }) {
     const response = await fetcher('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,7 +54,7 @@ export async function streamAnswer(query, { history = [], signal, onUpdate, fetc
     const parser = createAnswerParser((delta) => {
         answer += delta;
         onUpdate(answer);
-    });
+    }, onMetrics);
     let failure;
     let failed = false;
     try {
