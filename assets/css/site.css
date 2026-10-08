@@ -633,6 +633,20 @@
         padding-block: 1.5rem;
     }
 
+    .chat-widget .evidence-diagram {
+        overflow-x: auto;
+        background: white;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .chat-widget .evidence-diagram svg {
+        display: block;
+        min-width: 20rem;
+        max-width: 100%;
+        height: auto;
+    }
+
     .chat-widget .chat-starters button,
     .chat-widget .chat-retry {
         border: 1px solid var(--chat-border);

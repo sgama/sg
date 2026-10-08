@@ -42,6 +42,9 @@ export function createEvidencePanel(value, document, renderer) {
         excerpt.classList.add('evidence-excerpt');
         if (renderer) renderer.write(excerpt, item.text, 'bot');
         else excerpt.textContent = item.text;
+        panel.addEventListener('toggle', () => {
+            if (panel.open && renderer?.renderDiagrams) renderer.renderDiagrams(excerpt);
+        });
         card.append(link, excerpt);
         panel.append(card);
     }

@@ -19,6 +19,7 @@ export function ingestionText(content) {
         output.push(
             prose
                 .join('\n')
+                .replace(/{{[<%]\s*mermaid\s*[>%]}}([\s\S]*?){{[<%]\s*\/mermaid\s*[>%]}}/g, '\n```mermaid\n$1\n```\n')
                 .replace(/{{[<%][\s\S]*?[>%]}}/g, '')
                 .replace(/!\[[^\]]*\]\([^)]*\)/g, ''),
         );

@@ -32,6 +32,7 @@ test('ingestion removes presentation wrappers and media while retaining inner pr
     assert.equal(ingestionText('{{< button href="/resume/" >}}Read resume{{< /button >}}'), 'Read resume');
     const code = '```markdown\n{{< figure src="example.webp" >}}\n![Example](example.webp)\n```';
     assert.equal(ingestionText(code), code);
+    assert.equal(ingestionText('{{< mermaid >}}\ngraph TD\nA --> B\n{{< /mermaid >}}'), '```mermaid\n\ngraph TD\nA --> B\n\n```');
     assert.equal(embeddingText({ text: 'Facts', metadata: { title: 'Project', section: 'Deployment' } }), 'Project — Deployment\n\nFacts');
 });
 

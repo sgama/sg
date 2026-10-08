@@ -74,6 +74,7 @@ test('source excerpts delegate Markdown to the shared renderer with a literal fa
         createElement: () => ({
             children: [],
             classList: { add() {} },
+            addEventListener() {},
             append(...children) {
                 this.children.push(...children);
             },

@@ -1,6 +1,7 @@
 ---
 title: "My Over-Engineered Serverless & Self-Hosted Stack"
 date: 2026-01-26
+lastmod: 2026-10-07
 slug: "website-stack"
 description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, Cloudflare Pages, Workers, Vectorize, and Tunnels."
 summary: "Why have a simple website when you can have a complex one? A deep dive into the CI/CD pipeline, serverless AI integration, and zero-trust self-hosted analytics stack that powers samsongama.com."
@@ -13,7 +14,7 @@ series: ["Cloudflare Developments"]
 
 About 10 years ago, hosting a website meant paying \$5/month for a VPS, configuring Nginx, and manually FTPing files. Today, we have the "Modern Web"—a beautiful, chaotic mix of static site generators, edge computing, vector databases, and zero-trust tunnels.
 
-This website is a static site (Hugo), but it's wrapped in layers of automation and serverless features that make it feel alive. Here provides a full architectural breakdown of how `samsongama.com` is built, deployed, and monitored.
+This website is a static site (Hugo), but it's wrapped in layers of automation and serverless features that make it feel alive. Here is an architectural overview of how `samsongama.com` is built, deployed, and monitored, updated for the current implementation.
 
 ## 🏗️ The High-Level Architecture
 
@@ -28,7 +29,10 @@ subgraph Cloudflare["☁️ Cloudflare Edge"]
     CDN[CDN Cache]
     WAF[Web App Firewall]
     Pages[Cloudflare Pages]
+    Functions[Pages Functions /api/chat]
     Workers[Cloudflare Workers AI]
+    Vectorize[Vectorize]
+    KV[KV Chat Logs]
     Tunnel[Cloudflare Tunnel]
 end
 
@@ -47,8 +51,11 @@ DNS --> WAF
 WAF --> CDN
 
 CDN -->|Static Content| Pages
-CDN -->|Dynamic API| Workers
-CDN -->|analytics.samsongama.com| Tunnel
+CDN -->|Dynamic API| Functions
+Functions --> Workers
+Functions --> Vectorize
+Functions --> KV
+CDN -->|ping.samsongama.com| Tunnel
 
 Tunnel <-->|Secure Connection| Cloudflared
 Cloudflared <--> Analytics
@@ -67,35 +74,39 @@ Quality starts before the code even leaves my machine. I use **pre-commit** hook
 
 Every time I run `git commit`, a series of checks fire off locally:
 
-1. **Secret Scanning**: Prevents API keys or private variables from being committed.
-2. **Linting**: format JSON, YAML, and Markdown files.
-3. **Hugo Check**: Ensures the site constructs without errors.
+1. **File Safety**: Checks for private keys, merge conflicts, large files, and invalid configuration syntax. Private-key detection is not a comprehensive API-token scanner.
+2. **Linting**: Checks JavaScript, YAML, Markdown, TOML formatting, and spelling.
+3. **Content Checks**: Checks front matter presence and flags oversized images. Production rendering is checked separately in CI.
 
 ```yaml
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
+      - id: detect-private-key
 ```
 
 ---
 
 ## 2. CI/CD: GitHub Actions
 
-I don't deploy manually. Deployment is handled by a **GitHub Actions** workflow that runs on every push to `main`.
+Production deployment is handled by a **GitHub Actions** workflow on pushes to `develop`. Pull requests targeting `develop` run validation without deploying or making paid embedding calls. Make targets also support deliberate local builds and deployments.
 
 ### The Pipeline Steps
 
 1. **Checkout**: Pulls the latest code.
 2. **Setup Node & Hugo**: Installs dependencies.
-3. **Build**: Runs `hugo --minify`.
-4. **Vectorize**: Runs the `generate_embeddings.js` script (discussed in my [previous post](/posts/2026-01-25-ai-chat/)) to update the AI's knowledge base.
-5. **Deploy**: Pushes the `public/` folder to Cloudflare Pages.
+3. **Validate & Build**: Runs `make ci-check`: workflow and JavaScript linting, offline tests with coverage, corpus checks, Functions compilation, PostCSS/PurgeCSS, the production Hugo build, and generated-layout tests.
+4. **Refresh Corpus**: Runs `make ai-refresh` to skip an unchanged corpus or embed a changed one into a versioned Vectorize namespace. It waits for indexing before preparing the matching deployment configuration; failure blocks deployment.
+5. **Deploy**: Runs `make deploy-built` to upload the validated `public/` output and Functions to Cloudflare Pages.
+6. **Cleanup**: Removes previews, prunes old production deployments while retaining rollback history, and deletes versioned corpora no retained deployment references.
+
+For example, a CSS-only change can reuse the existing corpus. A published content edit changes the corpus hash and requires new embeddings before the deployment proceeds.
 
 {{< mermaid >}}
 sequenceDiagram
@@ -104,29 +115,35 @@ participant GH as GitHub Actions
 participant Build as Build Container
 participant CF as Cloudflare Pages
 participant Vec as Vectorize DB
+participant AI as Workers AI
 
-Dev->>GH: git push main
+Dev->>GH: git push develop
 GH->>Build: Spin up Runner
 Build->>Build: Install Hugo & Node
-Build->>Build: hugo --minify
+Build->>Build: make ci-check
 
 rect rgb(20, 20, 20)
-    Note over Build, Vec: The Transformation Layer
-    Build->>Build: Parse Content (.md)
-    Build->>CF: Workers AI (Generate Embeddings)
-    CF-->>Build: Return Vectors
-    Build->>Vec: Upsert Vectors
+    Note over Build, Vec: Refresh changed corpus; skip unchanged corpus
+    Build->>Build: Parse content and compute corpus hash
+    opt Corpus changed
+        Build->>AI: Generate embeddings
+        AI-->>Build: Return vectors
+        Build->>Vec: Upsert versioned records
+        Build->>Vec: Wait for indexing completion
+    end
 end
 
-Build->>CF: Upload /public assets
+Build->>CF: Deploy assets, Functions and matching namespace
 CF-->>Dev: Deployment Success 🚀
+Build->>CF: Prune previews and old deployments
+Build->>Vec: Delete unreferenced corpora
 {{< /mermaid >}}
 
 ---
 
 ## 3. The Edge: Cloudflare Ecosystem
 
-Once deployed, the site lives on Cloudflare's network. This provides significant performance and security benefits for free.
+Once deployed, the site lives on Cloudflare's network. Static hosting, edge caching and managed TLS reduce the infrastructure I operate; dynamic AI and storage still have usage limits and potential charges.
 
 ### DNS & CDN
 
@@ -134,30 +151,37 @@ Cloudflare proxies all traffic. This means:
 
 - **SSL is automatic:** I don't manage certificates; Cloudflare handles edge encryption.
 - **Caching:** Static assets (images, CSS, JS) are cached in data centers close to the user, reducing latency.
-- **Auto-Minification:** Cloudflare further optimizes HTML/CSS on the fly.
+- **Build-Time Optimization:** Hugo minifies output, while PostCSS/PurgeCSS builds the production stylesheet. This does not depend on Cloudflare auto-minification.
 
 ### Workers & Vectorize (The "Smart" Layer)
 
-This is where the [AI Assistant](/posts/2026-01-25-ai-chat/) lives. Instead of spinning up a Python server (Django/FastAPI) to handle chat requests, I use **Cloudflare Workers**.
+This is where the [AI Assistant](/posts/2026-01-25-ai-chat/) lives. A **Cloudflare Pages Function** handles `/api/chat`, **Workers AI** provides embedding and answer models, and **Vectorize** holds the searchable corpus. I do not operate a dedicated Python inference server or train model weights.
 
-- **Latency:** The code runs efficiently on the edge, eliminating cold starts associated with traditional serverless (like AWS Lambda).
-- **Database:** **Vectorize** stores the semantic meaning of my blog posts, allowing the AI to "search" my content before answering.
+- **Conversation:** The browser sends bounded recent history. A follow-up such as "What did he do before that?" is rewritten into a standalone search question before embedding.
+- **Retrieval:** Vectorize returns three semantic matches. Matching child excerpts expand into bounded source sections, with generic canonical-source links keeping curated summaries tied to authoritative public content.
+- **Generation:** The answer model receives retrieved text, history and the original question, then streams its response. Insufficient context produces an abstention; service failures produce explicit errors.
+- **Transparency:** The widget shows actual progress stages, public retrieved excerpts and expandable timing/token/cost diagnostics. Source retrieval does not independently verify an answer.
+- **State:** Conversation history stays in browser storage across deployments until manually cleared. When configured, KV separately records questions, responses and answer-model usage.
+
+For example, an internship excerpt can lead retrieval to the full newest-first employment section, rather than presenting that historical fragment as recent experience. This reduces missing context; it does not guarantee that a model interprets every date correctly.
+
+Edge execution reduces the need to manage application servers, but model inference and retrieval still dominate some responses. I measure latency rather than assuming every answer is instant.
 
 ---
 
 ## 4. Observability: Self-Hosted Analytics via Tunnels
 
-I maintain data sovereignty by hosting my own analytics (using tools like Plausible or Umami) on a home server (Raspberry Pi or old NUC). But how do I expose a server in my basement to the public internet securely?
+I self-host **Umami**, served at `ping.samsongama.com`, rather than relying on a third-party analytics dashboard. Cloudflare still proxies the traffic, so self-hosting is not a claim that no external infrastructure handles the data. How do I expose the service without forwarding an inbound port on my home router?
 
 **Cloudflare Tunnels (cloudflared)**.
 
 ### How it works
 
-Instead of opening port `443` on my home router (which is a security risk), I run a lightweight daemon called `cloudflared`.
+Instead of forwarding port `443` on my home router, I run a lightweight daemon called `cloudflared`.
 
 1. `cloudflared` creates an outbound-only connection to Cloudflare's edge.
-2. I configure a public hostname (e.g., `analytics.samsongama.com`) in the Cloudflare Dashboard to route traffic to this tunnel.
-3. Cloudflare enforces Zero Trust policies (optional) and firewall rules before traffic ever hits my hardware.
+2. A public hostname, `ping.samsongama.com`, routes analytics traffic through the tunnel.
+3. Cloudflare Access can protect private dashboard routes, while the tracking script and collection endpoints must remain accessible to visitors.
 
 {{< mermaid >}}
 flowchart LR
@@ -180,17 +204,19 @@ style Router stroke:#f00,stroke-width:2px,stroke-dasharray:5
 
 ### Benefits
 
-- **No Port Forwarding:** My home IP is never exposed.
+- **No Port Forwarding:** The analytics service does not require an inbound router port or a public DNS record pointing directly to my home IP.
 
-- **DDoS Protection:** Cloudflare absorbs attacks before they reach my ISP.
+- **Edge Protection:** Public requests pass through Cloudflare; this does not make the origin or application immune to abuse.
 - **Access Control:** I can put the dashboard usage behind **Cloudflare Access** (OAuth / Email OTP), so only I can view the data, while the tracking script remains public.
 
 ## Conclusion
 
 This stack represents the sweet spot of modern web development: **Static reliability** mixed with **serverless power**, all glue-coded together with **CI/CD** and secured by **Zero Trust** networking.
 
-It costs \$0/month to run (excluding the domain name), scales infinitely, and provides a playground for testing the latest tech.
+Static delivery is inexpensive, but this is not an infinitely scalable or universally free stack. Workers AI, Vectorize and KV have quotas and usage-based costs, while self-hosting adds hardware, power and maintenance. The chat's displayed cost estimates cover answer and rewrite tokens, not the entire infrastructure bill.
 
-## What's Next? (TODO)
+## What's Next?
 
-- [ ] **Migrate "Likes" to Cloudflare KV**: Currently, the "Like" button uses a legacy Firebase implementation. I plan to move this to a Cloudflare Worker + KV setup to keep the entire stack within the Cloudflare ecosystem and improve performance.
+- **Retrieval quality:** Expand regression questions and human review, especially for ambiguous follow-ups and unsupported claims.
+- **Runtime controls:** Add request deadlines and rate limits, and measure behavior under concurrent traffic.
+- **Ingestion efficiency:** Reuse unchanged document embeddings across corpus versions instead of regenerating the whole changed corpus.

@@ -63,6 +63,7 @@ test('failed or incomplete Markdown dependencies warn, retain plain text and all
             },
             warn: (...args) => warnings.push(args),
         });
+
         await renderer.load();
         assert.equal(renderer.ready, false);
         assert.equal(warnings.length, 1);
@@ -74,4 +75,77 @@ test('failed or incomplete Markdown dependencies warn, retain plain text and all
         assert.equal(renderer.ready, true);
         assert.equal(attempts, 2);
     }
+});
+
+test('source diagrams load lazily, render once and sanitize SVG without interactive content', async () => {
+    let loads = 0;
+    let replacement;
+    const code = {
+        textContent: 'graph TD\nA --> B',
+        ownerDocument: { createElement: () => ({ classList: { add() {} } }) },
+        parentElement: {
+            replaceWith: (node) => {
+                replacement = node;
+            },
+        },
+    };
+    const source = { querySelectorAll: () => [code], contains: () => true };
+    const renderer = createMessageRenderer({
+        loadModules: async () => [
+            { marked: { parse: (text) => text } },
+            {
+                default: {
+                    sanitize: (text, options) => {
+                        assert.deepEqual(options.USE_PROFILES, { svg: true, svgFilters: true });
+                        assert.deepEqual(options.FORBID_TAGS, ['foreignObject', 'a']);
+                        return text;
+                    },
+                },
+            },
+        ],
+        loadMermaid: async () => {
+            loads++;
+            return {
+                default: {
+                    initialize: (options) => {
+                        assert.equal(options.securityLevel, 'strict');
+                        assert.equal(options.suppressErrorRendering, true);
+                        assert.equal(options.flowchart.htmlLabels, false);
+                    },
+                    render: async (_id, text) => {
+                        assert.equal(text, code.textContent);
+                        return { svg: '<svg></svg>' };
+                    },
+                },
+            };
+        },
+    });
+    await renderer.load();
+    assert.equal(loads, 0);
+    await renderer.renderDiagrams(source);
+    await renderer.renderDiagrams(source);
+    assert.equal(loads, 1);
+    assert.equal(replacement.innerHTML, '<svg></svg>');
+});
+
+test('failed source diagrams retain readable code and display an explicit explanation', async () => {
+    const warnings = [];
+    let note;
+    const code = {
+        ownerDocument: { createElement: () => ({}) },
+        parentElement: {
+            before: (node) => {
+                note = node;
+            },
+        },
+    };
+    const renderer = createMessageRenderer({
+        loadMermaid: async () => {
+            throw new Error('Unavailable');
+        },
+        warn: (...args) => warnings.push(args),
+    });
+    await renderer.renderDiagrams({ querySelectorAll: () => [code], contains: () => true });
+    assert.equal(warnings.length, 1);
+    assert.match(note.textContent, /Diagram unavailable/);
 });

@@ -258,6 +258,10 @@ Ingestion strips Hugo shortcode tags and Markdown images while preserving inner
 prose and fenced code examples, and skips heading-only sections. Embedding inputs
 include the page title and section label; stored excerpts remain the source text.
 Local and Cloudflare embedding paths use the same helper.
+Hugo Mermaid shortcodes become fenced Mermaid blocks during ingestion. Opening
+retrieved sources lazy-loads Mermaid to render those blocks with strict security
+and sanitized SVG. Invalid or truncated diagrams retain their code with an
+explicit explanation. Existing indexed shortcode excerpts need reindexing.
 Curated documents can declare `retrievalSource` (a public content file path) and
 `retrievalSection` (an exact level-one/two heading) in front matter. Hits expand
 to that canonical section rather than treating the curated summary as a separate

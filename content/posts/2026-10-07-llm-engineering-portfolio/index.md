@@ -18,24 +18,69 @@ This portfolio uses **Hugo, Cloudflare Pages Functions, Workers AI, Vectorize, a
 
 ```text
 Browser question
-  -> Pages Function: validate input and check guardrails
-  -> Workers AI: embed the question
-  -> Vectorize: retrieve three chunks from the deployed corpus namespace
-  -> Prompt: system instructions + retrieved text + question
+  + bounded recent conversation
+  -> Pages Function: validate input and check prompt-pattern guardrails
+  -> Workers AI: rewrite a follow-up into a standalone search question
+  -> Workers AI: embed the search question
+  -> Vectorize: retrieve three matches from the deployed corpus namespace
+  -> Expand matching excerpts into bounded source sections; deduplicate
+  -> Prompt: system instructions + retrieved text + history + original question
   -> Workers AI: generate a streamed answer
   -> Stream adapter: normalize answer events and discard reasoning
   -> Browser: render text/markdown; KV: save the transcript and usage
 ```
 
+For example, after "Tell me about Bitcomplete," a follow-up such as "What did he do before that?" can be rewritten as "What role did Samson hold before Bitcomplete?" The rewrite guides search; the original question and recent conversation still guide the answer. First-turn questions skip rewriting. History is bounded to four messages, 2,000 characters per message and 4,000 characters total, rather than sending an ever-growing transcript.
+
 The embedding model is `@cf/baai/bge-base-en-v1.5`, producing **768-dimensional vectors**. An embedding represents semantic similarity; it is not an answer, a compressed copy of the document, or a modification to the generation model.
 
 The shared registry supports GLM, Gemma, and Llama aliases. GLM is the default; GLM and Gemma have thinking disabled. Generation has a **512-token completion budget**, using each provider's supported parameter name.
 
-Retrieval selects **top three matches** and limits assembled context to **12,000 characters**. Character limits are not token limits. The current implementation has no reranker, hybrid lexical search, or calibrated similarity threshold. Short context triggers abstention; a retrieval outage returns 503 instead of pretending nothing relevant was found.
+Retrieval selects **top three matches** and limits assembled context to **12,000 characters**, with expanded sections capped at **6,000 characters** each. Character limits are not token limits. The current implementation has no reranker, hybrid lexical search, or calibrated similarity threshold.
+
+Insufficient context triggers an explicit abstention without calling the answer model. Missing service bindings return HTTP errors before streaming begins. Failures after the SSE connection opens produce an error event, not a fabricated answer or an empty successful response.
+
+## What the chat window shows
+
+Starter questions offer entry points into experience, projects, scale and the assistant itself. While work happens, the widget reports actual backend stages:
+
+```text
+🧠 Understanding your follow-up...   (only when rewriting)
+🧩 Preparing source search...
+🔎 Finding sources...
+✍️ Writing answer...
+```
+
+An elapsed-time counter runs until the first answer text arrives. A failed answer offers a manual **Retry** using the original question and pre-request history; there are no automatic paid retries.
+
+**Retrieved sources** exposes public links and the bounded excerpts supplied to generation. For example, an employment answer might show the resume's Professional Experience section. Internal context files are not exposed, and retrieval is supporting evidence, not independent verification of every claim.
+
+Answers also have a compact diagnostics footer:
+
+```text
+🕧9.36s · 🪙8.74s · 💲0.000108 · Details
+```
+
+These illustrative values mean server-side total time, time to first answer token, and estimated LLM token cost. **Details** opens stage timings and answer/rewrite token counts. Missing usage displays "Cost unavailable," not zero. The header shows the configured answer, rewrite and embedding models.
+
+Conversation history is saved on the device and survives website deployments. **Clear History** removes that saved browser conversation; it does not delete any separately stored server-side logs.
 
 ## Building and embedding the corpus
 
-The ingestion pipeline reads Markdown, skips drafts and empty bodies, and splits text into **2,000-character chunks with 200-character overlap**. It stores chunk text, source path, title, and content type with each vector. Internal context documents are searchable but do not receive public URLs.
+The ingestion pipeline reads Markdown and skips drafts, empty bodies and heading-only sections. It removes presentation-only Hugo shortcode tags and Markdown images while preserving inner prose and fenced code examples. For example, a portrait shortcode is not useful evidence, but text inside a button shortcode is retained.
+
+Level-one and level-two headings define source sections; level-three headings stay with their enclosing section. Long sections produce bounded parent records and **2,000-character child chunks with 200-character overlap**. A matching child can retrieve its parent so generation sees related facts together rather than one isolated fragment. Sibling matches are deduplicated.
+
+Curated excerpts can explicitly point to a public canonical section:
+
+```yaml
+retrievalSource: "content/resume/_index.md"
+retrievalSection: "Professional Experience"
+```
+
+For example, a hit on a historical internship excerpt can expand to the resume's newest-first employment section. This is generic source linkage, not a hard-coded career lookup. Missing, ambiguous, empty, non-public or oversized targets fail validation instead of silently using the wrong evidence.
+
+Embedding inputs include page and section labels, such as `Resume — Professional Experience`, followed by the source text. Stored evidence remains source text. Each vector includes source path, title and content type; internal documents remain searchable but do not receive public URLs.
 
 Two important identities prevent accidental data loss:
 
@@ -46,7 +91,7 @@ Using only the filename would make unrelated `index.md` bundles overwrite one an
 
 Ingestion uses bounded concurrency, validates vector dimensions and finite values, uploads NDJSON, and fails on incomplete work. Upsert acceptance is asynchronous: the refresh script waits for each mutation to finish indexing before updating the deployment namespace.
 
-Every production push to `develop` rebuilds embeddings and deploys the matching namespace. Failed ingestion prevents deployment; older namespaces remain available. This currently regenerates all embeddings, even for unchanged content, so incremental reuse and namespace cleanup are future cost improvements.
+Every production push to `develop` refreshes the corpus and deploys the matching namespace. An unchanged corpus skips ingestion; a changed corpus is re-embedded. Failed ingestion prevents deployment. Cleanup prunes old deployments and unreferenced versioned corpora while protecting namespaces used by retained deployments. Reusing individual embeddings across changed corpora remains a future cost improvement.
 
 ## Developing and verifying the integration
 
@@ -74,6 +119,8 @@ A harness is the code that runs fixed inputs, captures outputs, and applies repe
 - Groups of acceptable answer terms.
 - Forbidden terms and an unanswerable example.
 
+For example, "Summarize Samson's recent engineering experience" checks for Bitcomplete, Demonware and 2026 evidence. A follow-up regression checks the role before Bitcomplete. Negative cases cover facts the portfolio does not establish, such as availability or compensation, rather than encouraging invented answers.
+
 Retrieval **hit@3** is the fraction of labeled, answerable questions whose top three results include an expected source. It is not precision, complete recall, or proof that the answer is grounded.
 
 Model comparisons have two modes:
@@ -91,7 +138,7 @@ make ai-compare-rag AI_NAMESPACE=corpus-HASH_FROM_PLAN AI_MODELS=glm,gemma
 
 These live commands incur charges. Comparisons are serial, interleaved by case/model, and bounded by timeouts and repeat limits. Reports record corpus, fixture, prompt, and model settings so incompatible results cannot pass the local release gate.
 
-Answer checks currently match terms, not factual entailment. The unanswerable case uses empty context to test application abstention; it does not prove the model rejects unknown facts when retrieval returns misleading text. Human review and a larger, held-out dataset are still necessary.
+Answer checks currently match terms, not factual entailment. An empty-context case tests application abstention; other negative cases test answers against retrieved context. Neither guarantees that the model rejects every unknown fact or misleading excerpt. Human review and a larger, held-out dataset are still necessary.
 
 ## Latency and throughput
 
@@ -108,13 +155,15 @@ The harness reports p50/p95 TTFT, p95 completion latency, and inter-chunk timing
 
 Generation benchmarks exclude retrieval and browser rendering. To measure user experience, instrument browser send-to-first-answer and send-to-completion separately. Do not simply add stage p95 values: the p95 of a sum is not generally the sum of p95s.
 
+The widget's first-token metric differs from the generation-only benchmark: it starts when the server creates the AI service, so it includes rewriting, embedding and retrieval. The browser's pending counter includes client waiting, but is not a persisted end-to-end performance measurement.
+
 For credible comparisons, hold prompts, contexts, and output limits constant; label warm/cold and cached/uncached runs; use enough samples to make tail percentiles meaningful. This serial harness is **not** a requests-per-second or concurrency load test. Those need controlled arrival rates, concurrent clients, and error/saturation measurements.
 
 ## Token usage and cost
 
-Input tokens include system instructions, context, the question, and any history. The backend accepts bounded history, but the current widget sends only the question. Output budgets can include reasoning depending on the provider; do not equate visible text length with billable output.
+Input tokens include system instructions, context, the question and bounded history sent by the widget. Follow-ups also incur a separate rewrite call. Output budgets can include reasoning depending on the provider; do not equate visible text length with billable output.
 
-The adapter preserves aggregate usage rather than summing incremental events and then counting a final summary again. Logs store full transcripts in KV values, not its size-limited metadata.
+The adapter preserves aggregate usage rather than summing incremental events and then counting a final summary again. When configured, KV logging stores the question, streamed answer and answer-model usage in values, not size-limited metadata; it is separate from the device's saved conversation.
 
 ```text
 Estimated generation cost =
@@ -123,6 +172,8 @@ Estimated generation cost =
 ```
 
 For illustration, at the registry's dated GLM prices of **$0.0605/M input** and **$0.40/M output**, 1,200 input plus 200 output tokens costs approximately **$0.000153** in generation. This is arithmetic, not a measured invoice; verify current pricing before using it.
+
+The response footer adds estimated answer and rewrite token costs. If either required usage record is missing, the combined estimate is unavailable.
 
 The reports exclude embeddings, Vectorize, KV, failed-call charges, and account allowances. Missing usage is `null`, not zero. Evaluate **total spend per successful answer**, including retries and failures, before claiming savings.
 
@@ -141,7 +192,7 @@ The work an LLM application developer needs to own is concrete:
 5. **Economics:** token accounting, ingestion costs, cache effectiveness, and cost per successful task.
 6. **Operations:** release manifests, rollback, timeouts, rate limits, telemetry, retention, and incident diagnosis.
 
-This repository implements parts of that foundation, not the entire list. Runtime deadlines/rate limits, production stage traces, relevance calibration, automated citations, and load testing remain work to do. Prompt-pattern checks are not a complete security boundary: retrieved documents must be treated as untrusted, and any future tools need explicit authorization.
+This repository implements parts of that foundation, not the entire list. Runtime deadlines/rate limits, durable production stage traces, relevance calibration, claim-by-claim citation verification and concurrency load testing remain work to do. Visible source excerpts and model-generated links do not prove factual correctness. Prompt-pattern checks are not a complete security boundary: retrieved documents must be treated as untrusted, and any future tools need explicit authorization.
 
 On Workers AI, Cloudflare operates GPU scheduling, batching, and model serving. This application cannot directly tune VRAM, FLOPS, quantization kernels, or KV-cache allocation. Self-hosted inference adds those responsibilities, plus capacity planning and model artifact management.
 
