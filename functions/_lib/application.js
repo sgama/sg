@@ -19,12 +19,14 @@ export async function parentSectionIds(matches, namespace) {
                     if (
                         typeof match.metadata.source !== 'string' ||
                         !match.metadata.source ||
+                        (match.metadata.parentSource !== undefined &&
+                            (typeof match.metadata.parentSource !== 'string' || !match.metadata.parentSource.trim())) ||
                         !Number.isInteger(match.metadata.parentIndex) ||
                         match.metadata.parentIndex >= 0
                     ) {
                         throw new Error('Invalid parent section reference');
                     }
-                    return corpusRecordId(namespace, match.metadata.source, match.metadata.parentIndex);
+                    return corpusRecordId(namespace, match.metadata.parentSource ?? match.metadata.source, match.metadata.parentIndex);
                 }),
             ),
         ),
@@ -39,7 +41,9 @@ export function expandSectionMatches(matches, sections) {
         let evidence = match;
         if (Number.isInteger(match.metadata?.parentIndex)) {
             const section = sections.find(
-                (item) => item.metadata?.source === match.metadata.source && item.metadata?.sectionIndex === match.metadata.parentIndex,
+                (item) =>
+                    item.metadata?.source === (match.metadata.parentSource ?? match.metadata.source) &&
+                    item.metadata?.sectionIndex === match.metadata.parentIndex,
             );
             if (
                 !section ||

@@ -2,9 +2,11 @@
 title: "Samson Gama at Demonware: Load Testing and Production Reliability"
 description: "Demonware role, platform technologies and engineering ownership."
 draft: false
+retrievalSource: "content/resume/_index.md"
+retrievalSection: "Professional Experience"
 ---
 
-# What did Samson build and operate at Demonware?
+# Samson Gama at Demonware: distributed load testing and reliability, 2020-2026
 
 Samson Gama was Senior Service Reliability Engineer at Demonware,
 Aug 2020 - Jan 2026.

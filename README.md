@@ -254,6 +254,17 @@ with a keyboard-accessible Details disclosure for timing and token-count tables.
 
 ### Authoring employer-facing RAG context
 
+Ingestion strips Hugo shortcode tags and Markdown images while preserving inner
+prose and fenced code examples, and skips heading-only sections. Embedding inputs
+include the page title and section label; stored excerpts remain the source text.
+Local and Cloudflare embedding paths use the same helper.
+Curated documents can declare `retrievalSource` (a public content file path) and
+`retrievalSection` (an exact level-one/two heading) in front matter. Hits expand
+to that canonical section rather than treating the curated summary as a separate
+record. Missing, ambiguous, non-public or oversized target sections fail corpus
+validation. This is generic source linkage, not a career-specific lookup.
+Reindex the changed corpus before expecting these retrieval improvements live.
+
 [`content/_context/`](content/_context/) holds headless Markdown: indexed for
 chat responses but not rendered as website pages. Its focused documents cover
 career overview, skills, employer-specific contributions, early career,

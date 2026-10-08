@@ -1,6 +1,6 @@
 # Test Suite Documentation
 
-The RAG fixture includes 33 cases: technical regressions plus recruiter/HR
+The RAG fixture includes 34 cases: technical regressions plus recruiter/HR
 screening for background, location, contact, education, mentoring, stakeholders
 and working style. Required negative cases cover unconfirmed start dates,
 authorization, relocation, work arrangement, compensation, departure reasons,
@@ -10,7 +10,7 @@ Conversational cases cover elliptical follow-ups, the role immediately preceding
 Bitcomplete, website deployment, and a topic change. For these,
 retrieval reports record the bounded standalone query and gate its labeled terms
 alongside expected sources and evidence. One full comparison can now make up to
-33 generation calls per model/repetition; negative cases are excluded from
+34 generation calls per model/repetition; negative cases are excluded from
 source-hit and evidence-rate denominators.
 Corpus tests check generic heading boundaries, fenced-code handling, bounded
 parent sections, source-specific deterministic IDs, and content-driven namespace

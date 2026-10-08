@@ -2,9 +2,11 @@
 title: "Samson Gama at Bitcomplete: GPU Infrastructure and GitOps"
 description: "Role, dates and documented GPU infrastructure contributions."
 draft: false
+retrievalSource: "content/resume/_index.md"
+retrievalSection: "Professional Experience"
 ---
 
-# What was Samson's role at Bitcomplete?
+# Samson Gama at Bitcomplete: GPU infrastructure, March-June 2026
 
 Samson Gama was Senior Service Reliability Engineer, GPU Infrastructure at
 Bitcomplete from Mar 2026 - Jun 2026. The role ended in June 2026.

@@ -6,7 +6,7 @@ retrievalSource: "content/resume/_index.md"
 retrievalSection: "Professional Experience"
 ---
 
-# Samson Gama's engineering internships, 2014-2016
+# Samson Gama's software engineering internships, 2014-2016
 
 These internships are historical experience, not Samson's most recent
 engineering roles. Entries below are ordered newest first.
@@ -27,6 +27,6 @@ users through 2020; that administration extended beyond the internship dates.
 
 Source: [resume](/resume/), reviewed 2026-10-07.
 
-<!-- FILL IN: Which projects best demonstrate transferable skills?
+<!-- FILL IN: Which early projects best demonstrate transferable skills?
 Add a short example of debugging, learning a new domain or shipping software.
 Distinguish historical experience from current proficiency. -->

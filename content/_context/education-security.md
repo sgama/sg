@@ -4,7 +4,7 @@ description: "Documented education and security achievements with bounded claims
 draft: false
 ---
 
-# What education and security background does Samson have?
+# What education and security background does Samson have
 
 Samson Gama's resume lists University of British Columbia, B.A.Sc.,
 Computer Engineering, 2017.

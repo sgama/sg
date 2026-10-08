@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util';
 import 'dotenv/config';
 import { AI_CONFIG, buildMessages, getModel } from '../functions/_lib/application.js';
 import { createCloudflareAi } from './lib/cloudflare-ai.mjs';
-import { buildCorpus } from './lib/corpus.mjs';
+import { buildCorpus, embeddingText } from './lib/corpus.mjs';
 import { compareModels, evaluateRetrieval, fixtureHash, validateFixture, retrievalEvidenceRate } from './lib/ai-evaluation.mjs';
 import { createLocalAi, searchVectors } from './lib/local-ai.mjs';
 
@@ -154,7 +154,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = fetch } =
         const vectors = [];
         const start = performance.now();
         for (let offset = 0; offset < corpus.chunks.length; offset += 8) {
-            vectors.push(...(await local.embed(corpus.chunks.slice(offset, offset + 8).map((chunk) => chunk.text))));
+            vectors.push(...(await local.embed(corpus.chunks.slice(offset, offset + 8).map(embeddingText))));
         }
         report.indexingMs = performance.now() - start;
         report.embeddingGpu = await local.gpuEvidence(corpus.embedding.model);

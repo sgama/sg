@@ -2,6 +2,15 @@
   "version": 1,
   "cases": [
     {
+      "id": "recent-engineering-summary",
+      "query": "Summarize Samson's recent engineering experience.",
+      "expectedSources": ["content/resume/_index.md", "content/about/_index.md"],
+      "evidenceTerms": [["bitcomplete"], ["demonware"], ["2026"]],
+      "answerTerms": [["bitcomplete"], ["demonware"], ["2026"]],
+      "forbiddenTerms": ["recently completed a role as a software developer intern", "currently serves", "currently works"],
+      "required": true
+    },
+    {
       "id": "site-stack",
       "evidenceTerms": [["hugo"], ["cloudflare"]],
       "query": "What is Samson's website built with?",

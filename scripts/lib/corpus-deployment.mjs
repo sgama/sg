@@ -4,7 +4,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
-import { buildCorpus, validateCorpus } from './corpus.mjs';
+import { buildCorpus, validateCorpus, embeddingText } from './corpus.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';
 
 export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
@@ -33,7 +33,9 @@ export async function ingestCorpus(
             limit(async () => {
                 controller.signal.throwIfAborted();
                 try {
-                    const result = await runEmbedding(client, accountId, corpus.embedding.model, [chunk.text], { signal: controller.signal });
+                    const result = await runEmbedding(client, accountId, corpus.embedding.model, [embeddingText(chunk)], {
+                        signal: controller.signal,
+                    });
                     controller.signal.throwIfAborted();
                     const values = result?.data?.[0];
                     if (

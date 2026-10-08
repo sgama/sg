@@ -4,8 +4,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import Cloudflare from 'cloudflare';
-import { buildCorpus, validateCorpus, sourceSections } from '../../scripts/lib/corpus.mjs';
-import { AI_CONFIG, corpusRecordId } from '../../functions/_lib/application.js';
+import { buildCorpus, validateCorpus, sourceSections, ingestionText, embeddingText } from '../../scripts/lib/corpus.mjs';
+import { AI_CONFIG, corpusRecordId, parentSectionIds, expandSectionMatches } from '../../functions/_lib/application.js';
 import { createMaintenanceClient, ingestCorpus, refreshCorpus } from '../../scripts/lib/corpus-deployment.mjs';
 
 test('canonical resume uses the same addressable parent sections as other sources', async () => {
@@ -27,6 +27,58 @@ test('canonical resume uses the same addressable parent sections as other source
     assert.doesNotMatch(corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/profile.md').text, /Employment chronology/);
 });
 
+test('ingestion removes presentation wrappers and media while retaining inner prose', () => {
+    assert.equal(ingestionText('{{< figure src="portrait.webp" >}}\n![Portrait](portrait.webp)'), '');
+    assert.equal(ingestionText('{{< button href="/resume/" >}}Read resume{{< /button >}}'), 'Read resume');
+    const code = '```markdown\n{{< figure src="example.webp" >}}\n![Example](example.webp)\n```';
+    assert.equal(ingestionText(code), code);
+    assert.equal(embeddingText({ text: 'Facts', metadata: { title: 'Project', section: 'Deployment' } }), 'Project — Deployment\n\nFacts');
+});
+
+test('generic curated source linkage expands to a public section regardless of file order', async (t) => {
+    const root = await fixture(t, {
+        'content/_context/project.md':
+            '---\ntitle: Searchable project excerpt\nretrievalSource: content/posts/project/index.md\nretrievalSection: Deployment\n---\nSpecific search phrasing.',
+        'content/posts/project/index.md':
+            '---\ntitle: Project\n---\n## Deployment\n\nCanonical deployment and rollback facts.\n\n## Other\n\nUnrelated facts.',
+        'content/portrait.md': '{{< figure src="portrait.webp" >}}',
+    });
+    const corpus = await buildCorpus({ root });
+    assert.equal(corpus.counts.emptyFiles, 1);
+    const child = corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/project.md');
+    assert.equal(child.metadata.parentSource, 'content/posts/project/index.md');
+    const ids = await parentSectionIds([child], corpus.namespace);
+    const parents = corpus.chunks.filter((chunk) => ids.includes(chunk.id));
+    const expanded = expandSectionMatches([child], parents);
+    assert.equal(expanded[0].metadata.url, '/posts/project');
+    assert.match(expanded[0].metadata.text, /Canonical deployment/);
+    assert.doesNotMatch(expanded[0].metadata.text, /Unrelated/);
+    assert.equal(expandSectionMatches([child, child], parents).length, 1);
+    for (const parentSource of ['', 42, null]) {
+        await assert.rejects(parentSectionIds([{ ...child, metadata: { ...child.metadata, parentSource } }], corpus.namespace), /Invalid parent/);
+    }
+    await writeFile(
+        path.join(root, 'content/_context/project.md'),
+        '---\nretrievalSource: content/missing.md\nretrievalSection: Missing\n---\nFacts',
+    );
+    await assert.rejects(buildCorpus({ root }), /Missing or ambiguous/);
+});
+
+test('canonical linkage rejects ambiguous, internal, draft and oversized target sections', async (t) => {
+    for (const [target, text, expected] of [
+        ['content/page.md', '## Evidence\nOne\n## Evidence\nTwo', /Missing or ambiguous/],
+        ['content/page.md', '## Evidence', /Empty public retrieval section/],
+        ['content/_context/private.md', '## Evidence\nInternal facts', /Missing or ambiguous/],
+        ['content/page.md', '---\ndraft: true\n---\n## Evidence\nDraft facts', /Missing or ambiguous/],
+        ['content/page.md', `## Evidence\n${'Long evidence. '.repeat(500)}`, /exceeds context budget/],
+    ]) {
+        const root = await fixture(t, {
+            'content/_context/link.md': `---\nretrievalSource: ${target}\nretrievalSection: Evidence\n---\nSearchable facts`,
+            [target]: text,
+        });
+        await assert.rejects(buildCorpus({ root }), expected);
+    }
+});
 test('section boundaries retain subsections and ignore headings inside fenced code', () => {
     const content =
         '# Project\n\nIntro\n\n## Deployment\n\n### Steps\n\n```markdown\n## Not a section\n```\n\n~~~\n## Also code\n~~~\n\n## Monitoring\n\nAlerts';

@@ -11,6 +11,41 @@ const digest = (value) => createHash('sha256').update(value).digest('hex');
 const namespaceFor = (hash) => `corpus-${hash.slice(0, 56)}`;
 const chunkId = (namespace, source, index) => digest(`${namespace}\0${source}\0${index}`);
 
+export function ingestionText(content) {
+    const output = [];
+    let prose = [];
+    let fence = null;
+    const flush = () => {
+        output.push(
+            prose
+                .join('\n')
+                .replace(/{{[<%][\s\S]*?[>%]}}/g, '')
+                .replace(/!\[[^\]]*\]\([^)]*\)/g, ''),
+        );
+        prose = [];
+    };
+    for (const line of content.split(/\r?\n/)) {
+        const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+        if (fence) {
+            output.push(line);
+            if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+        } else if (marker) {
+            flush();
+            output.push(line);
+            fence = marker[1];
+        } else {
+            prose.push(line);
+        }
+    }
+    flush();
+    return output.join('\n').trim();
+}
+
+export function embeddingText(chunk) {
+    const labels = [chunk.metadata.title, chunk.metadata.section].filter((label) => label && label !== 'Untitled');
+    return labels.length ? `${labels.join(' — ')}\n\n${chunk.text}` : chunk.text;
+}
+
 export function sourceSections(content) {
     const sections = [];
     let lines = [];
@@ -60,12 +95,19 @@ export function validateCorpus(corpus) {
         throw new Error('Corpus hash or namespace does not match its contents');
     }
     for (const chunk of corpus.chunks) {
+        if (
+            chunk.metadata.parentSource !== undefined &&
+            (typeof chunk.metadata.parentSource !== 'string' || !chunk.metadata.parentSource.trim() || !Number.isInteger(chunk.metadata.parentIndex))
+        ) {
+            throw new Error(`Invalid parent source: ${chunk.id}`);
+        }
         if (chunk.id !== chunkId(corpus.namespace, chunk.metadata.source, chunk.chunkIndex)) {
             throw new Error(`Invalid chunk ID: ${chunk.id}`);
         }
         if (Number.isInteger(chunk.metadata.parentIndex)) {
             const parent = corpus.chunks.find(
-                (item) => item.metadata.source === chunk.metadata.source && item.chunkIndex === chunk.metadata.parentIndex,
+                (item) =>
+                    item.metadata.source === (chunk.metadata.parentSource ?? chunk.metadata.source) && item.chunkIndex === chunk.metadata.parentIndex,
             );
             if (!parent || parent.metadata.recordType !== 'section') throw new Error(`Missing parent section: ${chunk.id}`);
         }
@@ -83,7 +125,12 @@ export function validateCorpus(corpus) {
 
 export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.embedding, chunking = CHUNK_CONFIG } = {}) {
     const embeddingConfig = { model: embedding.model, dimensions: embedding.dimensions };
-    const chunkConfig = { chunkSize: chunking.chunkSize, chunkOverlap: chunking.chunkOverlap, maxSectionChars: AI_CONFIG.retrieval.maxSectionChars };
+    const chunkConfig = {
+        chunkSize: chunking.chunkSize,
+        chunkOverlap: chunking.chunkOverlap,
+        maxSectionChars: AI_CONFIG.retrieval.maxSectionChars,
+        embeddingLabels: true,
+    };
     if (
         typeof embeddingConfig.model !== 'string' ||
         !embeddingConfig.model.trim() ||
@@ -106,6 +153,8 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
     const splitter = new MarkdownTextSplitter(chunkConfig);
     const sectionSplitter = new MarkdownTextSplitter({ chunkSize: chunkConfig.maxSectionChars, chunkOverlap: chunkConfig.chunkOverlap });
     const files = (await glob('content/**/*.md', { cwd: root, nodir: true })).sort();
+    const links = [];
+    const sourceContent = new Map();
     const corpus = {
         version: 2,
         embedding: embeddingConfig,
@@ -124,6 +173,7 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
             indexContent = content.replace(/<!--[\s\S]*?-->/g, '');
             if (indexContent.includes('<!--')) throw new Error(`Unclosed authoring comment in ${source}`);
         }
+        indexContent = ingestionText(indexContent);
         const status = data.draft ? 'draft' : indexContent.trim() ? 'included' : 'empty';
         corpus.sources.push({ source, hash: digest(raw), status });
         if (status !== 'included') {
@@ -143,9 +193,17 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
             title: String(data.title || 'Untitled'),
             ...(isContext ? {} : { url: url || '/' }),
         };
+        sourceContent.set(source, { identity, sections: sourceSections(indexContent) });
+        if (data.retrievalSource !== undefined || data.retrievalSection !== undefined) {
+            if (typeof data.retrievalSource !== 'string' || typeof data.retrievalSection !== 'string' || !data.retrievalSection.trim()) {
+                throw new Error(`Invalid retrieval source/section in ${source}`);
+            }
+            links.push({ source, target: data.retrievalSource, section: data.retrievalSection });
+        }
         let chunkIndex = 0;
         let sectionIndex = -1;
         for (const section of sourceSections(indexContent)) {
+            if (!section.text.replace(/^#{1,6}\s+.*$/gm, '').trim()) continue;
             const parents = await sectionSplitter.splitText(section.text);
             for (const text of parents) {
                 const segments = await splitter.splitText(text);
@@ -170,6 +228,36 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
                     });
                 }
             }
+        }
+    }
+    for (const link of links) {
+        const target = sourceContent.get(link.target);
+        const sections = target?.sections.filter((section) => section.heading === link.section);
+        if (!target || sections.length !== 1 || target.identity.type !== 'content') {
+            throw new Error(`Missing or ambiguous public retrieval section for ${link.source}`);
+        }
+        const section = sections[0];
+        if (!section.text.replace(/^#{1,6}\s+.*$/gm, '').trim()) {
+            throw new Error(`Empty public retrieval section for ${link.source}`);
+        }
+        if (section.text.length > chunkConfig.maxSectionChars) {
+            throw new Error(`Linked retrieval section exceeds context budget for ${link.source}`);
+        }
+        let parent = corpus.chunks.find(
+            (chunk) => chunk.metadata.source === link.target && chunk.metadata.section === link.section && chunk.metadata.recordType === 'section',
+        );
+        if (!parent) {
+            const index = Math.min(0, ...corpus.chunks.filter((chunk) => chunk.metadata.source === link.target).map((chunk) => chunk.chunkIndex)) - 1;
+            parent = {
+                chunkIndex: index,
+                text: section.text,
+                metadata: { ...target.identity, section: section.heading, recordType: 'section', sectionIndex: index, text: section.text },
+            };
+            corpus.chunks.push(parent);
+        }
+        for (const chunk of corpus.chunks.filter((chunk) => chunk.metadata.source === link.source)) {
+            chunk.metadata.parentSource = link.target;
+            chunk.metadata.parentIndex = parent.chunkIndex;
         }
     }
     corpus.counts.chunks = corpus.chunks.length;

@@ -2,6 +2,8 @@
 title: "Samson Gama at Mastercard: AWS Reliability and Operational Tooling"
 description: "Nudata Security infrastructure, debugging and security education work."
 draft: false
+retrievalSource: "content/resume/_index.md"
+retrievalSection: "Professional Experience"
 ---
 
 # What did Samson do at Mastercard / Nudata Security?
