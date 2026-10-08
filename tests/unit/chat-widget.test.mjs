@@ -5,7 +5,7 @@ import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } f
 import { createAnswerParser, streamAnswer } from '../../assets/js/chat/stream.js';
 import { createChatScroller } from '../../assets/js/chat/scroll.js';
 import { setImmediate } from 'node:timers/promises';
-import { publicEvidence } from '../../assets/js/chat/evidence.js';
+import { publicEvidence, createEvidencePanel } from '../../assets/js/chat/evidence.js';
 
 test('answer parser handles split CRLF events, usage, and completion', () => {
     const deltas = [];
@@ -69,10 +69,31 @@ test('public evidence excludes internal and unsafe links and strips internal met
     assert.deepEqual(evidence, [{ url: '/resume/', title: 'Resume', section: '', text: 'Facts' }]);
 });
 
-test('widget exposes public evidence and copies only the answer, not diagnostics or sources', async (t) => {
+test('source excerpts delegate Markdown to the shared renderer with a literal fallback', () => {
+    const document = {
+        createElement: () => ({
+            children: [],
+            classList: { add() {} },
+            append(...children) {
+                this.children.push(...children);
+            },
+        }),
+    };
+    const evidence = [{ url: '/resume/', title: 'Resume', text: '## Experience\n\n**Engineer**' }];
+    const rendered = [];
+    const panel = createEvidencePanel(evidence, document, {
+        write(element, text, sender) {
+            rendered.push({ text, sender });
+            element.textContent = 'Rendered safely';
+        },
+    });
+    assert.deepEqual(rendered, [{ text: evidence[0].text, sender: 'bot' }]);
+    assert.equal(panel.children[2].children[1].textContent, 'Rendered safely');
+    assert.equal(createEvidencePanel(evidence, document).children[2].children[1].textContent, evidence[0].text);
+});
+
+test('widget exposes public evidence without a copy button and keeps evidence out of API history', async (t) => {
     const f = await widgetFixture(t);
-    const copied = [];
-    navigator.clipboard = { writeText: async (text) => copied.push(text) };
     t.mock.method(
         globalThis,
         'fetch',
@@ -89,20 +110,13 @@ test('widget exposes public evidence and copies only the answer, not diagnostics
     const evidence = message.children.find((child) => child.classList.contains('response-evidence'));
     assert.ok(evidence);
     assert.equal(evidence.children[0].textContent, 'Retrieved sources (1)');
-    const copy = message.children.find((child) => child.classList.contains('copy-answer'));
-    copy.dispatchEvent(new Event('click'));
-    await setImmediate();
-    assert.deepEqual(copied, ['Answer only']);
-    assert.equal(copy.textContent, 'Copied');
+    assert.equal(
+        message.children.some((child) => child.classList.contains('copy-answer')),
+        false,
+    );
     const history = JSON.parse(f.local.get(STORAGE_KEY));
     assert.equal(history.at(-1).evidence[0].url, '/resume/');
     assert.deepEqual(apiHistory(history, history[0].text).at(-1), { role: 'assistant', content: 'Answer only' });
-    navigator.clipboard.writeText = async () => {
-        throw new Error('Clipboard blocked');
-    };
-    copy.dispatchEvent(new Event('click'));
-    await setImmediate();
-    assert.match(copy.textContent, /Copy failed/);
 });
 
 test('widget displays actual server progress before answer tokens arrive', async (t) => {
@@ -124,12 +138,46 @@ test('widget displays actual server progress before answer tokens arrive', async
     await f.submit('Question');
     stream.enqueue(new TextEncoder().encode('data: {"progress":"search"}\n\n'));
     await setImmediate();
-    assert.equal(f.roles.status.textContent, 'Finding sources…');
-    assert.equal(f.roles.transcript.children.at(-1).textContent, 'Finding sources…');
+    assert.equal(f.roles.status.textContent, '🔎 Finding sources…');
+    assert.match(f.roles.transcript.children.at(-1).textContent, /^🔎 Finding sources… · \d+s elapsed$/);
     stream.enqueue(new TextEncoder().encode('data: {"response":"Finished"}\n\ndata: [DONE]\n\n'));
     stream.close();
     await setImmediate();
     assert.equal(f.roles.status.textContent, 'Response complete.');
+});
+
+test('starter shortcuts appear in an empty conversation and submit only on click', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    const starters = f.roles.transcript.children.find((child) => child.classList.contains('chat-starters'));
+    assert.equal(starters.children.length, 4);
+    assert.equal(f.fetchRequests.length, 0);
+    starters.children[0].dispatchEvent(new Event('click'));
+    await setImmediate();
+    assert.equal(f.fetchRequests.length, 1);
+    assert.equal(
+        f.roles.transcript.children.some((child) => child.classList.contains('chat-starters')),
+        false,
+    );
+});
+
+test('retry is manual and reuses the original query and prior history without failed exchange', async (t) => {
+    const f = await widgetFixture(t);
+    const requests = [];
+    t.mock.method(globalThis, 'fetch', async (_url, init) => {
+        requests.push(JSON.parse(init.body));
+        if (requests.length === 1) throw new Error('Connection failed');
+        return new Response('data: {"response":"Success"}\n\ndata: [DONE]\n\n');
+    });
+    f.widget.open();
+    await f.submit('Retry question');
+    assert.equal(requests.length, 1);
+    const retry = f.roles.transcript.children.at(-1).children.find((child) => child.classList.contains('chat-retry'));
+    assert.ok(retry);
+    retry.dispatchEvent(new Event('click'));
+    await setImmediate();
+    assert.deepEqual(requests[1], requests[0]);
+    assert.equal(f.roles.transcript.children.at(-1).dataset.rawText, 'Success');
 });
 
 test('widget renders and persists response metrics outside answer text and API history', async (t) => {
@@ -249,7 +297,7 @@ test('clear history requires confirmation and persists only the welcome message'
     f.confirm(true);
     f.roles.clear.dispatchEvent(new Event('click'));
     assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 1);
-    assert.equal(f.roles.transcript.children.length, 1);
+    assert.equal(f.roles.transcript.children.length, 2);
     assert.equal(f.roles.status.textContent, 'Chat history cleared.');
 });
 
@@ -527,14 +575,20 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
             setAttribute(key, value) {
                 this.attributes.set(key, value);
             },
-            querySelectorAll() {
-                return [];
+            querySelectorAll(selector) {
+                return selector?.startsWith('.') ? this.children.filter((child) => child.classList.contains(selector.slice(1))) : [];
             },
             focus() {
                 this.focused = true;
             },
             append(...children) {
+                children.forEach((child) => {
+                    child.parent = this;
+                });
                 this.children.push(...children);
+            },
+            remove() {
+                if (this.parent) this.parent.children = this.parent.children.filter((child) => child !== this);
             },
             replaceChildren(...children) {
                 this.children = children;

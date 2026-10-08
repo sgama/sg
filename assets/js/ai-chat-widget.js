@@ -18,7 +18,7 @@ class AiChatWidget extends HTMLElement {
     #conversationReady = false;
     #metrics = new WeakMap();
     #evidence = new WeakMap();
-    #completed = new WeakSet();
+    #retries = new WeakMap();
     #storage = createStore(() => localStorage, { json: true });
     #session = createStore(() => sessionStorage);
 
@@ -183,30 +183,46 @@ class AiChatWidget extends HTMLElement {
 
     #renderHistory() {
         this.#dom.transcript.replaceChildren(...this.#history.map((message) => this.#buildMessage(message)));
+        if (this.#history.length === 1 && this.#history[0].text === WELCOME_MESSAGE) {
+            const starters = document.createElement('div');
+            starters.classList.add('chat-starters');
+            for (const [label, query] of [
+                ['Summarize his experience', "Summarize Samson's recent engineering experience."],
+                ['Show a technical project', 'Show me a technical project Samson built and explain its architecture.'],
+                ['What has he built at scale?', 'What has Samson built or operated at scale?'],
+                ['How does this assistant work?', "How does Samson's portfolio AI assistant work?"],
+            ]) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = label;
+                button.addEventListener('click', () => {
+                    if (this.#request) return;
+                    this.#dom.input.value = query.slice(0, this.#dom.input.maxLength);
+                    this.#dom.form.requestSubmit();
+                });
+                starters.append(button);
+            }
+            this.#dom.transcript.append(starters);
+        }
         this.#scroller.changed();
     }
 
     #writeMessage(element, text, sender) {
         messageRenderer.write(element, text, sender);
         const evidence = sender === 'bot' ? this.#evidence.get(element) : null;
-        if (evidence?.length) element.append(createEvidencePanel(evidence, document));
-        if (sender === 'bot' && text && this.#completed.has(element)) {
-            const copy = document.createElement('button');
-            copy.type = 'button';
-            copy.classList.add('copy-answer');
-            copy.textContent = 'Copy answer';
-            copy.addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    copy.textContent = 'Copied';
-                    this.#dom.status.textContent = 'Answer copied.';
-                } catch (error) {
-                    console.error('Copy answer failed.', error);
-                    copy.textContent = 'Copy failed — select text instead';
-                    this.#dom.status.textContent = 'Could not copy the answer. Select the answer text to copy it manually.';
-                }
+        if (evidence?.length) element.append(createEvidencePanel(evidence, document, messageRenderer));
+        const retry = this.#retries.get(element);
+        if (retry) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.classList.add('chat-retry');
+            button.textContent = 'Retry';
+            button.addEventListener('click', () => {
+                if (this.#request) return;
+                this.#dom.input.value = retry.query;
+                this.#submit(retry);
             });
-            element.append(copy);
+            element.append(button);
         }
         const metrics = sender === 'bot' ? this.#metrics.get(element) : null;
         const footer = createMetricsFooter(metrics, document);
@@ -220,7 +236,6 @@ class AiChatWidget extends HTMLElement {
         element.setAttribute('aria-label', message.sender === 'user' ? 'You' : 'Assistant');
         if (message.metrics) this.#metrics.set(element, message.metrics);
         if (message.evidence) this.#evidence.set(element, publicEvidence(message.evidence));
-        if (message.sender === 'bot' && message.text && message.text !== WELCOME_MESSAGE) this.#completed.add(element);
         this.#writeMessage(element, message.text, message.sender);
         return element;
     }
@@ -244,8 +259,8 @@ class AiChatWidget extends HTMLElement {
     #finishRequest(request, text, status) {
         if (this.#request !== request) return;
         if (request.frame !== null) cancelAnimationFrame(request.frame);
+        clearInterval(request.timer);
         request.message.text = text;
-        this.#completed.add(request.element);
         this.#writeMessage(request.element, text, 'bot');
         this.#persist();
         this.#request = null;
@@ -260,10 +275,12 @@ class AiChatWidget extends HTMLElement {
         this.#finishRequest(request, request.answer ? `${request.answer}\n\n(Response stopped.)` : 'Response stopped.', 'Response stopped.');
     }
 
-    async #submit() {
+    async #submit(retry = null) {
         const text = this.#dom.input.value.trim();
         if (!text || this.#request || !this.#dom.form.reportValidity()) return;
         this.#scroller.changed(true);
+        this.#dom.transcript.querySelectorAll('.chat-starters').forEach((element) => element.remove());
+        const history = retry?.history ?? apiHistory(this.#history, WELCOME_MESSAGE);
         this.#appendMessage({ text, sender: 'user' });
         this.#dom.input.value = '';
         const message = { text: '', sender: 'bot' };
@@ -273,27 +290,39 @@ class AiChatWidget extends HTMLElement {
             element: this.#appendMessage(message),
             answer: '',
             frame: null,
+            started: performance.now(),
+            stage: 'Connecting…',
+            history,
+            query: text,
         };
         this.#request = request;
         this.#persist();
         this.#setBusy(true);
+        const showElapsed = () => {
+            if (this.#request !== request || request.answer) return;
+            const label = `${request.stage} · ${Math.floor((performance.now() - request.started) / 1000)}s elapsed`;
+            request.element.textContent = label;
+            this.#scroller.changed();
+        };
+        request.timer = setInterval(showElapsed, 1000);
+        showElapsed();
         this.#dom.input.focus({ preventScroll: true });
         try {
             if (!navigator.onLine) throw new Error('Offline');
             const answer = await streamAnswer(text, {
-                history: apiHistory(this.#history.slice(0, -2), WELCOME_MESSAGE),
+                history,
                 signal: request.controller.signal,
                 onProgress: (stage) => {
                     if (this.#request !== request) return;
                     const labels = {
-                        rewrite: 'Understanding your follow-up…',
-                        embedding: 'Preparing source search…',
-                        search: 'Finding sources…',
-                        generation: 'Writing answer…',
+                        rewrite: '🧠 Understanding your follow-up…',
+                        embedding: '🧩 Preparing source search…',
+                        search: '🔎 Finding sources…',
+                        generation: '✍️ Writing answer…',
                     };
                     this.#dom.status.textContent = labels[stage];
-                    if (!request.answer) request.element.textContent = labels[stage];
-                    this.#scroller.changed();
+                    request.stage = labels[stage];
+                    showElapsed();
                 },
                 onEvidence: (value) => {
                     if (this.#request !== request) return;
@@ -309,6 +338,7 @@ class AiChatWidget extends HTMLElement {
                 onUpdate: (answer) => {
                     if (this.#request !== request) return;
                     request.answer = answer;
+                    clearInterval(request.timer);
                     if (request.frame !== null) return;
                     request.frame = requestAnimationFrame(() => {
                         request.frame = null;
@@ -323,6 +353,7 @@ class AiChatWidget extends HTMLElement {
             const explanation = !navigator.onLine
                 ? 'You appear to be offline. Check your connection and try again.'
                 : 'The response could not be completed. Please try again.';
+            this.#retries.set(request.element, { query: request.query, history: request.history });
             this.#finishRequest(request, request.answer ? `${request.answer}\n\n${explanation}` : explanation, explanation);
         }
     }

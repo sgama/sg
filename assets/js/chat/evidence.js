@@ -19,7 +19,7 @@ export function publicEvidence(value) {
         }));
 }
 
-export function createEvidencePanel(value, document) {
+export function createEvidencePanel(value, document, renderer) {
     const evidence = publicEvidence(value);
     if (!evidence.length) return null;
     const panel = document.createElement('details');
@@ -38,8 +38,10 @@ export function createEvidencePanel(value, document) {
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.textContent = item.section ? `${item.title} — ${item.section}` : item.title;
-        const excerpt = document.createElement('pre');
-        excerpt.textContent = item.text;
+        const excerpt = document.createElement('div');
+        excerpt.classList.add('evidence-excerpt');
+        if (renderer) renderer.write(excerpt, item.text, 'bot');
+        else excerpt.textContent = item.text;
         card.append(link, excerpt);
         panel.append(card);
     }

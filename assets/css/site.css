@@ -614,7 +614,7 @@
         margin-block-start: 0.5rem;
     }
 
-    .chat-widget .message .evidence-card pre {
+    .chat-widget .evidence-excerpt {
         white-space: pre-wrap;
         max-height: 12rem;
         overflow: auto;
@@ -624,17 +624,33 @@
         border-radius: 0.5rem;
     }
 
-    .chat-widget .copy-answer {
-        color: var(--chat-muted);
-        border: 1px solid var(--chat-border);
-        border-radius: 0.4rem;
-        padding: 0.35rem 0.6rem;
-        margin-block-start: 0.5rem;
-        font-size: 0.7rem;
-        cursor: pointer;
+    .chat-widget .chat-starters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
-    .chat-widget .copy-answer:focus-visible,
+    .chat-widget .chat-starters button,
+    .chat-widget .chat-retry {
+        border: 1px solid var(--chat-border);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.65rem;
+        color: var(--chat-text);
+        background: var(--chat-panel);
+        cursor: pointer;
+        font-size: 0.75rem;
+    }
+
+    .chat-widget .chat-retry {
+        margin-block-start: 0.5rem;
+    }
+
+    .chat-widget .chat-starters button:focus-visible,
+    .chat-widget .chat-retry:focus-visible {
+        outline: 2px solid var(--chat-accent);
+        outline-offset: 2px;
+    }
+
     .chat-widget .response-evidence summary:focus-visible {
         outline: 2px solid var(--chat-accent);
         outline-offset: 2px;
