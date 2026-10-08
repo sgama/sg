@@ -1,3 +1,4 @@
+import { corpusFixture } from '../helpers/corpus.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm, stat } from 'node:fs/promises';
 import os from 'node:os';
@@ -239,4 +240,52 @@ test('retrieval and generation failures write reports before failing the CLI', a
             assert.equal(report.results[1].abstained, true);
         }
     }
+});
+
+test('offline CLI needs no credentials, writes reproducible manifest, and import is side-effect safe', async (t) => {
+    const root = await corpusFixture(t);
+    const manifest = path.join(root, 'manifest.json');
+    const script = path.resolve('scripts/generate_embeddings.mjs');
+    const env = { ...process.env };
+    delete env.CLOUDFLARE_ACCOUNT_ID;
+    delete env.CLOUDFLARE_API_TOKEN;
+    const result = spawnSync(process.execPath, [script, '--check', '--manifest', manifest], {
+        cwd: root,
+        env,
+        encoding: 'utf8',
+        timeout: 10000,
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).namespace, (await buildCorpus({ root })).namespace);
+    const { readFile } = await import('node:fs/promises');
+    const saved = JSON.parse(await readFile(manifest, 'utf8'));
+    const corpus = await buildCorpus({ root });
+    assert.equal(saved.namespace, corpus.namespace);
+    assert.equal(saved.hash, corpus.hash);
+    assert.deepEqual(saved.embedding, corpus.embedding);
+    assert.deepEqual(saved.counts, corpus.counts);
+    assert.deepEqual(saved.sources, corpus.sources);
+    assert.deepEqual(
+        saved.chunks.map(({ id }) => id),
+        corpus.chunks.map(({ id }) => id),
+    );
+    assert.ok(saved.chunks.every((chunk) => !Object.hasOwn(chunk, 'text') && !Object.hasOwn(chunk.metadata, 'text')));
+    const imported = spawnSync(
+        process.execPath,
+        ['--input-type=module', '-e', `await import(${JSON.stringify(new URL('../../scripts/generate_embeddings.mjs', import.meta.url).href)})`],
+        { env, encoding: 'utf8', timeout: 10000 },
+    );
+    assert.ifError(imported.error);
+    assert.equal(imported.status, 0, imported.stderr);
+    assert.equal(imported.stdout, '');
+    const rejected = spawnSync(process.execPath, [script], {
+        cwd: root,
+        env,
+        encoding: 'utf8',
+        timeout: 10000,
+    });
+    assert.ifError(rejected.error);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /--namespace/);
 });

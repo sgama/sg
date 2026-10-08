@@ -1,3 +1,4 @@
+import { integrityFixture } from '../helpers/corpus.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
@@ -13,6 +14,18 @@ test('corpus contracts reject invalid shapes and inconsistent evidence even with
     await writeFile(path.join(root, 'content/page.md'), '---\ntitle: Page\n---\nEvidence.');
     const corpus = await buildCorpus({ root, sourceUrls: new Map([['content/page.md', '/page/']]) });
     for (const [mutate, expected] of [
+        [
+            (value) => {
+                delete value.chunks[0].metadata.recordType;
+            },
+            /invalid_value/,
+        ],
+        [
+            (value) => {
+                delete value.chunking.normalizationVersion;
+            },
+            /invalid_value/,
+        ],
         [
             (value) => {
                 value.chunks[0].metadata.parentIndex = 'bad';
@@ -56,5 +69,30 @@ test('corpus contracts reject invalid shapes and inconsistent evidence even with
         changed.namespace = namespaceFor(changed.hash);
         for (const chunk of changed.chunks) chunk.id = chunkId(changed.namespace, chunk.metadata.source, chunk.chunkIndex);
         assert.throws(() => validateCorpus(changed), expected);
+    }
+});
+
+test('tampered metadata, namespaces and chunk IDs fail integrity validation', async (t) => {
+    const { corpus } = await integrityFixture(t);
+    for (const mutate of [
+        (value) => {
+            value.chunks[0].metadata.source = 'content/other.md';
+        },
+        (value) => {
+            value.chunks[0].metadata.text = 'Invented evidence';
+        },
+        (value) => {
+            value.chunks[0].chunkIndex = 99;
+        },
+        (value) => {
+            value.namespace = `corpus-${'0'.repeat(56)}`;
+        },
+        (value) => {
+            value.chunks[0].id = 'wrong';
+        },
+    ]) {
+        const changed = structuredClone(corpus);
+        mutate(changed);
+        assert.throws(() => validateCorpus(changed), /hash or namespace|Invalid chunk ID/);
     }
 });

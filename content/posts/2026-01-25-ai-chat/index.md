@@ -1,9 +1,10 @@
 ---
 title: "Building a Serverless AI Chatbot for My Static Portfolio"
 date: 2026-01-25
+lastmod: 2026-10-07
 slug: "ai-chat"
-description: "A technical deep-dive into adding a RAG-based AI assistant to a Hugo site using Cloudflare Pages, Workers AI, and Vectorize."
-summary: "How I added a 'Speak with AI' feature to this static website using Cloudflare's serverless ecosystem without spending a dime on hosting."
+description: "How this Hugo portfolio uses Cloudflare Pages Functions, Workers AI and a versioned Vectorize corpus to answer questions with source excerpts."
+summary: "A custom portfolio assistant with contextual follow-ups, streamed answers, public source evidence and measurable latency and token cost."
 tags: ["ai", "cloudflare", "hugo", "javascript", "rag"]
 showDate: true
 series: ["Cloudflare Developments"]
@@ -11,282 +12,106 @@ series: ["Cloudflare Developments"]
 
 ![Featured image](featured.webp)
 
-Static sites are great—fast, secure, and cheap. but they often lack interactivity. I wanted to let visitors "chat" with my portfolio, asking questions like *"What experience does Samson have with Python?"* or *"Tell me about the EV Trip Analyzer project."*
+Static sites are fast and straightforward to host, but visitors still need a way to find relevant information. I built a custom assistant for questions such as "What has Samson built at scale?" rather than embedding a generic chatbot iframe. This article describes the current implementation, updated in October 2026.
 
-Instead of adding a third-party widget, I built a custom, native-feeling solution using the Cloudflare ecosystem. Here is exactly how it works.
+## The architecture
 
-<div style="margin: 2rem 0; text-align: center;">
-  <button class="js-chat-trigger" style="background: rgb(var(--color-primary-500)); color: white; padding: 0.75rem 1.5rem; border-radius: 9999px; border: none; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M12 7v6"></path><path d="M9 10h6"></path></svg>
-    Try the AI Assistant
-  </button>
-</div>
+The assistant uses **Retrieval-Augmented Generation (RAG)**: find relevant portfolio evidence, supply it to an answer model, and stream the response. It does not train a model or browse the web.
 
-## The Architecture
+- **Frontend:** Hugo with Blowfish, a native dialog and modular JavaScript.
+- **API:** Cloudflare Pages Functions with Hono at `/api/chat`.
+- **Inference:** Workers AI; GLM-4.7-Flash is the default answer and rewrite model.
+- **Search:** Cloudflare Vectorize with BGE-base-en-v1.5 embeddings, 768 dimensions.
+- **State:** Browser conversation history, plus optional server-side KV response logging.
 
-The system uses **Retrieval-Augmented Generation (RAG)**. We don't just ask the AI a question; we first find relevant content from my portfolio, feed it to the AI as context, and *then* ask it to answer.
+## From question to answer
 
-- **Frontend**: Hugo (Blowfish Theme) + Vanilla JS
-- **Edge Compute**: Cloudflare Pages Functions
-- **Inference**: Workers AI (Meta Llama 3)
-- **Vector Database**: Cloudflare Vectorize
-- **Embeddings**: BAAI bge-base-en-v1.5
-
----
-
-## 1. The Backend: Cloudflare Pages Functions
-
-Cloudflare Pages allows you to drop serverless functions into a `/functions` directory. I created `functions/api/chat.js` to handle the chat requests.
-
-### Configuration (`wrangler.toml`)
-
-First, we bind the necessary resources to our application.
-
-```toml
-# wrangler.toml
-[ai]
-binding = "AI" # Access to Workers AI models
-
-[[vectorize]]
-binding = "VECTORIZE_INDEX"
-index_name = "portfolio-index" # Our vector database
-```
-
-### The API Logic
-
-The function performs three main steps:
-
-1. **Embed**: Convert the user's query into a vector.
-2. **Search**: Query the `VECTORIZE_INDEX` for similar content chunks.
-3. **Generate**: Send the context + query to Llama 3 and stream the response.
-
-{{< huggingface model="moonshotai/Kimi-K2.5" >}}
-
+The browser sends a question and bounded recent history. First-turn questions go straight to embedding. Follow-ups are rewritten for search: after "Tell me about Bitcomplete," "What did he do before that?" can become "What role did Samson hold before Bitcomplete?" Generation still receives the original question and history.
 
 {{< mermaid >}}
 sequenceDiagram
 participant User
 participant Frontend
-participant Function as CF Function
+participant Function as Pages Function
 participant VectorDB as Vectorize
 participant AI as Workers AI
-
-User->>Frontend: Asks Question
-Frontend->>Function: POST /api/chat
-Function->>AI: Generate Embedding
-AI-->>Function: Vector [0.1, 0.5...]
-Function->>VectorDB: Query Index(vector)
-VectorDB-->>Function: Top 3 Matches
-Function->>AI: Generate(System Prompt + Context + Query)
-AI-->>Frontend: JSON Stream
-Frontend-->>User: Update UI
+User->>Frontend: Ask a question
+Frontend->>Function: POST query and bounded history
+Function->>Function: Validate request and service bindings
+opt Follow-up with history
+    Function->>AI: Rewrite standalone search question
+    AI-->>Function: Search question
+end
+Function-->>Frontend: Progress events
+Function->>AI: Embed search question
+AI-->>Function: Query vector
+Function->>VectorDB: Search deployed namespace, top 3
+VectorDB-->>Function: Matches
+opt Referenced source sections
+    Function->>VectorDB: Fetch section records
+    VectorDB-->>Function: Canonical and parent evidence
+end
+Function->>Function: Expand, deduplicate and bound context
+Function-->>Frontend: Public source excerpts
+Function->>AI: Generate with context, history and query
+AI-->>Function: Model stream
+Function-->>Frontend: Normalized SSE answer and metrics
+Frontend-->>User: Render answer and expandable sources
 {{< /mermaid >}}
 
-```javascript
-// functions/api/chat.js (Simplified)
-export async function onRequest(context) {
-    const { query } = await context.request.json();
+History is bounded to four messages, 2,000 characters each and 4,000 characters total. Retrieval selects three matches; expanded sections are capped at 6,000 characters and the assembled context at 12,000. The answer has a 512-token completion budget. These bounds control work, not factual correctness.
 
-    // 1. Retrieval: Convert question to vector & search index
-    const { data } = await context.env.AI.run('@cf/baai/bge-base-en-v1.5', { text: [query] });
-    const vector = data[0];
-    const results = await context.env.VECTORIZE_INDEX.query(vector, { topK: 3, returnMetadata: true });
+Insufficient context produces an explicit abstention without calling the answer model. Missing bindings return HTTP errors before streaming. Failures after SSE begins become error events instead of an empty successful answer.
 
-    // Combine matched text chunks
-    const contextText = results.matches.map(m => m.metadata.text).join("\n---\n");
+## Building the knowledge base
 
-    // 2. Generation with System Prompt
-    const systemPrompt = `You are a helpful assistant for Samson's portfolio.
-    Use the following Context to answer the user.
-    Context: ${contextText}`;
+`make ai-refresh` coordinates the maintained ingestion entry point, `scripts/generate_embeddings.mjs`, and corpus modules. Structured Markdown/HTML parsing removes presentation controls while preserving lists, links and code. Hugo's published-page export supplies canonical URLs, including slugs and permalink rules.
 
-    const stream = await context.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: query }
-        ],
-        stream: true // Enable streaming response
-    });
+Level-one/two headings define sections. Long sections produce bounded parent records and 2,000-character children with 200-character overlap. Curated excerpts can supplement themselves with a canonical public section:
 
-    return new Response(stream, {
-        headers: { "Content-Type": "text/event-stream" }
-    });
-}
+```yaml
+retrievalSource: "content/resume/_index.md"
+retrievalSection: "Professional Experience"
 ```
 
----
-
-## 2. The Knowledge Base: Ingesting Content
-
-The AI needs to know about my posts. I wrote a script (`scripts/generate_embeddings.js`) that runs during the build process.
+For example, a historical internship hit can add the full newest-first employment section while retaining unique curated facts. Internal excerpts help generation but are not exposed in the public source panel.
 
 {{< mermaid >}}
 flowchart LR
-    MD[Markdown Files] -->|Parse| Script[Node.js Script]
-    Script -->|Split| Chunks[Text Chunks]
-    Chunks -->|API| AI[Workers AI]
-    AI -->|Embedding| Vectors[Vector Data]
-    Vectors -->|Upsert| DB[(Vectorize Index)]
+    Content[Markdown and front matter] --> AST[Structured normalization]
+    Hugo[Hugo published URLs] --> Corpus[Validated versioned corpus]
+    AST --> Corpus
+    Corpus --> Embeddings[Workers AI embeddings]
+    Embeddings --> Index[Vectorize candidate namespace]
+    Index --> Ready[Wait for indexing]
+    Ready --> Deploy[Deploy matching namespace]
 {{< /mermaid >}}
 
-1. It scans all `.md` files in `content/`.
-2. It parses the frontmatter and content.
-3. It splits the text into chunks of ~500 tokens.
-4. It generates embeddings via the Cloudflare API and pushes them to Vectorize.
+Corpus namespaces and record IDs include content/configuration identity and full source paths. Different page bundles cannot overwrite each other merely because both use `index.md`. Unchanged corpora skip ingestion; changed corpora are re-embedded. Indexing must complete before deployment proceeds.
 
-### Safety Guardrails
+## A native, inspectable chat window
 
-Because Large Language Models can hallucinate or be tricked into saying inappropriate things, I implemented strict system prompts. The AI is explicitly instructed to:
+Starter questions introduce experience, projects, scale and the assistant itself. The widget respects the theme, supports keyboard controls and uses a full-height mobile layout.
 
-1. **Maintain a professional tone.**
-2. **Stick to the context.** If the answer isn't in my portfolio, it admits it rather than making things up.
-3. **Never disparage.** Explicit instructions forbid generating negative content about the portfolio, projects, or individuals.
+Progress labels reflect actual operations: understanding a follow-up, preparing search, finding sources and writing an answer. An elapsed counter runs until answer text arrives. Failed requests offer a manual Retry using the original question and pre-request history; there are no automatic paid retries.
 
-```javascript
-// functions/api/chat.js
-const systemPrompt = "You are a helpful assistant for Samson's portfolio. " +
-    "Answer concisely based on the context. If uncertain, admit it. " +
-    "Always maintain a positive and professional tone. " +
-    "Never generate negative, critical, or disparaging content about the portfolio, projects, or any individuals.";
+**Retrieved sources** displays public excerpts actually supplied to generation, not a claim that each answer sentence was independently verified. Markdown renders with restricted markup. Mermaid diagrams load when the panel opens; invalid or truncated diagrams retain their source with an explanation.
+
+The diagnostics footer shows server-side total latency, time to first answer token and estimated answer/rewrite token cost. Details expands stage timings and token counts. Missing provider usage is unavailable, not zero; the estimate excludes embeddings, Vectorize, KV and hosting.
+
+Conversation history persists on the device across deployments until manually cleared. Clear History does not delete separately stored server-side logs.
+
+## Verification and limits
+
+```bash
+make ai-check   # Corpus identities, Hugo URL provenance and evaluation labels
+make test       # Offline regressions; ai-test is a compatibility alias
+make ai-build   # Compile Functions with Node.js 22+
+make dev-ai     # Local site with the chat API
 ```
 
-```javascript
-// scripts/generate_embeddings.js
+Tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations separately test retrieval and generation against labeled questions. For example, a recent-experience regression checks for Bitcomplete, Demonware and dated evidence instead of accepting a plausible internship summary.
 
-// 1. Find all Markdown files
-const files = glob.sync("content/**/*.md");
+Prompt instructions and pattern checks are not a complete security boundary. Semantic search can miss relevant evidence, models can misinterpret dates, and term-based evaluations cannot prove factual entailment. Runtime deadlines, rate limits, human review and concurrency testing remain useful next steps.
 
-for (const file of files) {
-    const { content, data } = matter(fs.readFileSync(file, 'utf8'));
-
-    // 2. Split into chunks (~500 tokens)
-    const chunks = splitText(content, 500);
-
-    for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-
-        // 3. Generate Embedding using Workers AI
-        const embedding = await getEmbedding(chunk);
-
-        // 4. Prepare vector record
-        vectors.push({
-            id: `${path.basename(file, '.md')}-${i}`,
-            values: embedding,
-            metadata: {
-                text: chunk,
-                url: "/" + path.relative("content", file).replace(".md", "")
-            }
-        });
-    }
-}
-
-// 5. Batch upsert to Vectorize
-await upsertVectors(vectors);
-```
-
----
-
-## 3. The Frontend: Modular & Native
-
-I didn't want a generic chatbot iframe. It had to look like it belonged to the [Blowfish theme](https://blowfish.page/). Initially built as a simple script, I recently refactored the frontend into a robust `AIChatWidget` class to support advanced features like history persistence and offline handling.
-
-### Theming with CSS Variables
-
-I mapped the chat widget's colors to the theme's CSS variables. This ensures the chat window automatically respects Light/Dark mode and the user's chosen color scheme.
-
-```css
-/* assets/css/ai-chat.css */
-:root {
-    /* Map to Blowfish variables */
-    --ai-chat-bg: rgba(var(--color-neutral-50), 1);
-    --ai-chat-primary: rgba(var(--color-primary-500), 1);
-}
-
-.dark {
-    --ai-chat-bg: rgba(var(--color-neutral-800), 1);
-    --ai-chat-bot-bg: rgba(var(--color-neutral-700), 0.5);
-}
-```
-
-### Mobile Responsiveness
-
-On mobile, popups are annoying. I used a CSS media query to turn the floating window into a **full-screen experience** when on small screens, locking the background scroll to prevent glitches.
-
-```css
-@media (max-width: 640px) {
-    #ai-chat-window {
-        position: fixed;
-        inset: 0; /* Full screen */
-        width: 100%;
-        height: 100dvh;
-        border-radius: 0;
-    }
-}
-```
-
----
-
-## 4. Integration via Event Delegation
-
-To make the chat accessible from anywhere (header, footer, blog posts), I implemented a global event listener. Any element with the class `.js-chat-trigger` will now lazy-load the widget and open it.
-
-```html
-<!-- layouts/partials/extend-footer.html -->
-<div id="ai-chat-widget">
-    <button id="ai-chat-toggle" class="js-chat-trigger" aria-label="Ask AI">
-        <!-- Icon -->
-        <span>Ask AI</span>
-    </button>
-</div>
-
-<script>
-    // Lazy load chat widget with event delegation
-    document.addEventListener('click', async (e) => {
-        const trigger = e.target.closest('.js-chat-trigger');
-        if (trigger) {
-            e.preventDefault();
-            if (!window.aiChatInitialized) {
-                // Dynamically import the module only when needed
-                const { initChat } = await import('{{ resources.Get "js/ai-chat.js" | minify | fingerprint }}');
-                initChat(true);
-                window.aiChatInitialized = true;
-            } else if (window.openAiChat) {
-                window.openAiChat();
-            }
-        }
-    });
-</script>
-```
-
-## 5. Recent Feature Updates
-
-Since the initial launch, I've rolled out several enhancements to make the assistant more robust and user-friendly:
-
-### 💾 Persistent History
-
-The chat now saves your conversation to `localStorage`. If you navigate away to check a project page and come back, your conversation context remains intact.
-
-### 💡 Contextual Suggestions
-
-To help users get started, the chat now opens with clickable "suggestion chips" (e.g., *"Python Experience?"*). These disappear once the conversation starts to keep the interface clean.
-
-### 🛡️ Robust Error Handling
-
-Network glitches happen. The updated `AIChatWidget` class now checks for offline status before sending requests and handles API failures gracefully without crashing the UI.
-
-### 🧹 Session Management
-
-I added a "Clear History" button to the header, allowing users to wipe their local conversation history and start fresh with a single click.
-
-## Future Roadmap
-
-With the core architecture solid, here is what I plan to add next:
-
-1. **Markdown Parsing**: currently, the bot outputs raw text. I want to render `**bold**`, lists, and code blocks properly on the fly as tokens stream in.
-2. **Syntax Highlighting**: Using a lightweight library to highlight code snippets inside the chat bubble, matching the site's theme.
-3. **Voice Input**: Integrating the Web Speech API to allow users to speak their questions instead of typing.
-4. **Draggable UI**: Making the chat window floating and draggable on desktop, saving its position for the next visit.
-
-## Conclusion
-
-By leveraging Cloudflare's edge platform, I was able to build a fast, private, and deeply integrated AI assistant without managing a single server. The result is a portfolio that doesn't just display information. It interacts with you.
+Static hosting can be inexpensive, but AI inference and storage have quotas and usage-based costs. The point of this architecture is not "free AI": it is a small, inspectable system whose retrieval, transport, quality and economics can be measured separately.

@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "make --no-print-directory dev-ai",
     "build": "make --no-print-directory build-prod",
-    "test": "node --test --test-timeout=30000 --test-reporter=spec tests/unit/*.test.mjs",
+    "test": "make --no-print-directory test",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier --write \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
     "format:check": "prettier --check \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
-    "test:coverage": "c8 node --test --test-timeout=30000 --test-reporter=spec tests/unit/*.test.mjs"
+    "test:coverage": "make --no-print-directory coverage"
   },
   "repository": {
     "type": "git",

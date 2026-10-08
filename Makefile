@@ -161,7 +161,7 @@ metrics-json: check-scc ## Print native scc source inventory as JSON to stdout
 deps: check-ai-tools ## Install Node dependencies exactly from the lockfile
 	@$(NPM) ci --no-fund
 
-test: ## Run unit tests
+test: check-corpus-tools ## Run the complete offline unit suite
 	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 test-layouts: check-tools ## Build Hugo fixtures and validate schema, public index, preloads and theme settings
@@ -190,8 +190,8 @@ lint-workflows: ## Validate GitHub Actions with native actionlint
 install-actionlint: ## Install the pinned actionlint release using Go
 	@go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
 
-coverage: check-ai-tools ## Run offline tests with text, HTML and LCOV coverage
-	@$(NPM) --silent run test:coverage
+coverage: check-corpus-tools ## Run offline tests with text, HTML and LCOV coverage
+	@$(NODE) node_modules/c8/bin/c8.js $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 audit-content: check-ai-tools ## Validate content front matter coverage (install dependencies first)
 	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs
@@ -241,8 +241,7 @@ ai-check: check-corpus-tools ## Validate corpus IDs, model selection and evaluat
 	@$(NODE) scripts/generate_embeddings.mjs --check
 	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
-ai-test: check-corpus-tools ## Run offline AI infrastructure and API tests
-	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+ai-test: test ## Compatibility alias for the complete offline unit suite
 
 ai-build: check-wrangler-node ## Bundle Pages Functions locally (Node 22+, no deployment)
 	@mkdir -p "$$REPORT_DIR"

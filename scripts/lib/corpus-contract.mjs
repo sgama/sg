@@ -17,7 +17,7 @@ const metadataSchema = z.object({
         .string()
         .regex(/^\/(?!\/)/)
         .optional(),
-    recordType: z.enum(['chunk', 'section']).optional(),
+    recordType: z.enum(['chunk', 'section']),
     sectionIndex: negativeIndex.optional(),
     parentIndex: negativeIndex.optional(),
     parentSource: nonempty.optional(),
@@ -34,7 +34,7 @@ const schema = z.object({
         chunkOverlap: z.number().int().nonnegative(),
         maxSectionChars: z.number().int().positive(),
         embeddingLabels: z.boolean(),
-        normalizationVersion: z.number().int().positive().optional(),
+        normalizationVersion: z.literal(3),
     }),
     sources: z.array(z.object({ source: nonempty, hash: nonempty, status: z.enum(['included', 'draft', 'empty']) })),
     chunks: z.array(z.object({ id: nonempty, chunkIndex: z.number().int(), text: nonempty, metadata: metadataSchema })),

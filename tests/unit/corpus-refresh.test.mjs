@@ -1,3 +1,4 @@
+import { integrityFixture } from '../helpers/corpus.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs/promises';
@@ -287,4 +288,24 @@ test('waits for processed mutation, rejects wrong dimensions and bounded timeout
         throw new Error('info unavailable');
     };
     await assert.rejects(waitForMutation(client, 'account', 'ready'), /info unavailable/);
+});
+
+test('concurrent configuration edits survive refresh without activation overwrite', async (t) => {
+    const { root, configPath, corpus } = await integrityFixture(t);
+    const changed = '[vars]\nAI_MODEL = "gemma"\n';
+    const client = {
+        pages: { projects: { get: async () => ({}) } },
+        post: async () => ({ result: { data: [Array(corpus.embedding.dimensions).fill(0.1)] } }),
+        vectorize: { indexes: { upsert: async () => ({ mutationId: 'accepted' }) } },
+    };
+    await assert.rejects(
+        refreshCorpus({
+            client,
+            accountId: 'account',
+            root,
+            wait: async () => fs.writeFile(configPath, changed),
+        }),
+        /configuration changed/,
+    );
+    assert.equal(await fs.readFile(configPath, 'utf8'), changed);
 });

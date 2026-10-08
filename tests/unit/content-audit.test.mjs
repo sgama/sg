@@ -40,8 +40,8 @@ async function audit(t, files, overrides = {}) {
     };
 }
 
-test('empty corpora pass and section index pages are ignored', async (t) => {
-    const { result, report, markdown } = await audit(t, { 'content/_index.md': 'Ignored' });
+test('empty corpora pass', async (t) => {
+    const { result, report, markdown } = await audit(t, {});
     assert.equal(result.status, 0, result.stderr);
     assert.equal(report.totals.files, 0);
     assert.equal(report.totals.requiredCoverage, 1);
@@ -69,7 +69,7 @@ test('present values and alternative summary fields meet configured thresholds',
         t,
         {
             'content/valid.md': '---\ntitle: Valid\ndate: 2026-01-01\ntags: [test]\nsummary: Summary\n---\nBody',
-            'content/partial.md': '---\ntitle: Partial\ndate: false\ntags: []\ndescription: Description\n---\nBody',
+            'content/partial.md': '---\ntitle: Partial\ndate: 2026-01-01\ntags: []\ndescription: Description\n---\nBody',
         },
         { CONTENT_RECOMMENDED_MIN: '0.75', GITHUB_STEP_SUMMARY: '' },
     );
@@ -78,4 +78,28 @@ test('present values and alternative summary fields meet configured thresholds',
     assert.equal(report.totals.recommendedCoverage, 0.75);
     assert.equal(report.missing.length, 1);
     assert.deepEqual(report.missing[0].missingRecommended, ['tags']);
+});
+
+test('default policies distinguish posts, public indexes and internal context', async (t) => {
+    const { result, report } = await audit(
+        t,
+        {
+            'content/_index.md': '---\ntitle: Home\ndescription: Home\n---\nBody',
+            'content/_context/project.md': '---\ntitle: Project\ndescription: Facts\n---\nBody',
+            'content/_context/_index.md': '---\nheadless: true\ncascade:\n  headless: true\n---',
+            'content/posts/post.md': '---\ntitle: Post\ndate: 2026-01-01\ntags: [test]\ndescription: Post\n---\nBody',
+        },
+        { CONTENT_REQUIRED_FIELDS: '', CONTENT_RECOMMENDED_FIELDS: '' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(report.totals.files, 3);
+    assert.equal(report.totals.requiredCoverage, 1);
+});
+
+test('invalid dates cannot produce successful audit results', async (t) => {
+    const { result, report } = await audit(t, {
+        'content/post.md': '---\ntitle: Post\ndate: false\ntags: [test]\ndescription: Post\n---\nBody',
+    });
+    assert.equal(result.status, 1);
+    assert.deepEqual(report.missing[0].invalidFields, ['date']);
 });

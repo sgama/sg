@@ -254,6 +254,12 @@ with a keyboard-accessible Details disclosure for timing and token-count tables.
 
 ### Authoring employer-facing RAG context
 
+`make audit-content` uses separate policies: posts require title/date and recommend tags plus description/summary; public pages (including section indexes) and internal context require title and recommend description/summary. The internal context's headless cascade configuration index is excluded, not public section indexes. Required dates must be parseable dates, not merely present values. Environment field overrides apply explicitly to every type. `make test` is the canonical complete offline suite; `make ai-test` is a compatibility alias.
+
+Newly built corpora require explicit record types and normalization version 3. Runtime section expansion separately retains compatibility with deployed records without parent/canonical metadata; this does not weaken build validation.
+
+`make favicons` uses the existing WebP portrait and supports ImageMagick 7 (`magick`) or 6 (`convert`). It never installs system packages. Override `FAVICON_SOURCE` and `FAVICON_OUTPUT_DIR` to use a different source or validate into a temporary directory.
+
 Ingestion uses structured Markdown/HTML ASTs (remark with GFM, mdast-to-hast, hast-util-raw and hast-to-mdast). It removes media and presentation controls without flattening nested lists, indented code or inline code. A quote-aware Hugo shortcode tokenizer runs only outside Markdown code spans/blocks; Mermaid shortcodes become fenced diagrams. Serialization normalizes Markdown formatting and resolves reference links, while preserving rendered meaning. Embedding inputs include page/section labels; stored excerpts contain normalized source evidence. Local and Cloudflare embedding paths use the same helper.
 Hugo Mermaid shortcodes become fenced Mermaid blocks during ingestion. Opening
 retrieved sources lazy-loads Mermaid to render those blocks with strict security

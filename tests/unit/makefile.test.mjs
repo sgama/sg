@@ -40,18 +40,23 @@ test('local GPU targets do not invoke cloud commands and have explicit cache cle
     assert.doesNotMatch(result.stdout, /check-env|ai-refresh|ai-eval\.mjs|wrangler|deploy/);
 });
 
-test('Make and npm bound tests and coverage with native Node timeouts', () => {
+test('npm delegates tests and coverage to bounded Make commands without cycles', () => {
     const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    for (const name of ['test', 'test:coverage']) {
-        assert.match(scripts[name], /--test-timeout=30000\b/);
-        assert.doesNotMatch(scripts[name], /--test-concurrency\b/);
-    }
-    const result = make('-n', 'test', 'ai-test');
+    assert.equal(scripts.test, 'make --no-print-directory test');
+    assert.equal(scripts['test:coverage'], 'make --no-print-directory coverage');
+    const result = make('-n', 'test', 'ai-test', 'coverage', 'NODE=custom-node', 'HUGO=custom-hugo', 'TEST_REPORTER=dot');
     assert.equal(result.status, 0);
     const commands = result.stdout.split('\n').filter((line) => line.includes('--test-reporter'));
     assert.equal(commands.length, 2);
     assert.ok(commands.every((command) => command.includes('--test-timeout=30000')));
+    assert.ok(commands.every((command) => command.includes('--test-reporter=dot')));
+    assert.ok(commands.every((command) => command.includes('custom-node --test')));
     assert.ok(commands.every((command) => !command.includes('--test-concurrency')));
+    assert.match(result.stdout, /command -v custom-hugo/);
+    assert.match(result.stdout, /custom-node node_modules\/c8\/bin\/c8\.js custom-node --test/);
+    assert.doesNotMatch(result.stdout, /npm.*(?:run test:coverage|test)\b/);
+    const coverage = make('-n', 'coverage');
+    assert.match(coverage.stdout, /Missing Hugo/);
 });
 
 test('metrics delegate to native scc without installing or counting generated trees', () => {
