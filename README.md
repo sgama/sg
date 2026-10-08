@@ -157,7 +157,7 @@ compare another Workers AI model without duplicating pipeline code. Model access
 and pricing must be verified against your Cloudflare account.
 
 ```bash
-# Offline checks: no credentials, inference calls, or Hugo needed
+# Offline checks: Hugo required for canonical URLs; no credentials or inference calls
 make ai-models
 make ai-check ai-test ai-plan
 make ai-build
@@ -254,20 +254,21 @@ with a keyboard-accessible Details disclosure for timing and token-count tables.
 
 ### Authoring employer-facing RAG context
 
-Ingestion strips Hugo shortcode tags and Markdown images while preserving inner
-prose and fenced code examples, and skips heading-only sections. Embedding inputs
-include the page title and section label; stored excerpts remain the source text.
-Local and Cloudflare embedding paths use the same helper.
+Ingestion uses structured Markdown/HTML ASTs (remark with GFM, mdast-to-hast, hast-util-raw and hast-to-mdast). It removes media and presentation controls without flattening nested lists, indented code or inline code. A quote-aware Hugo shortcode tokenizer runs only outside Markdown code spans/blocks; Mermaid shortcodes become fenced diagrams. Serialization normalizes Markdown formatting and resolves reference links, while preserving rendered meaning. Embedding inputs include page/section labels; stored excerpts contain normalized source evidence. Local and Cloudflare embedding paths use the same helper.
 Hugo Mermaid shortcodes become fenced Mermaid blocks during ingestion. Opening
 retrieved sources lazy-loads Mermaid to render those blocks with strict security
 and sanitized SVG. Invalid or truncated diagrams retain their code with an
 explicit explanation. Existing indexed shortcode excerpts need reindexing.
-Curated documents can declare `retrievalSource` (a public content file path) and
-`retrievalSection` (an exact level-one/two heading) in front matter. Hits expand
-to that canonical section rather than treating the curated summary as a separate
-record. Missing, ambiguous, non-public or oversized target sections fail corpus
-validation. This is generic source linkage, not a career-specific lookup.
-Reindex the changed corpus before expecting these retrieval improvements live.
+HTML layout wrappers become readable prose and headings; scripts, styles, icons,
+forms, buttons and HTML comments are excluded. Fenced code and inline code stay
+literal. Chat Markdown permits only basic text, links, tables and code, without
+page classes, inline styles or interactive controls. This also prevents older
+HTML-heavy excerpts from recreating the website inside the source panel.
+Public source URLs come from `hugo list published`, parsed as CSV, rather than inferred filenames. Hugo owns slugs, explicit URLs and permalink configuration. Corpus commands therefore require Hugo; missing provenance is an explicit error. Synthetic callers may supply a `sourceUrls` map.
+
+Curated documents can declare `retrievalSource` (a public content file path) and `retrievalSection` (an exact level-one/two heading) in front matter. Canonical links use distinct `canonicalSource`/`canonicalIndex` fields rather than overwriting ordinary parent relationships. A hit supplies canonical evidence first and retains the curated evidence alongside it, deduplicated within the 12,000-character context budget. Only public excerpts actually included in context appear in Retrieved sources. Missing, ambiguous, empty, non-public or oversized targets fail validation. This is generic linkage, not a career-specific lookup.
+
+The corpus builder orchestrates separate normalization, Hugo provenance, section/chunk construction, canonical linkage and schema/identity modules under `scripts/lib/`. Schema validation checks record shapes before hashing and verifies references, text consistency and counts. Reindex and deploy the changed corpus to use the new normalization, URLs and supplemental evidence semantics.
 
 [`content/_context/`](content/_context/) holds headless Markdown: indexed for
 chat responses but not rendered as website pages. Its focused documents cover

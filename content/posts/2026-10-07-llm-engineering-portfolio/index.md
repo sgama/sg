@@ -67,7 +67,7 @@ Conversation history is saved on the device and survives website deployments. **
 
 ## Building and embedding the corpus
 
-The ingestion pipeline reads Markdown and skips drafts, empty bodies and heading-only sections. It removes presentation-only Hugo shortcode tags and Markdown images while preserving inner prose and fenced code examples. For example, a portrait shortcode is not useful evidence, but text inside a button shortcode is retained.
+The ingestion pipeline reads Markdown and skips drafts, empty bodies and heading-only sections. Structured Markdown and HTML syntax trees remove presentation-only markup and images while preserving nested lists, links and code. A quote-aware tokenizer handles Hugo shortcodes outside Markdown code. For example, a portrait shortcode is not useful evidence, but text inside a button shortcode is retained.
 
 Level-one and level-two headings define source sections; level-three headings stay with their enclosing section. Long sections produce bounded parent records and **2,000-character child chunks with 200-character overlap**. A matching child can retrieve its parent so generation sees related facts together rather than one isolated fragment. Sibling matches are deduplicated.
 
@@ -78,9 +78,9 @@ retrievalSource: "content/resume/_index.md"
 retrievalSection: "Professional Experience"
 ```
 
-For example, a hit on a historical internship excerpt can expand to the resume's newest-first employment section. This is generic source linkage, not a hard-coded career lookup. Missing, ambiguous, empty, non-public or oversized targets fail validation instead of silently using the wrong evidence.
+For example, a hit on a historical internship excerpt adds the resume's newest-first employment section while retaining unique curated facts within the context budget. Canonical linkage supplements evidence; ordinary child-to-parent expansion replaces fragmented child text with its enclosing section. Only public excerpts are displayed to visitors. Missing, ambiguous, empty, non-public or oversized targets fail validation instead of silently using the wrong evidence.
 
-Embedding inputs include page and section labels, such as `Resume — Professional Experience`, followed by the source text. Stored evidence remains source text. Each vector includes source path, title and content type; internal documents remain searchable but do not receive public URLs.
+Embedding inputs include page and section labels, such as `Resume — Professional Experience`, followed by normalized source text. Each vector includes source path, title and content type. Public URLs come from Hugo's published-page export, respecting slugs and permalink rules rather than guessing from filenames; internal documents remain searchable but do not receive public URLs.
 
 Two important identities prevent accidental data loss:
 

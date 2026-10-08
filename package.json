@@ -29,11 +29,20 @@
   },
   "dependencies": {
     "cloudflare": "^7.3.0",
+    "csv-parse": "^7.0.3",
     "dotenv": "^18.0.6",
     "glob": "^13.0.2",
     "gray-matter": "^4.0.3",
+    "hast-util-raw": "^9.1.0",
+    "hast-util-to-mdast": "^10.1.2",
     "hono": "^4.12.14",
+    "mdast-util-to-hast": "^13.2.0",
+    "mdast-util-to-string": "^4.0.0",
     "p-limit": "^7.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

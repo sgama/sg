@@ -12,6 +12,8 @@ retrieval reports record the bounded standalone query and gate its labeled terms
 alongside expected sources and evidence. One full comparison can now make up to
 34 generation calls per model/repetition; negative cases are excluded from
 source-hit and evidence-rate denominators.
+Corpus tests also verify structured Markdown normalization preserves nested lists, indented/fenced code, inline shortcodes, balanced image destinations and Setext headings. Hugo provenance tests cover slugs, explicit URLs and permalink rules. Schema tests recompute hashes after malformed edits to check invariants independently of hash integrity. Canonical-link tests verify that unique curated facts remain in model context while only public canonical excerpts are displayed.
+
 Corpus tests check generic heading boundaries, fenced-code handling, bounded
 parent sections, source-specific deterministic IDs, and content-driven namespace
 changes. Runtime, cloud and local retrieval tests verify parent expansion,

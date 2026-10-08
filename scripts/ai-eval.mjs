@@ -3,7 +3,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import 'dotenv/config';
-import { AI_CONFIG, AI_MODELS, getModel, contextFromMatches, buildMessages, contextualizationMessages } from '../functions/_lib/application.js';
+import {
+    AI_CONFIG,
+    AI_MODELS,
+    getModel,
+    contextFromMatches,
+    expandSectionMatches,
+    buildMessages,
+    contextualizationMessages,
+} from '../functions/_lib/application.js';
 import { buildCorpus } from './lib/corpus.mjs';
 import { createCloudflareAi } from './lib/cloudflare-ai.mjs';
 import {
@@ -249,10 +257,13 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
                 fixture.cases.map((item) => [
                     item.id,
                     contextFromMatches(
-                        corpus.chunks
-                            .filter((chunk) => item.expectedSources.includes(chunk.metadata.source))
-                            .slice(0, AI_CONFIG.retrieval.topK)
-                            .map((chunk) => ({ metadata: chunk.metadata })),
+                        expandSectionMatches(
+                            corpus.chunks
+                                .filter((chunk) => item.expectedSources.includes(chunk.metadata.source))
+                                .slice(0, AI_CONFIG.retrieval.topK)
+                                .map((chunk) => ({ id: chunk.id, metadata: chunk.metadata })),
+                            corpus.chunks.filter((chunk) => chunk.metadata.recordType === 'section'),
+                        ),
                     ),
                 ]),
             );

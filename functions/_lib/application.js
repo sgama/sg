@@ -10,23 +10,28 @@ export async function corpusRecordId(namespace, source, index) {
 }
 
 export async function parentSectionIds(matches, namespace) {
-    const children = matches.filter((match) => match.metadata?.parentIndex !== undefined);
+    const children = matches.flatMap((match) =>
+        ['parent', 'canonical']
+            .filter((prefix) => match.metadata?.[`${prefix}Index`] !== undefined)
+            .map((prefix) => ({
+                source: match.metadata[`${prefix}Source`] === undefined ? match.metadata.source : match.metadata[`${prefix}Source`],
+                index: match.metadata[`${prefix}Index`],
+            })),
+    );
     if (children.length && !namespace) throw new Error('Section expansion requires a corpus namespace');
     return [
         ...new Set(
             await Promise.all(
-                children.map((match) => {
+                children.map((reference) => {
                     if (
-                        typeof match.metadata.source !== 'string' ||
-                        !match.metadata.source ||
-                        (match.metadata.parentSource !== undefined &&
-                            (typeof match.metadata.parentSource !== 'string' || !match.metadata.parentSource.trim())) ||
-                        !Number.isInteger(match.metadata.parentIndex) ||
-                        match.metadata.parentIndex >= 0
+                        typeof reference.source !== 'string' ||
+                        !reference.source.trim() ||
+                        !Number.isInteger(reference.index) ||
+                        reference.index >= 0
                     ) {
                         throw new Error('Invalid parent section reference');
                     }
-                    return corpusRecordId(namespace, match.metadata.parentSource ?? match.metadata.source, match.metadata.parentIndex);
+                    return corpusRecordId(namespace, reference.source, reference.index);
                 }),
             ),
         ),
@@ -37,28 +42,33 @@ export function expandSectionMatches(matches, sections) {
     if (!Array.isArray(sections)) throw new Error('Invalid section expansion response');
     const expanded = [];
     const seen = new Set();
+    const sectionByKey = new Map(sections.map((section) => [`${section.metadata?.source}\0${section.metadata?.sectionIndex}`, section]));
+    const append = (evidence) => {
+        if (evidence.id && seen.has(evidence.id)) return;
+        if (evidence.id) seen.add(evidence.id);
+        expanded.push(evidence);
+    };
     for (const match of matches) {
         let evidence = match;
-        if (Number.isInteger(match.metadata?.parentIndex)) {
-            const section = sections.find(
-                (item) =>
-                    item.metadata?.source === (match.metadata.parentSource ?? match.metadata.source) &&
-                    item.metadata?.sectionIndex === match.metadata.parentIndex,
-            );
+        for (const prefix of ['canonical', 'parent']) {
+            if (match.metadata?.[`${prefix}Index`] === undefined) continue;
+            if (!Number.isInteger(match.metadata[`${prefix}Index`]) || match.metadata[`${prefix}Index`] >= 0) {
+                throw new Error('Invalid parent section reference');
+            }
+            const section = sectionByKey.get(`${match.metadata[`${prefix}Source`] ?? match.metadata.source}\0${match.metadata[`${prefix}Index`]}`);
             if (
                 !section ||
                 section.metadata.recordType !== 'section' ||
                 typeof section.metadata.text !== 'string' ||
                 !section.metadata.text.trim() ||
-                section.metadata.text.length > AI_CONFIG.retrieval.maxSectionChars
+                section.metadata.text.length > AI_CONFIG.retrieval.maxSectionChars ||
+                (prefix === 'canonical' && section.metadata.type !== 'content')
             )
                 throw new Error('Missing or invalid parent section evidence');
-            evidence = { ...section, score: match.score };
+            if (prefix === 'canonical') append({ ...section, score: match.score });
+            else evidence = { ...section, score: match.score };
         }
-        const identity = evidence.id;
-        if (identity && seen.has(identity)) continue;
-        if (identity) seen.add(identity);
-        expanded.push(evidence);
+        append(evidence);
     }
     return expanded;
 }

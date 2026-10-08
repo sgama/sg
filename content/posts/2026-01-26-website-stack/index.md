@@ -215,7 +215,7 @@ This stack represents the sweet spot of modern web development: **Static reliabi
 
 Static delivery is inexpensive, but this is not an infinitely scalable or universally free stack. Workers AI, Vectorize and KV have quotas and usage-based costs, while self-hosting adds hardware, power and maintenance. The chat's displayed cost estimates cover answer and rewrite tokens, not the entire infrastructure bill.
 
-## What's Next?
+## What's Next
 
 - **Retrieval quality:** Expand regression questions and human review, especially for ambiguous follow-ups and unsupported claims.
 - **Runtime controls:** Add request deadlines and rate limits, and measure behavior under concurrent traffic.

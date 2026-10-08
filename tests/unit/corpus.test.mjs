@@ -22,7 +22,7 @@ test('canonical resume uses the same addressable parent sections as other source
     assert.match(section.text, /Aug 2020 - Jan 2026/);
     assert.match(section.text, /Oct 2018 - Jul 2020/);
     assert.equal(section.id, await corpusRecordId(corpus.namespace, section.metadata.source, section.chunkIndex));
-    assert.equal(section.metadata.url, '/resume');
+    assert.equal(section.metadata.url, '/resume/');
     assert.doesNotMatch(section.text, /## Technical Skills/);
     assert.doesNotMatch(corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/profile.md').text, /Employment chronology/);
 });
@@ -32,8 +32,24 @@ test('ingestion removes presentation wrappers and media while retaining inner pr
     assert.equal(ingestionText('{{< button href="/resume/" >}}Read resume{{< /button >}}'), 'Read resume');
     const code = '```markdown\n{{< figure src="example.webp" >}}\n![Example](example.webp)\n```';
     assert.equal(ingestionText(code), code);
-    assert.equal(ingestionText('{{< mermaid >}}\ngraph TD\nA --> B\n{{< /mermaid >}}'), '```mermaid\n\ngraph TD\nA --> B\n\n```');
+    assert.equal(ingestionText('{{< mermaid >}}\ngraph TD\nA --> B\n{{< /mermaid >}}'), '```mermaid\ngraph TD\nA --> B\n```');
     assert.equal(embeddingText({ text: 'Facts', metadata: { title: 'Project', section: 'Deployment' } }), 'Project — Deployment\n\nFacts');
+});
+
+test('HTML ingestion keeps readable prose and removes presentation controls without changing code', async () => {
+    const text = ingestionText(
+        '<section class="intro"><p>Engineering &amp; reliability.</p><h2>Experience</h2><p>GPU infrastructure.</p><button>Ask AI<svg><path /></svg></button><script>bad()</script></section>',
+    );
+    assert.match(text, /Engineering & reliability/);
+    assert.match(text, /## Experience/);
+    assert.doesNotMatch(text, /<|Ask AI|bad\(\)/);
+    const markdown = '`<section class="example">` and <https://example.com>';
+    assert.equal(ingestionText(markdown), markdown);
+    const code = '```html\n<section class="example">Code sample</section>\n```';
+    assert.equal(ingestionText(code), code);
+    const homepage = ingestionText((await readFile(new URL('../../content/_index.md', import.meta.url), 'utf8')).split('---').slice(2).join('---'));
+    assert.match(homepage, /I build scalable/);
+    assert.doesNotMatch(homepage, /<section|<div|<svg|Ask AI\n/);
 });
 
 test('generic curated source linkage expands to a public section regardless of file order', async (t) => {
@@ -42,21 +58,23 @@ test('generic curated source linkage expands to a public section regardless of f
             '---\ntitle: Searchable project excerpt\nretrievalSource: content/posts/project/index.md\nretrievalSection: Deployment\n---\nSpecific search phrasing.',
         'content/posts/project/index.md':
             '---\ntitle: Project\n---\n## Deployment\n\nCanonical deployment and rollback facts.\n\n## Other\n\nUnrelated facts.',
-        'content/portrait.md': '{{< figure src="portrait.webp" >}}',
+        'content/portrait.md': '---\ntitle: Portrait\n---\n{{< figure src="portrait.webp" >}}',
     });
     const corpus = await buildCorpus({ root });
     assert.equal(corpus.counts.emptyFiles, 1);
     const child = corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/project.md');
-    assert.equal(child.metadata.parentSource, 'content/posts/project/index.md');
+    assert.equal(child.metadata.canonicalSource, 'content/posts/project/index.md');
     const ids = await parentSectionIds([child], corpus.namespace);
     const parents = corpus.chunks.filter((chunk) => ids.includes(chunk.id));
     const expanded = expandSectionMatches([child], parents);
-    assert.equal(expanded[0].metadata.url, '/posts/project');
+    assert.equal(expanded[0].metadata.url, '/posts/project/');
     assert.match(expanded[0].metadata.text, /Canonical deployment/);
     assert.doesNotMatch(expanded[0].metadata.text, /Unrelated/);
-    assert.equal(expandSectionMatches([child, child], parents).length, 1);
-    for (const parentSource of ['', 42, null]) {
-        await assert.rejects(parentSectionIds([{ ...child, metadata: { ...child.metadata, parentSource } }], corpus.namespace), /Invalid parent/);
+    assert.equal(expanded[1].metadata.text, 'Specific search phrasing.');
+    assert.equal(expanded[1].metadata.url, undefined);
+    assert.equal(expandSectionMatches([child, child], parents).length, 2);
+    for (const canonicalSource of ['', 42, null]) {
+        await assert.rejects(parentSectionIds([{ ...child, metadata: { ...child.metadata, canonicalSource } }], corpus.namespace), /Invalid parent/);
     }
     await writeFile(
         path.join(root, 'content/_context/project.md'),
@@ -134,7 +152,7 @@ test('authoring comments are excluded from internal chunks and comment-only file
     assert.match(internal[0].text, /Another fact/);
     assert.doesNotMatch(internal[0].text, /FILL IN|private placeholder|<!--/);
     assert.ok(!Object.hasOwn(internal[0].metadata, 'url'));
-    assert.match(corpus.chunks.find((chunk) => chunk.metadata.type === 'content').text, /Existing public comment/);
+    assert.equal(corpus.chunks.find((chunk) => chunk.metadata.type === 'content').text, 'Public body.');
     await writeFile(path.join(root, 'content/_context/profile.md'), 'Known fact. <!-- unfinished');
     await assert.rejects(buildCorpus({ root }), /Unclosed authoring comment/);
 });
@@ -180,7 +198,7 @@ test('corpus IDs distinguish full source paths and chunk indices; canonical meta
     assert.equal(internal.metadata.source, 'content/_context/private.md');
     assert.ok(!Object.hasOwn(internal.metadata, 'url'));
     const publicChunk = corpus.chunks.find((chunk) => chunk.metadata.title === 'First');
-    assert.equal(publicChunk.metadata.url, '/posts/first');
+    assert.equal(publicChunk.metadata.url, '/posts/first/');
     assert.equal(publicChunk.text, publicChunk.metadata.text);
     await writeFile(path.join(root, 'content/posts/first/index.md'), 'First paragraph.\n\nSecond paragraph.');
     const split = await buildCorpus({ root, chunking: { chunkSize: 20, chunkOverlap: 2 } });

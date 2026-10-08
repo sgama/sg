@@ -47,6 +47,53 @@ test('section expansion preserves ranked source order, bounds evidence and rejec
     assert.ok(contextFromMatches(expanded).length <= AI_CONFIG.retrieval.maxContextChars);
 });
 
+test('canonical evidence supplements curated facts without exposing internal excerpts', async () => {
+    const canonical = {
+        id: 'canonical',
+        metadata: {
+            source: 'content/project.md',
+            type: 'content',
+            title: 'Project',
+            url: '/canonical-project/',
+            recordType: 'section',
+            sectionIndex: -1,
+            section: 'Deployment',
+            text: 'Canonical deployment and rollback evidence.',
+        },
+    };
+    const curated = {
+        id: 'curated',
+        score: 0.9,
+        metadata: {
+            source: 'content/_context/project.md',
+            type: 'context',
+            title: 'Curated project',
+            canonicalSource: 'content/project.md',
+            canonicalIndex: -1,
+            text: 'Unique curated architecture facts.',
+        },
+    };
+    const service = new AiService({
+        AI: { run: async () => ({ data: [[0.1, 0.2]] }) },
+        AI_CORPUS_NAMESPACE: 'corpus-test',
+        VECTORIZE_INDEX: {
+            query: async () => ({ matches: [curated, curated] }),
+            getByIds: async (ids) => {
+                assert.deepEqual(ids, [await corpusRecordId('corpus-test', canonical.metadata.source, -1)]);
+                return [canonical];
+            },
+        },
+    });
+    const context = await service.retrieveContext('Architecture?');
+    assert.match(context, /Canonical deployment/);
+    assert.match(context, /Unique curated architecture/);
+    assert.equal(context.match(/Unique curated architecture/g).length, 1);
+    assert.equal(service.evidence.length, 1);
+    assert.equal(service.evidence[0].url, '/canonical-project/');
+    assert.doesNotMatch(service.evidence[0].text, /Unique curated/);
+    assert.throws(() => expandSectionMatches([curated], []), /Missing or invalid/);
+});
+
 test('AiService', async (t) => {
     await t.test('generateStream', async (t) => {
         await t.test('defaults history to empty array when omitted', async () => {

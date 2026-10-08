@@ -104,6 +104,42 @@ test('comparison supports oracle and retrieved contexts and persists private rep
     assert.equal(typeof retrieved.retrievalHash, 'string');
 });
 
+test('oracle comparisons use the same supplemental canonical evidence semantics as retrieval', async (t) => {
+    const f = await fixture(t);
+    await mkdir(path.join(f.root, 'content/_context'));
+    await writeFile(path.join(f.root, 'content/page.md'), '---\ntitle: Stack\n---\n## Deployment\n\nCanonical Hugo and Cloudflare architecture.');
+    await writeFile(
+        path.join(f.root, 'content/_context/curated.md'),
+        '---\ntitle: Curated\nretrievalSource: content/page.md\nretrievalSection: Deployment\n---\nUnique curated rollback details.',
+    );
+    await writeFile(
+        path.join(f.root, 'fixture.json'),
+        JSON.stringify({
+            version: 1,
+            cases: [
+                {
+                    id: 'canonical',
+                    query: 'Architecture?',
+                    expectedSources: ['content/_context/curated.md'],
+                    answerTerms: [['hugo']],
+                    forbiddenTerms: [],
+                },
+            ],
+        }),
+    );
+    let calls = 0;
+    await evaluate(['compare', '--fixture', 'fixture.json', '--models', 'glm', '--output', 'canonical.json'], {
+        fetchImpl: async (url, init) => {
+            calls++;
+            const payload = await new Request(url, init).json();
+            assert.match(payload.messages[0].content, /Canonical Hugo and Cloudflare/);
+            assert.match(payload.messages[0].content, /Unique curated rollback/);
+            return new Response('data: {"response":"Hugo architecture."}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+        },
+    });
+    assert.equal(calls, 1);
+});
+
 test('evaluation rejects invalid options before any network request', async (t) => {
     const f = await fixture(t);
     for (const [args, expected] of [

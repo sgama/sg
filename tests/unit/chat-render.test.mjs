@@ -7,7 +7,7 @@ function element() {
     return {
         dataset: {},
         classList: { toggle() {} },
-        querySelectorAll: () => [link],
+        querySelectorAll: (selector) => (selector === 'a' ? [link] : []),
         link,
     };
 }
@@ -26,7 +26,17 @@ test('renderer loads once, sanitizes parsed bot markdown and keeps user messages
                         },
                     },
                 },
-                { default: { sanitize: (html) => html.replace('<script>bad</script>', '') } },
+                {
+                    default: {
+                        sanitize: (html, options) => {
+                            assert.ok(!options.ALLOWED_TAGS.includes('button'));
+                            assert.ok(!options.ALLOWED_TAGS.includes('svg'));
+                            assert.ok(!options.ALLOWED_TAGS.includes('section'));
+                            assert.deepEqual(options.FORBID_ATTR, ['style', 'id']);
+                            return html.replace('<script>bad</script>', '');
+                        },
+                    },
+                },
             ];
         },
     });
@@ -48,6 +58,41 @@ test('renderer loads once, sanitizes parsed bot markdown and keeps user messages
     assert.equal(message.textContent, '<b>Question</b>');
     renderer.write(message, '', 'bot');
     assert.equal(message.textContent, 'Thinking…');
+});
+
+test('renderer removes website classes while preserving code language markers', async () => {
+    const nodes = [
+        {
+            tagName: 'P',
+            classList: ['intro__content'],
+            removeAttribute: (name) => {
+                assert.equal(name, 'class');
+            },
+        },
+        {
+            tagName: 'CODE',
+            classList: ['chat-cta', 'language-mermaid'],
+            setAttribute: (name, value) => {
+                assert.equal(name, 'class');
+                assert.equal(value, 'language-mermaid');
+            },
+        },
+    ];
+    let checked = false;
+    const renderer = createMessageRenderer({
+        loadModules: async () => [{ marked: { parse: (text) => text } }, { default: { sanitize: (text) => text } }],
+    });
+    await renderer.load();
+    const message = element();
+    message.querySelectorAll = (selector) => {
+        if (selector === '[class]') {
+            checked = true;
+            return nodes;
+        }
+        return [];
+    };
+    renderer.write(message, 'Source', 'bot');
+    assert.equal(checked, true);
 });
 
 test('failed or incomplete Markdown dependencies warn, retain plain text and allow retry', async () => {

@@ -23,7 +23,41 @@ export function createMessageRenderer({
                     if (typeof marked?.parse !== 'function' || typeof purify?.sanitize !== 'function') {
                         throw new Error('Chat markdown modules are incomplete.');
                     }
-                    markdown = (text) => purify.sanitize(marked.parse(text, { gfm: true, breaks: true }));
+                    markdown = (text) =>
+                        purify.sanitize(marked.parse(text, { gfm: true, breaks: true }), {
+                            ALLOWED_TAGS: [
+                                'p',
+                                'br',
+                                'strong',
+                                'em',
+                                'del',
+                                'blockquote',
+                                'ul',
+                                'ol',
+                                'li',
+                                'pre',
+                                'code',
+                                'a',
+                                'h1',
+                                'h2',
+                                'h3',
+                                'h4',
+                                'h5',
+                                'h6',
+                                'table',
+                                'thead',
+                                'tbody',
+                                'tr',
+                                'th',
+                                'td',
+                                'hr',
+                            ],
+                            ALLOWED_ATTR: ['href', 'title', 'class', 'start'],
+                            FORBID_ATTR: ['style', 'id'],
+                            FORBID_CONTENTS: ['script', 'style', 'svg', 'button', 'form', 'iframe', 'nav', 'header', 'footer', 'template'],
+                            ALLOW_DATA_ATTR: false,
+                            ALLOW_ARIA_ATTR: false,
+                        });
                 })
                 .catch((error) => {
                     loading = null;
@@ -73,6 +107,11 @@ export function createMessageRenderer({
             element.classList.toggle('message--loading', !text);
             if (sender === 'bot' && markdown && text) {
                 element.innerHTML = markdown(text);
+                element.querySelectorAll('[class]').forEach((node) => {
+                    const language = node.tagName === 'CODE' && [...node.classList].find((name) => /^language-[\w-]+$/.test(name));
+                    if (language) node.setAttribute('class', language);
+                    else node.removeAttribute('class');
+                });
                 element.querySelectorAll('a').forEach((link) => {
                     link.rel = 'noopener noreferrer';
                     link.target = '_blank';

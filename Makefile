@@ -9,7 +9,7 @@ SHELL := /bin/bash
 	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
 	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
-	ci ci-check check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
+	ci ci-check check-tools check-env check-ai-tools check-corpus-tools check-ai-namespace check-wrangler-node
 
 ifneq (,$(wildcard .env))
 include .env
@@ -56,7 +56,7 @@ HUGO              ?= hugo
 HUGO_FLAGS        ?= --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?=
 NODE              ?= node
-export NODE
+export NODE HUGO
 NPM               ?= npm
 WRANGLER          ?= npx wrangler
 TEST_REPORTER     ?= spec
@@ -89,6 +89,9 @@ check-env: ## Validate required environment variables are set
 check-ai-tools: ## Validate Node/npm without requiring Hugo
 	@command -v $(NODE) >/dev/null || { echo "Missing Node"; exit 1; }
 	@command -v $(NPM) >/dev/null || { echo "Missing npm"; exit 1; }
+
+check-corpus-tools: check-ai-tools ## Validate tools for corpus URL provenance
+	@command -v $(HUGO) >/dev/null || { echo "Missing Hugo (required for published source URLs)"; exit 1; }
 
 check-ai-namespace:
 	@test -n "$$AI_NAMESPACE" || { echo "Set AI_NAMESPACE to the candidate namespace printed by make ai-plan"; exit 1; }
@@ -231,35 +234,35 @@ ai-local-hybrid: check-env ## Local BGE retrieval + Cloudflare generation (paid)
 ai-models: check-ai-tools ## List model aliases, parameters and dated prices (offline)
 	@$(NODE) scripts/ai-eval.mjs models
 
-ai-plan: check-ai-tools ## Validate corpus and write candidate manifest (offline)
+ai-plan: check-corpus-tools ## Validate corpus and write candidate manifest (offline)
 	@$(NODE) scripts/generate_embeddings.mjs --check --manifest "$$REPORT_DIR/ai-corpus.json"
 
-ai-check: check-ai-tools ## Validate corpus IDs, model selection and evaluation labels (offline)
+ai-check: check-corpus-tools ## Validate corpus IDs, model selection and evaluation labels (offline)
 	@$(NODE) scripts/generate_embeddings.mjs --check
 	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
-ai-test: check-ai-tools ## Run offline AI infrastructure and API tests
+ai-test: check-corpus-tools ## Run offline AI infrastructure and API tests
 	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 ai-build: check-wrangler-node ## Bundle Pages Functions locally (Node 22+, no deployment)
 	@mkdir -p "$$REPORT_DIR"
 	@$(WRANGLER) pages functions build functions --outfile="$$REPORT_DIR/ai-functions-worker.js"
 
-ai-embeddings: check-ai-tools check-env check-ai-namespace ## Ingest explicit candidate namespace (paid API; no activation/deletion)
+ai-embeddings: check-corpus-tools check-env check-ai-namespace ## Ingest explicit candidate namespace (paid API; no activation/deletion)
 	@$(NODE) scripts/generate_embeddings.mjs --namespace "$$AI_NAMESPACE" --manifest "$$REPORT_DIR/ai-corpus.json"
 
-ai-refresh: check-ai-tools check-env ## Index changed corpus and set namespace (force: AI_REFRESH_FLAGS=--force)
+ai-refresh: check-corpus-tools check-env ## Index changed corpus and set namespace (force: AI_REFRESH_FLAGS=--force)
 	@$(NODE) scripts/refresh_ai_corpus.mjs $(AI_REFRESH_FLAGS)
 
-ai-retrieval-eval: check-ai-tools check-env check-ai-namespace ## Evaluate live hit@k against labeled sources (paid API)
+ai-retrieval-eval: check-corpus-tools check-env check-ai-namespace ## Evaluate live hit@k against labeled sources (paid API)
 	@$(NODE) scripts/ai-eval.mjs retrieval --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
 		--min-hit-rate "$$AI_MIN_HIT_RATE" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_RETRIEVAL_REPORT"
 
-ai-compare: check-ai-tools check-env ## Compare models using identical labeled-source contexts (paid API)
+ai-compare: check-corpus-tools check-env ## Compare models using identical labeled-source contexts (paid API)
 	@$(NODE) scripts/ai-eval.mjs compare --models "$$AI_MODELS" --fixture "$$AI_FIXTURE" \
 		--repeats "$$AI_REPEATS" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_COMPARISON_REPORT"
 
-ai-compare-rag: check-ai-tools check-env check-ai-namespace ## Compare models using a validated live retrieval report (paid API)
+ai-compare-rag: check-corpus-tools check-env check-ai-namespace ## Compare models using a validated live retrieval report (paid API)
 	@$(NODE) scripts/ai-eval.mjs compare --namespace "$$AI_NAMESPACE" --models "$$AI_MODELS" \
 		--fixture "$$AI_FIXTURE" --retrieval-report "$$AI_RETRIEVAL_REPORT" --min-hit-rate "$$AI_MIN_HIT_RATE" \
 		--repeats "$$AI_REPEATS" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_COMPARISON_REPORT"
