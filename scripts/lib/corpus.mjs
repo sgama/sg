@@ -12,13 +12,19 @@ const namespaceFor = (hash) => `corpus-${hash.slice(0, 56)}`;
 const chunkId = (namespace, source, index) => digest(`${namespace}\0${source}\0${index}`);
 
 function corpusHash(corpus) {
-    return digest(JSON.stringify({
-        version: corpus.version,
-        embedding: corpus.embedding,
-        chunking: corpus.chunking,
-        sources: corpus.sources,
-        chunks: corpus.chunks.map(({ chunkIndex, text, metadata }) => ({ chunkIndex, text, metadata })),
-    }));
+    return digest(
+        JSON.stringify({
+            version: corpus.version,
+            embedding: corpus.embedding,
+            chunking: corpus.chunking,
+            sources: corpus.sources,
+            chunks: corpus.chunks.map(({ chunkIndex, text, metadata }) => ({
+                chunkIndex,
+                text,
+                metadata,
+            })),
+        }),
+    );
 }
 
 export function validateCorpus(corpus) {
@@ -40,20 +46,24 @@ export function validateCorpus(corpus) {
     }
 }
 
-export async function buildCorpus({
-    root = process.cwd(),
-    embedding = AI_CONFIG.embedding,
-    chunking = CHUNK_CONFIG,
-} = {}) {
+export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.embedding, chunking = CHUNK_CONFIG } = {}) {
     const embeddingConfig = { model: embedding.model, dimensions: embedding.dimensions };
     const chunkConfig = { chunkSize: chunking.chunkSize, chunkOverlap: chunking.chunkOverlap };
-    if (typeof embeddingConfig.model !== 'string' || !embeddingConfig.model.trim()
-        || !Number.isInteger(embeddingConfig.dimensions) || embeddingConfig.dimensions <= 0) {
+    if (
+        typeof embeddingConfig.model !== 'string' ||
+        !embeddingConfig.model.trim() ||
+        !Number.isInteger(embeddingConfig.dimensions) ||
+        embeddingConfig.dimensions <= 0
+    ) {
         throw new Error('Invalid embedding configuration');
     }
-    if (!Number.isInteger(chunkConfig.chunkSize) || chunkConfig.chunkSize <= 0
-        || !Number.isInteger(chunkConfig.chunkOverlap) || chunkConfig.chunkOverlap < 0
-        || chunkConfig.chunkOverlap >= chunkConfig.chunkSize) {
+    if (
+        !Number.isInteger(chunkConfig.chunkSize) ||
+        chunkConfig.chunkSize <= 0 ||
+        !Number.isInteger(chunkConfig.chunkOverlap) ||
+        chunkConfig.chunkOverlap < 0 ||
+        chunkConfig.chunkOverlap >= chunkConfig.chunkSize
+    ) {
         throw new Error('Invalid chunk configuration');
     }
     // The existing character-based splitter is retained; characters do not guarantee a token bound.
@@ -84,8 +94,12 @@ export async function buildCorpus({
             continue;
         }
         corpus.counts.includedFiles++;
-        const url = '/' + source.slice('content/'.length)
-            .replace(/\.md$/, '').replace(/(^|\/)_?index$/, '');
+        const url =
+            '/' +
+            source
+                .slice('content/'.length)
+                .replace(/\.md$/, '')
+                .replace(/(^|\/)_?index$/, '');
         const segments = await splitter.splitText(indexContent);
         segments.forEach((text, chunkIndex) => {
             corpus.chunks.push({

@@ -2,16 +2,17 @@ export function isNearBottom(element, threshold = 48) {
     return element.scrollHeight - element.clientHeight - element.scrollTop <= threshold;
 }
 
-export function createChatScroller(viewport, content, latestButton, {
-    isOpen,
-    signal,
-    requestFrame = requestAnimationFrame,
-    cancelFrame = cancelAnimationFrame,
-    Observer = globalThis.ResizeObserver,
-}) {
+export function createChatScroller(
+    viewport,
+    content,
+    latestButton,
+    { isOpen, signal, requestFrame = requestAnimationFrame, cancelFrame = cancelAnimationFrame, Observer = globalThis.ResizeObserver },
+) {
     let following = true;
     let frame = null;
-    const updateButton = () => { latestButton.hidden = following; };
+    const updateButton = () => {
+        latestButton.hidden = following;
+    };
     const schedule = (force = false) => {
         if (force) {
             following = true;
@@ -24,11 +25,15 @@ export function createChatScroller(viewport, content, latestButton, {
             viewport.scrollTop = viewport.scrollHeight;
         });
     };
-    viewport.addEventListener("scroll", () => {
-        following = isNearBottom(viewport);
-        updateButton();
-    }, { passive: true, signal });
-    latestButton.addEventListener("click", () => schedule(true), { signal });
+    viewport.addEventListener(
+        'scroll',
+        () => {
+            following = isNearBottom(viewport);
+            updateButton();
+        },
+        { passive: true, signal },
+    );
+    latestButton.addEventListener('click', () => schedule(true), { signal });
     const observer = Observer ? new Observer(() => schedule()) : null;
     observer?.observe(viewport);
     observer?.observe(content);

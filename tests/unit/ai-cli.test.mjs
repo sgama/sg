@@ -21,12 +21,28 @@ async function fixture(t) {
     });
     await mkdir(path.join(root, 'content'));
     await writeFile(path.join(root, 'content/page.md'), '---\ntitle: Stack\n---\nHugo and Cloudflare.');
-    await writeFile(path.join(root, 'fixture.json'), JSON.stringify({ version: 1, cases: [
-        { id: 'stack', query: 'Stack?', expectedSources: ['content/page.md'],
-            answerTerms: [['hugo']], forbiddenTerms: [] },
-        { id: 'salary', query: 'Salary?', expectedSources: [],
-            answerTerms: [['unknown']], forbiddenTerms: [] },
-    ] }));
+    await writeFile(
+        path.join(root, 'fixture.json'),
+        JSON.stringify({
+            version: 1,
+            cases: [
+                {
+                    id: 'stack',
+                    query: 'Stack?',
+                    expectedSources: ['content/page.md'],
+                    answerTerms: [['hugo']],
+                    forbiddenTerms: [],
+                },
+                {
+                    id: 'salary',
+                    query: 'Salary?',
+                    expectedSources: [],
+                    answerTerms: [['unknown']],
+                    forbiddenTerms: [],
+                },
+            ],
+        }),
+    );
     await writeFile(path.join(root, 'wrangler.toml'), '[vars]\nAI_MODEL = "glm"\n');
     process.chdir(root);
     process.env.CLOUDFLARE_ACCOUNT_ID = 'account';
@@ -46,16 +62,22 @@ async function fixture(t) {
         } else if (pathname === `${base}/ai/run/${AI_CONFIG.embedding.model}`) {
             result = { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] };
         } else if (pathname === `${base}/vectorize/v2/indexes/portfolio-index/query`) {
-            result = { matches: [{ id: corpus.chunks[0].id, metadata: corpus.chunks[0].metadata }] };
+            result = {
+                matches: [{ id: corpus.chunks[0].id, metadata: corpus.chunks[0].metadata }],
+            };
         } else if (pathname === `${base}/vectorize/v2/indexes/portfolio-index/upsert`) {
             assert.match(await request.text(), /"namespace":"corpus-/);
             result = { mutationId: 'accepted' };
         } else if (pathname === `${base}/vectorize/v2/indexes/portfolio-index/info`) {
-            result = { dimensions: AI_CONFIG.embedding.dimensions, processedUpToMutation: 'accepted' };
+            result = {
+                dimensions: AI_CONFIG.embedding.dimensions,
+                processedUpToMutation: 'accepted',
+            };
         } else {
             assert.match(pathname, /\/ai\/run\/@cf\/zai-org\/glm-4.7-flash$/);
-            return new Response('data: {"response":"Hugo; salary unknown."}\n\ndata: [DONE]\n\n',
-                { headers: { 'content-type': 'text/event-stream' } });
+            return new Response('data: {"response":"Hugo; salary unknown."}\n\ndata: [DONE]\n\n', {
+                headers: { 'content-type': 'text/event-stream' },
+            });
         }
         return Response.json({ success: true, result });
     };
@@ -67,13 +89,15 @@ test('comparison supports oracle and retrieved contexts and persists private rep
     const args = ['--fixture', 'fixture.json', '--models', 'glm'];
     await evaluate(['retrieval', ...args, '--output', 'retrieval.json'], f);
     await evaluate(['compare', ...args, '--output', 'oracle.json'], f);
-    await evaluate(['compare', ...args, '--retrieval-report', 'retrieval.json',
-        '--output', 'retrieved.json'], f);
-    for (const [name, mode] of [['oracle', 'labeled-source'], ['retrieved', 'retrieved']]) {
+    await evaluate(['compare', ...args, '--retrieval-report', 'retrieval.json', '--output', 'retrieved.json'], f);
+    for (const [name, mode] of [
+        ['oracle', 'labeled-source'],
+        ['retrieved', 'retrieved'],
+    ]) {
         const report = JSON.parse(await readFile(`${name}.json`, 'utf8'));
         assert.equal(report.contextMode, mode);
         assert.equal(report.results.length, 2);
-        assert.ok(report.results.every(result => result.status === 'ok'));
+        assert.ok(report.results.every((result) => result.status === 'ok'));
         assert.equal((await stat(`${name}.json`)).mode & 0o777, 0o600);
     }
     const retrieved = JSON.parse(await readFile('retrieved.json', 'utf8'));
@@ -83,7 +107,8 @@ test('comparison supports oracle and retrieved contexts and persists private rep
 test('evaluation rejects invalid options before any network request', async (t) => {
     const f = await fixture(t);
     for (const [args, expected] of [
-        [[], /Usage/], [['models', 'extra'], /Usage/],
+        [[], /Usage/],
+        [['models', 'extra'], /Usage/],
         [['models', '--models', 'glm,glm'], /unique/],
         [['models', '--models', 'invalid'], /Unknown AI model/],
         [['validate', '--repeats', '21'], /repeats/],
@@ -92,7 +117,8 @@ test('evaluation rejects invalid options before any network request', async (t) 
         [['validate', '--timeout-ms', '1'], /timeout-ms/],
         [['validate', '--fixture', 'fixture.json', '--namespace', 'old'], /Namespace/],
         [['release-check', '--fixture', 'fixture.json'], /reports? are required|--retrieval-report/],
-    ]) await assert.rejects(evaluate(args, f), expected);
+    ])
+        await assert.rejects(evaluate(args, f), expected);
     assert.equal(f.requests.length, 0);
 });
 
@@ -100,8 +126,7 @@ test('model listing and dry-run plans are offline and count every generation cas
     const f = await fixture(t);
     await evaluate(['models'], f);
     assert.ok(JSON.parse(f.output.mock.calls.at(-1).arguments[0]).models.glm);
-    await evaluate(['compare', '--fixture', 'fixture.json', '--models', 'glm,gemma',
-        '--repeats', '2', '--dry-run'], f);
+    await evaluate(['compare', '--fixture', 'fixture.json', '--models', 'glm,gemma', '--repeats', '2', '--dry-run'], f);
     const plan = JSON.parse(f.output.mock.calls.at(-1).arguments[0]);
     assert.equal(plan.maxGenerationCalls, 8);
     assert.equal(plan.namespace, f.corpus.namespace);
@@ -116,21 +141,34 @@ test('refresh CLI activates after indexing, skips unchanged content and honors f
     await refresh([], f);
     assert.match(await readFile('wrangler.toml', 'utf8'), new RegExp(f.corpus.namespace));
     assert.match(f.output.mock.calls.at(-1).arguments[0], /indexed/);
-    const unchanged = { fetchImpl: async (url) => {
-        const pathname = new URL(url).pathname;
-        if (pathname.endsWith('/pages/projects/sg')) {
-            return Response.json({ success: true, result: { canonical_deployment: { id: 'active' } } });
-        }
-        assert.ok(pathname.endsWith('/deployments/active'));
-        return Response.json({ success: true, result: { id: 'active', environment: 'production',
-            env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: f.corpus.namespace } } } });
-    } };
+    const unchanged = {
+        fetchImpl: async (url) => {
+            const pathname = new URL(url).pathname;
+            if (pathname.endsWith('/pages/projects/sg')) {
+                return Response.json({
+                    success: true,
+                    result: { canonical_deployment: { id: 'active' } },
+                });
+            }
+            assert.ok(pathname.endsWith('/deployments/active'));
+            return Response.json({
+                success: true,
+                result: {
+                    id: 'active',
+                    environment: 'production',
+                    env_vars: {
+                        AI_CORPUS_NAMESPACE: { type: 'plain_text', value: f.corpus.namespace },
+                    },
+                },
+            });
+        },
+    };
     await refresh([], unchanged);
     assert.match(f.output.mock.calls.at(-1).arguments[0], /ingestion skipped/);
     f.requests.length = 0;
     await refresh(['--force', '--config', 'wrangler.toml'], f);
-    assert.ok(!f.requests.some(request => request.includes('/pages/')));
-    assert.ok(f.requests.some(request => request.endsWith('/info')));
+    assert.ok(!f.requests.some((request) => request.includes('/pages/')));
+    assert.ok(f.requests.some((request) => request.endsWith('/info')));
 });
 
 test('refresh CLI missing credentials fail explicitly, including the process entry point', async (t) => {
@@ -139,8 +177,10 @@ test('refresh CLI missing credentials fail explicitly, including the process ent
     await assert.rejects(refresh([], f), /Missing CLOUDFLARE/);
     const script = fileURLToPath(new URL('../../scripts/refresh_ai_corpus.mjs', import.meta.url));
     const result = spawnSync(process.execPath, [script], {
-        cwd: f.root, env: { ...process.env, CLOUDFLARE_API_TOKEN: '' },
-        encoding: 'utf8', timeout: 10000,
+        cwd: f.root,
+        env: { ...process.env, CLOUDFLARE_API_TOKEN: '' },
+        encoding: 'utf8',
+        timeout: 10000,
     });
     assert.ifError(result.error);
     assert.equal(result.status, 1);
@@ -152,12 +192,11 @@ test('retrieval and generation failures write reports before failing the CLI', a
     await fixture(t);
     const failed = { fetchImpl: async () => Response.json({ success: false }, { status: 400 }) };
     for (const command of ['retrieval', 'compare']) {
-        await assert.rejects(evaluate([command, '--fixture', 'fixture.json', '--models', 'glm',
-            '--output', `${command}.json`], failed), /failed/);
+        await assert.rejects(evaluate([command, '--fixture', 'fixture.json', '--models', 'glm', '--output', `${command}.json`], failed), /failed/);
         const report = JSON.parse(await readFile(`${command}.json`, 'utf8'));
         assert.equal(report.results.length, 2);
         if (command === 'retrieval') {
-            assert.ok(report.results.every(result => result.error));
+            assert.ok(report.results.every((result) => result.error));
         } else {
             assert.equal(report.results[0].status, 'error');
             assert.equal(report.results[1].status, 'ok');

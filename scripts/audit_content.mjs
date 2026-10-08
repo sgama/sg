@@ -43,9 +43,7 @@ const results = contentFiles.map((filePath) => {
     const raw = fs.readFileSync(filePath, 'utf8');
     const data = matter(raw).data ?? {};
     const missingRequired = requiredFields.filter((field) => !isValuePresent(data[field]));
-    const missingRecommended = recommendedGroups
-        .filter((group) => !groupSatisfied(data, group))
-        .map((group) => group.join('|'));
+    const missingRecommended = recommendedGroups.filter((group) => !groupSatisfied(data, group)).map((group) => group.join('|'));
     return { file: path.relative(repoRoot, filePath), missingRequired, missingRecommended };
 });
 
@@ -104,7 +102,8 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 
 const failures = [];
 if (requiredCoverage < requiredMin) failures.push(`Required coverage ${formatPercent(requiredCoverage)} below ${formatPercent(requiredMin)}`);
-if (recommendedCoverage < recommendedMin) failures.push(`Recommended coverage ${formatPercent(recommendedCoverage)} below ${formatPercent(recommendedMin)}`);
+if (recommendedCoverage < recommendedMin)
+    failures.push(`Recommended coverage ${formatPercent(recommendedCoverage)} below ${formatPercent(recommendedMin)}`);
 
 if (failures.length > 0) {
     console.error(failures.join('\n'));

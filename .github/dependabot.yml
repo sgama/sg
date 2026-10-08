@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Vancouver
     target-branch: develop
     open-pull-requests-limit: 1
@@ -13,19 +13,19 @@ updates:
       - dependencies
       - npm
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
       include: scope
     groups:
       npm:
         patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Vancouver
     target-branch: develop
     open-pull-requests-limit: 1
@@ -34,19 +34,19 @@ updates:
       - go
       - hugo-theme
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
       include: scope
     groups:
       gomod:
         patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Vancouver
     target-branch: develop
     open-pull-requests-limit: 1
@@ -54,9 +54,9 @@ updates:
       - dependencies
       - github-actions
     commit-message:
-      prefix: "chore(ci)"
+      prefix: 'chore(ci)'
       include: scope
     groups:
       github-actions:
         patterns:
-          - "*"
+          - '*'

@@ -17,16 +17,27 @@ async function audit(t, files, overrides = {}) {
     }
     const summary = path.join(root, 'summary.md');
     const result = spawnSync(process.execPath, [script], {
-        cwd: root, encoding: 'utf8', timeout: 10000,
-        env: { ...process.env, REPORT_DIR: path.join(root, 'reports'),
-            CONTENT_REQUIRED_FIELDS: 'title,date', CONTENT_RECOMMENDED_FIELDS: 'tags,description|summary',
-            CONTENT_REQUIRED_MIN: '1.0', CONTENT_RECOMMENDED_MIN: '0.8',
-            GITHUB_STEP_SUMMARY: summary, ...overrides },
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 10000,
+        env: {
+            ...process.env,
+            REPORT_DIR: path.join(root, 'reports'),
+            CONTENT_REQUIRED_FIELDS: 'title,date',
+            CONTENT_RECOMMENDED_FIELDS: 'tags,description|summary',
+            CONTENT_REQUIRED_MIN: '1.0',
+            CONTENT_RECOMMENDED_MIN: '0.8',
+            GITHUB_STEP_SUMMARY: summary,
+            ...overrides,
+        },
     });
     assert.ifError(result.error);
-    return { result, report: JSON.parse(await readFile(path.join(root, 'reports/content_audit.json'), 'utf8')),
+    return {
+        result,
+        report: JSON.parse(await readFile(path.join(root, 'reports/content_audit.json'), 'utf8')),
         markdown: await readFile(path.join(root, 'reports/content_audit.md'), 'utf8'),
-        summary: overrides.GITHUB_STEP_SUMMARY === '' ? undefined : await readFile(summary, 'utf8') };
+        summary: overrides.GITHUB_STEP_SUMMARY === '' ? undefined : await readFile(summary, 'utf8'),
+    };
 }
 
 test('empty corpora pass and section index pages are ignored', async (t) => {
@@ -48,16 +59,20 @@ test('missing required and recommended fields fail with reports and actionable e
     assert.match(result.stderr, /Recommended coverage 0.0% below 80.0%/);
     assert.equal(report.totals.requiredMissing, 4);
     assert.equal(report.totals.recommendedMissing, 4);
-    assert.ok(report.missing.every(item => item.missingRequired.join(',') === 'title,date'));
+    assert.ok(report.missing.every((item) => item.missingRequired.join(',') === 'title,date'));
     assert.match(markdown, /required: title, date; recommended: tags, description\|summary/);
     assert.equal(summary, markdown);
 });
 
 test('present values and alternative summary fields meet configured thresholds', async (t) => {
-    const { result, report } = await audit(t, {
-        'content/valid.md': '---\ntitle: Valid\ndate: 2026-01-01\ntags: [test]\nsummary: Summary\n---\nBody',
-        'content/partial.md': '---\ntitle: Partial\ndate: false\ntags: []\ndescription: Description\n---\nBody',
-    }, { CONTENT_RECOMMENDED_MIN: '0.75', GITHUB_STEP_SUMMARY: '' });
+    const { result, report } = await audit(
+        t,
+        {
+            'content/valid.md': '---\ntitle: Valid\ndate: 2026-01-01\ntags: [test]\nsummary: Summary\n---\nBody',
+            'content/partial.md': '---\ntitle: Partial\ndate: false\ntags: []\ndescription: Description\n---\nBody',
+        },
+        { CONTENT_RECOMMENDED_MIN: '0.75', GITHUB_STEP_SUMMARY: '' },
+    );
     assert.equal(result.status, 0, result.stderr);
     assert.equal(report.totals.requiredCoverage, 1);
     assert.equal(report.totals.recommendedCoverage, 0.75);

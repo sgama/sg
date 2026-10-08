@@ -6,37 +6,42 @@ import { AI_CONFIG } from '../functions/_lib/application.js';
 import { createMaintenanceClient, waitForMutation } from './lib/corpus-deployment.mjs';
 
 const VERSIONED_NAMESPACE = /^corpus-[a-f0-9]{56}$/;
-const successful = deployment => !deployment.is_skipped
-    && deployment.latest_stage?.name === 'deploy'
-    && deployment.latest_stage.status === 'success';
+const successful = (deployment) =>
+    !deployment.is_skipped && deployment.latest_stage?.name === 'deploy' && deployment.latest_stage.status === 'success';
 
 export function planRetention(deployments, activeId, branch, previous = 5) {
-    if (!activeId || !deployments.some(deployment => deployment.id === activeId)) {
+    if (!activeId || !deployments.some((deployment) => deployment.id === activeId)) {
         throw new Error('Active deployment must be present before cleanup');
     }
     if (!Number.isInteger(previous) || previous < 0) throw new Error('Invalid deployment retention count');
-    if (deployments.some(deployment => !deployment.id || !Number.isFinite(Date.parse(deployment.created_on)))) {
+    if (deployments.some((deployment) => !deployment.id || !Number.isFinite(Date.parse(deployment.created_on)))) {
         throw new Error('Deployment inventory contains invalid IDs or timestamps');
     }
-    const production = deployments.filter(deployment => deployment.environment === 'production'
-        && deployment.deployment_trigger?.metadata?.branch === branch);
-    const active = deployments.find(deployment => deployment.id === activeId);
+    const production = deployments.filter(
+        (deployment) => deployment.environment === 'production' && deployment.deployment_trigger?.metadata?.branch === branch,
+    );
+    const active = deployments.find((deployment) => deployment.id === activeId);
     if (active.environment !== 'production') {
         throw new Error('Active deployment is not production; refusing cleanup');
     }
-    const predecessors = production.filter(deployment => deployment.id !== activeId
-        && Date.parse(deployment.created_on) < Date.parse(active.created_on)
-        && successful(deployment))
+    const predecessors = production
+        .filter(
+            (deployment) => deployment.id !== activeId && Date.parse(deployment.created_on) < Date.parse(active.created_on) && successful(deployment),
+        )
         .sort((a, b) => Date.parse(b.created_on) - Date.parse(a.created_on))
         .slice(0, previous);
-    const keep = new Set([activeId, ...predecessors.map(deployment => deployment.id)]);
+    const keep = new Set([activeId, ...predecessors.map((deployment) => deployment.id)]);
     // Production builds in progress survive; previews are removed regardless of status.
-    const remove = deployments.filter(deployment => deployment.environment === 'preview'
-        || (production.some(item => item.id === deployment.id) && !keep.has(deployment.id)
-            && ['success', 'failure', 'canceled'].includes(deployment.latest_stage?.status)));
+    const remove = deployments.filter(
+        (deployment) =>
+            deployment.environment === 'preview' ||
+            (production.some((item) => item.id === deployment.id) &&
+                !keep.has(deployment.id) &&
+                ['success', 'failure', 'canceled'].includes(deployment.latest_stage?.status)),
+    );
     return {
         remove,
-        retain: deployments.filter(deployment => !remove.some(item => item.id === deployment.id)),
+        retain: deployments.filter((deployment) => !remove.some((item) => item.id === deployment.id)),
     };
 }
 
@@ -54,7 +59,9 @@ export function referencedNamespaces(deployments) {
 
 async function inventory(client, project, accountId) {
     const result = [];
-    for await (const deployment of client.pages.projects.deployments.list(project, { account_id: accountId })) {
+    for await (const deployment of client.pages.projects.deployments.list(project, {
+        account_id: accountId,
+    })) {
         result.push(deployment);
     }
     return result;
@@ -64,7 +71,8 @@ async function retainedSnapshots(client, project, accountId, deployments) {
     const snapshots = [];
     for (const deployment of deployments) {
         const snapshot = await client.pages.projects.deployments.get(deployment.id, {
-            account_id: accountId, project_name: project,
+            account_id: accountId,
+            project_name: project,
         });
         if (snapshot?.id !== deployment.id || snapshot.environment !== deployment.environment) {
             throw new Error('Invalid retained deployment snapshot; refusing cleanup');
@@ -87,22 +95,30 @@ async function vectorInventory(client, accountId, indexName) {
     let cursor;
     do {
         const page = await client.vectorize.indexes.listVectors(indexName, {
-            account_id: accountId, count: 1000, ...(cursor ? { cursor } : {}),
+            account_id: accountId,
+            count: 1000,
+            ...(cursor ? { cursor } : {}),
         });
         if (!Array.isArray(page?.vectors) || typeof page.isTruncated !== 'boolean') {
             throw new Error('Invalid vector inventory response');
         }
-        const ids = page.vectors.map(vector => vector.id);
-        if (ids.some(id => typeof id !== 'string' || !id || seen.has(id))) {
+        const ids = page.vectors.map((vector) => vector.id);
+        if (ids.some((id) => typeof id !== 'string' || !id || seen.has(id))) {
             throw new Error('Invalid or repeated vector ID during cleanup');
         }
-        ids.forEach(id => seen.add(id));
+        ids.forEach((id) => seen.add(id));
         for (let offset = 0; offset < ids.length; offset += 20) {
             const batch = ids.slice(offset, offset + 20);
-            const records = await client.vectorize.indexes.getByIDs(indexName, { account_id: accountId, ids: batch });
-            if (!Array.isArray(records) || records.length !== batch.length
-                || new Set(records.map(record => record.id)).size !== batch.length
-                || records.some(record => !batch.includes(record.id))) {
+            const records = await client.vectorize.indexes.getByIDs(indexName, {
+                account_id: accountId,
+                ids: batch,
+            });
+            if (
+                !Array.isArray(records) ||
+                records.length !== batch.length ||
+                new Set(records.map((record) => record.id)).size !== batch.length ||
+                records.some((record) => !batch.includes(record.id))
+            ) {
                 throw new Error('Incomplete vector records; refusing cleanup');
             }
             vectors.push(...records);
@@ -116,40 +132,47 @@ async function vectorInventory(client, accountId, indexName) {
 }
 
 export async function cleanupDeployments({
-    client, accountId, project = 'sg', branch = 'develop', previous = 5,
-    indexName = AI_CONFIG.retrieval.indexName, dryRun = false, wait = waitForMutation,
+    client,
+    accountId,
+    project = 'sg',
+    branch = 'develop',
+    previous = 5,
+    indexName = AI_CONFIG.retrieval.indexName,
+    dryRun = false,
+    wait = waitForMutation,
 }) {
     const activeId = await activeDeployment(client, project, accountId);
     const deployments = await inventory(client, project, accountId);
     const plan = planRetention(deployments, activeId, branch, previous);
-    const retainedIds = new Set(plan.retain.map(deployment => deployment.id));
-    const references = async deployments => referencedNamespaces(
-        await retainedSnapshots(client, project, accountId, deployments));
+    const retainedIds = new Set(plan.retain.map((deployment) => deployment.id));
+    const references = async (deployments) => referencedNamespaces(await retainedSnapshots(client, project, accountId, deployments));
     const referenced = await references(plan.retain);
     const vectors = await vectorInventory(client, accountId, indexName);
-    const staleIds = vectors.filter(vector => VERSIONED_NAMESPACE.test(vector.namespace)
-        && !referenced.has(vector.namespace)).map(vector => vector.id);
+    const staleIds = vectors
+        .filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && !referenced.has(vector.namespace))
+        .map((vector) => vector.id);
     const assertStable = async (expected) => {
-        if (await activeDeployment(client, project, accountId) !== activeId) {
+        if ((await activeDeployment(client, project, accountId)) !== activeId) {
             throw new Error('Active deployment changed during cleanup; stopping');
         }
         const latest = await inventory(client, project, accountId);
-        const currentIds = latest.map(deployment => deployment.id).sort();
+        const currentIds = latest.map((deployment) => deployment.id).sort();
         if (JSON.stringify(currentIds) !== JSON.stringify([...expected].sort())) {
             throw new Error('Deployment inventory changed during cleanup; stopping');
         }
-        const currentReferences = await references(latest.filter(deployment => retainedIds.has(deployment.id)));
+        const currentReferences = await references(latest.filter((deployment) => retainedIds.has(deployment.id)));
         if (JSON.stringify([...currentReferences].sort()) !== JSON.stringify([...referenced].sort())) {
             throw new Error('Deployment inventory changed during cleanup; stopping');
         }
     };
-    const remaining = new Set(deployments.map(deployment => deployment.id));
+    const remaining = new Set(deployments.map((deployment) => deployment.id));
     await assertStable(remaining);
     if (!dryRun) {
         for (const deployment of plan.remove) {
             await assertStable(remaining);
             await client.pages.projects.deployments.delete(deployment.id, {
-                account_id: accountId, project_name: project,
+                account_id: accountId,
+                project_name: project,
                 ...(deployment.environment === 'preview' ? { force: true } : {}),
             });
             remaining.delete(deployment.id);
@@ -158,7 +181,8 @@ export async function cleanupDeployments({
         for (let offset = 0; offset < staleIds.length; offset += 100) {
             await assertStable(remaining);
             const result = await client.vectorize.indexes.deleteByIDs(indexName, {
-                account_id: accountId, ids: staleIds.slice(offset, offset + 100),
+                account_id: accountId,
+                ids: staleIds.slice(offset, offset + 100),
             });
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
                 throw new Error('Vector deletion did not return a mutation ID');
@@ -167,24 +191,33 @@ export async function cleanupDeployments({
         }
         await assertStable(remaining);
     }
-    return { dryRun, retainedDeployments: plan.retain.map(item => item.id),
-        removedDeployments: plan.remove.map(item => item.id), removedVectors: staleIds.length };
+    return {
+        dryRun,
+        retainedDeployments: plan.retain.map((item) => item.id),
+        removedDeployments: plan.remove.map((item) => item.id),
+        removedVectors: staleIds.length,
+    };
 }
 
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
-    const { values } = parseArgs({ args, options: { 'dry-run': { type: 'boolean', default: false } } });
+    const { values } = parseArgs({
+        args,
+        options: { 'dry-run': { type: 'boolean', default: false } },
+    });
     const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
     if (!accountId || !apiToken) throw new Error('Missing Cloudflare credentials');
     const result = await cleanupDeployments({
-        client: createMaintenanceClient(apiToken, fetchImpl), accountId,
-        project: process.env.PROJECT_NAME ?? 'sg', branch: process.env.BRANCH ?? 'develop',
+        client: createMaintenanceClient(apiToken, fetchImpl),
+        accountId,
+        project: process.env.PROJECT_NAME ?? 'sg',
+        branch: process.env.BRANCH ?? 'develop',
         dryRun: values['dry-run'],
     });
     console.log(JSON.stringify(result, null, 2));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    main().catch(error => {
+    main().catch((error) => {
         console.error(`Deployment/corpus cleanup failed: ${error.message}`);
         process.exitCode = 1;
     });

@@ -176,6 +176,22 @@ Version-2 reports are required; regenerate older positive-only retrieval reports
 Labeled-source comparisons still use oracle context and cannot establish
 end-to-end abstention performance. Empty-context fallback is tested separately.
 
+### Source formatting
+
+`make format` applies Prettier to maintained JavaScript in assets, Functions,
+scripts, tests and root JavaScript configuration files, plus source CSS under
+`assets/css/` and YAML in the root, `data/` and `.github/`. `make format-check`
+checks the same files without modifying them. Conventions are four-space
+indentation, single quotes where practical, semicolons, trailing commas, LF
+line endings and a 150-column wrapping preference. YAML uses two spaces and
+a 120-column wrapping preference, matching the existing yamllint configuration.
+
+Formatting is separate from ESLint correctness checks (`make lint`). Hugo
+templates, Markdown content, TOML and generated output are outside this
+formatting pass, including `assets/css/site.purged.css`. YAML linting and
+TOML tooling remain unchanged; CSS formatting does not add CSS linting.
+No CI or pre-commit formatting gate is added by this rollout.
+
 ### Authoring employer-facing RAG context
 
 [`content/_context/`](content/_context/) holds headless Markdown: indexed for

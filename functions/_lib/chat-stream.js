@@ -5,14 +5,14 @@ export function createSseMessageStream(message) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: message })}\n\n`));
             controller.enqueue(encoder.encode('data: [DONE]\n\n'));
             controller.close();
-        }
+        },
     });
 }
 
 export function normalizeChatStream(stream) {
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
-    let buffer = "";
+    let buffer = '';
     let dataLines = [];
     let hasAnswer = false;
     let hasContentDeltas = false;
@@ -36,7 +36,7 @@ export function normalizeChatStream(stream) {
         }
         const payload = JSON.parse(data);
         if (payload.error) throw new Error('AI returned a streaming error');
-        const choice = payload.choices?.find(item => item.index === 0);
+        const choice = payload.choices?.find((item) => item.index === 0);
         const content = choice?.delta?.content;
         if (typeof content === 'string' && content) {
             hasContentDeltas = true;
@@ -47,8 +47,10 @@ export function normalizeChatStream(stream) {
             emit(controller, { response: payload.response });
         }
         // Workers AI's final legacy event contains aggregate usage; chunk usage is incremental.
-        if (payload.usage && (typeof payload.response === 'string' || !payload.choices
-            || (payload.choices.length === 0 && payload.usage.total_tokens > 0))) {
+        if (
+            payload.usage &&
+            (typeof payload.response === 'string' || !payload.choices || (payload.choices.length === 0 && payload.usage.total_tokens > 0))
+        ) {
             emit(controller, { usage: payload.usage });
         }
     };
@@ -80,12 +82,14 @@ export function normalizeChatStream(stream) {
         }
     };
 
-    return stream.pipeThrough(new TransformStream({
-        transform(chunk, controller) {
-            consume(decoder.decode(chunk, { stream: true }), controller);
-        },
-        flush(controller) {
-            consume(decoder.decode(), controller, true);
-        },
-    }));
+    return stream.pipeThrough(
+        new TransformStream({
+            transform(chunk, controller) {
+                consume(decoder.decode(chunk, { stream: true }), controller);
+            },
+            flush(controller) {
+                consume(decoder.decode(), controller, true);
+            },
+        }),
+    );
 }

@@ -28,7 +28,9 @@ test('native stream reading handles fragmented UTF-8 and flushes incomplete byte
 
 test('native stream reading propagates stream failures', async () => {
     const stream = new ReadableStream({
-        start(controller) { controller.error(new Error('broken stream')); },
+        start(controller) {
+            controller.error(new Error('broken stream'));
+        },
     });
     await assert.rejects(drainStream(stream), /broken stream/);
 });

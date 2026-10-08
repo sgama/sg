@@ -16,28 +16,36 @@ async function writeReport(output, report) {
 }
 
 export function validateRetrievalReport(report, { namespace, fixture, minHitRate }) {
-    if (report.version !== 2 || report.kind !== 'retrieval' || report.namespace !== namespace || report.fixtureHash !== fixtureHash(fixture)
-        || !Number.isFinite(report.hitRate) || report.hitRate < minHitRate
-        || report.topK !== AI_CONFIG.retrieval.topK || report.embeddingModel !== AI_CONFIG.embedding.model
-        || report.maxContextChars !== AI_CONFIG.retrieval.maxContextChars
-        || report.indexName !== AI_CONFIG.retrieval.indexName
-        || !Array.isArray(report.results)) throw new Error('Retrieval report does not pass this corpus/fixture release gate');
+    if (
+        report.version !== 2 ||
+        report.kind !== 'retrieval' ||
+        report.namespace !== namespace ||
+        report.fixtureHash !== fixtureHash(fixture) ||
+        !Number.isFinite(report.hitRate) ||
+        report.hitRate < minHitRate ||
+        report.topK !== AI_CONFIG.retrieval.topK ||
+        report.embeddingModel !== AI_CONFIG.embedding.model ||
+        report.maxContextChars !== AI_CONFIG.retrieval.maxContextChars ||
+        report.indexName !== AI_CONFIG.retrieval.indexName ||
+        !Array.isArray(report.results)
+    )
+        throw new Error('Retrieval report does not pass this corpus/fixture release gate');
     const expected = fixture.cases;
     if (report.results.length !== expected.length) throw new Error('Retrieval report is incomplete');
     for (const item of expected) {
-        const matches = report.results.filter(result => result.caseId === item.id);
+        const matches = report.results.filter((result) => result.caseId === item.id);
         if (matches.length !== 1 || matches[0].error || typeof matches[0].context !== 'string') {
             throw new Error(`Retrieval report missing successful query ${item.id}`);
         }
-
     }
-    const positives = expected.filter(item => item.expectedSources.length);
-    const actualHitRate = report.results.filter(result => {
-        const item = expected.find(entry => entry.id === result.caseId);
-        return Array.isArray(result.sources) && item.expectedSources.some(source => result.sources.includes(source));
-    }).length / positives.length;
-    if (!Number.isFinite(actualHitRate) || actualHitRate < minHitRate
-        || actualHitRate !== report.hitRate) throw new Error('Retrieval report source labels do not meet the release gate');
+    const positives = expected.filter((item) => item.expectedSources.length);
+    const actualHitRate =
+        report.results.filter((result) => {
+            const item = expected.find((entry) => entry.id === result.caseId);
+            return Array.isArray(result.sources) && item.expectedSources.some((source) => result.sources.includes(source));
+        }).length / positives.length;
+    if (!Number.isFinite(actualHitRate) || actualHitRate < minHitRate || actualHitRate !== report.hitRate)
+        throw new Error('Retrieval report source labels do not meet the release gate');
     const evidenceRate = retrievalEvidenceRate(report.results, fixture.cases);
     if (evidenceRate !== null && (evidenceRate < minHitRate || report.evidenceRate !== evidenceRate)) {
         throw new Error('Retrieval report evidence does not meet the release gate');
@@ -45,25 +53,29 @@ export function validateRetrievalReport(report, { namespace, fixture, minHitRate
 }
 
 export function validateComparisonReport(report, { namespace, fixture, model, minAnswerRate, retrievalReport }) {
-    if (report.kind !== 'comparison' || report.namespace !== namespace
-        || report.fixtureHash !== fixtureHash(fixture) || report.promptHash !== promptHash()
-        || report.contextMode !== 'retrieved'
-        || report.maxCompletionTokens !== AI_CONFIG.generation.maxCompletionTokens
-        || !Array.isArray(report.results)
-        || JSON.stringify(report.modelConfigurations?.[model.id]) !== JSON.stringify(model)) {
+    if (
+        report.kind !== 'comparison' ||
+        report.namespace !== namespace ||
+        report.fixtureHash !== fixtureHash(fixture) ||
+        report.promptHash !== promptHash() ||
+        report.contextMode !== 'retrieved' ||
+        report.maxCompletionTokens !== AI_CONFIG.generation.maxCompletionTokens ||
+        !Array.isArray(report.results) ||
+        JSON.stringify(report.modelConfigurations?.[model.id]) !== JSON.stringify(model)
+    ) {
         throw new Error('Comparison report does not match the selected model, prompt and retrieved corpus');
     }
     if (!retrievalReport || report.retrievalHash !== fixtureHash(retrievalReport)) {
         throw new Error('Comparison report must use the current validated retrieval report');
     }
-    const samples = report.results.filter(item => item.modelId === model.id);
-    const repeats = new Set(samples.map(item => item.repeat));
-    if (!repeats.size || [...repeats].some(repeat => !Number.isInteger(repeat) || repeat < 0)) {
+    const samples = report.results.filter((item) => item.modelId === model.id);
+    const repeats = new Set(samples.map((item) => item.repeat));
+    if (!repeats.size || [...repeats].some((repeat) => !Number.isInteger(repeat) || repeat < 0)) {
         throw new Error('Comparison report has no valid repetitions for selected model');
     }
     for (const repeat of repeats) {
         for (const item of fixture.cases) {
-            const entries = samples.filter(sample => sample.caseId === item.id && sample.repeat === repeat);
+            const entries = samples.filter((sample) => sample.caseId === item.id && sample.repeat === repeat);
             if (entries.length !== 1 || entries[0].status !== 'ok' || typeof entries[0].answer !== 'string') {
                 throw new Error(`Comparison report missing successful answer for ${item.id}`);
             }
@@ -73,14 +85,20 @@ export function validateComparisonReport(report, { namespace, fixture, model, mi
         }
     }
     if (samples.length !== repeats.size * fixture.cases.length) throw new Error('Unexpected comparison samples');
-    const rate = samples.filter(sample => scoreAnswer(sample.answer,
-        fixture.cases.find(item => item.id === sample.caseId))).length / samples.length;
+    const rate =
+        samples.filter((sample) =>
+            scoreAnswer(
+                sample.answer,
+                fixture.cases.find((item) => item.id === sample.caseId),
+            ),
+        ).length / samples.length;
     if (rate < minAnswerRate) throw new Error(`Selected model answer checks ${rate} below ${minAnswerRate}`);
 }
 
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values, positionals } = parseArgs({
-        args, allowPositionals: true,
+        args,
+        allowPositionals: true,
         options: {
             models: { type: 'string', default: 'glm,gemma,llama' },
             fixture: { type: 'string', default: 'tests/fixtures/ai-eval.json' },
@@ -99,7 +117,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     if (positionals.length !== 1 || !['models', 'validate', 'retrieval', 'compare', 'release-check'].includes(command)) {
         throw new Error('Usage: ai-eval.mjs models|validate|retrieval|compare|release-check [options]');
     }
-    const models = values.models.split(',').map(name => name.trim());
+    const models = values.models.split(',').map((name) => name.trim());
     if (new Set(models).size !== models.length) throw new Error('Model names must be unique');
     for (const name of models) getModel(name);
     if (command === 'models') {
@@ -120,17 +138,30 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     const namespace = values.namespace ?? corpus.namespace;
     if (namespace !== corpus.namespace) throw new Error('Namespace does not match current corpus; rebuild the candidate');
     const base = {
-        version: 2, namespace, fixtureHash: fixtureHash(fixture), timestamp: new Date().toISOString(),
-        embeddingModel: AI_CONFIG.embedding.model, indexName: AI_CONFIG.retrieval.indexName,
+        version: 2,
+        namespace,
+        fixtureHash: fixtureHash(fixture),
+        timestamp: new Date().toISOString(),
+        embeddingModel: AI_CONFIG.embedding.model,
+        indexName: AI_CONFIG.retrieval.indexName,
         topK: AI_CONFIG.retrieval.topK,
         maxContextChars: AI_CONFIG.retrieval.maxContextChars,
         promptHash: promptHash(),
     };
     if (command === 'validate' || values['dry-run']) {
-        console.log(JSON.stringify({ ...base, models, cases: fixture.cases.length,
-            maxGenerationCalls: command === 'compare'
-                ? fixture.cases.length * models.length * repeats : 0,
-            dryRun: true }, null, 2));
+        console.log(
+            JSON.stringify(
+                {
+                    ...base,
+                    models,
+                    cases: fixture.cases.length,
+                    maxGenerationCalls: command === 'compare' ? fixture.cases.length * models.length * repeats : 0,
+                    dryRun: true,
+                },
+                null,
+                2,
+            ),
+        );
         return;
     }
     if (command === 'release-check') {
@@ -147,7 +178,11 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         if (!modelName) throw new Error('Set [vars] AI_MODEL explicitly before deploying');
         const comparison = JSON.parse(await fs.readFile(values['comparison-report'], 'utf8'));
         validateComparisonReport(comparison, {
-            namespace, fixture, model: getModel(modelName), minAnswerRate, retrievalReport: report,
+            namespace,
+            fixture,
+            model: getModel(modelName),
+            minAnswerRate,
+            retrievalReport: report,
         });
         console.log(`Release gate passed for ${namespace} (hit@${base.topK}: ${report.hitRate})`);
         return;
@@ -155,9 +190,14 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     let report;
     if (command === 'retrieval') {
         const cloudflare = createCloudflareAi({ namespace, timeoutMs, fetchImpl });
-        report = { ...base, kind: 'retrieval', ...await evaluateRetrieval({
-            cases: fixture.cases, retrieve: cloudflare.retrieve,
-        }) };
+        report = {
+            ...base,
+            kind: 'retrieval',
+            ...(await evaluateRetrieval({
+                cases: fixture.cases,
+                retrieve: cloudflare.retrieve,
+            })),
+        };
     } else {
         let contexts;
         let retrievalHash;
@@ -165,42 +205,62 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
             const retrieval = JSON.parse(await fs.readFile(values['retrieval-report'], 'utf8'));
             validateRetrievalReport(retrieval, { namespace, fixture, minHitRate });
             retrievalHash = fixtureHash(retrieval);
-            contexts = Object.fromEntries(retrieval.results.map(item => [item.caseId, item.context]));
+            contexts = Object.fromEntries(retrieval.results.map((item) => [item.caseId, item.context]));
         } else {
-            contexts = Object.fromEntries(fixture.cases.map(item => [item.id, contextFromMatches(
-                corpus.chunks.filter(chunk => item.expectedSources.includes(chunk.metadata.source))
-                    .slice(0, AI_CONFIG.retrieval.topK).map(chunk => ({ metadata: chunk.metadata })),
-            )]));
+            contexts = Object.fromEntries(
+                fixture.cases.map((item) => [
+                    item.id,
+                    contextFromMatches(
+                        corpus.chunks
+                            .filter((chunk) => item.expectedSources.includes(chunk.metadata.source))
+                            .slice(0, AI_CONFIG.retrieval.topK)
+                            .map((chunk) => ({ metadata: chunk.metadata })),
+                    ),
+                ]),
+            );
         }
         const cloudflare = createCloudflareAi({ namespace, timeoutMs, fetchImpl });
         report = {
-            ...base, kind: 'comparison', pricingDate: AI_CONFIG.pricingDate,
+            ...base,
+            kind: 'comparison',
+            pricingDate: AI_CONFIG.pricingDate,
             contextMode: values['retrieval-report'] ? 'retrieved' : 'labeled-source',
             ...(retrievalHash ? { retrievalHash } : {}),
-            modelConfigurations: Object.fromEntries(models.map(name => {
-                const model = getModel(name);
-                return [model.id, model];
-            })),
+            modelConfigurations: Object.fromEntries(
+                models.map((name) => {
+                    const model = getModel(name);
+                    return [model.id, model];
+                }),
+            ),
             costScope: 'Estimated generation only; excludes embeddings, retries, storage and plan allowances',
-            ...await compareModels({ cases: fixture.cases, models, contexts, run: cloudflare.run, repeats }),
+            ...(await compareModels({
+                cases: fixture.cases,
+                models,
+                contexts,
+                run: cloudflare.run,
+                repeats,
+            })),
         };
     }
     const output = values.output ?? `reports/ai-${command}.json`;
     await writeReport(output, report);
     console.log(JSON.stringify(report.summaries ?? { hitRate: report.hitRate, evidenceRate: report.evidenceRate }, null, 2));
     console.log(`Report: ${output}`);
-    if (command === 'retrieval' && (report.hitRate < minHitRate
-        || (report.evidenceRate !== null && report.evidenceRate < minHitRate)
-        || report.results.some(item => item.error))) {
+    if (
+        command === 'retrieval' &&
+        (report.hitRate < minHitRate ||
+            (report.evidenceRate !== null && report.evidenceRate < minHitRate) ||
+            report.results.some((item) => item.error))
+    ) {
         throw new Error('Retrieval evaluation failed; inspect the report');
     }
-    if (command === 'compare' && report.results.some(item => item.status === 'error')) {
+    if (command === 'compare' && report.results.some((item) => item.status === 'error')) {
         throw new Error('One or more model calls failed; inspect the report');
     }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    main().catch(error => {
+    main().catch((error) => {
         console.error(`AI evaluation failed: ${error.message}`);
         process.exitCode = 1;
     });

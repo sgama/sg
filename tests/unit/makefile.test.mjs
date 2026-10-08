@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const make = (...args) => {
     const result = spawnSync('make', ['--no-print-directory', ...args], {
-        cwd: root, encoding: 'utf8', timeout: 10000,
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 10000,
     });
     assert.ifError(result.error);
     return result;
@@ -46,10 +48,10 @@ test('Make and npm bound tests and coverage with native Node timeouts', () => {
     }
     const result = make('-n', 'test', 'ai-test');
     assert.equal(result.status, 0);
-    const commands = result.stdout.split('\n').filter(line => line.includes('--test-reporter'));
+    const commands = result.stdout.split('\n').filter((line) => line.includes('--test-reporter'));
     assert.equal(commands.length, 2);
-    assert.ok(commands.every(command => command.includes('--test-timeout=30000')));
-    assert.ok(commands.every(command => !command.includes('--test-concurrency')));
+    assert.ok(commands.every((command) => command.includes('--test-timeout=30000')));
+    assert.ok(commands.every((command) => !command.includes('--test-concurrency')));
 });
 
 test('npm build and development delegate to Make without cycles', () => {

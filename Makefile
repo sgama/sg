@@ -5,7 +5,7 @@ SHELL := /bin/bash
 .PHONY: \
 	help serve dev-ai \
 	build build-prod postcss-build build-summary clean \
-	deps test lint lint-fix lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
+	deps test lint lint-fix format format-check lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
 	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
 	ci ci-check check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
@@ -143,6 +143,12 @@ lint: check-ai-tools ## Lint all JavaScript with ESLint
 
 lint-fix: check-ai-tools ## Apply safe ESLint fixes
 	@$(NPM) --silent run lint:fix
+
+format: check-ai-tools ## Format JavaScript, source CSS and YAML (no Hugo content/templates)
+	@$(NPM) --silent run format
+
+format-check: check-ai-tools ## Check JavaScript, source CSS and YAML formatting without edits
+	@$(NPM) --silent run format:check
 
 lint-workflows: ## Validate GitHub Actions with native actionlint
 	@command -v $(ACTIONLINT) >/dev/null || { \

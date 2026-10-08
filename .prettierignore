@@ -1,0 +1,10 @@
+node_modules/
+public/
+resources/
+reports/
+coverage/
+.wrangler/
+.npm/
+content/
+layouts/
+assets/css/site.purged.css

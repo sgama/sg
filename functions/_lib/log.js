@@ -1,15 +1,12 @@
 import { CONFIG } from './application.js';
 
 export class LogService {
-    static async save(kv, query, responseStream, context = null, {
-        now = () => new Date().toISOString(),
-        id = () => crypto.randomUUID(),
-    } = {}) {
+    static async save(kv, query, responseStream, context = null, { now = () => new Date().toISOString(), id = () => crypto.randomUUID() } = {}) {
         if (!kv) return responseStream;
 
         const decoder = new TextDecoder();
-        let messageBuffer = "";
-        let accumulatedResponse = "";
+        let messageBuffer = '';
+        let accumulatedResponse = '';
         let usageData = null;
         let streamError = null;
 
@@ -21,7 +18,7 @@ export class LogService {
                 messageBuffer += decoded;
 
                 const lines = messageBuffer.split('\n');
-                messageBuffer = lines.pop() || "";
+                messageBuffer = lines.pop() || '';
 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
@@ -32,7 +29,9 @@ export class LogService {
                             if (parsed.response) accumulatedResponse += parsed.response;
                             if (parsed.usage) usageData = parsed.usage;
                             if (parsed.error) streamError = parsed.error;
-                        } catch (_error) { /* partial JSON */ }
+                        } catch (_error) {
+                            /* partial JSON */
+                        }
                     }
                 }
             },
@@ -46,17 +45,19 @@ export class LogService {
                     usage: usageData,
                     ...(streamError ? { error: streamError } : {}),
                 };
-                const savePromise = kv.put(key, JSON.stringify(payload), {
-                    expirationTtl: 2592000,
-                    metadata: { timestamp, version: 2 },
-                }).catch(e => console.error("Log Flush Error", e));
+                const savePromise = kv
+                    .put(key, JSON.stringify(payload), {
+                        expirationTtl: 2592000,
+                        metadata: { timestamp, version: 2 },
+                    })
+                    .catch((e) => console.error('Log Flush Error', e));
 
                 if (context?.waitUntil) {
                     context.waitUntil(savePromise);
                 } else {
                     return savePromise;
                 }
-            }
+            },
         });
 
         return responseStream.pipeThrough(loggingTransform);
@@ -66,21 +67,24 @@ export class LogService {
         const listResult = await kv.list({
             prefix: CONFIG.KV_PREFIX,
             limit,
-            ...(cursor && { cursor })
+            ...(cursor && { cursor }),
         });
 
-        const logs = await Promise.all(listResult.keys
-            .slice().reverse()
-            .map(async (key) => {
-                if (!key.metadata) return null;
-                if (key.metadata.version !== 2) return { id: key.name, ...key.metadata };
-                const record = await kv.get(key.name, 'json');
-                if (!record) {
-                    console.error('Log record missing:', key.name);
-                    return null;
-                }
-                return { ...record, id: key.name };
-            }));
+        const logs = await Promise.all(
+            listResult.keys
+                .slice()
+                .reverse()
+                .map(async (key) => {
+                    if (!key.metadata) return null;
+                    if (key.metadata.version !== 2) return { id: key.name, ...key.metadata };
+                    const record = await kv.get(key.name, 'json');
+                    if (!record) {
+                        console.error('Log record missing:', key.name);
+                        return null;
+                    }
+                    return { ...record, id: key.name };
+                }),
+        );
 
         return {
             data: logs.filter(Boolean),
@@ -88,8 +92,8 @@ export class LogService {
                 count: logs.filter(Boolean).length,
                 limit,
                 cursor: listResult.cursor,
-                has_more: !listResult.list_complete
-            }
+                has_more: !listResult.list_complete,
+            },
         };
     }
 }

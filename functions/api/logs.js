@@ -23,9 +23,7 @@ app.get('/api/logs', async (c) => {
 
     const cursor = c.req.query('cursor') ?? undefined;
     const limitParam = parseInt(c.req.query('limit'));
-    const limit = (!isNaN(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT)
-        ? limitParam
-        : CONFIG.PAGINATION.DEFAULT_LIMIT;
+    const limit = !isNaN(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT ? limitParam : CONFIG.PAGINATION.DEFAULT_LIMIT;
 
     const data = await LogService.fetchLogs(env.CHAT_LOGS, limit, cursor);
     return c.json(data);

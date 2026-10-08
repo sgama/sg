@@ -13,45 +13,81 @@ function fixture({ loading = false, idle = true, accessibility = true } = {}) {
     const features = new Map();
     const updates = [];
     const stars = {};
-    const blur = { addEventListener: (_, handler) => { blur.change = handler; } };
+    const blur = {
+        addEventListener: (_, handler) => {
+            blur.change = handler;
+        },
+    };
     const buttons = Array.from({ length: 7 }, () => ({}));
     const chips = { querySelectorAll: () => buttons };
     const question = [];
     let opened = 0;
-    let widget = { setPendingQuestion: value => question.push(value), open: () => opened++ };
+    let widget = { setPendingQuestion: (value) => question.push(value), open: () => opened++ };
     let deferred;
     const document = {
         readyState: loading ? 'loading' : 'complete',
-        documentElement: { classList: {
-            add: value => classes.add(value),
-            toggle: (value, enabled) => enabled ? classes.add(value) : classes.delete(value),
-        } },
+        documentElement: {
+            classList: {
+                add: (value) => classes.add(value),
+                toggle: (value, enabled) => (enabled ? classes.add(value) : classes.delete(value)),
+            },
+        },
         addEventListener: (event, handler) => listeners.set(event, handler),
         querySelector: () => widget,
-        querySelectorAll: selector => ({
-            '[id$="disable-stars"]': [stars],
-            '[id$="disable-blur"]': [blur],
-            '.chat-cta__chips': [chips, { querySelectorAll: () => [] }],
-        })[selector] ?? [],
+        querySelectorAll: (selector) =>
+            ({
+                '[id$="disable-stars"]': [stars],
+                '[id$="disable-blur"]': [blur],
+                '.chat-cta__chips': [chips, { querySelectorAll: () => [] }],
+            })[selector] ?? [],
     };
     const window = {
-        ...(idle ? { requestIdleCallback: (fn, options) => {
-            assert.equal(options.timeout, 2000);
-            deferred = fn;
-        } } : {}),
-        ...(accessibility ? { A11yPanel: {
-            addFeature: (name, feature) => features.set(name, feature),
-            getSettings: () => ({ disableStars: true, disableBlur: true }),
-            updateSetting: (...args) => updates.push(args),
-        } } : {}),
+        ...(idle
+            ? {
+                  requestIdleCallback: (fn, options) => {
+                      assert.equal(options.timeout, 2000);
+                      deferred = fn;
+                  },
+              }
+            : {}),
+        ...(accessibility
+            ? {
+                  A11yPanel: {
+                      addFeature: (name, feature) => features.set(name, feature),
+                      getSettings: () => ({ disableStars: true, disableBlur: true }),
+                      updateSetting: (...args) => updates.push(args),
+                  },
+              }
+            : {}),
     };
-    runInNewContext(source, { document, window, setTimeout: (fn, ms) => {
-        assert.equal(ms, 250);
-        deferred = fn;
-    } }, { filename: fileURLToPath(url) });
-    return { listeners, classes, features, updates, stars, blur, buttons, question,
-        boot: () => listeners.get('DOMContentLoaded')(), idle: () => deferred(),
-        setWidget: value => { widget = value; }, opened: () => opened };
+    runInNewContext(
+        source,
+        {
+            document,
+            window,
+            setTimeout: (fn, ms) => {
+                assert.equal(ms, 250);
+                deferred = fn;
+            },
+        },
+        { filename: fileURLToPath(url) },
+    );
+    return {
+        listeners,
+        classes,
+        features,
+        updates,
+        stars,
+        blur,
+        buttons,
+        question,
+        boot: () => listeners.get('DOMContentLoaded')(),
+        idle: () => deferred(),
+        setWidget: (value) => {
+            widget = value;
+        },
+        opened: () => opened,
+    };
 }
 
 test('accessibility settings initialize controls and propagate changes', () => {
@@ -74,8 +110,10 @@ test('chat triggers ignore unrelated clicks and absent widgets and forward quest
     const f = fixture();
     const click = f.listeners.get('click');
     let prevented = 0;
-    const event = trigger => ({ target: { closest: () => trigger },
-        preventDefault: () => prevented++ });
+    const event = (trigger) => ({
+        target: { closest: () => trigger },
+        preventDefault: () => prevented++,
+    });
     click(event(null));
     click(event({ dataset: { question: 'Question' } }));
     assert.deepEqual(f.question, ['Question']);
@@ -93,6 +131,6 @@ test('idle fallback boots after DOM readiness without accessibility integration'
     f.boot();
     f.idle();
     assert.ok(f.classes.has('stars-running'));
-    assert.equal(f.buttons.filter(button => !button.hidden).length, 4);
-    assert.equal(f.buttons.filter(button => button.hidden).length, 3);
+    assert.equal(f.buttons.filter((button) => !button.hidden).length, 4);
+    assert.equal(f.buttons.filter((button) => button.hidden).length, 3);
 });

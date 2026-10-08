@@ -6,15 +6,19 @@ export function normalizeVector(vector, dimensions) {
     }
     const length = Math.hypot(...vector);
     if (!length) throw new Error('Local embedding has zero magnitude');
-    return vector.map(value => value / length);
+    return vector.map((value) => value / length);
 }
 
 export function searchVectors(chunks, vectors, query, topK = AI_CONFIG.retrieval.topK) {
     if (chunks.length !== vectors.length) throw new Error('Incomplete local vector index');
-    return chunks.map((chunk, index) => ({
-        id: chunk.id, metadata: chunk.metadata,
-        score: vectors[index].reduce((sum, value, dimension) => sum + value * query[dimension], 0),
-    })).sort((a, b) => b.score - a.score || a.id.localeCompare(b.id)).slice(0, topK);
+    return chunks
+        .map((chunk, index) => ({
+            id: chunk.id,
+            metadata: chunk.metadata,
+            score: vectors[index].reduce((sum, value, dimension) => sum + value * query[dimension], 0),
+        }))
+        .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+        .slice(0, topK);
 }
 
 export function createLocalAi({ url, embeddingModel, dimensions, timeoutMs, contextTokens = 4096, embeddingBackend = 'ollama', fetchImpl = fetch }) {
@@ -37,24 +41,32 @@ export function createLocalAi({ url, embeddingModel, dimensions, timeoutMs, cont
     return {
         async embed(text, task = 'document') {
             if (embeddingBackend === 'tei') {
-                const vectors = await (await request('/embed', {
-                    inputs: text, truncate: true, normalize: true,
-                })).json();
+                const vectors = await (
+                    await request('/embed', {
+                        inputs: text,
+                        truncate: true,
+                        normalize: true,
+                    })
+                ).json();
                 if (!Array.isArray(vectors) || vectors.length !== text.length) {
                     throw new Error('Incomplete local embeddings');
                 }
-                return vectors.map(vector => normalizeVector(vector, dimensions));
+                return vectors.map((vector) => normalizeVector(vector, dimensions));
             }
-            const input = embeddingModel.split(':')[0] === 'nomic-embed-text'
-                ? text.map(value => `search_${task}: ${value}`) : text;
-            const result = await (await request('/api/embed', {
-                model: embeddingModel, input, truncate: false,
-                options: { num_gpu: -1 }, keep_alive: '5m',
-            })).json();
+            const input = embeddingModel.split(':')[0] === 'nomic-embed-text' ? text.map((value) => `search_${task}: ${value}`) : text;
+            const result = await (
+                await request('/api/embed', {
+                    model: embeddingModel,
+                    input,
+                    truncate: false,
+                    options: { num_gpu: -1 },
+                    keep_alive: '5m',
+                })
+            ).json();
             if (!Array.isArray(result.embeddings) || result.embeddings.length !== text.length) {
                 throw new Error('Incomplete local embeddings');
             }
-            return result.embeddings.map(vector => normalizeVector(vector, dimensions));
+            return result.embeddings.map((vector) => normalizeVector(vector, dimensions));
         },
         async gpuEvidence(model) {
             if (embeddingBackend === 'tei') {
@@ -63,14 +75,22 @@ export function createLocalAi({ url, embeddingModel, dimensions, timeoutMs, cont
                 return { model: info.model_id, info };
             }
             const { models } = await (await request('/api/ps')).json();
-            const loaded = models?.find(item => item.name === model || item.name === `${model}:latest`);
+            const loaded = models?.find((item) => item.name === model || item.name === `${model}:latest`);
             if (!loaded || !(loaded.size_vram > 0)) throw new Error(`Model ${model} is not using the GPU`);
             return { name: loaded.name, digest: loaded.digest, sizeVramBytes: loaded.size_vram };
         },
         async run(model, input) {
             const response = await request('/api/chat', {
-                model, messages: input.messages, stream: true, think: false,
-                options: { num_predict: input.max_tokens, num_gpu: -1, temperature: 0, num_ctx: contextTokens },
+                model,
+                messages: input.messages,
+                stream: true,
+                think: false,
+                options: {
+                    num_predict: input.max_tokens,
+                    num_gpu: -1,
+                    temperature: 0,
+                    num_ctx: contextTokens,
+                },
                 keep_alive: '5m',
             });
             if (!response.body) throw new Error('Local AI returned no stream');
@@ -86,23 +106,32 @@ export function createLocalAi({ url, embeddingModel, dimensions, timeoutMs, cont
                 }
                 if (item.done) {
                     done = true;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ usage: {
-                        prompt_tokens: item.prompt_eval_count, completion_tokens: item.eval_count,
-                    } })}\n\ndata: [DONE]\n\n`));
+                    controller.enqueue(
+                        encoder.encode(
+                            `data: ${JSON.stringify({
+                                usage: {
+                                    prompt_tokens: item.prompt_eval_count,
+                                    completion_tokens: item.eval_count,
+                                },
+                            })}\n\ndata: [DONE]\n\n`,
+                        ),
+                    );
                 }
             };
-            return response.body.pipeThrough(new TextDecoderStream()).pipeThrough(new TransformStream({
-                transform(text, controller) {
-                    buffer += text;
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
-                    for (const line of lines) emit(line, controller);
-                },
-                flush(controller) {
-                    emit(buffer, controller);
-                    if (!done) throw new Error('Local AI stream ended without completion');
-                },
-            }));
+            return response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
+                new TransformStream({
+                    transform(text, controller) {
+                        buffer += text;
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop();
+                        for (const line of lines) emit(line, controller);
+                    },
+                    flush(controller) {
+                        emit(buffer, controller);
+                        if (!done) throw new Error('Local AI stream ended without completion');
+                    },
+                }),
+            );
         },
     };
 }

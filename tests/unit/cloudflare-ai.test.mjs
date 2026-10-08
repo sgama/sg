@@ -17,7 +17,9 @@ test('generation adapter posts streaming inputs with a timeout and returns raw S
         ...options,
         async fetchImpl(url, init) {
             captured = { url, init };
-            return new Response(createSseMessageStream('Answer'), { headers: { 'Content-Type': 'text/event-stream' } });
+            return new Response(createSseMessageStream('Answer'), {
+                headers: { 'Content-Type': 'text/event-stream' },
+            });
         },
     });
     const input = { messages: [{ role: 'user', content: 'Hi' }], stream: true };
@@ -31,25 +33,27 @@ test('generation adapter posts streaming inputs with a timeout and returns raw S
 
 test('generation adapter rejects upstream HTTP and nonstream response failures', async () => {
     const failed = createCloudflareAi({
-        ...options, fetchImpl: async () => new Response('failure', { status: 429 }),
+        ...options,
+        fetchImpl: async () => new Response('failure', { status: 429 }),
     });
     await assert.rejects(failed.run('@cf/test/model', {}), /HTTP 429/);
     const invalid = createCloudflareAi({
-        ...options, fetchImpl: async () => Response.json({ result: { response: 'not SSE' } }),
+        ...options,
+        fetchImpl: async () => Response.json({ result: { response: 'not SSE' } }),
     });
     await assert.rejects(invalid.run('@cf/test/model', {}), /did not return SSE/);
 });
 
 test('invalid embeddings and upstream failures stop retrieval without search or retries', async () => {
-    for (const response of [
-        Response.json({ success: true, result: { data: [[0.1]] } }),
-        Response.json({ success: false }, { status: 504 }),
-    ]) {
+    for (const response of [Response.json({ success: true, result: { data: [[0.1]] } }), Response.json({ success: false }, { status: 504 })]) {
         let calls = 0;
-        const client = createCloudflareAi({ ...options, fetchImpl: async () => {
-            calls++;
-            return response;
-        } });
+        const client = createCloudflareAi({
+            ...options,
+            fetchImpl: async () => {
+                calls++;
+                return response;
+            },
+        });
         await assert.rejects(client.retrieve('question'), /Invalid embedding vector|504/);
         assert.equal(calls, 1);
     }
@@ -57,12 +61,16 @@ test('invalid embeddings and upstream failures stop retrieval without search or 
 
 test('malformed search responses fail explicitly', async () => {
     let calls = 0;
-    const client = createCloudflareAi({ ...options, fetchImpl: async () => {
-        calls++;
-        return Response.json({ success: true, result: calls === 1
-            ? { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] }
-            : { matches: null } });
-    } });
+    const client = createCloudflareAi({
+        ...options,
+        fetchImpl: async () => {
+            calls++;
+            return Response.json({
+                success: true,
+                result: calls === 1 ? { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } : { matches: null },
+            });
+        },
+    });
     await assert.rejects(client.retrieve('question'), /Invalid retrieval result/);
     assert.equal(calls, 2);
 });
@@ -88,8 +96,12 @@ test('retrieval uses injected fetch for SDK embeddings and Vectorize query', asy
             }
             assert.equal(requests.length, 2);
             assert.equal(pathname, `${base}/vectorize/v2/indexes/portfolio-index/query`);
-            assert.deepEqual(body, { vector, namespace: options.namespace,
-                topK: AI_CONFIG.retrieval.topK, returnMetadata: 'all' });
+            assert.deepEqual(body, {
+                vector,
+                namespace: options.namespace,
+                topK: AI_CONFIG.retrieval.topK,
+                returnMetadata: 'all',
+            });
             return Response.json({ success: true, result: { matches } });
         },
     });

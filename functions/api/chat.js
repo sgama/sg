@@ -3,12 +3,7 @@ import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { handle } from 'hono/cloudflare-pages';
 import { AppError } from '../_lib/application.js';
-import {
-    isPromptInjectionAttempt,
-    SAFE_NO_CONTEXT_MESSAGE,
-    shouldAbstainForMissingContext,
-    ChatRequestSchema,
-} from '../_lib/validation.js';
+import { isPromptInjectionAttempt, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext, ChatRequestSchema } from '../_lib/validation.js';
 import { createSseMessageStream } from '../_lib/chat-stream.js';
 import { AiService } from '../_lib/ai.js';
 import { LogService } from '../_lib/log.js';
@@ -17,19 +12,20 @@ const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com']
 
 const app = new Hono();
 
-app.use('/api/chat', cors({
-    origin: (origin) => ALLOWED_ORIGINS.includes(origin) ? origin : null,
-    allowMethods: ['POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type'],
-    maxAge: 86400,
-}));
+app.use(
+    '/api/chat',
+    cors({
+        origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : null),
+        allowMethods: ['POST', 'OPTIONS'],
+        allowHeaders: ['Content-Type'],
+        maxAge: 86400,
+    }),
+);
 
 app.post('/api/chat', async (c) => {
     const env = c.env;
 
-    const parsed = ChatRequestSchema.safeParse(
-        await c.req.json().catch(() => ({}))
-    );
+    const parsed = ChatRequestSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) {
         return c.json({ error: 'Invalid query. Must be a string < 500 chars.' }, 400);
     }

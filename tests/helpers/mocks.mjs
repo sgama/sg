@@ -12,11 +12,15 @@ import { TIMESTAMPS } from './data.mjs';
  * @returns {Object} Mock AI binding
  */
 export function makeAiBinding({ aiRun } = {}) {
-  return {
-    AI: {
-      run: aiRun ?? (async () => { throw new Error('AI.run not configured'); }),
-    },
-  };
+    return {
+        AI: {
+            run:
+                aiRun ??
+                (async () => {
+                    throw new Error('AI.run not configured');
+                }),
+        },
+    };
 }
 
 /**
@@ -25,10 +29,10 @@ export function makeAiBinding({ aiRun } = {}) {
  * @returns {Object} Mock Vectorize index
  */
 export function makeVectorizeIndex(queryFn) {
-  if (!queryFn) return undefined;
-  return {
-    query: queryFn,
-  };
+    if (!queryFn) return undefined;
+    return {
+        query: queryFn,
+    };
 }
 
 /**
@@ -39,10 +43,10 @@ export function makeVectorizeIndex(queryFn) {
  * @returns {Object} Mock environment object
  */
 export function makeEnv({ aiRun, vectorizeQuery } = {}) {
-  return {
-    ...makeAiBinding({ aiRun }),
-    VECTORIZE_INDEX: makeVectorizeIndex(vectorizeQuery),
-  };
+    return {
+        ...makeAiBinding({ aiRun }),
+        VECTORIZE_INDEX: makeVectorizeIndex(vectorizeQuery),
+    };
 }
 
 /**
@@ -55,12 +59,16 @@ export function makeEnv({ aiRun, vectorizeQuery } = {}) {
  * @returns {Object} Mock KV namespace
  */
 export function makeKv({ keys = [], cursor = undefined, list_complete = true, put } = {}) {
-  return {
-    async list() {
-      return { keys, cursor, list_complete };
-    },
-    put: put ?? (async () => { throw new Error('KV.put not configured'); }),
-  };
+    return {
+        async list() {
+            return { keys, cursor, list_complete };
+        },
+        put:
+            put ??
+            (async () => {
+                throw new Error('KV.put not configured');
+            }),
+    };
 }
 
 /**
@@ -75,27 +83,27 @@ export function makeKv({ keys = [], cursor = undefined, list_complete = true, pu
  * @returns {Object} Request context with request, env, and waitUntil
  */
 export function createContext({
-  method = 'GET',
-  url = 'https://example.com/api',
-  body,
-  env = {},
-  waitUntil,
-  origin = 'https://samsongama.com'
+    method = 'GET',
+    url = 'https://example.com/api',
+    body,
+    env = {},
+    waitUntil,
+    origin = 'https://samsongama.com',
 } = {}) {
-  const request = new Request(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(origin ? { 'Origin': origin } : {}),
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
+    const request = new Request(url, {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(origin ? { Origin: origin } : {}),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
 
-  return {
-    request,
-    env,
-    ...(waitUntil ? { waitUntil } : {}),
-  };
+    return {
+        request,
+        env,
+        ...(waitUntil ? { waitUntil } : {}),
+    };
 }
 
 /**
@@ -104,14 +112,14 @@ export function createContext({
  * @returns {ReadableStream} Stream of SSE data
  */
 export function makeStream(...sseLines) {
-  const encoder = new TextEncoder();
-  const chunks = sseLines.map(l => encoder.encode(l + '\n'));
-  return new ReadableStream({
-    start(controller) {
-      for (const chunk of chunks) controller.enqueue(chunk);
-      controller.close();
-    },
-  });
+    const encoder = new TextEncoder();
+    const chunks = sseLines.map((l) => encoder.encode(l + '\n'));
+    return new ReadableStream({
+        start(controller) {
+            for (const chunk of chunks) controller.enqueue(chunk);
+            controller.close();
+        },
+    });
 }
 
 /**
@@ -120,7 +128,7 @@ export function makeStream(...sseLines) {
  * @returns {Promise<string>} The complete stream content
  */
 export function drainStream(stream) {
-  return new Response(stream).text();
+    return new Response(stream).text();
 }
 
 /**
@@ -129,5 +137,5 @@ export function drainStream(stream) {
  * @returns {Function} Function that returns the fixed timestamp
  */
 export function makeTimestamp(timestamp = TIMESTAMPS.FIXED_TS) {
-  return () => timestamp;
+    return () => timestamp;
 }

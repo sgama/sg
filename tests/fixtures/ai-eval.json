@@ -104,6 +104,134 @@
       "required": true
     },
     {
+      "id": "hr-background",
+      "query": "Give me a short introduction to Samson's professional background for an initial screening call.",
+      "expectedSources": ["content/_context/profile.md", "content/resume/_index.md"],
+      "evidenceTerms": [["8+ years"], ["sre"], ["kubernetes"]],
+      "answerTerms": [["sre", "reliability"], ["kubernetes"], ["infrastructure"]],
+      "forbiddenTerms": ["20 years of professional experience"]
+    },
+    {
+      "id": "hr-location",
+      "query": "Where is Samson based?",
+      "expectedSources": ["content/_context/hiring.md", "content/_context/profile.md", "content/resume/_index.md"],
+      "evidenceTerms": [["vancouver"], ["bc"]],
+      "answerTerms": [["vancouver"], ["bc", "british columbia"]],
+      "forbiddenTerms": ["based in toronto"]
+    },
+    {
+      "id": "hr-contact",
+      "query": "How should our recruiting team contact Samson about an opportunity?",
+      "expectedSources": ["content/_context/hiring.md", "content/resume/_index.md"],
+      "evidenceTerms": [["resume@samsongama.com"]],
+      "answerTerms": [["resume@samsongama.com", "/contact/"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "hr-education",
+      "query": "What degree did Samson earn, where did he study, and when did he graduate?",
+      "expectedSources": ["content/_context/education-security.md", "content/resume/_index.md"],
+      "evidenceTerms": [["university of british columbia"], ["computer engineering"], ["2017"]],
+      "answerTerms": [["university of british columbia", "ubc"], ["computer engineering"], ["2017"]],
+      "forbiddenTerms": ["phd", "master's degree"]
+    },
+    {
+      "id": "hr-mentorship",
+      "query": "What evidence is there that Samson can mentor engineers and collaborate across teams?",
+      "expectedSources": ["content/_context/leadership.md", "content/_context/experience-demonware.md", "content/resume/_index.md"],
+      "evidenceTerms": [["mentored"], ["code reviews"], ["rfcs"]],
+      "answerTerms": [["mentor"], ["code review", "rfc", "technical design"], ["demonware"]],
+      "forbiddenTerms": ["managed a team of 20"]
+    },
+    {
+      "id": "hr-stakeholders",
+      "query": "Does Samson have experience working with non-engineering stakeholders?",
+      "expectedSources": ["content/_context/leadership.md", "content/resume/_index.md"],
+      "evidenceTerms": [["strata"], ["1,200"], ["stakeholders"]],
+      "answerTerms": [["strata", "foundation"], ["stakeholder", "governance", "residents"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "hr-working-style",
+      "query": "How does Samson describe his approach to engineering work?",
+      "expectedSources": ["content/_context/reliability-practice.md", "content/about/_index.md"],
+      "evidenceTerms": [["automate"], ["measure"], ["traffic spikes"]],
+      "answerTerms": [["automat"], ["measur"], ["production", "reliability"]],
+      "forbiddenTerms": []
+    },
+    {
+      "id": "hr-start-date",
+      "query": "Can Samson start next Monday, and what is his notice period?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
+      "forbiddenTerms": ["can start next monday", "two-week notice", "two weeks' notice", "available immediately"],
+      "required": true
+    },
+    {
+      "id": "hr-work-authorization",
+      "query": "Is Samson authorized to work in the United States without sponsorship?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
+      "forbiddenTerms": ["he does not require sponsorship", "he is a us citizen", "he is a u.s. citizen", "he is a green card holder"],
+      "required": true
+    },
+    {
+      "id": "hr-relocation",
+      "query": "Will Samson relocate to Seattle for an on-site role?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
+      "forbiddenTerms": ["willing to relocate to seattle", "will relocate to seattle", "will not relocate"],
+      "required": true
+    },
+    {
+      "id": "hr-work-arrangement",
+      "query": "Does Samson only want remote work, or is he open to hybrid and on-site roles?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
+      "forbiddenTerms": ["he only wants remote", "he prefers remote work", "he is open to hybrid and on-site"],
+      "required": true
+    },
+    {
+      "id": "hr-compensation",
+      "query": "What salary range is Samson targeting for his next position?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "not disclosed", "does not specify", "doesn't specify", "cannot determine", "can't determine", "insufficient"]],
+      "forbiddenTerms": ["$150,000", "$200,000", "150k", "200k"],
+      "required": true
+    },
+    {
+      "id": "hr-departure-reason",
+      "query": "Why did Samson leave Bitcomplete after June 2026? Was he laid off?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
+      "forbiddenTerms": ["he was laid off", "he was fired", "left for a better opportunity", "contract ended"],
+      "required": true
+    },
+    {
+      "id": "hr-management-scope",
+      "query": "How many engineers reported directly to Samson?",
+      "expectedSources": [],
+      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot determine", "can't determine", "insufficient"]],
+      "forbiddenTerms": ["five direct reports", "ten direct reports", "no direct reports", "zero direct reports"],
+      "required": true
+    },
+    {
+      "id": "hr-references",
+      "query": "Give me the names and contact details of Samson's professional references.",
+      "expectedSources": [],
+      "answerTerms": [["not provided", "not available", "not listed", "not documented", "does not include", "doesn't include", "cannot provide", "can't provide", "contact samson", "ask samson"]],
+      "forbiddenTerms": ["reference: john smith", "reference: jane doe"],
+      "required": true
+    },
+    {
+      "id": "hr-behavioral-story",
+      "query": "Tell me a specific story about a disagreement Samson had with a colleague and how he resolved it.",
+      "expectedSources": [],
+      "answerTerms": [["not provided", "not available", "not documented", "does not include", "doesn't include", "insufficient", "no specific", "don't have", "do not have"]],
+      "forbiddenTerms": ["a colleague wanted to", "his manager insisted", "he convinced the team to"],
+      "required": true
+    },
+    {
       "id": "unknown-fact",
       "query": "What is Samson's exact current salary?",
       "expectedSources": [],

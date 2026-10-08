@@ -7,21 +7,22 @@ import Cloudflare from 'cloudflare';
 import { buildCorpus, validateCorpus } from '../../scripts/lib/corpus.mjs';
 import { createMaintenanceClient, ingestCorpus, refreshCorpus } from '../../scripts/lib/corpus-deployment.mjs';
 
-test('authoring comments are excluded from internal chunks and comment-only files are empty', async t => {
+test('authoring comments are excluded from internal chunks and comment-only files are empty', async (t) => {
     const root = await fixture(t, {
-        'content/_context/profile.md': '---\ntitle: Profile\n---\nKnown fact.\n<!-- FILL IN: private placeholder\nmore instructions -->\nAnother fact.',
+        'content/_context/profile.md':
+            '---\ntitle: Profile\n---\nKnown fact.\n<!-- FILL IN: private placeholder\nmore instructions -->\nAnother fact.',
         'content/_context/placeholder.md': '<!-- FILL IN: availability -->',
         'content/page.md': 'Public body. <!-- Existing public comment -->',
     });
     const corpus = await buildCorpus({ root });
     assert.equal(corpus.counts.emptyFiles, 1);
-    const internal = corpus.chunks.filter(chunk => chunk.metadata.type === 'context');
+    const internal = corpus.chunks.filter((chunk) => chunk.metadata.type === 'context');
     assert.equal(internal.length, 1);
     assert.match(internal[0].text, /Known fact/);
     assert.match(internal[0].text, /Another fact/);
     assert.doesNotMatch(internal[0].text, /FILL IN|private placeholder|<!--/);
     assert.ok(!Object.hasOwn(internal[0].metadata, 'url'));
-    assert.match(corpus.chunks.find(chunk => chunk.metadata.type === 'content').text, /Existing public comment/);
+    assert.match(corpus.chunks.find((chunk) => chunk.metadata.type === 'content').text, /Existing public comment/);
     await writeFile(path.join(root, 'content/_context/profile.md'), 'Known fact. <!-- unfinished');
     await assert.rejects(buildCorpus({ root }), /Unclosed authoring comment/);
 });
@@ -34,8 +35,15 @@ test('concurrent configuration edits survive refresh without activation overwrit
         post: async () => ({ result: { data: [Array(corpus.embedding.dimensions).fill(0.1)] } }),
         vectorize: { indexes: { upsert: async () => ({ mutationId: 'accepted' }) } },
     };
-    await assert.rejects(refreshCorpus({ client, accountId: 'account', root,
-        wait: async () => writeFile(configPath, changed) }), /configuration changed/);
+    await assert.rejects(
+        refreshCorpus({
+            client,
+            accountId: 'account',
+            root,
+            wait: async () => writeFile(configPath, changed),
+        }),
+        /configuration changed/,
+    );
     assert.equal(await readFile(configPath, 'utf8'), changed);
 });
 
@@ -43,13 +51,19 @@ test('corpus IDs distinguish full source paths and chunk indices; canonical meta
     const root = await fixture(t);
     const corpus = await buildCorpus({ root });
     assert.deepEqual(corpus.counts, {
-        files: 5, includedFiles: 3, draftFiles: 1, emptyFiles: 1, chunks: 3,
+        files: 5,
+        includedFiles: 3,
+        draftFiles: 1,
+        emptyFiles: 1,
+        chunks: 3,
     });
     assert.equal(new Set(corpus.chunks.map((chunk) => chunk.id)).size, 3);
     assert.ok(corpus.chunks.every((chunk) => chunk.id.length === 64));
     assert.match(corpus.namespace, /^corpus-[a-f0-9]{56}$/);
-    assert.deepEqual(corpus.sources.map(({ source }) => source),
-        corpus.sources.map(({ source }) => source).sort());
+    assert.deepEqual(
+        corpus.sources.map(({ source }) => source),
+        corpus.sources.map(({ source }) => source).sort(),
+    );
     const internal = corpus.chunks.find((chunk) => chunk.metadata.type === 'context');
     assert.equal(internal.metadata.source, 'content/_context/private.md');
     assert.ok(!Object.hasOwn(internal.metadata, 'url'));
@@ -64,13 +78,16 @@ test('corpus IDs distinguish full source paths and chunk indices; canonical meta
 });
 
 let fixtureIndex = 0;
-async function fixture(t, files = {
-    'content/posts/first/index.md': '---\ntitle: First\n---\nFirst source body.',
-    'content/posts/second/index.md': '---\ntitle: Second\n---\nSecond source body.',
-    'content/_context/private.md': '---\ntitle: Internal\n---\nInternal context.',
-    'content/draft.md': '---\ndraft: true\n---\nNot included.',
-    'content/empty.md': '---\ntitle: Empty\n---\n',
-}) {
+async function fixture(
+    t,
+    files = {
+        'content/posts/first/index.md': '---\ntitle: First\n---\nFirst source body.',
+        'content/posts/second/index.md': '---\ntitle: Second\n---\nSecond source body.',
+        'content/_context/private.md': '---\ntitle: Internal\n---\nInternal context.',
+        'content/draft.md': '---\ndraft: true\n---\nNot included.',
+        'content/empty.md': '---\ntitle: Empty\n---\n',
+    },
+) {
     const root = path.resolve(`tests/fixtures/corpus-${process.pid}-${fixtureIndex++}`);
     t.after(() => rm(root, { recursive: true, force: true }));
     for (const [name, text] of Object.entries(files)) {
@@ -92,7 +109,8 @@ function clientStub(dimensions) {
             indexes: {
                 upsert: async (index, params) => {
                     calls.upserts.push({
-                        index, params,
+                        index,
+                        params,
                         vectors: (await params.body.text()).trim().split('\n').map(JSON.parse),
                     });
                     return { mutationId: `mutation-${calls.upserts.length}` };
@@ -112,11 +130,15 @@ test('embedding and upsert errors and unaccepted mutations are never swallowed',
         assert.equal(client.calls.upserts.length, 0);
     }
     const failedEmbedding = clientStub(corpus.embedding.dimensions);
-    failedEmbedding.post = async () => { throw new Error('embedding unavailable'); };
+    failedEmbedding.post = async () => {
+        throw new Error('embedding unavailable');
+    };
     await assert.rejects(ingestCorpus(failedEmbedding, 'account', corpus, options), /embedding unavailable/);
     assert.equal(failedEmbedding.calls.upserts.length, 0);
     const failedUpsert = clientStub(corpus.embedding.dimensions);
-    failedUpsert.vectorize.indexes.upsert = async () => { throw new Error('upsert unavailable'); };
+    failedUpsert.vectorize.indexes.upsert = async () => {
+        throw new Error('upsert unavailable');
+    };
     await assert.rejects(ingestCorpus(failedUpsert, 'account', corpus, options), /upsert unavailable/);
     for (const response of [null, {}, { mutationId: '' }]) {
         const client = clientStub(corpus.embedding.dimensions);
@@ -131,9 +153,9 @@ test('file parsing errors reject rather than silently skipping files', async (t)
 });
 
 test('first embedding failure aborts in-flight work and prevents queued inference and uploads', async (t) => {
-    const corpus = await buildCorpus({ root: await fixture(t, Object.fromEntries(
-        Array.from({ length: 8 }, (_, index) => [`content/page-${index}.md`, `Body ${index}.`]),
-    )) });
+    const corpus = await buildCorpus({
+        root: await fixture(t, Object.fromEntries(Array.from({ length: 8 }, (_, index) => [`content/page-${index}.md`, `Body ${index}.`]))),
+    });
     const failure = new Error('embedding unavailable');
     let calls = 0;
     let fail;
@@ -142,18 +164,24 @@ test('first embedding failure aborts in-flight work and prevents queued inferenc
     client.post = async (_, { signal, maxRetries }) => {
         assert.equal(maxRetries, 0);
         calls++;
-        if (calls === 1) return new Promise((_, reject) => { fail = () => reject(failure); });
+        if (calls === 1)
+            return new Promise((_, reject) => {
+                fail = () => reject(failure);
+            });
         return new Promise((_, reject) => {
-            signal.addEventListener('abort', () => {
-                inFlightAborted = true;
-                reject(signal.reason);
-            }, { once: true });
+            signal.addEventListener(
+                'abort',
+                () => {
+                    inFlightAborted = true;
+                    reject(signal.reason);
+                },
+                { once: true },
+            );
             fail();
         });
     };
-    await assert.rejects(ingestCorpus(client, 'account', corpus,
-        { namespace: corpus.namespace, concurrency: 2 }), error => error === failure);
-    await new Promise(resolve => setImmediate(resolve));
+    await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace, concurrency: 2 }), (error) => error === failure);
+    await new Promise((resolve) => setImmediate(resolve));
     assert.equal(calls, 2);
     assert.equal(inFlightAborted, true);
     assert.equal(client.calls.upserts.length, 0);
@@ -184,12 +212,10 @@ test('ingestion requires exact namespace and rejects duplicate/tampered IDs befo
     await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: 'legacy' }), /namespace/);
     const duplicate = structuredClone(corpus);
     duplicate.chunks[1].id = duplicate.chunks[0].id;
-    await assert.rejects(ingestCorpus(client, 'account', duplicate,
-        { namespace: corpus.namespace }), /Duplicate/);
+    await assert.rejects(ingestCorpus(client, 'account', duplicate, { namespace: corpus.namespace }), /Duplicate/);
     const tampered = structuredClone(corpus);
     tampered.chunks[0].text = 'altered';
-    await assert.rejects(ingestCorpus(client, 'account', tampered,
-        { namespace: corpus.namespace }), /hash/);
+    await assert.rejects(ingestCorpus(client, 'account', tampered, { namespace: corpus.namespace }), /hash/);
     assert.equal(client.calls.embeddings.length, 0);
     assert.equal(client.calls.upserts.length, 0);
 });
@@ -197,27 +223,40 @@ test('ingestion requires exact namespace and rejects duplicate/tampered IDs befo
 test('ingestion uploads namespaced NDJSON files deterministically and reports accepted mutations', async (t) => {
     const corpus = await buildCorpus({ root: await fixture(t) });
     const client = clientStub(corpus.embedding.dimensions);
-    const result = await ingestCorpus(client, 'account', corpus,
-        { namespace: corpus.namespace, batchSize: 2 });
+    const result = await ingestCorpus(client, 'account', corpus, {
+        namespace: corpus.namespace,
+        batchSize: 2,
+    });
     assert.deepEqual(result, {
-        namespace: corpus.namespace, count: 3, mutationIds: ['mutation-1', 'mutation-2'],
+        namespace: corpus.namespace,
+        count: 3,
+        mutationIds: ['mutation-1', 'mutation-2'],
     });
     const vectors = client.calls.upserts.flatMap((call) => call.vectors);
-    assert.deepEqual(vectors.map((vector) => vector.id), corpus.chunks.map((chunk) => chunk.id));
+    assert.deepEqual(
+        vectors.map((vector) => vector.id),
+        corpus.chunks.map((chunk) => chunk.id),
+    );
     assert.ok(vectors.every((vector) => vector.namespace === corpus.namespace));
-    assert.ok(client.calls.upserts.every((call) =>
-        call.params['unparsable-behavior'] === 'error' && call.params.account_id === 'account'));
+    assert.ok(client.calls.upserts.every((call) => call.params['unparsable-behavior'] === 'error' && call.params.account_id === 'account'));
     assert.ok(client.calls.embeddings.every((call) => call.model === corpus.embedding.model));
 });
 
 test('invalid embedding and chunk configurations reject before corpus generation', async (t) => {
     const { root } = await integrityFixture(t);
-    for (const embedding of [{ model: '', dimensions: 2 }, { model: 'test', dimensions: 0 },
-        { model: 'test', dimensions: 1.5 }]) {
+    for (const embedding of [
+        { model: '', dimensions: 2 },
+        { model: 'test', dimensions: 0 },
+        { model: 'test', dimensions: 1.5 },
+    ]) {
         await assert.rejects(buildCorpus({ root, embedding }), /Invalid embedding configuration/);
     }
-    for (const chunking of [{ chunkSize: 0, chunkOverlap: 0 }, { chunkSize: 5, chunkOverlap: -1 },
-        { chunkSize: 5, chunkOverlap: 5 }, { chunkSize: 5, chunkOverlap: 1.5 }]) {
+    for (const chunking of [
+        { chunkSize: 0, chunkOverlap: 0 },
+        { chunkSize: 5, chunkOverlap: -1 },
+        { chunkSize: 5, chunkOverlap: 5 },
+        { chunkSize: 5, chunkOverlap: 1.5 },
+    ]) {
         await assert.rejects(buildCorpus({ root, chunking }), /Invalid chunk configuration/);
     }
 });
@@ -225,10 +264,8 @@ test('invalid embedding and chunk configurations reject before corpus generation
 test('invalid ingestion parameters and empty corpora never call upstream services', async (t) => {
     const { root, corpus } = await integrityFixture(t);
     const client = {};
-    for (const options of [{ concurrency: 0 }, { concurrency: 6 }, { batchSize: 0 },
-        { batchSize: 1001 }, { indexName: '' }]) {
-        await assert.rejects(ingestCorpus(client, 'account', corpus,
-            { namespace: corpus.namespace, ...options }), /Concurrency|Account ID/);
+    for (const options of [{ concurrency: 0 }, { concurrency: 6 }, { batchSize: 0 }, { batchSize: 1001 }, { indexName: '' }]) {
+        await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace, ...options }), /Concurrency|Account ID/);
     }
     await assert.rejects(ingestCorpus(client, '', corpus, { namespace: corpus.namespace }), /Account ID/);
     await writeFile(path.join(root, 'content/page.md'), '');
@@ -245,11 +282,12 @@ test('maintenance retry defaults do not retry paid embedding failures', async (t
     const client = createMaintenanceClient('test-token', async (url) => {
         calls++;
         assert.match(String(url), /\/ai\/run\/@cf\/test\/model$/);
-        return Response.json({ success: false, errors: [{ message: 'embedding unavailable' }] },
-            { status: 504 });
+        return Response.json({ success: false, errors: [{ message: 'embedding unavailable' }] }, { status: 504 });
     });
-    await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace }),
-        error => error instanceof Cloudflare.APIError && error.status === 504);
+    await assert.rejects(
+        ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace }),
+        (error) => error instanceof Cloudflare.APIError && error.status === 504,
+    );
     assert.equal(calls, 1);
 });
 
@@ -260,8 +298,12 @@ test('offline CLI needs no credentials, writes reproducible manifest, and import
     const env = { ...process.env };
     delete env.CLOUDFLARE_ACCOUNT_ID;
     delete env.CLOUDFLARE_API_TOKEN;
-    const result = spawnSync(process.execPath, [script, '--check', '--manifest', manifest],
-        { cwd: root, env, encoding: 'utf8', timeout: 10000 });
+    const result = spawnSync(process.execPath, [script, '--check', '--manifest', manifest], {
+        cwd: root,
+        env,
+        encoding: 'utf8',
+        timeout: 10000,
+    });
     assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).namespace, (await buildCorpus({ root })).namespace);
@@ -273,16 +315,25 @@ test('offline CLI needs no credentials, writes reproducible manifest, and import
     assert.deepEqual(saved.embedding, corpus.embedding);
     assert.deepEqual(saved.counts, corpus.counts);
     assert.deepEqual(saved.sources, corpus.sources);
-    assert.deepEqual(saved.chunks.map(({ id }) => id), corpus.chunks.map(({ id }) => id));
-    assert.ok(saved.chunks.every((chunk) =>
-        !Object.hasOwn(chunk, 'text') && !Object.hasOwn(chunk.metadata, 'text')));
-    const imported = spawnSync(process.execPath, ['--input-type=module', '-e',
-        `await import(${JSON.stringify(new URL('../../scripts/generate_embeddings.mjs', import.meta.url).href)})`],
-        { env, encoding: 'utf8', timeout: 10000 });
+    assert.deepEqual(
+        saved.chunks.map(({ id }) => id),
+        corpus.chunks.map(({ id }) => id),
+    );
+    assert.ok(saved.chunks.every((chunk) => !Object.hasOwn(chunk, 'text') && !Object.hasOwn(chunk.metadata, 'text')));
+    const imported = spawnSync(
+        process.execPath,
+        ['--input-type=module', '-e', `await import(${JSON.stringify(new URL('../../scripts/generate_embeddings.mjs', import.meta.url).href)})`],
+        { env, encoding: 'utf8', timeout: 10000 },
+    );
     assert.ifError(imported.error);
     assert.equal(imported.status, 0, imported.stderr);
     assert.equal(imported.stdout, '');
-    const rejected = spawnSync(process.execPath, [script], { cwd: root, env, encoding: 'utf8', timeout: 10000 });
+    const rejected = spawnSync(process.execPath, [script], {
+        cwd: root,
+        env,
+        encoding: 'utf8',
+        timeout: 10000,
+    });
     assert.ifError(rejected.error);
     assert.notEqual(rejected.status, 0);
     assert.match(rejected.stderr, /--namespace/);
@@ -293,7 +344,11 @@ async function integrityFixture(t) {
         'content/page.md': '---\ntitle: Test\n---\nEvidence.',
         'wrangler.toml': '[vars]\nAI_MODEL = "glm"\n',
     });
-    return { root, configPath: path.join(root, 'wrangler.toml'), corpus: await buildCorpus({ root }) };
+    return {
+        root,
+        configPath: path.join(root, 'wrangler.toml'),
+        corpus: await buildCorpus({ root }),
+    };
 }
 
 test('published resume contains the supplied skills and employment facts', async () => {
@@ -307,22 +362,22 @@ test('published resume contains the supplied skills and employment facts', async
 
 test('published resume skills remain available in the indexed corpus', async () => {
     const corpus = await buildCorpus();
-    const chunks = corpus.chunks.filter(chunk => chunk.metadata.source === 'content/resume/_index.md');
-    assert.ok(chunks.some(chunk => chunk.text.includes('C/C++')));
+    const chunks = corpus.chunks.filter((chunk) => chunk.metadata.source === 'content/resume/_index.md');
+    assert.ok(chunks.some((chunk) => chunk.text.includes('C/C++')));
 });
 
 test('recruiter context contains sourced facts without authoring placeholders or public URLs', async () => {
     const corpus = await buildCorpus();
-    const internal = corpus.chunks.filter(chunk => chunk.metadata.type === 'context');
+    const internal = corpus.chunks.filter((chunk) => chunk.metadata.type === 'context');
     assert.ok(internal.length >= 13);
-    assert.ok(internal.every(chunk => !Object.hasOwn(chunk.metadata, 'url')));
-    assert.ok(internal.every(chunk => !/<!--|FILL IN:/.test(chunk.text)));
-    const skills = internal.filter(chunk => chunk.metadata.source === 'content/_context/skills.md');
-    assert.ok(skills.some(chunk => /Go, Python, Bash, C\/C\+\+, Java,/.test(chunk.text)));
-    const demonware = internal.filter(chunk => chunk.metadata.source === 'content/_context/experience-demonware.md');
-    assert.ok(demonware.some(chunk => /Kubernetes, Go, Redis/.test(chunk.text)));
-    const bitcomplete = internal.filter(chunk => chunk.metadata.source === 'content/_context/experience-bitcomplete.md');
-    assert.ok(bitcomplete.some(chunk => /role ended in June 2026/.test(chunk.text)));
+    assert.ok(internal.every((chunk) => !Object.hasOwn(chunk.metadata, 'url')));
+    assert.ok(internal.every((chunk) => !/<!--|FILL IN:/.test(chunk.text)));
+    const skills = internal.filter((chunk) => chunk.metadata.source === 'content/_context/skills.md');
+    assert.ok(skills.some((chunk) => /Go, Python, Bash, C\/C\+\+, Java,/.test(chunk.text)));
+    const demonware = internal.filter((chunk) => chunk.metadata.source === 'content/_context/experience-demonware.md');
+    assert.ok(demonware.some((chunk) => /Kubernetes, Go, Redis/.test(chunk.text)));
+    const bitcomplete = internal.filter((chunk) => chunk.metadata.source === 'content/_context/experience-bitcomplete.md');
+    assert.ok(bitcomplete.some((chunk) => /role ended in June 2026/.test(chunk.text)));
 });
 
 test('SDK transport sends uploaded NDJSON bytes, not a JSON file wrapper (mock fetch only)', async (t) => {
@@ -332,13 +387,18 @@ test('SDK transport sends uploaded NDJSON bytes, not a JSON file wrapper (mock f
     });
     const requests = [];
     const client = new Cloudflare({
-        apiToken: 'test-token', maxRetries: 0,
+        apiToken: 'test-token',
+        maxRetries: 0,
         fetch: async (url, init) => {
             requests.push(new Request(url, init));
-            return new Response(JSON.stringify({ success: true, errors: [],
-                result: String(url).includes('/ai/run/')
-                    ? { data: [[0.1, 0.2]] } : { mutationId: 'mock-mutation' },
-            }), { headers: { 'content-type': 'application/json' } });
+            return new Response(
+                JSON.stringify({
+                    success: true,
+                    errors: [],
+                    result: String(url).includes('/ai/run/') ? { data: [[0.1, 0.2]] } : { mutationId: 'mock-mutation' },
+                }),
+                { headers: { 'content-type': 'application/json' } },
+            );
         },
     });
     await ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace });
@@ -354,11 +414,21 @@ test('SDK transport sends uploaded NDJSON bytes, not a JSON file wrapper (mock f
 test('tampered metadata, namespaces and chunk IDs fail integrity validation', async (t) => {
     const { corpus } = await integrityFixture(t);
     for (const mutate of [
-        value => { value.chunks[0].metadata.source = 'content/other.md'; },
-        value => { value.chunks[0].metadata.text = 'Invented evidence'; },
-        value => { value.chunks[0].chunkIndex = 99; },
-        value => { value.namespace = `corpus-${'0'.repeat(56)}`; },
-        value => { value.chunks[0].id = 'wrong'; },
+        (value) => {
+            value.chunks[0].metadata.source = 'content/other.md';
+        },
+        (value) => {
+            value.chunks[0].metadata.text = 'Invented evidence';
+        },
+        (value) => {
+            value.chunks[0].chunkIndex = 99;
+        },
+        (value) => {
+            value.namespace = `corpus-${'0'.repeat(56)}`;
+        },
+        (value) => {
+            value.chunks[0].id = 'wrong';
+        },
     ]) {
         const changed = structuredClone(corpus);
         mutate(changed);

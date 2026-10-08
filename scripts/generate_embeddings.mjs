@@ -26,10 +26,19 @@ export async function main(args = process.argv.slice(2)) {
         };
         await writeFile(values.manifest, JSON.stringify(manifest, null, 2) + '\n');
     }
-    console.log(JSON.stringify({
-        namespace: corpus.namespace, hash: corpus.hash, counts: corpus.counts,
-        embedding: corpus.embedding, chunking: corpus.chunking,
-    }, null, 2));
+    console.log(
+        JSON.stringify(
+            {
+                namespace: corpus.namespace,
+                hash: corpus.hash,
+                counts: corpus.counts,
+                embedding: corpus.embedding,
+                chunking: corpus.chunking,
+            },
+            null,
+            2,
+        ),
+    );
     if (values.check) return corpus;
     if (values.namespace !== corpus.namespace) {
         throw new Error(`Explicit --namespace must match computed namespace: ${corpus.namespace}`);

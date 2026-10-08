@@ -9,8 +9,11 @@ const source = await readFile(url, 'utf8');
 
 function fixture({ id = 'background', disabled = false, missing = false, divisor } = {}) {
     const attributes = new Map();
-    const element = { style: {}, setAttribute: (key, value) => attributes.set(key, value),
-        removeAttribute: key => attributes.delete(key) };
+    const element = {
+        style: {},
+        setAttribute: (key, value) => attributes.set(key, value),
+        removeAttribute: (key) => attributes.delete(key),
+    };
     const listeners = new Map();
     const frames = [];
     const errors = [];
@@ -22,29 +25,50 @@ function fixture({ id = 'background', disabled = false, missing = false, divisor
             assert.equal(options.passive, true);
             listeners.set(event, fn);
         },
-        removeEventListener: event => listeners.delete(event),
+        removeEventListener: (event) => listeners.delete(event),
     };
     const document = {
         documentElement: { scrollTop: 0 },
-        body: { scrollTop: 0, prepend: value => { sentinel = value; } },
-        getElementById: () => missing ? null : element,
-        createElement: () => ({ style: {} }),
-        querySelectorAll: () => [{ getAttribute: name =>
-            name === 'data-blur-id' ? id : divisor }],
-    };
-    runInNewContext(source, {
-        document, window,
-        localStorage: { getItem: () => JSON.stringify({ disableBlur: disabled }) },
-        console: { error: message => errors.push(message) },
-        requestAnimationFrame: fn => frames.push(fn),
-        IntersectionObserver: class {
-            constructor(callback) { observer = callback; }
-            observe(value) { assert.equal(value, sentinel); }
+        body: {
+            scrollTop: 0,
+            prepend: (value) => {
+                sentinel = value;
+            },
         },
-    }, { filename: fileURLToPath(url) });
-    return { element, attributes, listeners, frames, errors, window, document,
-        intersect: value => observer([{ isIntersecting: value }]),
-        flush: () => frames.splice(0).forEach(fn => fn()) };
+        getElementById: () => (missing ? null : element),
+        createElement: () => ({ style: {} }),
+        querySelectorAll: () => [{ getAttribute: (name) => (name === 'data-blur-id' ? id : divisor) }],
+    };
+    runInNewContext(
+        source,
+        {
+            document,
+            window,
+            localStorage: { getItem: () => JSON.stringify({ disableBlur: disabled }) },
+            console: { error: (message) => errors.push(message) },
+            requestAnimationFrame: (fn) => frames.push(fn),
+            IntersectionObserver: class {
+                constructor(callback) {
+                    observer = callback;
+                }
+                observe(value) {
+                    assert.equal(value, sentinel);
+                }
+            },
+        },
+        { filename: fileURLToPath(url) },
+    );
+    return {
+        element,
+        attributes,
+        listeners,
+        frames,
+        errors,
+        window,
+        document,
+        intersect: (value) => observer([{ isIntersecting: value }]),
+        flush: () => frames.splice(0).forEach((fn) => fn()),
+    };
 }
 
 test('disabled backgrounds hide while disabled menu backgrounds remain visible', () => {

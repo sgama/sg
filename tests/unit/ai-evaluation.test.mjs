@@ -6,38 +6,74 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
-import { fixtureHash, validateFixture, scoreAnswer, evaluateRetrieval, compareModels, estimateCost, percentile, readAnswer, retrievalEvidenceRate } from '../../scripts/lib/ai-evaluation.mjs';
+import {
+    fixtureHash,
+    validateFixture,
+    scoreAnswer,
+    evaluateRetrieval,
+    compareModels,
+    estimateCost,
+    percentile,
+    readAnswer,
+    retrievalEvidenceRate,
+} from '../../scripts/lib/ai-evaluation.mjs';
 import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { makeStream } from '../helpers/mocks.mjs';
 
-const known = { id: 'known', query: 'What is the stack?', expectedSources: ['content/a.md'],
-    answerTerms: [['hugo'], ['cloudflare']], forbiddenTerms: ['wordpress'] };
-const unknown = { id: 'unknown', query: 'Salary?', expectedSources: [],
-    answerTerms: [["don't have enough reliable context"]], forbiddenTerms: [] };
+const known = {
+    id: 'known',
+    query: 'What is the stack?',
+    expectedSources: ['content/a.md'],
+    answerTerms: [['hugo'], ['cloudflare']],
+    forbiddenTerms: ['wordpress'],
+};
+const unknown = {
+    id: 'unknown',
+    query: 'Salary?',
+    expectedSources: [],
+    answerTerms: [["don't have enough reliable context"]],
+    forbiddenTerms: [],
+};
 const fixture = { version: 1, cases: [known, unknown] };
 
 test('a required resume failure blocks release even when aggregate threshold permits it', () => {
     const model = getModel('glm');
-    const labeled = { cases: [{ id: 'cpp', answerTerms: [['yes']], forbiddenTerms: [], required: true }] };
+    const labeled = {
+        cases: [{ id: 'cpp', answerTerms: [['yes']], forbiddenTerms: [], required: true }],
+    };
     const retrievalReport = { kind: 'retrieval' };
     const report = {
-        kind: 'comparison', namespace: 'test', fixtureHash: fixtureHash(labeled),
+        kind: 'comparison',
+        namespace: 'test',
+        fixtureHash: fixtureHash(labeled),
         promptHash: fixtureHash(buildMessages('__query__', '__context__')),
-        contextMode: 'retrieved', maxCompletionTokens: AI_CONFIG.generation.maxCompletionTokens,
-        modelConfigurations: { [model.id]: model }, retrievalHash: fixtureHash(retrievalReport),
+        contextMode: 'retrieved',
+        maxCompletionTokens: AI_CONFIG.generation.maxCompletionTokens,
+        modelConfigurations: { [model.id]: model },
+        retrievalHash: fixtureHash(retrievalReport),
         results: [{ caseId: 'cpp', repeat: 0, modelId: model.id, status: 'ok', answer: 'No' }],
     };
-    assert.throws(() => validateComparisonReport(report, {
-        namespace: 'test', fixture: labeled, model, minAnswerRate: 0, retrievalReport,
-    }), /Required answer regression failed/);
+    assert.throws(
+        () =>
+            validateComparisonReport(report, {
+                namespace: 'test',
+                fixture: labeled,
+                model,
+                minAnswerRate: 0,
+                retrievalReport,
+            }),
+        /Required answer regression failed/,
+    );
 });
 
 test('compares multiple models on identical contexts, preserving aggregate cost and answer checks', async () => {
     const calls = [];
     const usage = { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 };
     const report = await compareModels({
-        cases: fixture.cases, models: ['glm', 'gemma'], repeats: 2,
+        cases: fixture.cases,
+        models: ['glm', 'gemma'],
+        repeats: 2,
         contexts: { known: 'Hugo and Cloudflare power the website.', unknown: '' },
         async run(model, payload) {
             calls.push({ model, payload });
@@ -52,53 +88,90 @@ test('compares multiple models on identical contexts, preserving aggregate cost 
     assert.equal(calls.length, 4);
     assert.deepEqual(calls[0].payload.messages, calls[1].payload.messages);
     assert.equal(report.results.length, 8);
-    assert.ok(report.results.every(item => item.passed));
+    assert.ok(report.results.every((item) => item.passed));
     assert.equal(report.summaries[0].answerCheckRate, 1);
     assert.equal(report.summaries[0].usageCoverage, 1);
     assert.equal(report.summaries[0].estimatedGenerationCostUsd, 2 * estimateCost(usage, getModel('glm')));
-    assert.ok(report.results.filter(item => !item.abstained).every(item => item.ttftMs >= 0));
-    assert.ok(report.results.every(item => !item.answer.includes('private')));
+    assert.ok(report.results.filter((item) => !item.abstained).every((item) => item.ttftMs >= 0));
+    assert.ok(report.results.every((item) => !item.answer.includes('private')));
 });
 
 test('evaluation fixtures validate actual source labels and unique cases', () => {
     validateFixture(fixture, [{ metadata: { source: 'content/a.md' } }]);
     assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
-    assert.throws(() => validateFixture({ version: 1, cases: [known, known] },
-        [{ metadata: { source: 'content/a.md' } }]), /unique IDs/);
+    assert.throws(() => validateFixture({ version: 1, cases: [known, known] }, [{ metadata: { source: 'content/a.md' } }]), /unique IDs/);
 });
 
 test('evidence assertions score bounded context rather than a document hit or metadata title', async () => {
     const item = { ...known, evidenceTerms: [['hugo'], ['cloudflare']] };
-    const result = await evaluateRetrieval({ cases: [item], retrieve: async () => ({
-        matches: [{ id: 'intro', metadata: { source: 'content/a.md', title: 'Hugo Cloudflare',
-            text: 'An introduction without the required facts.' } }],
-    }) });
+    const result = await evaluateRetrieval({
+        cases: [item],
+        retrieve: async () => ({
+            matches: [
+                {
+                    id: 'intro',
+                    metadata: {
+                        source: 'content/a.md',
+                        title: 'Hugo Cloudflare',
+                        text: 'An introduction without the required facts.',
+                    },
+                },
+            ],
+        }),
+    });
     assert.equal(result.hitRate, 1);
     // Source identity is not evidence, even if its title contains expected words.
     assert.equal(result.evidenceRate, 0);
     assert.equal(result.results[0].evidencePassed, false);
     assert.equal(retrievalEvidenceRate([{ caseId: item.id, context: 'Hugo and Cloudflare' }], [item]), 1);
-    const truncated = await evaluateRetrieval({ cases: [item], retrieve: async () => ({
-        matches: [{ metadata: { source: 'content/a.md',
-            text: 'Hugo ' + 'x'.repeat(AI_CONFIG.retrieval.maxContextChars) + ' Cloudflare' } }],
-    }) });
+    const truncated = await evaluateRetrieval({
+        cases: [item],
+        retrieve: async () => ({
+            matches: [
+                {
+                    metadata: {
+                        source: 'content/a.md',
+                        text: 'Hugo ' + 'x'.repeat(AI_CONFIG.retrieval.maxContextChars) + ' Cloudflare',
+                    },
+                },
+            ],
+        }),
+    });
     assert.equal(truncated.evidenceRate, 0);
-    const report = { version: 2, kind: 'retrieval', namespace: 'test', fixtureHash: fixtureHash({ cases: [item] }),
-        ...result, topK: AI_CONFIG.retrieval.topK, embeddingModel: AI_CONFIG.embedding.model,
-        maxContextChars: AI_CONFIG.retrieval.maxContextChars, indexName: AI_CONFIG.retrieval.indexName,
-        evidenceRate: 1 };
-    assert.throws(() => validateRetrievalReport(report, {
-        namespace: 'test', fixture: { cases: [item] }, minHitRate: 0,
-    }), /evidence/);
+    const report = {
+        version: 2,
+        kind: 'retrieval',
+        namespace: 'test',
+        fixtureHash: fixtureHash({ cases: [item] }),
+        ...result,
+        topK: AI_CONFIG.retrieval.topK,
+        embeddingModel: AI_CONFIG.embedding.model,
+        maxContextChars: AI_CONFIG.retrieval.maxContextChars,
+        indexName: AI_CONFIG.retrieval.indexName,
+        evidenceRate: 1,
+    };
+    assert.throws(
+        () =>
+            validateRetrievalReport(report, {
+                namespace: 'test',
+                fixture: { cases: [item] },
+                minHitRate: 0,
+            }),
+        /evidence/,
+    );
     for (const evidenceTerms of [[], [[]], [['']], 'hugo']) {
-        assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, evidenceTerms }] },
-            [{ metadata: { source: 'content/a.md' } }]), /Invalid evidence/);
+        assert.throws(
+            () => validateFixture({ version: 1, cases: [{ ...item, evidenceTerms }] }, [{ metadata: { source: 'content/a.md' } }]),
+            /Invalid evidence/,
+        );
     }
 });
 
 test('failed and usage-less runs are explicit, not zero-cost successful results', async () => {
     const report = await compareModels({
-        cases: [known], models: ['glm', 'gemma'], contexts: { known: 'Enough context for a model response' },
+        cases: [known],
+        models: ['glm', 'gemma'],
+        contexts: { known: 'Enough context for a model response' },
         async run(model) {
             if (model === getModel('glm').id) throw new Error('timeout');
             return makeStream('data: {"response":"Hugo and Cloudflare"}\n', 'data: [DONE]\n');
@@ -120,11 +193,19 @@ test('failed streams mark cost incomplete and preserve explicit errors', async (
     const logged = t.mock.method(console, 'error', () => {});
     for (const stream of [
         makeStream('data: {"response":"Partial"}\n', 'data: {"error":"provider unavailable"}\n'),
-        new ReadableStream({ start(controller) { controller.error(new Error('Connection lost')); } }),
+        new ReadableStream({
+            start(controller) {
+                controller.error(new Error('Connection lost'));
+            },
+        }),
         makeStream('data: {invalid}\n', 'data: [DONE]\n'),
     ]) {
-        const report = await compareModels({ cases: [item], models: ['glm'],
-            contexts: { known: 'Reliable Hugo project evidence.' }, run: async () => stream });
+        const report = await compareModels({
+            cases: [item],
+            models: ['glm'],
+            contexts: { known: 'Reliable Hugo project evidence.' },
+            run: async () => stream,
+        });
         assert.equal(report.results[0].status, 'error');
         assert.equal(typeof report.results[0].error, 'string');
         assert.equal(report.summaries[0].costComplete, false);
@@ -133,34 +214,51 @@ test('failed streams mark cost incomplete and preserve explicit errors', async (
         assert.equal(report.summaries[0].ttftP50Ms, null);
     }
     assert.equal(logged.mock.callCount(), 2);
-    assert.ok(logged.mock.calls.every(call => call.arguments[0] === 'Chat Stream Failed:'
-        && call.arguments[1] instanceof Error));
+    assert.ok(logged.mock.calls.every((call) => call.arguments[0] === 'Chat Stream Failed:' && call.arguments[1] instanceof Error));
 });
 
 test('invalid fixture labels and missing comparison contexts fail explicitly', async () => {
     for (const changes of [
-        { required: 'true' }, { answerTerms: [] }, { answerTerms: [[]] },
-        { answerTerms: [[42]] }, { forbiddenTerms: [''] }, { forbiddenTerms: [42] },
-        { expectedSources: ['missing'] }, { query: ' ' },
+        { required: 'true' },
+        { answerTerms: [] },
+        { answerTerms: [[]] },
+        { answerTerms: [[42]] },
+        { forbiddenTerms: [''] },
+        { forbiddenTerms: [42] },
+        { expectedSources: ['missing'] },
+        { query: ' ' },
     ]) {
-        assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, ...changes }] },
-            [{ metadata: { source: 'content/a.md' } }]));
+        assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, ...changes }] }, [{ metadata: { source: 'content/a.md' } }]));
     }
-    await assert.rejects(compareModels({ cases: [item], models: ['glm'], contexts: {},
-        run: async () => assert.fail('Missing context must not generate') }), /Missing context/);
+    await assert.rejects(
+        compareModels({
+            cases: [item],
+            models: ['glm'],
+            contexts: {},
+            run: async () => assert.fail('Missing context must not generate'),
+        }),
+        /Missing context/,
+    );
 });
 
 test('missing and invalid usage is unpriced rather than free', async () => {
     const model = getModel('glm');
-    for (const usage of [null, {}, { prompt_tokens: -1, completion_tokens: 2 },
+    for (const usage of [
+        null,
+        {},
+        { prompt_tokens: -1, completion_tokens: 2 },
         { prompt_tokens: 1, completion_tokens: -2 },
         { prompt_tokens: Infinity, completion_tokens: 2 },
-        { prompt_tokens: 1, completion_tokens: '2' }]) {
+        { prompt_tokens: 1, completion_tokens: '2' },
+    ]) {
         assert.equal(estimateCost(usage, model), null);
     }
-    const report = await compareModels({ cases: [item], models: ['glm'],
+    const report = await compareModels({
+        cases: [item],
+        models: ['glm'],
         contexts: { known: 'Reliable Hugo project evidence.' },
-        run: async () => makeStream('data: {"response":"Hugo"}\n', 'data: [DONE]\n') });
+        run: async () => makeStream('data: {"response":"Hugo"}\n', 'data: [DONE]\n'),
+    });
     assert.equal(report.results[0].estimatedGenerationCostUsd, null);
     assert.equal(report.summaries[0].usageCoverage, 0);
     assert.equal(report.summaries[0].costComplete, false);
@@ -181,11 +279,21 @@ test('negative questions retrieve real context and exercise generation rather th
     const queries = [];
     const retrieval = await evaluateRetrieval({
         cases: fixture.cases,
-        retrieve: async query => {
+        retrieve: async (query) => {
             queries.push(query);
-            return { matches: [{ metadata: { source: 'content/a.md', url: '/a/',
-                text: 'The website uses Hugo and Cloudflare; no compensation information.' } }],
-                embeddingMs: 1, searchMs: 1 };
+            return {
+                matches: [
+                    {
+                        metadata: {
+                            source: 'content/a.md',
+                            url: '/a/',
+                            text: 'The website uses Hugo and Cloudflare; no compensation information.',
+                        },
+                    },
+                ],
+                embeddingMs: 1,
+                searchMs: 1,
+            };
         },
     });
     assert.deepEqual(queries, [known.query, unknown.query]);
@@ -193,12 +301,12 @@ test('negative questions retrieve real context and exercise generation rather th
     assert.equal(retrieval.results[1].passed, null);
     const run = [];
     const comparison = await compareModels({
-        cases: [unknown], models: ['glm'],
-        contexts: Object.fromEntries(retrieval.results.map(item => [item.caseId, item.context])),
+        cases: [unknown],
+        models: ['glm'],
+        contexts: Object.fromEntries(retrieval.results.map((item) => [item.caseId, item.context])),
         run: async (_, input) => {
             run.push(input);
-            return makeStream('data: {"response":"I don\'t have enough reliable context to establish a salary."}\n',
-                'data: [DONE]\n');
+            return makeStream('data: {"response":"I don\'t have enough reliable context to establish a salary."}\n', 'data: [DONE]\n');
         },
     });
     assert.equal(run.length, 1);
@@ -209,44 +317,69 @@ test('negative questions retrieve real context and exercise generation rather th
 
 test('negative-only retrieval and retrieval failures do not manufacture source hits', async () => {
     const negative = { ...item, expectedSources: [] };
-    const report = await evaluateRetrieval({ cases: [negative],
-        retrieve: async () => ({ matches: [{ id: 'unlabeled' }], embeddingMs: 1, searchMs: 2 }) });
+    const report = await evaluateRetrieval({
+        cases: [negative],
+        retrieve: async () => ({ matches: [{ id: 'unlabeled' }], embeddingMs: 1, searchMs: 2 }),
+    });
     assert.equal(report.hitRate, 0);
     assert.equal(report.results[0].passed, null);
     assert.deepEqual(report.results[0].sources, []);
-    const failed = await evaluateRetrieval({ cases: [item],
-        retrieve: async () => { throw new Error('Search unavailable'); } });
+    const failed = await evaluateRetrieval({
+        cases: [item],
+        retrieve: async () => {
+            throw new Error('Search unavailable');
+        },
+    });
     assert.equal(failed.hitRate, 0);
     assert.equal(failed.results[0].error, 'Search unavailable');
 });
 
-const item = { id: 'known', query: 'Stack?', expectedSources: ['content/a.md'],
-    answerTerms: [['hugo']], forbiddenTerms: [] };
+const item = {
+    id: 'known',
+    query: 'Stack?',
+    expectedSources: ['content/a.md'],
+    answerTerms: [['hugo']],
+    forbiddenTerms: [],
+};
 
 test('release reports must match corpus, labels and retrieval configuration', () => {
     const report = {
-        version: 2, kind: 'retrieval', namespace: 'candidate', fixtureHash: fixtureHash(fixture),
-        topK: AI_CONFIG.retrieval.topK, maxContextChars: AI_CONFIG.retrieval.maxContextChars,
+        version: 2,
+        kind: 'retrieval',
+        namespace: 'candidate',
+        fixtureHash: fixtureHash(fixture),
+        topK: AI_CONFIG.retrieval.topK,
+        maxContextChars: AI_CONFIG.retrieval.maxContextChars,
         embeddingModel: AI_CONFIG.embedding.model,
-        indexName: AI_CONFIG.retrieval.indexName, hitRate: 1,
+        indexName: AI_CONFIG.retrieval.indexName,
+        hitRate: 1,
         results: [
             { caseId: 'known', sources: ['content/a.md'], context: 'Some context' },
-            { caseId: 'unknown', sources: ['content/a.md'], context: 'Irrelevant retrieved context' },
+            {
+                caseId: 'unknown',
+                sources: ['content/a.md'],
+                context: 'Irrelevant retrieved context',
+            },
         ],
     };
     const options = { namespace: 'candidate', fixture, minHitRate: 0.9 };
     validateRetrievalReport(report, options);
     assert.throws(() => validateRetrievalReport({ ...report, version: 1 }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, results: [report.results[0]] }, options),
-        /incomplete/);
-    assert.throws(() => validateRetrievalReport({ ...report, results: [
-        report.results[0], { ...report.results[1], error: 'negative retrieval failed' },
-    ] }, options), /missing successful query unknown/);
+    assert.throws(() => validateRetrievalReport({ ...report, results: [report.results[0]] }, options), /incomplete/);
+    assert.throws(
+        () =>
+            validateRetrievalReport(
+                {
+                    ...report,
+                    results: [report.results[0], { ...report.results[1], error: 'negative retrieval failed' }],
+                },
+                options,
+            ),
+        /missing successful query unknown/,
+    );
     assert.throws(() => validateRetrievalReport({ ...report, namespace: 'old' }, options));
     assert.throws(() => validateRetrievalReport({ ...report, results: [] }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, results: [
-        { ...report.results[0], sources: ['content/wrong.md'] },
-    ] }, options));
+    assert.throws(() => validateRetrievalReport({ ...report, results: [{ ...report.results[0], sources: ['content/wrong.md'] }] }, options));
     assert.throws(() => validateRetrievalReport({ ...report, topK: 99 }, options));
 });
 
@@ -257,49 +390,112 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
         await fs.writeFile(path.join(root, 'content/a.md'), '---\ntitle: Test\n---\nHugo and Cloudflare power this portfolio.');
         const corpus = await buildCorpus({ root });
         const retrieval = {
-            version: 2, kind: 'retrieval', namespace: corpus.namespace, fixtureHash: fixtureHash(fixture),
-            topK: AI_CONFIG.retrieval.topK, maxContextChars: AI_CONFIG.retrieval.maxContextChars,
+            version: 2,
+            kind: 'retrieval',
+            namespace: corpus.namespace,
+            fixtureHash: fixtureHash(fixture),
+            topK: AI_CONFIG.retrieval.topK,
+            maxContextChars: AI_CONFIG.retrieval.maxContextChars,
             embeddingModel: AI_CONFIG.embedding.model,
-            indexName: AI_CONFIG.retrieval.indexName, hitRate: 1,
+            indexName: AI_CONFIG.retrieval.indexName,
+            hitRate: 1,
             results: [
-                { caseId: 'known', sources: ['content/a.md'], context: 'Hugo and Cloudflare power this portfolio.' },
-                { caseId: 'unknown', sources: ['content/a.md'], context: 'Hugo and Cloudflare power this portfolio.' },
+                {
+                    caseId: 'known',
+                    sources: ['content/a.md'],
+                    context: 'Hugo and Cloudflare power this portfolio.',
+                },
+                {
+                    caseId: 'unknown',
+                    sources: ['content/a.md'],
+                    context: 'Hugo and Cloudflare power this portfolio.',
+                },
             ],
         };
         const model = getModel('glm');
         const comparison = {
-            kind: 'comparison', namespace: corpus.namespace, fixtureHash: fixtureHash(fixture),
+            kind: 'comparison',
+            namespace: corpus.namespace,
+            fixtureHash: fixtureHash(fixture),
             promptHash: fixtureHash(buildMessages('__query__', '__context__')),
-            contextMode: 'retrieved', maxCompletionTokens: AI_CONFIG.generation.maxCompletionTokens,
-            modelConfigurations: { [model.id]: model }, retrievalHash: fixtureHash(retrieval),
+            contextMode: 'retrieved',
+            maxCompletionTokens: AI_CONFIG.generation.maxCompletionTokens,
+            modelConfigurations: { [model.id]: model },
+            retrievalHash: fixtureHash(retrieval),
             results: [
-                { caseId: 'known', modelId: model.id, repeat: 0, status: 'ok', answer: 'Hugo and Cloudflare' },
-                { caseId: 'unknown', modelId: model.id, repeat: 0, status: 'ok', answer: "I don't have enough reliable context" },
+                {
+                    caseId: 'known',
+                    modelId: model.id,
+                    repeat: 0,
+                    status: 'ok',
+                    answer: 'Hugo and Cloudflare',
+                },
+                {
+                    caseId: 'unknown',
+                    modelId: model.id,
+                    repeat: 0,
+                    status: 'ok',
+                    answer: "I don't have enough reliable context",
+                },
             ],
         };
-        const options = { namespace: corpus.namespace, fixture, model, minAnswerRate: 0.8, retrievalReport: retrieval };
+        const options = {
+            namespace: corpus.namespace,
+            fixture,
+            model,
+            minAnswerRate: 0.8,
+            retrievalReport: retrieval,
+        };
         validateComparisonReport(comparison, options);
         assert.throws(() => validateComparisonReport({ ...comparison, promptHash: 'stale' }, options));
         assert.throws(() => validateComparisonReport({ ...comparison, retrievalHash: 'stale' }, options));
         assert.throws(() => validateComparisonReport({ ...comparison, results: [] }, options));
-        assert.throws(() => validateComparisonReport({ ...comparison,
-            results: comparison.results.map(item => ({ ...item, answer: 'wrong' })) }, options));
-        for (const [name, data] of [['fixture', fixture], ['retrieval', retrieval], ['comparison', comparison]]) {
+        assert.throws(() =>
+            validateComparisonReport(
+                {
+                    ...comparison,
+                    results: comparison.results.map((item) => ({ ...item, answer: 'wrong' })),
+                },
+                options,
+            ),
+        );
+        for (const [name, data] of [
+            ['fixture', fixture],
+            ['retrieval', retrieval],
+            ['comparison', comparison],
+        ]) {
             await fs.writeFile(path.join(root, `${name}.json`), JSON.stringify(data));
         }
-        await fs.writeFile(path.join(root, 'wrangler.toml'),
-            `[vars]\nAI_MODEL = "glm"\nAI_CORPUS_NAMESPACE = "${corpus.namespace}"\n\n[[vectorize]]\nbinding = "VECTORIZE_INDEX"\n`);
+        await fs.writeFile(
+            path.join(root, 'wrangler.toml'),
+            `[vars]\nAI_MODEL = "glm"\nAI_CORPUS_NAMESPACE = "${corpus.namespace}"\n\n[[vectorize]]\nbinding = "VECTORIZE_INDEX"\n`,
+        );
         const args = [
             fileURLToPath(new URL('../../scripts/ai-eval.mjs', import.meta.url)),
-            'release-check', '--namespace', corpus.namespace,
-            '--fixture', 'fixture.json', '--retrieval-report', 'retrieval.json', '--comparison-report', 'comparison.json',
+            'release-check',
+            '--namespace',
+            corpus.namespace,
+            '--fixture',
+            'fixture.json',
+            '--retrieval-report',
+            'retrieval.json',
+            '--comparison-report',
+            'comparison.json',
         ];
-        const passed = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8', timeout: 10000 });
+        const passed = spawnSync(process.execPath, args, {
+            cwd: root,
+            encoding: 'utf8',
+            timeout: 10000,
+        });
         assert.ifError(passed.error);
         assert.equal(passed.status, 0, passed.stderr);
         assert.match(passed.stdout, /Release gate passed/);
         await fs.writeFile(path.join(root, 'wrangler.toml'), '[vars]\nAI_MODEL = "glm"\nAI_CORPUS_NAMESPACE = "old"\n');
-        const failed = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8', timeout: 10000 });
+        const failed = spawnSync(process.execPath, args, {
+            cwd: root,
+            encoding: 'utf8',
+            timeout: 10000,
+        });
         assert.ifError(failed.error);
         assert.notEqual(failed.status, 0);
         assert.match(failed.stderr, /AI_CORPUS_NAMESPACE/);
@@ -311,19 +507,27 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
 test('retrieval measures expected source hits, not keyword presence', async () => {
     const report = await evaluateRetrieval({
         cases: [known],
-        retrieve: async () => ({ matches: [{ metadata: { text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
-            embeddingMs: 5, searchMs: 7 }),
+        retrieve: async () => ({
+            matches: [{ metadata: { text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
+            embeddingMs: 5,
+            searchMs: 7,
+        }),
     });
     assert.equal(report.hitRate, 0);
     assert.equal(report.results[0].embeddingMs, 5);
-    const failed = await evaluateRetrieval({ cases: [known], retrieve: async () => { throw new Error('down'); } });
+    const failed = await evaluateRetrieval({
+        cases: [known],
+        retrieve: async () => {
+            throw new Error('down');
+        },
+    });
     assert.equal(failed.hitRate, 0);
     assert.equal(failed.results[0].error, 'down');
 });
 
 test('source-grounded answer checks reject a contradictory claim', async () => {
     const labeled = JSON.parse(await fs.readFile(new URL('../fixtures/ai-eval.json', import.meta.url), 'utf8'));
-    const cpp = labeled.cases.find(item => item.id === 'resume-cpp');
+    const cpp = labeled.cases.find((item) => item.id === 'resume-cpp');
     assert.equal(scoreAnswer('Yes, C/C++ is listed in the [resume](/resume/).', cpp), true);
     assert.equal(scoreAnswer('C++ is not listed in the [resume](/resume/).', cpp), false);
     assert.equal(cpp.required, true);
@@ -331,10 +535,15 @@ test('source-grounded answer checks reject a contradictory claim', async () => {
 
 test('stream timing records first answer and interchunk gaps with provider usage', async () => {
     let time = 0;
-    const result = await readAnswer(makeStream(
-        'data: {"response":"Hu"}\n', 'data: {"response":"go"}\n',
-        'data: {"usage":{"prompt_tokens":2,"completion_tokens":1}}\n', 'data: [DONE]\n',
-    ), { start: 0, clock: () => ++time });
+    const result = await readAnswer(
+        makeStream(
+            'data: {"response":"Hu"}\n',
+            'data: {"response":"go"}\n',
+            'data: {"usage":{"prompt_tokens":2,"completion_tokens":1}}\n',
+            'data: [DONE]\n',
+        ),
+        { start: 0, clock: () => ++time },
+    );
     assert.equal(result.answer, 'Hugo');
     assert.equal(result.ttftMs, 1);
     assert.deepEqual(result.chunkGapsMs, [1]);
