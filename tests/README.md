@@ -42,6 +42,8 @@ tests/
 │   ├── rag-audit.test.mjs        # Offline question coverage, provenance and authoring gaps
 │   ├── site.test.mjs             # Site browser script behavior
 │   └── validation.test.mjs       # Request/history schemas and exact boundaries
+├── integration/
+│   └── layouts.test.mjs          # Generated Hugo schema, LLM index, image preloads and head settings
 └── helpers/                 # Shared test utilities
     ├── data.mjs                  # Constants, fixtures, and test data builders
     └── mocks.mjs                 # Mock factories
@@ -77,7 +79,15 @@ make lint
 make lint-fix
 make coverage
 make test TEST_REPORTER=tap
+make test-layouts
 ```
+
+`make test-layouts` requires Hugo and uses temporary content, assets and output
+directories. It checks JSON-LD types and escaping, public-only LLM index entries,
+WebP/PNG/SVG and disabled-optimization preload parity, URL-only backgrounds,
+meta-description ordering, reading-progress overrides, language redirects and
+AdSense markup. It performs no inference or deployment and does not change the
+real corpus. Unit and coverage commands remain independent of Hugo.
 
 ESLint's recommended correctness rules cover browser scripts, Workers/Functions,
 Node scripts, tests, and tooling configuration with environment-specific globals.

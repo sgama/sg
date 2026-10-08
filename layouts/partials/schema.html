@@ -1,108 +1,56 @@
-{{- /*
-  Overrides Blowfish's schema.html to:
-  - Add a standalone Person node on the homepage with sameAs social links
-  - Emit BlogPosting (not generic Article) for the posts/portfolio sections
-  - Include an image property on articles when a featured image exists
-*/ -}}
 {{- $iso8601 := "2006-01-02T15:04:05-07:00" -}}
+{{- $publisher := dict "@type" "Person" "name" site.Params.Author.name -}}
+{{- $nodes := slice -}}
 {{- if .IsHome -}}
+  {{- $website := dict "@context" "https://schema.org" "@type" "WebSite" "@id" site.Home.Permalink
+      "name" site.Title "url" site.Home.Permalink "publisher" $publisher -}}
+  {{- with site.Params.description -}}{{- $website = merge $website (dict "description" .) -}}{{- end -}}
+  {{- with site.Language.Locale -}}{{- $website = merge $website (dict "inLanguage" .) -}}{{- end -}}
+  {{- with site.Params.keywords -}}{{- $website = merge $website (dict "keywords" .) -}}{{- end -}}
+  {{- $person := dict "@context" "https://schema.org" "@type" "Person" "name" site.Params.Author.name
+      "url" site.Home.Permalink -}}
+  {{- with site.Params.Author.bio -}}{{- $person = merge $person (dict "description" .) -}}{{- end -}}
+  {{- with site.Params.Author.image -}}{{- $person = merge $person (dict "image" (. | absURL)) -}}{{- end -}}
   {{- $sameAs := slice -}}
-  {{- with .Site.Params.Author.links -}}
-    {{- range . -}}
-      {{- range $k, $v := . -}}{{- $sameAs = $sameAs | append $v -}}{{- end -}}
-    {{- end -}}
+  {{- range site.Params.Author.links -}}
+    {{- range . -}}{{- $sameAs = $sameAs | append . -}}{{- end -}}
   {{- end -}}
-  <script type="application/ld+json">
-  [
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": {{ site.Home.Permalink | safeURL }},
-      "name": "{{ .Site.Title | safeJS }}",
-      {{ with .Site.Params.description }}"description": "{{ . | safeJS }}",{{ end }}
-      {{ with .Site.Language.Locale }}"inLanguage": "{{ . }}",{{ end }}
-      "url": {{ site.Home.Permalink | safeURL }},
-      {{ with .Site.Params.keywords }}"keywords": {{ . }},{{ end }}
-      "publisher": {
-        "@type": "Person",
-        "name": "{{ .Site.Params.Author.name | safeJS }}"
-      }
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "Person",
-      "name": "{{ .Site.Params.Author.name | safeJS }}",
-      {{ with .Site.Params.Author.bio }}"description": "{{ . | safeJS }}",{{ end }}
-      {{ with .Site.Params.Author.image }}"image": "{{ . | absURL }}",{{ end }}
-      "url": {{ site.Home.Permalink | safeURL }}{{ with $sameAs }},
-      "sameAs": {{ . | jsonify }}{{ end }}
-    }
-  ]
-  </script>
+  {{- with $sameAs -}}{{- $person = merge $person (dict "sameAs" .) -}}{{- end -}}
+  {{- $nodes = slice $website $person -}}
 {{- else -}}
   {{- $schemaType := "Article" -}}
-  {{- if in (slice "posts" "post" "portfolio") .Section -}}
-    {{- $schemaType = "BlogPosting" -}}
-  {{- end -}}
+  {{- if in (slice "posts" "post" "portfolio") .Section -}}{{- $schemaType = "BlogPosting" -}}{{- end -}}
+  {{- $article := dict "@context" "https://schema.org" "@type" $schemaType
+      "name" .Title "headline" .Title "url" .Permalink "mainEntityOfPage" .Permalink
+      "author" (merge $publisher (dict "url" site.Home.Permalink)) "publisher" $publisher
+      "wordCount" .WordCount -}}
+  {{- with site.GetPage .Section -}}{{- $article = merge $article (dict "articleSection" .Title) -}}{{- end -}}
+  {{- with .Description -}}{{- $article = merge $article (dict "description" .) -}}{{- end -}}
+  {{- with site.Language.Locale -}}{{- $article = merge $article (dict "inLanguage" .) -}}{{- end -}}
   {{- $image := "" -}}
   {{- with .Resources.GetMatch "featured*" -}}{{- $image = .Permalink -}}{{- end -}}
   {{- if not $image -}}
     {{- with .Params.images -}}{{- with index . 0 -}}{{- $image = . | absURL -}}{{- end -}}{{- end -}}
   {{- end -}}
-  <script type="application/ld+json">
-  [{
-    "@context": "https://schema.org",
-    "@type": "{{ $schemaType }}",
-    "articleSection": "{{ (site.GetPage .Section).Title | safeJS }}",
-    "name": "{{ .Title | safeJS }}",
-    "headline": "{{ .Title | safeJS }}",
-    {{ with .Description }}"description": "{{ . | safeJS }}",{{ end }}
-    {{ with .Site.Language.Locale }}"inLanguage": "{{ . }}",{{ end }}
-    "url": {{ .Permalink }},
-    {{ with $image }}"image": "{{ . }}",{{ end }}
-    "author": {
-      "@type": "Person",
-      "name": "{{ .Site.Params.Author.name | safeJS }}",
-      "url": {{ site.Home.Permalink | safeURL }}
-    },
-    "publisher": {
-      "@type": "Person",
-      "name": "{{ .Site.Params.Author.name | safeJS }}"
-    },
-    {{ with .PublishDate }}"copyrightYear": "{{ .Format "2006" }}",{{ end }}
-    {{ with .Date }}"dateCreated": "{{ .Format $iso8601 }}",{{ end }}
-    {{ with .PublishDate }}"datePublished": "{{ .Format $iso8601 }}",{{ end }}
-    {{ with .ExpiryDate }}"expires": "{{ .Format $iso8601 }}",{{ end }}
-    {{ with .Lastmod }}"dateModified": "{{ .Format $iso8601 }}",{{ end }}
-    {{ if .Keywords }}{{ with .Keywords }}"keywords": {{ . }},{{ end }}
-    {{ else }}{{ with .Params.tags }}"keywords": {{ . }},{{ end }}{{ end }}
-    "mainEntityOfPage": {{ .Permalink }},
-    "wordCount": "{{ .WordCount }}"
-  }{{ if site.Params.enableStructuredBreadcrumbs | default false }},
-  {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {{- $position := 0 -}}
-      {{- range .Ancestors -}}
-        {{- if not .IsHome -}}
-          {{- $position = add $position 1 -}}
-          {
-            "@type": "ListItem",
-            "position": {{ $position }},
-            "name": "{{ .Title }}",
-            "item": {{ .Permalink }}
-          },
-        {{- end -}}
+  {{- with $image -}}{{- $article = merge $article (dict "image" .) -}}{{- end -}}
+  {{- with .PublishDate -}}{{- $article = merge $article (dict "copyrightYear" (int (.Format "2006"))) -}}{{- end -}}
+  {{- with .Date -}}{{- $article = merge $article (dict "dateCreated" (.Format $iso8601)) -}}{{- end -}}
+  {{- with .PublishDate -}}{{- $article = merge $article (dict "datePublished" (.Format $iso8601)) -}}{{- end -}}
+  {{- with .ExpiryDate -}}{{- $article = merge $article (dict "expires" (.Format $iso8601)) -}}{{- end -}}
+  {{- with .Lastmod -}}{{- $article = merge $article (dict "dateModified" (.Format $iso8601)) -}}{{- end -}}
+  {{- with .Keywords | default .Params.tags -}}{{- $article = merge $article (dict "keywords" .) -}}{{- end -}}
+  {{- $nodes = slice $article -}}
+  {{- if site.Params.enableStructuredBreadcrumbs | default false -}}
+    {{- $items := slice -}}
+    {{- range .Ancestors -}}
+      {{- if not .IsHome -}}
+        {{- $items = $items | append (dict "@type" "ListItem" "position" (add (len $items) 1)
+            "name" .Title "item" .Permalink) -}}
       {{- end -}}
-      {{- $position = add $position 1 -}}
-      {
-        "@type": "ListItem",
-        "position": {{ $position }},
-        "name": "{{ .Title }}",
-        "item": {{ .Permalink }}
-      }
-    ]
-  }{{ end }}]
-  </script>
+    {{- end -}}
+    {{- $items = $items | append (dict "@type" "ListItem" "position" (add (len $items) 1)
+        "name" .Title "item" .Permalink) -}}
+    {{- $nodes = $nodes | append (dict "@context" "https://schema.org" "@type" "BreadcrumbList" "itemListElement" $items) -}}
+  {{- end -}}
 {{- end -}}
+<script type="application/ld+json">{{ $nodes | jsonify | safeJS }}</script>

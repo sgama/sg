@@ -201,7 +201,7 @@ keepWhitespace = false
 
 [module.hugoVersion]
 extended = true
-min = "0.141.0"
+min = "0.164.0"
 
 # Theme and module imports - https://gohugo.io/hugo-modules/use-modules/
 [[module.imports]]
@@ -210,7 +210,7 @@ path = "github.com/martignoni/hugo-notice"  # Notice shortcode
 
 [[module.imports]]
 disable = false
-path = "github.com/nunocoracao/blowfish/v2"  # Main theme
+path = "github.com/nunocoracao/blowfish/v3"  # Main theme
 
 [outputFormats]
 

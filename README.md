@@ -903,6 +903,23 @@ summary: "A brief description of the post"
 
 ## 🚀 Deployment
 
+### Layout validation
+
+Run `make test-layouts` after changing Hugo overrides. The generated-output checks
+cover structured-data types, the public `llms.txt` index, matching homepage image
+preloads and restored Blowfish head settings. Internal `_context` documents stay
+out of the public index. Homepage rendering and preloads share image selection;
+picture preloads target the first AVIF source with its media type so unsupported
+browsers can skip the hint rather than fetch an unused fallback.
+
+The theme is pinned to Blowfish v3.9.0 via `github.com/nunocoracao/blowfish/v3`.
+The supported Hugo range is 0.164.0–0.167.0.
+The head override is reconciled with Blowfish v3.9.0. It retains the inline
+appearance script, deferred accessibility/image-zoom scripts and mobile keyboard
+viewport behavior; compare it with the pinned module again after theme upgrades.
+Language redirects use the theme's corrected `Locale` lookup without a local
+override. CI includes these layout checks.
+
 ### Build for Production
 
 Make build/serve targets supply the current Git revision to Hugo through
@@ -949,7 +966,7 @@ needed by the chat API.
 
 ```bash
 # Update the Blowfish theme
-hugo mod get -u github.com/nunocoracao/blowfish/v2
+hugo mod get -u github.com/nunocoracao/blowfish/v3
 
 # Check for theme-breaking changes
 make build-prod

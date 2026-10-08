@@ -1,0 +1,32 @@
+{{- $src := .url | default "" -}}
+{{- $type := "" -}}
+{{- $sources := slice -}}
+{{- with .image -}}
+  {{- $final := . -}}
+  {{- $subtype := .MediaType.SubType -}}
+  {{- if and (not $.disabled) (ne $subtype "svg") -}}
+    {{- if eq $.operation "Resize" -}}
+      {{- $final = .Resize $.size -}}
+    {{- else if ne $subtype "webp" -}}
+      {{- $final = .Fill $.size -}}
+    {{- end -}}
+    {{- if ne $subtype "webp" -}}
+      {{- $avif := "" -}}
+      {{- $webp := "" -}}
+      {{- if eq $.operation "Resize" -}}
+        {{- $avif = .Resize (printf "%s avif" $.size) -}}
+        {{- $webp = .Resize (printf "%s webp" $.size) -}}
+      {{- else -}}
+        {{- $avif = .Fill (printf "%s avif" $.size) -}}
+        {{- $webp = .Fill (printf "%s webp" $.size) -}}
+      {{- end -}}
+      {{- $sources = slice (dict "type" "image/avif" "src" $avif.RelPermalink)
+          (dict "type" "image/webp" "src" $webp.RelPermalink) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $src = $final.RelPermalink -}}
+  {{- $type = $final.MediaType.Type -}}
+{{- end -}}
+{{- $preload := dict "src" $src "type" $type -}}
+{{- with $sources -}}{{- $preload = index . 0 -}}{{- end -}}
+{{- return (dict "src" $src "sources" $sources "preload" $preload) -}}

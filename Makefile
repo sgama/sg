@@ -5,7 +5,7 @@ SHELL := /bin/bash
 .PHONY: \
 	help serve dev-ai \
 	build build-prod postcss-build build-summary clean \
-	deps test lint lint-fix format format-check lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
+	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage audit-content audit-urls audit-site audit-rag rag-eval pre-commit \
 	ai-models ai-check ai-plan ai-test ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check ai-local-check ai-local-validate ai-local-hybrid ai-local-clean deploy-ai \
 	deploy-pages deploy-built cleanup-deployments \
 	ci ci-check check-tools check-env check-ai-tools check-ai-namespace check-wrangler-node
@@ -137,6 +137,9 @@ deps: check-ai-tools ## Install Node dependencies exactly from the lockfile
 
 test: ## Run unit tests
 	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+
+test-layouts: check-tools ## Build Hugo fixtures and validate schema, public index, preloads and theme settings
+	@HUGO="$(HUGO)" $(NODE) --test --test-timeout=120000 --test-reporter=$(TEST_REPORTER) tests/integration/layouts.test.mjs
 
 lint: check-ai-tools ## Lint all JavaScript with ESLint
 	@$(NPM) --silent run lint
@@ -270,7 +273,7 @@ favicons: ## Regenerate favicon assets
 	@bash scripts/generate_favicons.sh
 
 ##@ CI
-ci-check: lint-workflows lint coverage ai-check ai-build build-prod ## Run independent offline checks (use -j2 --output-sync=target)
+ci-check: lint-workflows lint coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
 
 ci: ## Run checks, refresh embeddings and deploy the matching chat corpus
 	@$(MAKE) --no-print-directory --jobs=2 --output-sync=target ci-check audit-site

@@ -2,9 +2,9 @@
   Override of Blowfish's partials/head.html. Diffs vs upstream:
   1. appearance.js is inlined (saves a round trip; the script is ~3 KB minified
      and timing-sensitive — must run before paint to avoid a theme FOUC).
-  2. a11y.js has `defer` (it only matters when the user opens the panel).
-  Everything else is verbatim from blowfish v2.102.0/layouts/partials/head.html;
-  diff against upstream when bumping the theme.
+  2. a11y.js and image zoom use `defer`.
+  3. The viewport resizes content for the mobile chat keyboard.
+  Based on Blowfish v2.106.0; reconcile against upstream when bumping the theme.
 */}}
 <head>
   <meta charset="utf-8">
@@ -25,8 +25,18 @@
   {{ end }}
 
   {{/* Metadata */}}
-  {{ with (.Params.Summary | default .Params.Description) | default .Site.Params.description }}
-    <meta name="description" content="{{ . }}">
+  {{ $metaDescriptionOrder := .Site.Params.seo.metaDescriptionOrder | default (slice "summary" "description" "site") }}
+  {{ $metaDescriptionSources := dict
+    "summary" .Params.Summary
+    "description" .Params.Description
+    "site" .Site.Params.description
+  }}
+  {{ $metaDescription := "" }}
+  {{ range $metaDescriptionOrder }}
+    {{ $metaDescription = $metaDescription | default (index $metaDescriptionSources (lower .)) }}
+  {{ end }}
+  {{ with $metaDescription }}
+    <meta name="description" content="{{ . | plainify }}">
   {{ end }}
   {{ with  .Params.Tags | default .Site.Params.keywords }}
     <meta name="keywords" content="{{ range . }}{{ . }},{{ end }}">
@@ -134,6 +144,7 @@
   {{/* JS — appearance.js inlined (must run before paint to avoid theme FOUC) */}}
   {{ $jsAppearance := resources.Get "js/appearance.js" | resources.ExecuteAsTemplate "js/appearance.js" . | resources.Minify }}
   <script>{{ $jsAppearance.Content | safeJS }}</script>
+  {{ partial "language-redirect.html" . }}
   {{ $enableA11y := .Site.Params.enableA11y | default false }}
   {{ if $enableA11y }}
     {{ $jsA11y := resources.Get "js/a11y.js" | resources.Minify | resources.Fingerprint $alg }}
@@ -151,6 +162,18 @@
   {{ if not .Site.Params.disableImageZoom | default true }}
     {{ $zoomJS := resources.Get "lib/zoom/zoom.min.umd.js" | resources.Fingerprint $alg }}
     <script defer src="{{ $zoomJS.RelPermalink }}" integrity="{{ $zoomJS.Data.Integrity }}"></script>
+  {{ end }}
+
+  {{ $showReadingProgress := site.Params.article.showReadingProgress | default false }}
+  {{ if isset .Params "showreadingprogress" }}
+    {{ $showReadingProgress = .Params.showReadingProgress }}
+  {{ end }}
+  {{ if and .IsPage $showReadingProgress }}
+    {{ $jsReadingProgress := resources.Get "js/reading-progress.js" | resources.Minify | resources.Fingerprint $alg }}
+    <script
+      type="text/javascript"
+      src="{{ $jsReadingProgress.RelPermalink }}"
+      integrity="{{ $jsReadingProgress.Data.Integrity }}"></script>
   {{ end }}
 
   {{/* JS deferred */}}
@@ -213,5 +236,14 @@
   {{/* Uncached extend head - Example: https://gohugo.io/methods/page/hasshortcode/ */}}
   {{ if templates.Exists "partials/extend-head-uncached.html" }}
     {{ partial "extend-head-uncached.html" . }}
+  {{ end }}
+
+  {{/* Advertisement */}}
+  {{ with .Site.Params.advertisement.adsense }}
+    <meta name="google-adsense-account" content="{{ . }}">
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ . }}"
+      crossorigin="anonymous"></script>
   {{ end }}
 </head>

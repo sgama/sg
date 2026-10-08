@@ -1,0 +1,38 @@
+{{- $disabled := site.Params.disableImageOptimization | default false -}}
+{{- $featured := false -}}
+{{- $url := "" -}}
+{{- $useDefault := false -}}
+{{- with site.Params.homepage.homepageImage -}}
+  {{- if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") -}}
+    {{- $featured = resources.GetRemote . -}}
+  {{- else -}}
+    {{- $featured = resources.Get . -}}
+  {{- end -}}
+{{- end -}}
+{{- if not $featured -}}
+  {{- with site.Params.defaultBackgroundImage -}}
+    {{- $useDefault = true -}}
+    {{- if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") -}}
+      {{- if site.Params.hotlinkFeatureImage -}}
+        {{- $url = . -}}
+      {{- else -}}
+        {{- $featured = resources.GetRemote . -}}
+      {{- end -}}
+    {{- else -}}
+      {{- $featured = resources.Get . -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $background := partial "home/image-variants.html" (dict "image" $featured "url" $url
+    "disabled" $disabled "operation" "Resize" "size" (printf "%sx" (string (site.Params.backgroundImageWidth | default "1200")))) -}}
+{{- $authorImage := false -}}
+{{- with site.Params.Author.image -}}
+  {{- if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") -}}
+    {{- $authorImage = resources.GetRemote . -}}
+  {{- else -}}
+    {{- $authorImage = resources.Get . -}}
+  {{- end -}}
+{{- end -}}
+{{- $avatar := partial "home/image-variants.html" (dict "image" $authorImage "disabled" $disabled
+    "operation" "Fill" "size" (printf "192x192 q%s" (string (site.Params.Author.imagequality | default "80")))) -}}
+{{- return (dict "background" $background "avatar" $avatar "useDefault" $useDefault) -}}

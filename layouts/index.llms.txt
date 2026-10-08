@@ -1,69 +1,44 @@
-# {{ site.Title }}
-{{ site.BaseURL }}
-
-## Site Description
-{{ site.Params.Description | default "Personal Portfolio and Technical Blog of Samson Gama." }}
-
-## How to Use This Site
-- Start with the About and Resume pages for a high-level overview.
-- Use Portfolio for project highlights and Posts for technical deep dives.
-- For quick info, scan the Skills/Tags section below.
-
-## Context & Skills (Internal Knowledge)
-{{- with site.GetPage "/context" -}}
-  {{- range .Resources }}
-- [{{ .Title }}]({{ .Permalink }})
-  {{ .Summary | plainify }}
-  {{- end -}}
-{{- else -}}
-  (No context found)
-{{- end }}
-
-## Key Pages
-{{- range site.RegularPages -}}
-  {{- if .File -}}
-    {{- if or (eq .File.TranslationBaseName "about") (eq .File.TranslationBaseName "resume") }}
-- [{{ .Title }}]({{ .Permalink }})
-  {{ .Summary | plainify }}
-    {{- end -}}
-  {{- end -}}
-{{- end }}
-
-## Portfolio Projects
-{{- range site.RegularPages -}}
-  {{- if eq .Section "portfolio" }}
-- [{{ .Title }}]({{ .Permalink }})
-  {{ .Params.description | default .Summary | plainify }}
-  Stack: {{ with .Params.tags }}{{ delimit . ", " }}{{ end }}
-  {{- end -}}
-{{- end }}
-
-## Recent Posts
-{{- range first 10 (where site.RegularPages "Section" "posts") -}}
-- [{{ .Title }}]({{ .Permalink }})
-  {{ .Summary | plainify }}
-{{- end }}
-
-## Technical Blog Posts
-{{- range site.RegularPages -}}
-  {{- if eq .Section "posts" }}
-- [{{ .Title }}]({{ .Permalink }})
-  {{ .Summary | plainify }}
-  {{- end -}}
-{{- end }}
-
-## Skills / Tags Snapshot
-{{- $tags := slice -}}
-{{- range site.RegularPages -}}
-  {{- with .Params.tags -}}
-    {{- range . -}}
-      {{- $tags = $tags | append . -}}
-    {{- end -}}
+{{- $lines := slice (printf "# %s" site.Title) site.BaseURL ""
+    "## Site Description"
+    (site.Params.description | default "Personal Portfolio and Technical Blog of Samson Gama." | plainify) ""
+    "## How to Use This Site"
+    "- Start with the About and Resume pages for a high-level overview."
+    "- Use Portfolio for project highlights and Posts for technical deep dives."
+    "- For quick info, scan the Skills / Tags Snapshot below." ""
+    "## Key Pages" -}}
+{{- range slice "/about" "/resume" "/contact" -}}
+  {{- with site.GetPage . -}}
+    {{- $lines = $lines | append (printf "- [%s](%s)" .Title .Permalink)
+        (printf "  %s" (.Description | default .Summary | plainify)) -}}
   {{- end -}}
 {{- end -}}
-{{- $tags = uniq $tags | sort -}}
-{{- if gt (len $tags) 0 -}}
-{{ delimit $tags ", " }}
+{{- $publicPages := where site.RegularPages "RelPermalink" "ne" "" -}}
+{{- $projects := where $publicPages "Section" "portfolio" -}}
+{{- $posts := where $publicPages "Section" "posts" -}}
+{{- $lines = $lines | append "" "## Portfolio Projects" -}}
+{{- range $projects -}}
+  {{- $lines = $lines | append (printf "- [%s](%s)" .Title .Permalink)
+      (printf "  %s" (.Description | default .Summary | plainify)) -}}
+  {{- with .Params.tags -}}{{- $lines = $lines | append (printf "  Stack: %s" (delimit . ", ")) -}}{{- end -}}
+{{- end -}}
+{{- $lines = $lines | append "" "## Recent Posts" -}}
+{{- range first 10 $posts.ByDate.Reverse -}}
+  {{- $lines = $lines | append (printf "- [%s](%s)" .Title .Permalink)
+      (printf "  %s" (.Description | default .Summary | plainify)) -}}
+{{- end -}}
+{{- $lines = $lines | append "" "## Technical Blog Posts" -}}
+{{- range $posts -}}
+  {{- $lines = $lines | append (printf "- [%s](%s)" .Title .Permalink)
+      (printf "  %s" (.Description | default .Summary | plainify)) -}}
+{{- end -}}
+{{- $tags := slice -}}
+{{- range $publicPages -}}
+  {{- range .Params.tags -}}{{- $tags = $tags | append . -}}{{- end -}}
+{{- end -}}
+{{- $lines = $lines | append "" "## Skills / Tags Snapshot" -}}
+{{- if $tags -}}
+  {{- $lines = $lines | append (delimit (uniq $tags | sort) ", ") -}}
 {{- else -}}
-(No tags found)
-{{- end }}
+  {{- $lines = $lines | append "(No tags found)" -}}
+{{- end -}}
+{{- printf "%s\n" (delimit $lines "\n") -}}

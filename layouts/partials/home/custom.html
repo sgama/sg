@@ -1,47 +1,18 @@
-{{ $disableImageOptimization := .Site.Params.disableImageOptimization | default false }}
-
-{{ $useDefault := false }}
-{{ $featured := "" }}
-{{ $featuredURL := "" }}
-{{ with .Site.Params.homepage.homepageImage }}
-    {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
-        {{ $featured = resources.GetRemote . }}
-    {{ else }}
-        {{ $featured = resources.Get . }}
-    {{ end }}
-{{ end }}
-{{ if not $featured }}
-    {{ $default := site.Store.Get "defaultBackgroundImage" }}
-    {{ if $default.url }}
-        {{ $featuredURL = $default.url }}
-        {{ $useDefault = true }}
-    {{ else if $default.obj }}
-        {{ $featured = $default.obj }}
-        {{ $useDefault = true }}
-    {{ end }}
-{{ end }}
-{{ if not $featuredURL }}
-    {{ with $featured }}
-        {{ $featuredURL = .RelPermalink }}
-        {{ if not (or $disableImageOptimization (eq .MediaType.SubType "svg")) }}
-            {{ $featuredURL = (.Resize (site.Store.Get "backgroundImageWidth")).RelPermalink }}
-        {{ end }}
-    {{ end }}
-{{ end }}
+{{ $images := partialCached "home/images.html" .Site .Site.Language.Lang }}
+{{ $featuredURL := $images.background.src }}
 
 {{- with $featuredURL -}}
     <div class="fixed inset-x-0 top-0 h-[800px] single_hero_background nozoom -z-10">
         {{ $style := "" }}
-        {{ $defaultPosition := cond $useDefault site.Params.imagePosition false }}
+        {{ $defaultPosition := cond $images.useDefault site.Params.imagePosition false }}
         {{ with $.Params.imagePosition | default $defaultPosition }}
             {{ $style = printf "object-position: %s;" . }}
         {{ end }}
-        {{ if and (not $disableImageOptimization) (ne $featured.MediaType.SubType "svg") (ne $featured.MediaType.SubType "webp") }}
+        {{ with $images.background.sources }}
             <picture>
-                <source type="image/avif" srcset="{{ ($featured.Resize (print (site.Store.Get "backgroundImageWidth") " avif")).RelPermalink }}">
-                <source type="image/webp" srcset="{{ ($featured.Resize (print (site.Store.Get "backgroundImageWidth") " webp")).RelPermalink }}">
+                {{ range . }}<source type="{{ .type }}" srcset="{{ .src }}">{{ end }}
                 <img id="background-image"
-                    src="{{ . }}"
+                    src="{{ $featuredURL }}"
                     role="presentation"
                     loading="eager"
                     decoding="async"
@@ -66,29 +37,19 @@
 
 <div class="grid grid-cols-1 gap-10 py-1 lg:grid-cols-2 lg:items-start">
     <div class="flex flex-col items-center text-center lg:items-start lg:text-left">
-        {{ with .Site.Params.Author.image }}
-            {{ $authorImage := "" }}
-            {{ if or (strings.HasPrefix . "http:") (strings.HasPrefix . "https:") }}
-                {{ $authorImage = resources.GetRemote . }}
-            {{ else }}
-                {{ $authorImage = resources.Get . }}
-            {{ end }}
-            {{ if $authorImage }}
-                {{ $final := $authorImage }}
-                {{ if not (or $disableImageOptimization (eq $authorImage.MediaType.SubType "svg") (eq $authorImage.MediaType.SubType "webp")) }}
-                    {{ $final = $authorImage.Fill (print "192x192 q" ($.Site.Params.Author.imagequality | default "80")) }}
+        {{ with $images.avatar.src }}
+                {{ $avatarURL := . }}
+                {{ with $images.avatar.sources }}
                     <picture>
-                        <source type="image/avif" srcset="{{ ($authorImage.Fill (print "192x192 avif q" ($.Site.Params.Author.imagequality | default "80"))).RelPermalink }}">
-                        <source type="image/webp" srcset="{{ ($authorImage.Fill (print "192x192 webp q" ($.Site.Params.Author.imagequality | default "80"))).RelPermalink }}">
+                        {{ range . }}<source type="{{ .type }}" srcset="{{ .src }}">{{ end }}
                         <img class="intro__avatar nozoom mb-2 h-36 w-36 rounded-full" width="144" height="144"
-                            alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
+                            alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $avatarURL }}"
                             loading="eager" decoding="async" fetchpriority="high">
                     </picture>
                 {{ else }}
                     <img class="intro__avatar nozoom mb-2 h-36 w-36 rounded-full" width="144" height="144"
-                        alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $final.RelPermalink }}"
+                        alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $avatarURL }}"
                         loading="eager" decoding="async" fetchpriority="high">
-                {{ end }}
             {{ end }}
         {{ end }}
         <h1 class="mb-2 text-4xl font-extrabold text-neutral-800 dark:text-neutral-200">
@@ -116,9 +77,6 @@
         {{ .Content }}
     </div>
 </div>
-<section>
-    {{ partial "recent-articles/main.html" . }}
-</section>
 {{ if .Site.Params.homepage.layoutBackgroundBlur | default false }}
 <div id="background-blur"
     class="fixed opacity-0 inset-x-0 top-0 h-full single_hero_background nozoom backdrop-blur-xl bg-neutral-100/75 dark:bg-neutral-800/60">
