@@ -519,6 +519,7 @@
         font-size: 0.65rem;
         line-height: 1.45;
         white-space: pre-line;
+        user-select: none;
     }
 
     .chat-widget .header-btn {

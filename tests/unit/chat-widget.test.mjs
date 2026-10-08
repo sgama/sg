@@ -48,7 +48,8 @@ test('widget renders and persists response metrics outside answer text and API h
     const footer = f.roles.transcript.children.at(-1).children.at(-1);
     assert.ok(footer.classList.contains('response-metrics'));
     assert.match(footer.textContent, /Total 1.20s/);
-    assert.match(footer.textContent, /LLM cost unavailable/);
+    assert.match(footer.textContent, /Cost: unavailable/);
+    assert.match(footer.textContent, /AI answers may be inaccurate/);
     assert.deepEqual(apiHistory(saved, saved[0].text).at(-1), { role: 'assistant', content: 'Answer' });
 });
 test('answer parser reports provider errors and malformed answer fields', () => {

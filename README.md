@@ -229,6 +229,8 @@ estimated LLM token cost. Cost excludes embeddings, Vectorize and hosting and
 is unavailable when required usage is missing, rather than reported as zero.
 Metrics persist with local chat history but are never sent as conversation
 evidence. Historical messages without metrics remain readable.
+The non-selectable response footer includes an accuracy warning encouraging
+readers to verify important details against the original sources.
 
 ### Authoring employer-facing RAG context
 

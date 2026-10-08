@@ -19,6 +19,6 @@ export function formatResponseMetrics(metrics) {
     }
     const usage = [metrics.abstained ? 'No answer model call' : `Answer tokens: ${tokens(metrics.generationUsage)}`];
     if (metrics.rewriteUsed) usage.push(`Rewrite tokens: ${tokens(metrics.rewriteUsage)}`);
-    usage.push(validDuration(metrics.estimatedLlmCostUsd) ? `Est. LLM $${metrics.estimatedLlmCostUsd.toFixed(6)}` : 'LLM cost unavailable');
-    return `${timing.join(' · ')}\n${usage.join(' · ')}\nCost excludes embeddings, Vectorize and hosting.`;
+    usage.push(validDuration(metrics.estimatedLlmCostUsd) ? `Cost: $${metrics.estimatedLlmCostUsd.toFixed(6)}` : 'Cost: unavailable');
+    return `${timing.join(' · ')}\n${usage.join(' · ')}\nAI answers may be inaccurate. Verify important details against the original sources.`;
 }

@@ -19,14 +19,16 @@ test('response footer formats timings, token counts and scoped estimated cost', 
     assert.match(text, /TTFT 1.25s · Total 2.40s · Embed 45ms · Search 12ms · Rewrite 250ms/);
     assert.match(text, /Answer tokens: 1000 in \/ 100 out/);
     assert.match(text, /Rewrite tokens: 50 in \/ 10 out/);
-    assert.match(text, /Est. LLM \$0.000100/);
-    assert.match(text, /excludes embeddings, Vectorize and hosting/);
+    assert.match(text, /Cost: \$0.000100/);
+    assert.equal(text.split('\n').length, 3);
+    assert.equal(text.split('\n')[2], 'AI answers may be inaccurate. Verify important details against the original sources.');
+    assert.doesNotMatch(text, /Cost excludes/);
 });
 
 test('missing usage never becomes a zero-cost success or invented token count', () => {
     const text = formatResponseMetrics({ totalMs: 10, firstTokenMs: null, estimatedLlmCostUsd: null });
     assert.match(text, /Answer tokens: unavailable/);
-    assert.match(text, /LLM cost unavailable/);
+    assert.match(text, /Cost: unavailable/);
     assert.doesNotMatch(text, /\$|TTFT|Rewrite/);
     for (const metrics of [null, {}, { totalMs: -1 }, { totalMs: NaN }]) assert.equal(formatResponseMetrics(metrics), null);
     const abstain = formatResponseMetrics({ totalMs: 10, abstained: true, estimatedLlmCostUsd: 0 });
