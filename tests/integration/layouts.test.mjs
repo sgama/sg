@@ -86,10 +86,23 @@ test('generated layouts preserve structured types, public indexes, image selecti
             'default',
             { header: { layout: 'floating' } },
             {
-                menus: { footer: [{ name: 'About', url: '/about/' }] },
+                menus: {
+                    footer: [{ name: 'About', url: '/about/' }],
+                    main: [
+                        { name: 'Projects', identifier: 'projects', url: '/posts/' },
+                        { name: 'Project detail', parent: 'projects', url: '/posts/layout-regression/' },
+                    ],
+                },
             },
         );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
+        assert.doesNotMatch(home, /<label\b[^>]*role=["']?button/);
+        const menuButtons = tags(home, 'button').filter((tag) => tag['data-menu-toggle']);
+        assert.equal(menuButtons.filter((tag) => tag['data-menu-toggle'] === 'mobile-menu-toggle').length, 2);
+        assert.ok(menuButtons.every((tag) => tag.type === 'button' && tag['aria-controls'] && tag['aria-expanded'] && !tag.role && !tag.for));
+        const submenu = menuButtons.find((tag) => tag['data-menu-toggle'] === 'fullscreen-submenu-projects');
+        assert.equal(submenu['aria-expanded'], 'true');
+        assert.ok(tags(home, 'div').some((tag) => tag.id === submenu['aria-controls']));
         assert.match(home, /aria-label=["']?Close Chat["']?[^>]*title=["']?Close Chat/);
         assert.match(home, /Answer \+ rewrite: glm-4.7-flash/);
         assert.match(home, /Answer: @cf\/zai-org\/glm-4.7-flash; rewrite: @cf\/zai-org\/glm-4.7-flash/);
