@@ -5,6 +5,7 @@ import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } f
 import { createAnswerParser, streamAnswer } from '../../assets/js/chat/stream.js';
 import { createChatScroller } from '../../assets/js/chat/scroll.js';
 import { setImmediate } from 'node:timers/promises';
+import { publicEvidence } from '../../assets/js/chat/evidence.js';
 
 test('answer parser handles split CRLF events, usage, and completion', () => {
     const deltas = [];
@@ -40,6 +41,95 @@ test('answer parser forwards metrics separately without including them in the an
     for (const value of [null, [], 123, 'invalid']) {
         assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify({ metrics: value })}\n`), /metrics/);
     }
+});
+
+test('progress and evidence events are separate from answer text and malformed stages fail', () => {
+    const progress = [];
+    const evidence = [];
+    const parser = createAnswerParser(() => assert.fail('Not an answer'), undefined, {
+        onProgress: (stage) => progress.push(stage),
+        onEvidence: (value) => evidence.push(value),
+    });
+    parser.push('data: {"progress":"search"}\ndata: {"evidence":[]}\n');
+    assert.deepEqual(progress, ['search']);
+    assert.deepEqual(evidence, [[]]);
+    assert.throws(() => parser.push('data: {"progress":"invented"}\n'), /Invalid chat progress/);
+    assert.throws(() => createAnswerParser(() => {}).push('data: {"evidence":null}\n'), /Invalid chat evidence/);
+});
+
+test('public evidence excludes internal and unsafe links and strips internal metadata', () => {
+    const evidence = publicEvidence([
+        { url: '/resume/', title: 'Resume', text: 'Facts', source: 'content/resume/_index.md' },
+        { text: 'Internal' },
+        { url: '/_context/profile', text: 'Internal' },
+        { url: '//outside.test', text: 'External' },
+        { url: '/\\outside.test', text: 'External' },
+        { url: 'javascript:alert(1)', text: 'Invalid' },
+    ]);
+    assert.deepEqual(evidence, [{ url: '/resume/', title: 'Resume', section: '', text: 'Facts' }]);
+});
+
+test('widget exposes public evidence and copies only the answer, not diagnostics or sources', async (t) => {
+    const f = await widgetFixture(t);
+    const copied = [];
+    navigator.clipboard = { writeText: async (text) => copied.push(text) };
+    t.mock.method(
+        globalThis,
+        'fetch',
+        async () =>
+            new Response(
+                'data: {"progress":"search"}\n\n' +
+                    'data: {"evidence":[{"url":"/resume/","title":"Resume","section":"Experience","text":"Source facts"}]}\n\n' +
+                    'data: {"response":"Answer only"}\n\ndata: [DONE]\n\n',
+            ),
+    );
+    f.widget.open();
+    await f.submit('Question');
+    const message = f.roles.transcript.children.at(-1);
+    const evidence = message.children.find((child) => child.classList.contains('response-evidence'));
+    assert.ok(evidence);
+    assert.equal(evidence.children[0].textContent, 'Retrieved sources (1)');
+    const copy = message.children.find((child) => child.classList.contains('copy-answer'));
+    copy.dispatchEvent(new Event('click'));
+    await setImmediate();
+    assert.deepEqual(copied, ['Answer only']);
+    assert.equal(copy.textContent, 'Copied');
+    const history = JSON.parse(f.local.get(STORAGE_KEY));
+    assert.equal(history.at(-1).evidence[0].url, '/resume/');
+    assert.deepEqual(apiHistory(history, history[0].text).at(-1), { role: 'assistant', content: 'Answer only' });
+    navigator.clipboard.writeText = async () => {
+        throw new Error('Clipboard blocked');
+    };
+    copy.dispatchEvent(new Event('click'));
+    await setImmediate();
+    assert.match(copy.textContent, /Copy failed/);
+});
+
+test('widget displays actual server progress before answer tokens arrive', async (t) => {
+    const f = await widgetFixture(t);
+    let stream;
+    t.mock.method(
+        globalThis,
+        'fetch',
+        async () =>
+            new Response(
+                new ReadableStream({
+                    start(controller) {
+                        stream = controller;
+                    },
+                }),
+            ),
+    );
+    f.widget.open();
+    await f.submit('Question');
+    stream.enqueue(new TextEncoder().encode('data: {"progress":"search"}\n\n'));
+    await setImmediate();
+    assert.equal(f.roles.status.textContent, 'Finding sources…');
+    assert.equal(f.roles.transcript.children.at(-1).textContent, 'Finding sources…');
+    stream.enqueue(new TextEncoder().encode('data: {"response":"Finished"}\n\ndata: [DONE]\n\n'));
+    stream.close();
+    await setImmediate();
+    assert.equal(f.roles.status.textContent, 'Response complete.');
 });
 
 test('widget renders and persists response metrics outside answer text and API history', async (t) => {

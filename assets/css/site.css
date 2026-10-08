@@ -415,7 +415,7 @@
         inset: auto 2rem 10rem auto;
         inset-inline-end: var(--launcher-inline-offset);
         width: min(480px, calc(100vw - 4rem));
-        height: min(650px, calc(100vh - 12rem));
+        height: min(720px, calc(100vh - 12rem));
         max-width: none;
         max-height: calc(100vh - 12rem);
         z-index: 9999;
@@ -595,6 +595,54 @@
     .chat-widget .metrics-warning {
         display: block;
         margin-block-start: 0.35rem;
+        font-size: inherit;
+    }
+
+    .chat-widget .response-evidence {
+        margin-block-start: 0.75rem;
+        border-block-start: 1px solid var(--chat-border);
+        padding-block-start: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .chat-widget .response-evidence summary {
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .chat-widget .evidence-card {
+        margin-block-start: 0.5rem;
+    }
+
+    .chat-widget .message .evidence-card pre {
+        white-space: pre-wrap;
+        max-height: 12rem;
+        overflow: auto;
+        font: inherit;
+        background: var(--chat-bg);
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+    }
+
+    .chat-widget .copy-answer {
+        color: var(--chat-muted);
+        border: 1px solid var(--chat-border);
+        border-radius: 0.4rem;
+        padding: 0.35rem 0.6rem;
+        margin-block-start: 0.5rem;
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
+
+    .chat-widget .copy-answer:focus-visible,
+    .chat-widget .response-evidence summary:focus-visible {
+        outline: 2px solid var(--chat-accent);
+        outline-offset: 2px;
+    }
+
+    .chat-widget .metrics-explanation {
+        display: block;
+        margin-block: 0.5rem;
         font-size: inherit;
     }
 

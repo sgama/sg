@@ -11,6 +11,70 @@ import { buildEmbeddingsResponse, buildVectorizeResult, URLS, SAMPLE_DATA, FIXTU
 import { createContext, makeStream } from '../helpers/mocks.mjs';
 
 test('/api/chat', async (t) => {
+    await t.test('streams real stage events and only public excerpts actually supplied to generation', async () => {
+        const usage = { prompt_tokens: 10, completion_tokens: 2 };
+        const response = await onRequest(
+            createContext({
+                method: 'POST',
+                url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                body: { query: 'And then?', history: [{ role: 'user', content: 'Earlier?' }] },
+                env: {
+                    AI: {
+                        async run(_model, payload) {
+                            if (payload.stream === false) return { response: 'Standalone query' };
+                            if (payload.text) return buildEmbeddingsResponse([0.1]);
+                            assert.ok(payload.messages[0].content.includes('Public evidence'));
+                            return makeStream(`data: ${JSON.stringify({ response: 'Answer', usage })}\n\ndata: [DONE]\n\n`);
+                        },
+                    },
+                    VECTORIZE_INDEX: {
+                        query: async () => ({
+                            matches: [
+                                { metadata: { title: 'Resume', url: '/resume/', section: 'Experience', text: 'Public evidence' } },
+                                { metadata: { title: 'Private corpus label', source: 'content/_context/profile.md', text: 'Internal evidence' } },
+                            ],
+                        }),
+                    },
+                },
+            }),
+        );
+        const text = await response.text();
+        const events = text
+            .split('\n')
+            .filter((line) => line.startsWith('data: {'))
+            .map((line) => JSON.parse(line.slice(6)));
+        assert.deepEqual(
+            events.filter((event) => event.progress).map((event) => event.progress),
+            ['rewrite', 'embedding', 'search', 'generation'],
+        );
+        const evidence = events.find((event) => event.evidence).evidence;
+        assert.deepEqual(evidence, [{ title: 'Resume', url: '/resume/', section: 'Experience', text: 'Public evidence' }]);
+        assert.doesNotMatch(text, /content\/|Internal evidence|Private corpus label/);
+    });
+
+    await t.test('retrieval failures after streaming starts emit explicit errors, not successful abstention', async (t) => {
+        t.mock.method(console, 'error', () => {});
+        const response = await onRequest(
+            createContext({
+                method: 'POST',
+                url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                body: { query: 'Question?' },
+                env: {
+                    AI: {
+                        run: async () => {
+                            throw new Error('Provider failed');
+                        },
+                    },
+                    VECTORIZE_INDEX: { query: async () => assert.fail('Search must not run') },
+                },
+            }),
+        );
+        assert.equal(response.status, 200);
+        const text = await response.text();
+        assert.match(text, /"progress":"embedding"/);
+        assert.match(text, /"error":"Embedding service unavailable"/);
+        assert.doesNotMatch(text, /"response":/);
+    });
     await t.test('CORS', async (t) => {
         await t.test('blocks OPTIONS requests from disallowed origins', async () => {
             const response = await onRequest(

@@ -472,6 +472,22 @@ test('retrieved context preserves source identity within the character budget', 
     assert.equal(bounded.length, AI_CONFIG.retrieval.maxContextChars);
 });
 
+test('evidence callbacks expose only excerpts that fit the exact generation context budget', () => {
+    const excerpts = [];
+    const context = contextFromMatches(
+        [
+            { metadata: { url: '/first/', title: 'First', text: 'a'.repeat(AI_CONFIG.retrieval.maxContextChars + 100) } },
+            { metadata: { url: '/omitted/', text: 'Must not be exposed' } },
+        ],
+        (excerpt) => excerpts.push(excerpt),
+    );
+    assert.equal(context.length, AI_CONFIG.retrieval.maxContextChars);
+    assert.equal(excerpts.length, 1);
+    assert.ok(context.endsWith(excerpts[0].text));
+    assert.equal(excerpts[0].url, '/first/');
+    assert.ok(excerpts[0].text.length < AI_CONFIG.retrieval.maxContextChars);
+});
+
 test('internal education evidence exposes public citations but not corpus filenames to generation', () => {
     const context = contextFromMatches([
         {

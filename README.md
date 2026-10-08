@@ -219,6 +219,17 @@ No CI or pre-commit formatting gate is added by this rollout.
 
 ### Chat model details and response metrics
 
+Responses expose a collapsible **Retrieved sources** panel with only public-page
+excerpts actually included in the bounded model context. Internal RAG excerpts
+are omitted. These are retrieval evidence, not independently verified citations.
+Source links and literal excerpt text persist locally with the answer.
+**Copy answer** copies only answer text, without sources, metrics or warnings.
+The streaming API reports real rewrite, embedding, search and generation stages;
+the widget displays these while waiting for answer tokens. Failures after SSE
+starts are explicit error events (HTTP status is already 200); validation and
+missing-binding errors still return HTTP error responses before streaming.
+No feedback collection is implemented.
+
 Chat history persists across deployments until the visitor clears it.
 
 The chat header renders two compact model-information rows at Hugo build time.

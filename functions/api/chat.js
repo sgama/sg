@@ -40,22 +40,35 @@ app.post('/api/chat', async (c) => {
     }
 
     const aiService = new AiService(env);
-    const contextText = await aiService.retrieveContext(query, history);
-    let stream;
-
-    if (shouldAbstainForMissingContext(contextText)) {
-        stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
-    } else {
-        stream = await aiService.generateStream(query, contextText, history);
+    if (!env.VECTORIZE_INDEX) {
+        console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
+        throw new AppError('Retrieval service unavailable', 503);
     }
-
-    if (env.CHAT_LOGS) {
-        stream = await LogService.save(env.CHAT_LOGS, query, stream, c.executionCtx);
-    }
-
     c.header('X-Content-Type-Options', 'nosniff');
     return streamSSE(c, async (sse) => {
-        await sse.pipe(stream);
+        try {
+            const contextText = await aiService.retrieveContext(query, history, (stage) =>
+                sse.writeSSE({ data: JSON.stringify({ progress: stage }) }),
+            );
+            await sse.writeSSE({ data: JSON.stringify({ evidence: aiService.evidence }) });
+            let stream;
+            if (shouldAbstainForMissingContext(contextText)) {
+                stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
+            } else {
+                await sse.writeSSE({ data: JSON.stringify({ progress: 'generation' }) });
+                stream = await aiService.generateStream(query, contextText, history);
+            }
+            if (env.CHAT_LOGS) stream = await LogService.save(env.CHAT_LOGS, query, stream, c.executionCtx);
+            await sse.pipe(stream);
+        } catch (err) {
+            console.error('Chat Request Failed:', err);
+            if (!sse.aborted) {
+                await sse.writeSSE({
+                    data: JSON.stringify({ error: err instanceof AppError ? err.message : 'The response could not be completed.' }),
+                });
+                await sse.writeSSE({ data: '[DONE]' });
+            }
+        }
     });
 });
 

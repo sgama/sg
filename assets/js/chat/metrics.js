@@ -51,6 +51,14 @@ export function createMetricsFooter(metrics, document) {
     const grid = node('div', undefined, 'metrics-grid');
     const timing = node('div');
     timing.append(node('strong', 'Timing'));
+    for (const [label, value] of [
+        ['Total', duration(metrics.totalMs)],
+        ...(validDuration(metrics.firstTokenMs) ? [['First token', duration(metrics.firstTokenMs)]] : []),
+    ]) {
+        const row = node('div', undefined, 'metrics-timing-row');
+        row.append(node('span', label), node('span', value));
+        timing.append(row);
+    }
     for (const [label, value] of formatted.timing) {
         const row = node('div', undefined, 'metrics-timing-row');
         row.append(node('span', label), node('span', value));
@@ -82,6 +90,12 @@ export function createMetricsFooter(metrics, document) {
     }
     grid.append(timing, usage);
     details.append(grid);
+    const explanation = node(
+        'small',
+        'Server-side timing. Cost is an estimate for answer and rewrite tokens; other infrastructure is excluded.',
+        'metrics-explanation',
+    );
+    details.append(explanation);
     footer.append(overview, details, node('small', formatted.warning, 'metrics-warning'));
     return footer;
 }

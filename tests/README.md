@@ -21,6 +21,10 @@ are never injected into context.
 
 Enterprise-grade test suite for the SG application using Node.js native test runner.
 
+Evidence/progress tests verify public-only excerpt exposure, exact context-budget
+coverage, streamed stage ordering, explicit post-header error events, answer-only
+clipboard content, and evidence persistence without sending it as chat history.
+
 Chat telemetry tests cover aggregate streamed usage, timing events, missing-usage
 handling, answer/rewrite cost estimates, footer formatting, and persistence without
 including metrics in conversation history sent to the API. Layout tests verify

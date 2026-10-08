@@ -129,7 +129,7 @@ export function contextualizedQueryFromResponse(response) {
     return query;
 }
 
-export function contextFromMatches(matches) {
+export function contextFromMatches(matches, onExcerpt) {
     let context = '';
     for (const match of matches) {
         const metadata = match.metadata;
@@ -141,7 +141,9 @@ export function contextFromMatches(matches) {
         const separator = context ? '\n---\n' : '';
         const remaining = AI_CONFIG.retrieval.maxContextChars - context.length - separator.length - header.length;
         if (remaining <= 0) break;
-        context += separator + header + metadata.text.slice(0, remaining);
+        const text = metadata.text.slice(0, remaining);
+        context += separator + header + text;
+        onExcerpt?.({ ...identity, text });
     }
     return context;
 }

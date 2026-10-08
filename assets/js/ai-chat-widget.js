@@ -3,6 +3,7 @@ import { streamAnswer } from './chat/stream.js';
 import { createChatScroller } from './chat/scroll.js';
 import { messageRenderer } from './chat/render.js';
 import { formatResponseMetrics, createMetricsFooter } from './chat/metrics.js';
+import { publicEvidence, createEvidencePanel } from './chat/evidence.js';
 
 const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information from this portfolio. Ask me about my projects or background.";
 class AiChatWidget extends HTMLElement {
@@ -16,6 +17,8 @@ class AiChatWidget extends HTMLElement {
     #openFrame = null;
     #conversationReady = false;
     #metrics = new WeakMap();
+    #evidence = new WeakMap();
+    #completed = new WeakSet();
     #storage = createStore(() => localStorage, { json: true });
     #session = createStore(() => sessionStorage);
 
@@ -185,6 +188,26 @@ class AiChatWidget extends HTMLElement {
 
     #writeMessage(element, text, sender) {
         messageRenderer.write(element, text, sender);
+        const evidence = sender === 'bot' ? this.#evidence.get(element) : null;
+        if (evidence?.length) element.append(createEvidencePanel(evidence, document));
+        if (sender === 'bot' && text && this.#completed.has(element)) {
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.classList.add('copy-answer');
+            copy.textContent = 'Copy answer';
+            copy.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    copy.textContent = 'Copied';
+                    this.#dom.status.textContent = 'Answer copied.';
+                } catch (error) {
+                    console.error('Copy answer failed.', error);
+                    copy.textContent = 'Copy failed — select text instead';
+                    this.#dom.status.textContent = 'Could not copy the answer. Select the answer text to copy it manually.';
+                }
+            });
+            element.append(copy);
+        }
         const metrics = sender === 'bot' ? this.#metrics.get(element) : null;
         const footer = createMetricsFooter(metrics, document);
         if (footer) element.append(footer);
@@ -196,6 +219,8 @@ class AiChatWidget extends HTMLElement {
         element.classList.add('message', `message--${message.sender}`);
         element.setAttribute('aria-label', message.sender === 'user' ? 'You' : 'Assistant');
         if (message.metrics) this.#metrics.set(element, message.metrics);
+        if (message.evidence) this.#evidence.set(element, publicEvidence(message.evidence));
+        if (message.sender === 'bot' && message.text && message.text !== WELCOME_MESSAGE) this.#completed.add(element);
         this.#writeMessage(element, message.text, message.sender);
         return element;
     }
@@ -220,6 +245,7 @@ class AiChatWidget extends HTMLElement {
         if (this.#request !== request) return;
         if (request.frame !== null) cancelAnimationFrame(request.frame);
         request.message.text = text;
+        this.#completed.add(request.element);
         this.#writeMessage(request.element, text, 'bot');
         this.#persist();
         this.#request = null;
@@ -257,6 +283,23 @@ class AiChatWidget extends HTMLElement {
             const answer = await streamAnswer(text, {
                 history: apiHistory(this.#history.slice(0, -2), WELCOME_MESSAGE),
                 signal: request.controller.signal,
+                onProgress: (stage) => {
+                    if (this.#request !== request) return;
+                    const labels = {
+                        rewrite: 'Understanding your follow-up…',
+                        embedding: 'Preparing source search…',
+                        search: 'Finding sources…',
+                        generation: 'Writing answer…',
+                    };
+                    this.#dom.status.textContent = labels[stage];
+                    if (!request.answer) request.element.textContent = labels[stage];
+                    this.#scroller.changed();
+                },
+                onEvidence: (value) => {
+                    if (this.#request !== request) return;
+                    request.message.evidence = publicEvidence(value);
+                    this.#evidence.set(request.element, request.message.evidence);
+                },
                 onMetrics: (metrics) => {
                     if (this.#request !== request) return;
                     if (!formatResponseMetrics(metrics)) throw new Error('Invalid response metrics');

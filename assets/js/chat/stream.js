@@ -1,4 +1,4 @@
-export function createAnswerParser(onDelta, onMetrics) {
+export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence } = {}) {
     let buffer = '';
     let finished = false;
     const readLine = (line) => {
@@ -12,6 +12,14 @@ export function createAnswerParser(onDelta, onMetrics) {
         const event = JSON.parse(data);
         if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error('Invalid chat answer event');
         if (event.error) throw new Error(String(event.error));
+        if (event.progress !== undefined) {
+            if (!['rewrite', 'embedding', 'search', 'generation'].includes(event.progress)) throw new Error('Invalid chat progress event');
+            onProgress?.(event.progress);
+        }
+        if (event.evidence !== undefined) {
+            if (!Array.isArray(event.evidence)) throw new Error('Invalid chat evidence event');
+            onEvidence?.(event.evidence);
+        }
         if (event.metrics !== undefined) {
             if (!event.metrics || typeof event.metrics !== 'object' || Array.isArray(event.metrics)) throw new Error('Invalid chat metrics event');
             onMetrics?.(event.metrics);
@@ -38,7 +46,7 @@ export function createAnswerParser(onDelta, onMetrics) {
     };
 }
 
-export async function streamAnswer(query, { history = [], signal, onUpdate, onMetrics, fetcher = fetch }) {
+export async function streamAnswer(query, { history = [], signal, onUpdate, onMetrics, onProgress, onEvidence, fetcher = fetch }) {
     const response = await fetcher('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,10 +59,14 @@ export async function streamAnswer(query, { history = [], signal, onUpdate, onMe
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let answer = '';
-    const parser = createAnswerParser((delta) => {
-        answer += delta;
-        onUpdate(answer);
-    }, onMetrics);
+    const parser = createAnswerParser(
+        (delta) => {
+            answer += delta;
+            onUpdate(answer);
+        },
+        onMetrics,
+        { onProgress, onEvidence },
+    );
     let failure;
     let failed = false;
     try {
