@@ -1,4 +1,4 @@
-import { createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from './chat/history.js';
+import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from './chat/history.js';
 import { streamAnswer } from './chat/stream.js';
 import { createChatScroller } from './chat/scroll.js';
 import { messageRenderer } from './chat/render.js';
@@ -249,6 +249,7 @@ class AiChatWidget extends HTMLElement {
         try {
             if (!navigator.onLine) throw new Error('Offline');
             const answer = await streamAnswer(text, {
+                history: apiHistory(this.#history.slice(0, -2), WELCOME_MESSAGE),
                 signal: request.controller.signal,
                 onUpdate: (answer) => {
                     if (this.#request !== request) return;

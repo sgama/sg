@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setMaxListeners } from 'node:events';
-import { createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from '../../assets/js/chat/history.js';
+import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from '../../assets/js/chat/history.js';
 import { createAnswerParser, streamAnswer } from '../../assets/js/chat/stream.js';
 import { createChatScroller } from '../../assets/js/chat/scroll.js';
 import { setImmediate } from 'node:timers/promises';
@@ -177,6 +177,46 @@ test('history validates stored messages and preserves the existing storage key',
     ]);
     store.remove(STORAGE_KEY);
     assert.equal(values.size, 0);
+});
+
+test('API history excludes the welcome message and keeps a bounded recent window', () => {
+    const welcome = 'Welcome';
+    const messages = [
+        { sender: 'bot', text: welcome },
+        { sender: 'user', text: 'Old question' },
+        { sender: 'bot', text: 'Old answer' },
+        { sender: 'user', text: 'Recent question' },
+        { sender: 'bot', text: 'Recent answer' },
+    ];
+    assert.deepEqual(apiHistory(messages, welcome), [
+        { role: 'user', content: 'Old question' },
+        { role: 'assistant', content: 'Old answer' },
+        { role: 'user', content: 'Recent question' },
+        { role: 'assistant', content: 'Recent answer' },
+    ]);
+    assert.deepEqual(apiHistory([...messages, { sender: 'user', text: 'x'.repeat(2001) }], welcome), [
+        { role: 'user', content: 'Old question' },
+        { role: 'assistant', content: 'Old answer' },
+        { role: 'user', content: 'Recent question' },
+        { role: 'assistant', content: 'Recent answer' },
+    ]);
+});
+
+test('widget sends prior user and assistant turns with follow-up questions', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    await f.submit('What did Samson do last?');
+    await f.submit('Most recently?');
+    assert.deepEqual(f.fetchRequests, [
+        { query: 'What did Samson do last?', history: [] },
+        {
+            query: 'Most recently?',
+            history: [
+                { role: 'user', content: 'What did Samson do last?' },
+                { role: 'assistant', content: 'Answer' },
+            ],
+        },
+    ]);
 });
 
 function scrollFixture() {
@@ -394,6 +434,7 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
     let Widget;
     let hydrated = false;
     let confirmed = true;
+    const fetchRequests = [];
     const opener = { isConnected: true, focus: t.mock.fn() };
     const NativeAbortController = globalThis.AbortController;
     const globals = {
@@ -444,7 +485,10 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
                 setMaxListeners(0, this.signal);
             }
         },
-        fetch: async () => new Response('data: {"response":"Answer"}\n\ndata: [DONE]\n\n'),
+        fetch: async (_url, init) => {
+            fetchRequests.push(JSON.parse(init.body));
+            return new Response('data: {"response":"Answer"}\n\ndata: [DONE]\n\n');
+        },
     };
     for (const [name, value] of Object.entries(globals)) {
         const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
@@ -462,6 +506,7 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
         roles,
         local,
         session,
+        fetchRequests,
         opener,
         frames,
         errors,
@@ -607,7 +652,7 @@ test('storage access and operation failures warn explicitly without breaking the
     assert.ok(warning.mock.calls.every((call) => call.arguments[1] === failure));
 });
 
-test('stream reader decodes fragmented UTF-8 and posts the query-only API contract', async () => {
+test('stream reader decodes fragmented UTF-8 and posts the query and history API contract', async () => {
     const encoded = new TextEncoder().encode('data: {"response":"Hello 🌍"}\n\ndata: [DONE]\n\n');
     const updates = [];
     const answer = await streamAnswer('Question', {
@@ -615,7 +660,7 @@ test('stream reader decodes fragmented UTF-8 and posts the query-only API contra
         onUpdate: (value) => updates.push(value),
         fetcher: async (url, options) => {
             assert.equal(url, '/api/chat');
-            assert.deepEqual(JSON.parse(options.body), { query: 'Question' });
+            assert.deepEqual(JSON.parse(options.body), { query: 'Question', history: [] });
             return new Response(
                 new ReadableStream({
                     start(controller) {

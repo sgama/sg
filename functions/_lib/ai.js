@@ -1,4 +1,13 @@
-import { AI_CONFIG, AppError, buildMessages, getModel, generationInput, contextFromMatches } from './application.js';
+import {
+    AI_CONFIG,
+    AppError,
+    buildMessages,
+    contextualizationInput,
+    contextualizedQueryFromResponse,
+    getModel,
+    generationInput,
+    contextFromMatches,
+} from './application.js';
 import { normalizeChatStream } from './chat-stream.js';
 
 export class AiService {
@@ -7,6 +16,7 @@ export class AiService {
         this.vectorize = env.VECTORIZE_INDEX;
         this.namespace = env.AI_CORPUS_NAMESPACE;
         this.model = getModel(env.AI_MODEL);
+        this.contextualizationModel = getModel(AI_CONFIG.contextualization.model);
     }
 
     async getEmbeddings(text) {
@@ -23,14 +33,24 @@ export class AiService {
         }
     }
 
+    async contextualizeQuery(query, history = []) {
+        if (!history.length) return query;
+        try {
+            const response = await this.ai.run(this.contextualizationModel.id, contextualizationInput(this.contextualizationModel, query, history));
+            return contextualizedQueryFromResponse(response);
+        } catch (err) {
+            console.error('Query Contextualization Failed:', err);
+            throw new AppError('Query contextualization service unavailable', 503);
+        }
+    }
+
     async retrieveContext(query, history = []) {
         if (!this.vectorize) {
             console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
             throw new AppError('Retrieval service unavailable', 503);
         }
 
-        const previousUserQuery = [...history].reverse().find((message) => message.role === 'user')?.content;
-        const retrievalQuery = previousUserQuery ? `${query}\n${previousUserQuery}` : query;
+        const retrievalQuery = await this.contextualizeQuery(query, history);
         const vector = await this.getEmbeddings(retrievalQuery);
 
         try {

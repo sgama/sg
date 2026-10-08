@@ -33,6 +33,34 @@ export function validateFixture(fixture, chunks) {
             throw new Error(`Invalid required flag for ${item.id}`);
         }
         if (
+            item.history !== undefined &&
+            (!Array.isArray(item.history) ||
+                item.history.length > 4 ||
+                item.history.some(
+                    (message) =>
+                        !message ||
+                        !['user', 'assistant'].includes(message.role) ||
+                        typeof message.content !== 'string' ||
+                        !message.content.trim() ||
+                        message.content.length > 2000,
+                ) ||
+                item.history.reduce((sum, message) => sum + message.content.length, 0) > 4000)
+        ) {
+            throw new Error(`Invalid conversation history for ${item.id}`);
+        }
+        if (
+            item.retrievalTerms !== undefined &&
+            (!Array.isArray(item.retrievalTerms) ||
+                !item.retrievalTerms.length ||
+                !Array.isArray(item.history) ||
+                !item.history.length ||
+                item.retrievalTerms.some(
+                    (group) => !Array.isArray(group) || !group.length || group.some((term) => typeof term !== 'string' || !term.trim()),
+                ))
+        ) {
+            throw new Error(`Invalid retrieval query labels for ${item.id}`);
+        }
+        if (
             !Array.isArray(item.expectedSources) ||
             !Array.isArray(item.answerTerms) ||
             !Array.isArray(item.forbiddenTerms) ||
@@ -62,6 +90,12 @@ export function scoreEvidence(context, item) {
     if (!item.evidenceTerms) return null;
     const text = context.replace(/^Source: \{[^\n]*\}\r?\n/gm, '').toLowerCase();
     return item.evidenceTerms.every((group) => group.some((term) => text.includes(term.toLowerCase())));
+}
+
+export function scoreRetrievalQuery(query, item) {
+    if (!item.retrievalTerms) return null;
+    const text = query.toLowerCase();
+    return item.retrievalTerms.every((group) => group.some((term) => text.includes(term.toLowerCase())));
 }
 
 export function retrievalEvidenceRate(results, cases) {
@@ -142,11 +176,13 @@ export async function evaluateRetrieval({ cases, retrieve, clock = () => perform
     for (const item of cases) {
         const start = clock();
         try {
-            const { matches, embeddingMs, searchMs } = await retrieve(item.query);
+            const { matches, embeddingMs, searchMs, retrievalQuery = item.query } = await retrieve(item.query, item.history ?? []);
             const sources = matches.map((match) => match.metadata?.source).filter(Boolean);
             const context = contextFromMatches(matches);
             results.push({
                 caseId: item.id,
+                retrievalQuery,
+                retrievalQueryPassed: scoreRetrievalQuery(retrievalQuery, item),
                 passed: item.expectedSources.length ? item.expectedSources.some((source) => sources.includes(source)) : null,
                 sources,
                 matches: matches.map((match) => ({
@@ -171,10 +207,12 @@ export async function evaluateRetrieval({ cases, retrieve, clock = () => perform
     }
     const positives = results.filter((result) => cases.find((item) => item.id === result.caseId).expectedSources.length);
     const hits = positives.filter((item) => item.passed).length;
+    const rewriteCases = results.filter((result) => result.retrievalQueryPassed !== null);
     return {
         results,
         hitRate: positives.length ? hits / positives.length : 0,
         evidenceRate: retrievalEvidenceRate(results, cases),
+        rewriteRate: rewriteCases.length ? rewriteCases.filter((item) => item.retrievalQueryPassed).length / rewriteCases.length : null,
     };
 }
 
@@ -198,7 +236,10 @@ export async function compareModels({ cases, models, contexts, run, repeats = 1,
                               generationMs: 0,
                               chunkGapsMs: [],
                           }
-                        : await readAnswer(await run(model.id, generationInput(model, buildMessages(item.query, context))), { start, clock });
+                        : await readAnswer(await run(model.id, generationInput(model, buildMessages(item.query, context, item.history ?? []))), {
+                              start,
+                              clock,
+                          });
                     const cost = abstain ? 0 : estimateCost(output.usage, model);
                     results.push({
                         caseId: item.id,

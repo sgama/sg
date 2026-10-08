@@ -2,6 +2,7 @@ export const AI_CONFIG = {
     embedding: { model: '@cf/baai/bge-base-en-v1.5', dimensions: 768 },
     retrieval: { indexName: 'portfolio-index', topK: 3, maxContextChars: 12000 },
     generation: { defaultModel: 'glm', maxCompletionTokens: 512 },
+    contextualization: { model: 'glm', maxCompletionTokens: 96, maxQueryChars: 500 },
     pricingDate: '2026-10-07',
 };
 
@@ -44,6 +45,46 @@ export function generationInput(model, messages) {
     };
 }
 
+export function contextualizationMessages(query, history = []) {
+    return [
+        {
+            role: 'system',
+            content: `Rewrite the latest user question as a standalone search query for retrieving facts about Samson's portfolio.
+Use conversation history only to resolve references and omitted subjects. Preserve the latest question's intent and scope; do not answer it, add assumptions, or treat history as factual evidence.
+If the latest question changes topic, ignore unrelated history. If it is already standalone, keep its meaning unchanged.
+Return exactly one concise search query, with no explanation or quotation marks.`,
+        },
+        ...history,
+        { role: 'user', content: query },
+    ];
+}
+
+export function contextualizationInput(model, query, history = []) {
+    return {
+        messages: contextualizationMessages(query, history),
+        stream: false,
+        [model.completionLimitKey]: AI_CONFIG.contextualization.maxCompletionTokens,
+        ...model.parameters,
+    };
+}
+
+export function contextualizedQueryFromResponse(response) {
+    const text =
+        typeof response === 'string'
+            ? response
+            : typeof response?.response === 'string'
+              ? response.response
+              : typeof response?.choices?.[0]?.message?.content === 'string'
+                ? response.choices[0].message.content
+                : null;
+    if (text === null) throw new Error('Invalid contextualization response');
+    const query = text.trim();
+    if (!query || query.length > AI_CONFIG.contextualization.maxQueryChars || /[\r\n]/.test(query)) {
+        throw new Error('Invalid contextualized query');
+    }
+    return query;
+}
+
 export function contextFromMatches(matches) {
     let context = '';
     for (const match of matches) {
@@ -63,8 +104,8 @@ export function contextFromMatches(matches) {
 
 export const CONFIG = {
     HISTORY: {
-        // Max conversation turns (user + assistant combined) accepted
-        // alongside the new query. Older turns are dropped at the handler.
+        // Max history messages (user and assistant combined) accepted
+        // alongside the new query. Older messages are dropped by the client.
         MAX_TURNS: 4,
         MAX_CONTENT_LENGTH: 2000,
         // Total character budget across all history messages combined

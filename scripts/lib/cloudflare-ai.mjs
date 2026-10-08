@@ -1,5 +1,5 @@
 import Cloudflare from 'cloudflare';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
 
 export async function runEmbedding(client, accountId, model, text, options = {}) {
     // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
@@ -26,10 +26,32 @@ export function createCloudflareAi({
         maxRetries: 0,
         timeout: timeoutMs,
     });
+    const model = getModel(AI_CONFIG.contextualization.model);
+    const runJson = async (modelId, input) => {
+        const response = await fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${modelId}`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${apiToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(input),
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!response.ok) {
+            await response.body?.cancel();
+            throw new Error(`Workers AI ${modelId} returned HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        if (payload?.success === false) throw new Error(`Workers AI ${modelId} returned an unsuccessful response`);
+        return payload?.result;
+    };
     return {
-        async retrieve(query) {
+        async retrieve(query, history = []) {
+            const retrievalQuery = history.length
+                ? contextualizedQueryFromResponse(await runJson(model.id, contextualizationInput(model, query, history)))
+                : query;
             const start = performance.now();
-            const result = await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [query]);
+            const result = await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [retrievalQuery]);
             const vector = result?.data?.[0];
             if (!Array.isArray(vector) || vector.length !== AI_CONFIG.embedding.dimensions || !vector.every(Number.isFinite))
                 throw new Error('Invalid embedding vector');
@@ -44,6 +66,7 @@ export function createCloudflareAi({
             if (!Array.isArray(response.matches)) throw new Error('Invalid retrieval result');
             return {
                 matches: response.matches,
+                retrievalQuery,
                 embeddingMs: embedded - start,
                 searchMs: performance.now() - embedded,
             };

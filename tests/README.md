@@ -1,13 +1,16 @@
 # Test Suite Documentation
 
-The RAG fixture includes 29 cases: technical regressions plus recruiter/HR
+The RAG fixture includes 31 cases: technical regressions plus recruiter/HR
 screening for background, location, contact, education, mentoring, stakeholders
 and working style. Required negative cases cover unconfirmed start dates,
 authorization, relocation, work arrangement, compensation, departure reasons,
 direct reports, references and behavioral stories. These exercise abstention
 against actual retrieved context, not invented candidate preferences.
-One full comparison can now make up to 29 generation calls per model/repetition;
-negative cases are excluded from source-hit and evidence-rate denominators.
+Conversational cases cover an elliptical follow-up and a topic change. For these,
+retrieval reports record the bounded standalone query and gate its labeled terms
+alongside expected sources and evidence. One full comparison can now make up to
+31 generation calls per model/repetition; negative cases are excluded from
+source-hit and evidence-rate denominators.
 
 Enterprise-grade test suite for the SG application using Node.js native test runner.
 

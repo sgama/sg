@@ -110,3 +110,35 @@ test('retrieval uses injected fetch for SDK embeddings and Vectorize query', asy
     assert.equal(requests.length, 2);
     assert.ok(result.embeddingMs >= 0 && result.searchMs >= 0);
 });
+
+test('retrieval contextualizes follow-ups before generating embeddings', async () => {
+    const requests = [];
+    const vector = Array(AI_CONFIG.embedding.dimensions).fill(0.1);
+    const client = createCloudflareAi({
+        ...options,
+        async fetchImpl(url, init) {
+            const request = new Request(url, init);
+            const pathname = new URL(request.url).pathname;
+            const body = await request.json();
+            requests.push({ pathname, body });
+            const base = '/client/v4/accounts/test-account';
+            if (body.stream === false) {
+                return Response.json({ success: true, result: { response: 'What is Samson Gama’s most recent role?' } });
+            }
+            if (pathname === `${base}/ai/run/${AI_CONFIG.embedding.model}`) {
+                assert.deepEqual(body.text, ['What is Samson Gama’s most recent role?']);
+                return Response.json({ success: true, result: { data: [vector] } });
+            }
+            assert.ok(pathname.endsWith('/vectorize/v2/indexes/portfolio-index/query'));
+            return Response.json({ success: true, result: { matches: [] } });
+        },
+    });
+
+    const result = await client.retrieve('Most recently?', [{ role: 'user', content: 'What did he do last?' }]);
+
+    assert.deepEqual(result.matches, []);
+    assert.equal(result.retrievalQuery, 'What is Samson Gama’s most recent role?');
+    assert.equal(requests.length, 3);
+    assert.equal(requests[0].body.stream, false);
+    assert.equal(requests[0].body.max_completion_tokens, AI_CONFIG.contextualization.maxCompletionTokens);
+});

@@ -143,6 +143,9 @@ test('/api/chat', async (t) => {
                 AI: {
                     async run(model, payload) {
                         calls.push({ model, payload });
+                        if (payload?.stream === false) {
+                            return { response: 'What is Samson’s most recent role?' };
+                        }
                         if (payload?.text) {
                             return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
                         }
@@ -173,10 +176,11 @@ test('/api/chat', async (t) => {
             assert.equal(response.headers.get('Cache-Control'), 'no-cache');
             assert.match(await response.text(), /"response":"Supported answer"/);
 
-            assert.equal(calls.length, 2);
-            assert.deepEqual(calls[0].payload.text, ['What do you build?\nTell me more']);
-            assert.equal(calls[1].payload.messages.at(-1).content, 'What do you build?');
-            assert.deepEqual(calls[1].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
+            assert.equal(calls.length, 3);
+            assert.equal(calls[0].payload.stream, false);
+            assert.deepEqual(calls[1].payload.text, ['What is Samson’s most recent role?']);
+            assert.equal(calls[2].payload.messages.at(-1).content, 'What do you build?');
+            assert.deepEqual(calls[2].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
         });
 
         await t.test('sends an explicit error when GLM finishes with reasoning but no answer', async (t) => {

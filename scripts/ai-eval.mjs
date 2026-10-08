@@ -3,10 +3,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import 'dotenv/config';
-import { AI_CONFIG, AI_MODELS, getModel, contextFromMatches, buildMessages } from '../functions/_lib/application.js';
+import { AI_CONFIG, AI_MODELS, getModel, contextFromMatches, buildMessages, contextualizationMessages } from '../functions/_lib/application.js';
 import { buildCorpus } from './lib/corpus.mjs';
 import { createCloudflareAi } from './lib/cloudflare-ai.mjs';
-import { validateFixture, fixtureHash, scoreAnswer, evaluateRetrieval, compareModels, retrievalEvidenceRate } from './lib/ai-evaluation.mjs';
+import {
+    validateFixture,
+    fixtureHash,
+    scoreAnswer,
+    scoreRetrievalQuery,
+    evaluateRetrieval,
+    compareModels,
+    retrievalEvidenceRate,
+} from './lib/ai-evaluation.mjs';
 
 const promptHash = () => fixtureHash(buildMessages('__query__', '__context__'));
 
@@ -27,6 +35,10 @@ export function validateRetrievalReport(report, { namespace, fixture, minHitRate
         report.embeddingModel !== AI_CONFIG.embedding.model ||
         report.maxContextChars !== AI_CONFIG.retrieval.maxContextChars ||
         report.indexName !== AI_CONFIG.retrieval.indexName ||
+        report.contextualizationModel !== getModel(AI_CONFIG.contextualization.model).id ||
+        report.contextualizationMaxCompletionTokens !== AI_CONFIG.contextualization.maxCompletionTokens ||
+        report.contextualizationMaxQueryChars !== AI_CONFIG.contextualization.maxQueryChars ||
+        report.contextualizationHash !== fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])) ||
         !Array.isArray(report.results)
     )
         throw new Error('Retrieval report does not pass this corpus/fixture release gate');
@@ -49,6 +61,28 @@ export function validateRetrievalReport(report, { namespace, fixture, minHitRate
     const evidenceRate = retrievalEvidenceRate(report.results, fixture.cases);
     if (evidenceRate !== null && (evidenceRate < minHitRate || report.evidenceRate !== evidenceRate)) {
         throw new Error('Retrieval report evidence does not meet the release gate');
+    }
+    const hasRewriteLabels = fixture.cases.some((item) => item.retrievalTerms);
+    const rewriteCases = fixture.cases.filter((item) => item.retrievalTerms);
+    const rewriteResults = report.results.filter((result) => rewriteCases.some((item) => item.id === result.caseId));
+    const rewriteRate = rewriteCases.length
+        ? rewriteResults.filter((result) => {
+              const item = rewriteCases.find((candidate) => candidate.id === result.caseId);
+              return typeof result.retrievalQuery === 'string' && scoreRetrievalQuery(result.retrievalQuery, item);
+          }).length / rewriteCases.length
+        : null;
+    if ((hasRewriteLabels && (!Number.isFinite(report.rewriteRate) || report.rewriteRate < minHitRate)) || report.rewriteRate !== rewriteRate) {
+        throw new Error('Retrieval report contextualization does not meet the release gate');
+    }
+    for (const item of fixture.cases.filter((entry) => entry.retrievalTerms)) {
+        const result = report.results.find((entry) => entry.caseId === item.id);
+        if (
+            typeof result.retrievalQuery !== 'string' ||
+            !result.retrievalQuery.trim() ||
+            result.retrievalQueryPassed !== scoreRetrievalQuery(result.retrievalQuery, item)
+        ) {
+            throw new Error(`Retrieval report has an invalid contextualized query for ${item.id}`);
+        }
     }
 }
 
@@ -147,6 +181,10 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         topK: AI_CONFIG.retrieval.topK,
         maxContextChars: AI_CONFIG.retrieval.maxContextChars,
         promptHash: promptHash(),
+        contextualizationHash: fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])),
+        contextualizationModel: getModel(AI_CONFIG.contextualization.model).id,
+        contextualizationMaxCompletionTokens: AI_CONFIG.contextualization.maxCompletionTokens,
+        contextualizationMaxQueryChars: AI_CONFIG.contextualization.maxQueryChars,
     };
     if (command === 'validate' || values['dry-run']) {
         console.log(
@@ -232,7 +270,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
                     return [model.id, model];
                 }),
             ),
-            costScope: 'Estimated generation only; excludes embeddings, retries, storage and plan allowances',
+            costScope: 'Estimated answer generation only; excludes query contextualization, embeddings, retries, storage and plan allowances',
             ...(await compareModels({
                 cases: fixture.cases,
                 models,

@@ -113,8 +113,12 @@ The composer stays editable during generation; duplicate submissions are blocked
 
 #### Streaming, storage and accessibility
 
-The browser posts `{ query }` to `/api/chat`; locally saved history is not sent
-as conversation context. The backend accepts bounded history from other clients.
+The browser posts `{ query, history }` to `/api/chat`, selecting at most the four
+most recent user/assistant messages within the API's character limits; the
+welcome message is omitted. This bounded request history is sent for conversational
+context, while the full saved transcript remains local. Before vector retrieval,
+the backend uses the configured contextualization model to rewrite follow-ups
+into standalone queries. Rewriting is skipped when there is no history.
 Normalized SSE carries `data: {"response":"..."}`, optional usage, and `[DONE]`;
 reasoning is omitted. Rendering is throttled with animation frames. Empty,
 malformed, interrupted and explicitly failed streams show errors rather than
@@ -182,6 +186,11 @@ checks expected source paths rather than keyword-only retrieval hits. Its answer
 checks are deterministic term assertions, not a substitute for human groundedness
 review. Extend the small starter set with paraphrases, project-specific facts,
 negative questions, and production failures before trusting a model ranking.
+Follow-up cases include bounded recent chat history. The API rewrites only
+history-dependent queries before embedding; retrieval reports record that query
+and score labeled rewrite terms, source hits, and evidence separately. Add
+conversation histories to the fixture to cover pronouns, elliptical follow-ups,
+topic changes, and ambiguity.
 
 Negative questions run through real retrieval in retrieved-context comparisons,
 including irrelevant matches; they are not assigned an artificial empty context.

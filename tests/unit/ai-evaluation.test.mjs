@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { AI_CONFIG, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
+import { AI_CONFIG, contextualizationMessages, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
 import {
     fixtureHash,
     validateFixture,
@@ -16,6 +16,7 @@ import {
     percentile,
     readAnswer,
     retrievalEvidenceRate,
+    scoreRetrievalQuery,
 } from '../../scripts/lib/ai-evaluation.mjs';
 import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
@@ -148,6 +149,10 @@ test('evidence assertions score bounded context rather than a document hit or me
         embeddingModel: AI_CONFIG.embedding.model,
         maxContextChars: AI_CONFIG.retrieval.maxContextChars,
         indexName: AI_CONFIG.retrieval.indexName,
+        contextualizationHash: fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])),
+        contextualizationModel: getModel(AI_CONFIG.contextualization.model).id,
+        contextualizationMaxCompletionTokens: AI_CONFIG.contextualization.maxCompletionTokens,
+        contextualizationMaxQueryChars: AI_CONFIG.contextualization.maxQueryChars,
         evidenceRate: 1,
     };
     assert.throws(
@@ -165,6 +170,96 @@ test('evidence assertions score bounded context rather than a document hit or me
             /Invalid evidence/,
         );
     }
+});
+
+test('conversational retrieval evaluates the contextualized query and passes history into retrieval and generation', async () => {
+    const conversationalCase = {
+        ...known,
+        id: 'followup',
+        query: 'Most recently?',
+        history: [
+            { role: 'user', content: 'What did Samson do last?' },
+            { role: 'assistant', content: 'His latest internship was in 2016.' },
+        ],
+        retrievalTerms: [['Samson'], ['latest', 'most recent'], ['role', 'job']],
+    };
+    const received = [];
+    const retrieval = await evaluateRetrieval({
+        cases: [conversationalCase],
+        retrieve: async (query, history) => {
+            received.push({ query, history });
+            return {
+                retrievalQuery: 'What is Samson Gama’s latest listed role?',
+                matches: [{ metadata: { source: 'content/a.md', text: 'Samson’s latest role ended in June 2026.' } }],
+            };
+        },
+    });
+    assert.equal(retrieval.results[0].retrievalQueryPassed, true);
+    assert.equal(retrieval.rewriteRate, 1);
+    assert.deepEqual(received, [{ query: 'Most recently?', history: conversationalCase.history }]);
+
+    const generations = [];
+    await compareModels({
+        cases: [conversationalCase],
+        models: ['glm'],
+        contexts: { followup: 'The latest role ended in June 2026.' },
+        run: async (_model, input) => {
+            generations.push(input);
+            return makeStream('data: {"response":"Supported."}\n', 'data: [DONE]\n');
+        },
+    });
+    assert.deepEqual(generations[0].messages.slice(1, -1), conversationalCase.history);
+    assert.equal(scoreRetrievalQuery('What is Samson Gama’s latest listed role?', conversationalCase), true);
+    assert.equal(scoreRetrievalQuery('What did he build at Grin?', conversationalCase), false);
+});
+
+test('retrieval release gate recomputes labeled contextualized-query checks', () => {
+    const conversationalCase = {
+        ...known,
+        id: 'followup',
+        query: 'Most recently?',
+        history: [{ role: 'user', content: 'What did Samson do last?' }],
+        retrievalTerms: [['Samson'], ['latest', 'most recent'], ['role', 'job']],
+    };
+    const report = {
+        version: 2,
+        kind: 'retrieval',
+        namespace: 'test',
+        fixtureHash: fixtureHash({ cases: [conversationalCase] }),
+        hitRate: 1,
+        rewriteRate: 1,
+        evidenceRate: null,
+        topK: AI_CONFIG.retrieval.topK,
+        embeddingModel: AI_CONFIG.embedding.model,
+        maxContextChars: AI_CONFIG.retrieval.maxContextChars,
+        indexName: AI_CONFIG.retrieval.indexName,
+        contextualizationModel: getModel(AI_CONFIG.contextualization.model).id,
+        contextualizationMaxCompletionTokens: AI_CONFIG.contextualization.maxCompletionTokens,
+        contextualizationMaxQueryChars: AI_CONFIG.contextualization.maxQueryChars,
+        contextualizationHash: fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])),
+        results: [
+            {
+                caseId: 'followup',
+                sources: ['content/a.md'],
+                context: 'Samson Gama’s latest role ended June 2026.',
+                retrievalQuery: 'What is Samson Gama’s latest role?',
+                retrievalQueryPassed: true,
+            },
+        ],
+    };
+    const options = { namespace: 'test', fixture: { cases: [conversationalCase] }, minHitRate: 1 };
+    validateRetrievalReport(report, options);
+    assert.throws(
+        () =>
+            validateRetrievalReport(
+                {
+                    ...report,
+                    results: [{ ...report.results[0], retrievalQuery: 'What did he build at Grin?' }],
+                },
+                options,
+            ),
+        /contextualization/,
+    );
 });
 
 test('failed and usage-less runs are explicit, not zero-cost successful results', async () => {
@@ -352,7 +447,12 @@ test('release reports must match corpus, labels and retrieval configuration', ()
         maxContextChars: AI_CONFIG.retrieval.maxContextChars,
         embeddingModel: AI_CONFIG.embedding.model,
         indexName: AI_CONFIG.retrieval.indexName,
+        contextualizationHash: fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])),
+        contextualizationModel: getModel(AI_CONFIG.contextualization.model).id,
+        contextualizationMaxCompletionTokens: AI_CONFIG.contextualization.maxCompletionTokens,
+        contextualizationMaxQueryChars: AI_CONFIG.contextualization.maxQueryChars,
         hitRate: 1,
+        rewriteRate: null,
         results: [
             { caseId: 'known', sources: ['content/a.md'], context: 'Some context' },
             {
@@ -398,7 +498,12 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
             maxContextChars: AI_CONFIG.retrieval.maxContextChars,
             embeddingModel: AI_CONFIG.embedding.model,
             indexName: AI_CONFIG.retrieval.indexName,
+            contextualizationHash: fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])),
+            contextualizationModel: getModel(AI_CONFIG.contextualization.model).id,
+            contextualizationMaxCompletionTokens: AI_CONFIG.contextualization.maxCompletionTokens,
+            contextualizationMaxQueryChars: AI_CONFIG.contextualization.maxQueryChars,
             hitRate: 1,
+            rewriteRate: null,
             results: [
                 {
                     caseId: 'known',

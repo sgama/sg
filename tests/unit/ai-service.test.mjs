@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { AI_CONFIG, buildMessages, contextFromMatches } from '../../functions/_lib/application.js';
+import { AI_CONFIG, buildMessages, contextualizedQueryFromResponse, contextFromMatches } from '../../functions/_lib/application.js';
 import { createSseMessageStream } from '../../functions/_lib/chat-stream.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { makeEnv } from '../helpers/mocks.mjs';
@@ -127,14 +127,18 @@ test('AiService', async (t) => {
         });
 
         await t.test('uses the latest prior user question to retrieve follow-up context', async () => {
-            let embeddingText;
+            const requests = [];
             const svc = new AiService(
                 makeEnv({
                     aiRun: async (_model, payload) => {
-                        embeddingText = payload.text[0];
+                        requests.push(payload);
+                        if (payload.stream === false) return { response: "What was Samson Gama's most recently listed role?" };
                         return buildEmbeddingsResponse([0.1, 0.2]);
                     },
-                    vectorizeQuery: async () => buildVectorizeResult([]),
+                    vectorizeQuery: async (vector) => {
+                        assert.deepEqual(vector, [0.1, 0.2]);
+                        return buildVectorizeResult([]);
+                    },
                 }),
             );
 
@@ -143,7 +147,49 @@ test('AiService', async (t) => {
                 { role: 'assistant', content: 'He had an internship in 2016.' },
             ]);
 
-            assert.equal(embeddingText, 'Most recently?\nWhat did he do last?');
+            assert.deepEqual(requests[0].messages.slice(1), [
+                { role: 'user', content: 'What did he do last?' },
+                { role: 'assistant', content: 'He had an internship in 2016.' },
+                { role: 'user', content: 'Most recently?' },
+            ]);
+            assert.equal(requests[0].stream, false);
+            assert.equal(requests[0].max_completion_tokens, AI_CONFIG.contextualization.maxCompletionTokens);
+            assert.deepEqual(requests[1].text, ["What was Samson Gama's most recently listed role?"]);
+        });
+
+        await t.test('skips query contextualization when there is no chat history', async () => {
+            const payloads = [];
+            const svc = new AiService(
+                makeEnv({
+                    aiRun: async (_model, payload) => {
+                        payloads.push(payload);
+                        return buildEmbeddingsResponse([0.1]);
+                    },
+                    vectorizeQuery: async () => buildVectorizeResult([]),
+                }),
+            );
+
+            await svc.retrieveContext('Standalone question');
+
+            assert.deepEqual(payloads, [{ text: ['Standalone question'] }]);
+        });
+
+        await t.test('reports contextualization failures explicitly', async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
+            const svc = new AiService(
+                makeEnv({
+                    aiRun: async () => {
+                        throw new Error('model unavailable');
+                    },
+                    vectorizeQuery: async () => buildVectorizeResult([]),
+                }),
+            );
+
+            await assert.rejects(svc.retrieveContext('Follow-up?', [{ role: 'user', content: 'Earlier question?' }]), {
+                status: 503,
+                message: 'Query contextualization service unavailable',
+            });
+            assert.equal(logged.mock.calls[0].arguments[0], 'Query Contextualization Failed:');
         });
 
         await t.test('passes the selected corpus namespace to Vectorize', async () => {
@@ -273,6 +319,19 @@ test('prompt uses retrieved evidence without injecting a separate resume copy', 
     assert.match(messages[0].content, /Do not exaggerate qualifications or suppress source-supported limitations/);
     assert.equal(messages.at(-1).content, 'Is C++ listed?');
     assert.ok(!buildMessages('Skills?', '')[0].content.includes('Mar 2026 - Jun 2026'));
+});
+
+test('contextualized query parsing accepts known response shapes and rejects unbounded output', () => {
+    assert.equal(contextualizedQueryFromResponse({ response: '  Samson latest role?  ' }), 'Samson latest role?');
+    assert.equal(contextualizedQueryFromResponse({ choices: [{ message: { content: 'Samson latest role?' } }] }), 'Samson latest role?');
+    for (const response of [
+        {},
+        { response: '' },
+        { response: 'x'.repeat(AI_CONFIG.contextualization.maxQueryChars + 1) },
+        { response: 'query\nexplanation' },
+    ]) {
+        assert.throws(() => contextualizedQueryFromResponse(response));
+    }
 });
 
 test('retrieved context preserves source identity within the character budget', () => {

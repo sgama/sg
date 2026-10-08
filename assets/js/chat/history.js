@@ -1,6 +1,31 @@
 export const STORAGE_KEY = 'ai-chat-history';
 export const SESSION_OPEN_KEY = 'ai-chat-open';
 
+const MAX_API_HISTORY_MESSAGES = 4;
+const MAX_API_HISTORY_MESSAGE_LENGTH = 2000;
+const MAX_API_HISTORY_TOTAL_LENGTH = 4000;
+
+export function apiHistory(messages, welcomeMessage) {
+    const selected = [];
+    let totalLength = 0;
+    for (const message of [...messages].reverse()) {
+        if (
+            !message ||
+            typeof message.text !== 'string' ||
+            message.text === welcomeMessage ||
+            !['user', 'bot'].includes(message.sender) ||
+            !message.text.trim()
+        )
+            continue;
+        const content = message.text.trim();
+        if (content.length > MAX_API_HISTORY_MESSAGE_LENGTH || totalLength + content.length > MAX_API_HISTORY_TOTAL_LENGTH) continue;
+        selected.push({ role: message.sender === 'bot' ? 'assistant' : 'user', content });
+        totalLength += content.length;
+        if (selected.length === MAX_API_HISTORY_MESSAGES) break;
+    }
+    return selected.reverse();
+}
+
 export function createStore(getStorage, { json = false } = {}) {
     return {
         get(key, fallback) {

@@ -34,11 +34,11 @@ export function createAnswerParser(onDelta) {
     };
 }
 
-export async function streamAnswer(query, { signal, onUpdate, fetcher = fetch }) {
+export async function streamAnswer(query, { history = [], signal, onUpdate, fetcher = fetch }) {
     const response = await fetcher('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, history }),
         signal,
     });
     if (!response.ok) throw new Error(`Chat request failed (${response.status})`);

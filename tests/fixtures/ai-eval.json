@@ -43,10 +43,16 @@
     },
     {
       "id": "platform-experience",
-      "evidenceTerms": [["automation", "automate"], ["infrastructure", "kubernetes"]],
+      "evidenceTerms": [
+        ["automation", "automate"],
+        ["infrastructure", "kubernetes"]
+      ],
       "query": "What platform engineering work is documented in Samson's resume?",
       "expectedSources": ["content/resume/_index.md", "content/_context/reliability-practice.md", "content/_context/profile.md"],
-      "answerTerms": [["automation", "automate", "ci/cd"], ["cloudflare", "infrastructure", "devops"]],
+      "answerTerms": [
+        ["automation", "automate", "ci/cd"],
+        ["cloudflare", "infrastructure", "devops"]
+      ],
       "forbiddenTerms": []
     },
     {
@@ -74,6 +80,34 @@
       "expectedSources": ["content/resume/_index.md", "content/_context/experience-bitcomplete.md"],
       "answerTerms": [["senior service reliability engineer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
       "forbiddenTerms": ["currently works", "2026 - present", "ai reliability engineer"],
+      "required": true
+    },
+    {
+      "id": "followup-most-recent-role",
+      "history": [
+        { "role": "user", "content": "What did Samson do last?" },
+        { "role": "assistant", "content": "His latest internship was at Prizm Media in 2016." }
+      ],
+      "query": "Most recently?",
+      "retrievalTerms": [["Samson"], ["most recent", "latest"], ["role", "employment", "job"]],
+      "evidenceTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["senior service reliability engineer"]],
+      "expectedSources": ["content/_context/experience-bitcomplete.md", "content/_context/profile.md", "content/resume/_index.md"],
+      "answerTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["ended", "through"]],
+      "forbiddenTerms": ["currently works at bitcomplete", "present"],
+      "required": true
+    },
+    {
+      "id": "followup-topic-change",
+      "history": [
+        { "role": "user", "content": "What did Samson build at Grin Technologies?" },
+        { "role": "assistant", "content": "He built web apps for electric-vehicle telemetry." }
+      ],
+      "query": "What GPU work did he do at Bitcomplete?",
+      "retrievalTerms": [["bitcomplete"], ["gpu"]],
+      "evidenceTerms": [["gpu"], ["argocd"], ["nvidia"]],
+      "expectedSources": ["content/_context/experience-bitcomplete.md", "content/resume/_index.md"],
+      "answerTerms": [["gpu"], ["argocd", "nvidia"], ["bitcomplete"]],
+      "forbiddenTerms": ["electric vehicle", "grin technologies"],
       "required": true
     },
     {
@@ -148,7 +182,10 @@
       "query": "Does Samson have experience working with non-engineering stakeholders?",
       "expectedSources": ["content/_context/leadership.md", "content/resume/_index.md"],
       "evidenceTerms": [["strata"], ["1,200"], ["stakeholders"]],
-      "answerTerms": [["strata", "foundation"], ["stakeholder", "governance", "residents"]],
+      "answerTerms": [
+        ["strata", "foundation"],
+        ["stakeholder", "governance", "residents"]
+      ],
       "forbiddenTerms": []
     },
     {
