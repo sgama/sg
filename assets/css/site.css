@@ -289,6 +289,7 @@
     }
 
     .chat-widget {
+        --launcher-inline-offset: 2rem;
         --chat-bg: #ffffff;
         --chat-panel: #f1f5f9;
         --chat-border: #cbd5e1;
@@ -298,6 +299,9 @@
         --chat-accent-hover: #1e40af;
         --chat-user-bg: #dbeafe;
         --chat-user-text: #172554;
+        --launcher-bg: rgb(var(--color-neutral-50));
+        --launcher-text: rgb(var(--color-primary-600));
+        --launcher-border: rgba(var(--color-primary-500), 0.5);
         display: contents;
         font-family: inherit;
     }
@@ -313,44 +317,97 @@
         --chat-accent-hover: #1d4ed8;
         --chat-user-bg: #1e3a5f;
         --chat-user-text: #eff6ff;
+        --launcher-bg: rgb(var(--color-neutral-800));
+        --launcher-text: rgb(var(--color-primary-200));
+        --launcher-border: rgba(var(--color-primary-400), 0.6);
     }
 
     .chat-widget .toggle {
         position: fixed;
         inset-block-end: 5.5rem;
-        inset-inline-end: 2rem;
+        inset-inline-end: var(--launcher-inline-offset);
         z-index: 999;
-        background: var(--chat-accent);
-        color: white;
-        border: none;
+        background: linear-gradient(rgba(var(--color-primary-400), 0.28), rgba(var(--color-primary-400), 0.12)), var(--launcher-bg);
+        color: var(--launcher-text);
+        border: 2px solid var(--launcher-border);
         border-radius: 9999px;
-        height: 3.5rem;
-        padding: 0 1.5rem;
+        box-sizing: border-box;
+        height: 3rem;
+        padding: 0 1.125rem;
         gap: 0.5rem;
+        font: inherit;
+        font-size: 0.9375rem;
         font-weight: 600;
         cursor: pointer;
-        box-shadow: var(--shadow-md);
+        box-shadow:
+            0 0 28px 6px rgba(var(--color-primary-400), 0.6),
+            0 20px 72px 20px rgba(var(--color-neutral-900), 0.5),
+            0 6px 24px 6px rgba(var(--color-neutral-900), 0.35),
+            0 0 0 1px rgba(var(--color-primary-400), 0.2),
+            0 0 22px rgba(var(--color-primary-400), 0.35);
         transition:
-            background var(--motion-fast) var(--ease-out),
-            transform var(--motion-fast) var(--ease-out);
+            border-color var(--motion-fast) var(--ease-out),
+            box-shadow var(--motion-fast) var(--ease-out);
         display: flex;
         align-items: center;
         justify-content: center;
         -webkit-tap-highlight-color: transparent;
     }
 
+    .chat-widget .toggle::before,
+    .chat-widget .toggle::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border: 1px solid rgba(var(--color-primary-400), 0.65);
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: 0;
+        animation: launcherSignal 2s var(--ease-out) infinite;
+    }
+
+    .chat-widget .toggle::after {
+        animation-delay: 0.7s;
+        border-color: rgba(var(--color-secondary-400), 0.5);
+    }
+
+    .chat-widget .toggle[aria-expanded='true']::before,
+    .chat-widget .toggle[aria-expanded='true']::after {
+        animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .chat-widget .toggle::before,
+        .chat-widget .toggle::after {
+            animation: none;
+        }
+    }
+
     .chat-widget .toggle:hover {
-        transform: translateY(-2px);
-        background: var(--chat-accent-hover);
+        border-color: var(--launcher-text);
+        box-shadow:
+            0 0 32px 8px rgba(var(--color-primary-400), 0.75),
+            0 20px 72px 20px rgba(var(--color-neutral-900), 0.5),
+            0 6px 24px 6px rgba(var(--color-neutral-900), 0.35),
+            0 0 0 1px rgba(var(--color-primary-400), 0.3),
+            0 0 28px rgba(var(--color-primary-400), 0.45);
     }
 
     .chat-widget .toggle:focus-visible {
-        outline: 2px solid var(--chat-accent);
+        outline: 2px solid var(--launcher-text);
         outline-offset: 3px;
     }
 
-    .chat-widget .toggle:active {
-        transform: scale(0.98);
+    @media (min-width: 1280px) {
+        .chat-widget {
+            /* Blowfish's max-w-7xl container is 80rem with 8rem desktop gutters. */
+            --launcher-inline-offset: calc((100vw - 80rem) / 2 + 8rem);
+        }
+        .chat-widget .toggle {
+            height: 3.25rem;
+            padding-inline: 1.25rem;
+            font-size: 1rem;
+        }
     }
 
     .chat-widget dialog.window {
@@ -360,6 +417,7 @@
         color: var(--chat-text);
         position: fixed;
         inset: auto 2rem 10rem auto;
+        inset-inline-end: var(--launcher-inline-offset);
         width: min(480px, calc(100vw - 4rem));
         height: min(650px, calc(100vh - 12rem));
         max-width: none;
@@ -996,6 +1054,20 @@
 
         100% {
             background-position: 0% 50%;
+        }
+    }
+
+    @keyframes launcherSignal {
+        0% {
+            opacity: 0;
+            transform: scale(1);
+        }
+        20% {
+            opacity: 0.6;
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.18, 1.4);
         }
     }
 

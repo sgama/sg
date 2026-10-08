@@ -951,6 +951,9 @@ Make build/serve targets supply the current Git revision to Hugo through
 `HUGO_BUILD_SHA`. The footer displays its first six characters at the bottom
 right, linked to the full commit. Direct Hugo builds must supply
 `HUGO_BUILD_SHA`; without a supplied revision the label is omitted.
+`make serve` captures the revision when the server starts. Restart it after
+committing or switching branches to refresh the footer; hot reload does not
+refresh the server's environment. Uncommitted edits retain the last commit's SHA.
 
 ```bash
 make build-prod

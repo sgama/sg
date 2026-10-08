@@ -11,6 +11,7 @@ import { glob } from 'glob';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
 const title = 'Layout "quotes" & </script> check';
+const buildSha = '0123456789abcdef0123456789abcdef01234567';
 
 function tags(html, name) {
     return [...html.matchAll(new RegExp(`<${name}\\b(?:[^>"']|"[^"]*"|'[^']*')*>`, 'g'))].map((match) => {
@@ -74,7 +75,7 @@ test('generated layouts preserve structured types, public indexes, image selecti
         const result = await exec(
             process.env.HUGO ?? 'hugo',
             ['--config', `config.toml,${config}`, '--contentDir', content, '--destination', destination, '--minify', '--panicOnWarning'],
-            { cwd: root, timeout: 90000, maxBuffer: 2 * 1024 * 1024 },
+            { cwd: root, env: { ...process.env, HUGO_BUILD_SHA: buildSha }, timeout: 90000, maxBuffer: 2 * 1024 * 1024 },
         );
         assert.doesNotMatch(result.stdout + result.stderr, /\bWARN\b|\bERROR\b/);
         return destination;
@@ -91,6 +92,14 @@ test('generated layouts preserve structured types, public indexes, image selecti
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
         const footer = home.match(/<footer\b[^>]*id=["']?site-footer[^>]*>(.*?)<\/footer>/s)?.[1];
         assert.ok(footer, 'Site footer must render');
+        assert.ok(
+            tags(footer, 'a').some(
+                (tag) =>
+                    tag.href === `https://github.com/sgama/sg/commit/${buildSha}` && tag['aria-label'] === `Build commit ${buildSha.slice(0, 6)}`,
+            ),
+            'Footer must link to the supplied build revision',
+        );
+        assert.match(footer, />012345<\/a>/);
         assert.ok(tags(footer, 'nav').some((tag) => tag['aria-label'] === 'Footer menu'));
         assert.equal([...home.matchAll(/<h2\b[^>]*>Recent<\/h2>/g)].length, 1, 'Homepage must render recent articles exactly once');
         const person = schema(home).find((node) => node['@type'] === 'Person');
