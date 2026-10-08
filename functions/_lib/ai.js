@@ -23,13 +23,15 @@ export class AiService {
         }
     }
 
-    async retrieveContext(query) {
+    async retrieveContext(query, history = []) {
         if (!this.vectorize) {
             console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
             throw new AppError('Retrieval service unavailable', 503);
         }
 
-        const vector = await this.getEmbeddings(query);
+        const previousUserQuery = [...history].reverse().find((message) => message.role === 'user')?.content;
+        const retrievalQuery = previousUserQuery ? `${query}\n${previousUserQuery}` : query;
+        const vector = await this.getEmbeddings(retrievalQuery);
 
         try {
             const results = await this.vectorize.query(vector, {

@@ -40,7 +40,7 @@ app.post('/api/chat', async (c) => {
     }
 
     const aiService = new AiService(env);
-    const contextText = await aiService.retrieveContext(query);
+    const contextText = await aiService.retrieveContext(query, history);
     let stream;
 
     if (shouldAbstainForMissingContext(contextText)) {

@@ -174,6 +174,7 @@ test('/api/chat', async (t) => {
             assert.match(await response.text(), /"response":"Supported answer"/);
 
             assert.equal(calls.length, 2);
+            assert.deepEqual(calls[0].payload.text, ['What do you build?\nTell me more']);
             assert.equal(calls[1].payload.messages.at(-1).content, 'What do you build?');
             assert.deepEqual(calls[1].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
         });

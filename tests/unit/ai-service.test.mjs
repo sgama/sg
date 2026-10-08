@@ -126,6 +126,26 @@ test('AiService', async (t) => {
             assert.equal(result, 'chunk one\n---\nchunk two');
         });
 
+        await t.test('uses the latest prior user question to retrieve follow-up context', async () => {
+            let embeddingText;
+            const svc = new AiService(
+                makeEnv({
+                    aiRun: async (_model, payload) => {
+                        embeddingText = payload.text[0];
+                        return buildEmbeddingsResponse([0.1, 0.2]);
+                    },
+                    vectorizeQuery: async () => buildVectorizeResult([]),
+                }),
+            );
+
+            await svc.retrieveContext('Most recently?', [
+                { role: 'user', content: 'What did he do last?' },
+                { role: 'assistant', content: 'He had an internship in 2016.' },
+            ]);
+
+            assert.equal(embeddingText, 'Most recently?\nWhat did he do last?');
+        });
+
         await t.test('passes the selected corpus namespace to Vectorize', async () => {
             const svc = new AiService({
                 ...makeEnv({
