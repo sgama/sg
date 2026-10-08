@@ -18,10 +18,88 @@ test('answer parser handles split CRLF events, usage, and completion', () => {
 });
 
 test('answer parser reports provider errors and malformed answer fields', () => {
-    for (const event of [{ error: 'Provider failed' }, { response: 42 }]) {
+    for (const event of [{ error: 'Provider failed' }, { response: 42 }, null, [], 'invalid', 42]) {
         const parser = createAnswerParser(() => {});
         assert.throws(() => parser.push(`data: ${JSON.stringify(event)}\n`));
     }
+});
+
+test('stream cleanup preserves request errors and always releases the reader lock', async (t) => {
+    const failure = new Error('Read failed');
+    const cleanupFailure = new Error('Cancel failed');
+    const warning = t.mock.method(console, 'warn', () => {});
+    let released = false;
+    await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            fetcher: async () => ({
+                ok: true,
+                body: {
+                    getReader: () => ({
+                        read: async () => {
+                            throw failure;
+                        },
+                        cancel: async () => {
+                            throw cleanupFailure;
+                        },
+                        releaseLock: () => {
+                            released = true;
+                        },
+                    }),
+                },
+            }),
+        }),
+        (error) => error === failure,
+    );
+    assert.equal(released, true);
+    assert.equal(warning.mock.callCount(), 1);
+    assert.equal(warning.mock.calls[0].arguments[1], cleanupFailure);
+});
+
+test('disconnect resets launcher state and reconnect restores the session without duplicate handlers', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'true');
+    f.widget.disconnectedCallback();
+    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'false');
+    assert.equal(f.roles.window.open, false);
+    assert.equal(f.frames.size, 0);
+    f.widget.connectedCallback();
+    assert.equal(f.roles.window.open, true);
+    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'true');
+    await f.submit('Question');
+    assert.equal(f.roles.transcript.children.length, 3);
+});
+
+test('cleanup failure after a complete answer is reported and still releases the reader lock', async () => {
+    const failure = new Error('Cancel failed');
+    let released = false;
+    let read = false;
+    await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            fetcher: async () => ({
+                ok: true,
+                body: {
+                    getReader: () => ({
+                        read: async () => {
+                            assert.equal(read, false);
+                            read = true;
+                            return { done: false, value: new TextEncoder().encode('data: {"response":"Answer"}\ndata: [DONE]\n') };
+                        },
+                        cancel: async () => {
+                            throw failure;
+                        },
+                        releaseLock: () => {
+                            released = true;
+                        },
+                    }),
+                },
+            }),
+        }),
+        (error) => error === failure,
+    );
+    assert.equal(released, true);
 });
 
 test('clear history requires confirmation and persists only the welcome message', async (t) => {

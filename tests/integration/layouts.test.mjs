@@ -84,12 +84,25 @@ test('generated layouts preserve structured types, public indexes, image selecti
     await t.test('default site emits typed JSON-LD, excludes internal context and preloads its actual WebP avatar', async () => {
         const destination = await build(
             'default',
-            {},
+            { header: { layout: 'floating' } },
             {
                 menus: { footer: [{ name: 'About', url: '/about/' }] },
             },
         );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
+        assert.match(home, /fixed inset-x-0 top-3 z-100/);
+        assert.match(home, /backdrop-blur-xl/);
+        assert.ok(tags(home, 'img').some((tag) => tag.class?.includes('group-hover:scale-[1.03]')));
+        for (const file of ['index.html', 'posts/layout-regression/index.html']) {
+            const html = await readFile(path.join(destination, file), 'utf8');
+            for (const attribute of [{ property: 'og:image' }, { name: 'twitter:image' }]) {
+                const images = tags(html, 'meta').filter((tag) => Object.entries(attribute).every(([key, value]) => tag[key] === value));
+                assert.equal(images.length, 1, `${file} must emit one social image per platform`);
+                assert.equal(images[0].content, 'https://samsongama.com/samson.webp');
+            }
+        }
+        const featuredArticle = await readFile(path.join(destination, 'posts/ai-full-stack/index.html'), 'utf8');
+        assert.ok(tags(featuredArticle, 'meta').some((tag) => tag.property === 'og:image' && tag.content !== 'https://samsongama.com/samson.webp'));
         const footer = home.match(/<footer\b[^>]*id=["']?site-footer[^>]*>(.*?)<\/footer>/s)?.[1];
         assert.ok(footer, 'Site footer must render');
         assert.ok(

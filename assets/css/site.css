@@ -290,15 +290,15 @@
 
     .chat-widget {
         --launcher-inline-offset: 2rem;
-        --chat-bg: #ffffff;
-        --chat-panel: #f1f5f9;
-        --chat-border: #cbd5e1;
-        --chat-text: #0f172a;
-        --chat-muted: #475569;
-        --chat-accent: #1d4ed8;
-        --chat-accent-hover: #1e40af;
-        --chat-user-bg: #dbeafe;
-        --chat-user-text: #172554;
+        --chat-bg: rgb(var(--color-neutral));
+        --chat-panel: rgb(var(--color-neutral-100));
+        --chat-border: rgb(var(--color-neutral-300));
+        --chat-text: rgb(var(--color-neutral-800));
+        --chat-muted: rgb(var(--color-neutral-500));
+        --chat-accent: rgb(var(--color-primary-600));
+        --chat-accent-hover: rgb(var(--color-primary-700));
+        --chat-user-bg: rgba(var(--color-primary-400), 0.15);
+        --chat-user-text: rgb(var(--color-primary-800));
         --launcher-bg: rgb(var(--color-neutral-50));
         --launcher-text: rgb(var(--color-primary-600));
         --launcher-border: rgba(var(--color-primary-500), 0.5);
@@ -308,15 +308,15 @@
 
     :root[data-theme='dark'] .chat-widget,
     .dark .chat-widget {
-        --chat-bg: #111827;
-        --chat-panel: #1f2937;
-        --chat-border: #475569;
-        --chat-text: #f1f5f9;
-        --chat-muted: #cbd5e1;
-        --chat-accent: #2563eb;
-        --chat-accent-hover: #1d4ed8;
-        --chat-user-bg: #1e3a5f;
-        --chat-user-text: #eff6ff;
+        --chat-bg: rgb(var(--color-neutral-800));
+        --chat-panel: rgb(var(--color-neutral-700));
+        --chat-border: rgb(var(--color-neutral-600));
+        --chat-text: rgb(var(--color-neutral-200));
+        --chat-muted: rgb(var(--color-neutral-300));
+        --chat-accent: rgb(var(--color-primary-600));
+        --chat-accent-hover: rgb(var(--color-primary-700));
+        --chat-user-bg: rgba(var(--color-primary-400), 0.15);
+        --chat-user-text: rgb(var(--color-primary-200));
         --launcher-bg: rgb(var(--color-neutral-800));
         --launcher-text: rgb(var(--color-primary-200));
         --launcher-border: rgba(var(--color-primary-400), 0.6);
@@ -399,10 +399,6 @@
     }
 
     @media (min-width: 1280px) {
-        .chat-widget {
-            /* Blowfish's max-w-7xl container is 80rem with 8rem desktop gutters. */
-            --launcher-inline-offset: calc((100vw - 80rem) / 2 + 8rem);
-        }
         .chat-widget .toggle {
             height: 3.25rem;
             padding-inline: 1.25rem;

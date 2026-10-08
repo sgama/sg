@@ -236,6 +236,7 @@ autoSwitchAppearance = false  # https://blowfish.page/docs/configuration/#appear
 colorScheme = "catppuccin"  # https://blowfish.page/docs/configuration/#color-schemes
 defaultAppearance = "dark"  # https://blowfish.page/docs/configuration/#appearance
 defaultBackgroundImage = "background.webp"
+defaultSocialImage = "samson.webp"
 disableImageOptimization = false  # Keep false to use Hugo's optimization
 disableImageOptimizationMD = false
 disableTextInHeader = false
@@ -305,7 +306,7 @@ showThemeAttribution = false
 
 # Header configuration - https://blowfish.page/docs/configuration/#header
 [params.header]
-layout = "fixed-gradient"  # Options: basic, fixed, fixed-fill, fixed-gradient, fixed-fill-blur
+layout = "fixed-gradient"  # Options: basic, fixed, fixed-fill, fixed-gradient, fixed-fill-blur, floating
 mobileMenuStyle = "dropdown"
 
 [params.seo]
@@ -329,6 +330,7 @@ showRecentItems = 3
 cardView = true
 cardViewScreenWidth = false
 constrainItemsWidth = true
+featureImageHover = true
 groupByYear = false
 heroStyle = "background"
 layoutBackgroundHeaderSpace = false

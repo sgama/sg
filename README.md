@@ -60,7 +60,7 @@ To enable the AI chatbot feature:
 
 [`assets/js/ai-chat-widget.js`](assets/js/ai-chat-widget.js) registers
 `<ai-chat-widget>` and coordinates the dialog, messages and request lifecycle.
-Independent history, stream and scroll controllers live in
+Independent history, stream, scroll and message-rendering modules live in
 [`assets/js/chat/`](assets/js/chat/); Hugo bundles the local modules into one
 widget script. [`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
 supplies the light-DOM template and loads fingerprinted scripts.
@@ -71,9 +71,16 @@ classes during production CSS purging.
 The widget uses light DOM, not Shadow DOM. Settings are script constants, not
 custom-element attributes. Its native dialog opens with non-modal `show()` and
 does not trap Tab focus. There are no touch gestures or attribute-change handlers.
-White/slate and charcoal/slate surfaces follow the site's `.dark` or root
+Theme-neutral surfaces follow the site's `.dark` or root
 `data-theme="dark"` state; blue accents mark actions and user messages. Controls
-have visible focus outlines, and the launcher has no continuous animation.
+have visible focus outlines. The launcher has continuous signal rings, disabled
+for reduced-motion preferences and while the chat is open.
+
+The message renderer loads Markdown dependencies lazily, sanitizes generated
+HTML before insertion, and keeps user messages as plain text. Failed dependency
+loads log a warning and retain plain-text rendering; reconnecting retries them.
+Stream cleanup releases reader locks and preserves the original request error
+if cancellation also fails.
 
 #### Integration and lifecycle
 
@@ -939,6 +946,9 @@ browsers can skip the hint rather than fetch an unused fallback.
 
 The theme is pinned to Blowfish v3.9.0 via `github.com/nunocoracao/blowfish/v3`.
 The supported Hugo range is 0.164.0–0.167.0.
+The site uses the fixed-gradient header with dropdown mobile navigation and subtle
+thumbnail hover zoom. Pages without featured images use the existing portrait
+as their fallback social preview through `defaultSocialImage`.
 The head override is reconciled with Blowfish v3.9.0. It retains the inline
 appearance script, deferred accessibility/image-zoom scripts and mobile keyboard
 viewport behavior; compare it with the pinned module again after theme upgrades.

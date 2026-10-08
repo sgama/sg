@@ -10,6 +10,7 @@ export function createAnswerParser(onDelta) {
             return;
         }
         const event = JSON.parse(data);
+        if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error('Invalid chat answer event');
         if (event.error) throw new Error(String(event.error));
         if (event.response !== undefined) {
             if (typeof event.response !== 'string') throw new Error('Invalid chat answer event');
@@ -50,6 +51,8 @@ export async function streamAnswer(query, { signal, onUpdate, fetcher = fetch })
         answer += delta;
         onUpdate(answer);
     });
+    let failure;
+    let failed = false;
     try {
         while (!parser.finished) {
             const { done, value } = await reader.read();
@@ -60,12 +63,23 @@ export async function streamAnswer(query, { signal, onUpdate, fetcher = fetch })
         parser.flush();
         if (!answer.trim()) throw new Error('Chat completed without an answer');
         if (!parser.finished) throw new Error('Chat stream ended before completion');
-        return answer;
+    } catch (error) {
+        failed = true;
+        failure = error;
     } finally {
         try {
             await reader.cancel();
+        } catch (error) {
+            if (failed) {
+                console.warn('Chat stream cleanup failed after a request error.', error);
+            } else {
+                failed = true;
+                failure = error;
+            }
         } finally {
             reader.releaseLock();
         }
     }
+    if (failed) throw failure;
+    return answer;
 }

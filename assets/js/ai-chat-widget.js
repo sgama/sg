@@ -1,23 +1,9 @@
 import { createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from './chat/history.js';
 import { streamAnswer } from './chat/stream.js';
 import { createChatScroller } from './chat/scroll.js';
+import { messageRenderer } from './chat/render.js';
 
 const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information from this portfolio. Ask me about my projects or background.";
-let renderMarkdown = null;
-let markdownLoader = null;
-
-function loadMarkdown() {
-    return (markdownLoader ??= Promise.all([import('https://esm.sh/marked@13'), import('https://esm.sh/dompurify@3')])
-        .then(([markedModule, purifyModule]) => {
-            const marked = markedModule.marked;
-            const purify = purifyModule.default;
-            renderMarkdown = (text) => purify.sanitize(marked.parse(text, { gfm: true, breaks: true }));
-        })
-        .catch((error) => {
-            console.warn('Chat markdown unavailable; displaying plain text.', error);
-        }));
-}
-
 class AiChatWidget extends HTMLElement {
     #dom;
     #events;
@@ -63,8 +49,8 @@ class AiChatWidget extends HTMLElement {
         this.#history = readHistory(this.#storage, WELCOME_MESSAGE);
         this.#renderHistory();
         const events = this.#events;
-        loadMarkdown().then(() => {
-            if (events.signal.aborted || !this.isConnected || !renderMarkdown) return;
+        messageRenderer.load().then(() => {
+            if (events.signal.aborted || !this.isConnected || !messageRenderer.ready) return;
             this.#dom.transcript.querySelectorAll('.message--bot').forEach((element) => this.#writeMessage(element, element.dataset.rawText, 'bot'));
             this.#scroller.changed();
         });
@@ -78,6 +64,7 @@ class AiChatWidget extends HTMLElement {
         this.#conversationReady = false;
         if (this.#openFrame !== null) cancelAnimationFrame(this.#openFrame);
         this.#openFrame = null;
+        this.#dom?.toggle?.setAttribute('aria-expanded', 'false');
         if (this.#dom?.window.open) this.#dom.window.close();
         this.classList.remove('is-open');
         document.body.classList.remove('ai-chat-open');
@@ -195,17 +182,7 @@ class AiChatWidget extends HTMLElement {
     }
 
     #writeMessage(element, text, sender) {
-        element.dataset.rawText = text;
-        element.classList.toggle('message--loading', !text);
-        if (sender === 'bot' && renderMarkdown && text) {
-            element.innerHTML = renderMarkdown(text);
-            element.querySelectorAll('a').forEach((link) => {
-                link.rel = 'noopener noreferrer';
-                link.target = '_blank';
-            });
-        } else {
-            element.textContent = text || 'Thinking…';
-        }
+        messageRenderer.write(element, text, sender);
         this.#scroller.changed();
     }
 
