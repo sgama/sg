@@ -58,6 +58,11 @@ To enable the AI chatbot feature:
 
 ### Chat Widget Architecture
 
+Model-facing retrieval headers include titles and public URLs, not repository
+filenames. Internal context may cite public pages through its Markdown source
+links. The answer prompt requests readable linked citations and prohibits
+internal corpus paths or concatenated URLs in reader-facing answers.
+
 [`assets/js/ai-chat-widget.js`](assets/js/ai-chat-widget.js) registers
 `<ai-chat-widget>` and coordinates the dialog, messages and request lifecycle.
 Independent history, stream, scroll and message-rendering modules live in

@@ -274,7 +274,8 @@ test('retrieved context preserves source identity within the character budget', 
             },
         },
     ]);
-    assert.match(context, /Source: .*"source":"content\/resume\/_index.md".*"url":"\/resume\/"/);
+    assert.match(context, /Source: .*"title":"Resume".*"url":"\/resume\/"/);
+    assert.doesNotMatch(context, /content\/|"source":/);
     assert.match(context, /Source: .*"title":"Older post"/);
     assert.match(context, /Programming: C\/C\+\+\n---\nSource:/);
     const bounded = contextFromMatches([
@@ -287,4 +288,23 @@ test('retrieved context preserves source identity within the character budget', 
         },
     ]);
     assert.equal(bounded.length, AI_CONFIG.retrieval.maxContextChars);
+});
+
+test('internal education evidence exposes public citations but not corpus filenames to generation', () => {
+    const context = contextFromMatches([
+        {
+            metadata: {
+                source: 'content/_context/education-security.md',
+                title: 'Education',
+                text: 'University of British Columbia, B.A.Sc., Computer Engineering, 2017.\nSources: [resume](/resume/) and [about](/about/).',
+            },
+        },
+    ]);
+    assert.doesNotMatch(context, /content\/_context\/education-security\.md/);
+    assert.match(context, /\[resume\]\(\/resume\/\)/);
+    assert.match(context, /Computer Engineering, 2017/);
+    const prompt = buildMessages('Where did he go to school?', context)[0].content;
+    assert.match(prompt, /Use readable Markdown citations/);
+    assert.match(prompt, /Do not concatenate citation URLs/);
+    assert.match(prompt, /answer directly in one sentence/);
 });
