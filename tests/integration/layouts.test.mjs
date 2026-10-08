@@ -134,8 +134,7 @@ test('generated layouts preserve structured types, public indexes, image selecti
         assert.equal(tags(home, 'link').filter((tag) => tag.as === 'image' && tag.type === 'image/avif').length, 2);
         assert.match(home, /BlowfishLanguageRedirectConfig/);
         assert.match(home, /language-redirect\./);
-        assert.match(home, /google-adsense-account/);
-        assert.match(home, /ca-pub-layout-test/);
+        assert.doesNotMatch(home, /google-adsense-account|ca-pub-layout-test|adsbygoogle/);
         assert.ok(tags(home, 'script').some((tag) => tag.src?.includes('/medium-zoom.') && tag.integrity));
         const article = await readFile(path.join(destination, 'posts/layout-regression/index.html'), 'utf8');
         assert.doesNotMatch(article, /src=["']?[^ >]*reading-progress/);

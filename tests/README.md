@@ -86,7 +86,7 @@ make test-layouts
 directories. It checks JSON-LD types and escaping, public-only LLM index entries,
 WebP/PNG/SVG and disabled-optimization preload parity, URL-only backgrounds,
 meta-description ordering, reading-progress overrides, language redirects and
-AdSense markup. It performs no inference or deployment and does not change the
+absence of AdSense markup even when configured. It performs no inference or deployment and does not change the
 real corpus. Unit and coverage commands remain independent of Hugo.
 
 ESLint's recommended correctness rules cover browser scripts, Workers/Functions,

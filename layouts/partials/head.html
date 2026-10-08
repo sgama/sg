@@ -4,7 +4,8 @@
      and timing-sensitive — must run before paint to avoid a theme FOUC).
   2. a11y.js and image zoom use `defer`.
   3. The viewport resizes content for the mobile chat keyboard.
-  Based on Blowfish v2.106.0; reconcile against upstream when bumping the theme.
+  4. AdSense markup is omitted.
+  Based on Blowfish v3.9.0; reconcile against upstream when bumping the theme.
 */}}
 <head>
   <meta charset="utf-8">
@@ -64,6 +65,10 @@
   {{ end }}
 
   {{/* Me */}}
+  {{ with site.Home.OutputFormats.Get "LLMS" }}
+    <link rel="describedby" href="{{ .RelPermalink }}">
+  {{ end }}
+
   {{ with .Site.Params.Author.name }}
     <meta name="author" content="{{ . }}">
   {{ end }}
@@ -162,6 +167,8 @@
   {{ if not .Site.Params.disableImageZoom | default true }}
     {{ $zoomJS := resources.Get "lib/zoom/zoom.min.umd.js" | resources.Fingerprint $alg }}
     <script defer src="{{ $zoomJS.RelPermalink }}" integrity="{{ $zoomJS.Data.Integrity }}"></script>
+    {{ $zoomInit := resources.Get "js/medium-zoom.js" | resources.Fingerprint $alg }}
+    <script defer src="{{ $zoomInit.RelPermalink }}" integrity="{{ $zoomInit.Data.Integrity }}"></script>
   {{ end }}
 
   {{ $showReadingProgress := site.Params.article.showReadingProgress | default false }}
@@ -193,6 +200,7 @@
     {{ $jsResources = $jsResources | append (resources.Get "js/rtl.js") }}
   {{ end }}
   {{ $jsResources = $jsResources | append (resources.Get "js/katex-render.js") }}
+  {{ $jsResources = $jsResources | append (resources.Get "js/menu-a11y.js") }}
   {{ $jsResources = $jsResources | append (resources.Get "js/print-support.js") }}
   {{ $jsResources = $jsResources | append (resources.Get "js/email.js") }}
   {{ if $jsResources }}
@@ -238,12 +246,4 @@
     {{ partial "extend-head-uncached.html" . }}
   {{ end }}
 
-  {{/* Advertisement */}}
-  {{ with .Site.Params.advertisement.adsense }}
-    <meta name="google-adsense-account" content="{{ . }}">
-    <script
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ . }}"
-      crossorigin="anonymous"></script>
-  {{ end }}
 </head>
