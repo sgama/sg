@@ -45,9 +45,11 @@ jobs:
       # Two cache entries with different lifetimes, so a content-only change never re-uploads
       # the large, slow-moving one:
       #   tools:  actionlint, Hugo and node_modules. Keyed by tool versions and the lockfile.
-      #   hugo:   Hugo's module/resource caches and resources/_gen (processed images and assets).
-      #           Small, keyed by the inputs that change the output, restored from the closest
-      #           previous entry so unchanged images are never reprocessed.
+      #   hugo-gen: processed images and assets (resources/_gen) and Hugo's compiled WebAssembly
+      #           (_warpc). Small; keyed by the inputs that change the output and restored from the
+      #           closest previous entry so unchanged images are never reprocessed.
+      # The Blowfish module (~365 MB) is deliberately not cached: downloading it takes about 3 s,
+      # less than restoring and re-saving it.
       - uses: actions/cache@v6
         with:
           path: |
@@ -60,11 +62,11 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: |
-            ${{ env.HUGO_CACHEDIR }}
             resources/_gen
-          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
+            ${{ env.HUGO_CACHEDIR }}/_warpc
+          key: ${{ runner.os }}-hugo-gen-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
           restore-keys: |
-            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
+            ${{ runner.os }}-hugo-gen-${{ env.HUGO_VERSION }}-
 
       # Tools are checked on disk, not by cache-hit, so a partial restore still works.
       - name: Install actionlint
@@ -89,11 +91,10 @@ jobs:
       - name: Install Node dependencies
         run: make deps
 
-      # Cheap-first ordering: each stage fails before the slower ones start.
-      - run: make lint-workflows
-      - run: make lint format-check
-      - run: make ai-check
-      - run: make coverage
+      # The offline checks are independent, so they run together (public runners have 4 vCPUs);
+      # --output-sync keeps each target's log in one block. Make orders PostCSS before Hugo.
+      - name: Lint, test and build
+        run: make -j4 --output-sync=target lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -101,13 +102,8 @@ jobs:
           path: coverage/
           if-no-files-found: warn
           retention-days: 14
-
-      # Build outputs are independent of each other, so they run concurrently.
-      - name: Bundle functions and build production site
-        run: make -j2 --output-sync=target ai-build build-prod
+      # Needs the production build, so it runs after the parallel block.
       - run: make csp-headers
-      # Reads only repository sources, so it does not need the build output.
-      - run: make test-layouts
 
       # Deploy only on push to develop; PRs stop after validation.
       - name: Refresh corpus, deploy, and prune

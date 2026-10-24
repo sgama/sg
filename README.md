@@ -763,10 +763,12 @@ corpus, deploying the existing build, and pruning old deployments. Production
 runs remain serialized without cancellation to protect corpus/deployment updates.
 CI uses two cache entries with different lifetimes. The first holds actionlint,
 Hugo and `node_modules`, keyed by tool versions and the lockfile, so it is only
-re-saved when those change. The second holds Hugo's module and resource caches and
-`resources/_gen` (processed images and assets), keyed by Hugo version and the
+re-saved when those change. The second holds `resources/_gen` (processed images
+and assets) and Hugo's compiled WebAssembly, keyed by Hugo version and the
 content, layouts and assets, and restored from the closest previous entry so
-unchanged images are never reprocessed. Both are saved after successful offline
+unchanged images are never reprocessed. The Blowfish module (about 365 MB) is not
+cached: downloading it takes about three seconds, less than restoring and
+re-saving it. Both entries are saved after successful offline
 validation, before paid refresh or deployment. `make ci` remains a paid production workflow, not an offline
 check; use `make ci-check` for local validation.
 
@@ -775,8 +777,9 @@ install packages or change the lockfile. `npm run build` delegates to
 `make build-prod`, including production CSS, and `npm run dev` delegates to
 `make dev-ai` (port 8788; override with `DEV_PORT`).
 
-CI runs independent offline checks with
-`make --jobs=2 --output-sync=target ci-check`. Make prerequisites preserve
+CI runs the independent offline checks together with
+`make -j4 --output-sync=target lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts`
+(public runners have four vCPUs); `make ci-check` runs the same checks locally. Make prerequisites preserve
 PostCSS-before-Hugo ordering, while target output stays grouped. Corpus refresh,
 deployment, and cleanup remain sequential. The paid `make ci` entry point also
 bounds its validation phase to two jobs.

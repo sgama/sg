@@ -241,7 +241,7 @@ csp-headers: check ## Generate public/_headers CSP from a fresh build (run after
 	@$(NODE) scripts/generate_csp.mjs
 
 ##@ CI
-ci-check: lint-workflows lint coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
+ci-check: lint-workflows lint format-check coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
 
 ci: ## Run checks, refresh embeddings and deploy the matching chat corpus
 	@$(MAKE) --no-print-directory --jobs=2 --output-sync=target ci-check audit-site
