@@ -75,12 +75,18 @@
     </dialog>
 </template>
 
-{{/* Libraries are separate entries so the widget bundle stays small; the widget loads them by URL. */}}
+{{/* Libraries are separate entries so the widget bundle stays small; the widget loads them by URL. Bundling
+     Mermaid dominates every Hugo build, so layout tests set params.skipChatLibraries to leave the URLs out (the
+     widget then renders plain text); normal and production builds always include them. */}}
 {{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js") | resources.Minify | resources.Fingerprint }}
+{{ if site.Params.skipChatLibraries }}
+<ai-chat-widget id="ai-chat-widget" class="chat-widget"></ai-chat-widget>
+{{ else }}
 {{ $markdown_js := resources.Get "js/chat/markdown-entry.js" | js.Build (dict "targetPath" "js/chat-markdown.js") | resources.Minify | resources.Fingerprint }}
 {{ $mermaid_js := resources.Get "js/mermaid-entry.js" | js.Build (dict "targetPath" "js/mermaid.js") | resources.Minify | resources.Fingerprint }}
 <ai-chat-widget id="ai-chat-widget" class="chat-widget"
     data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ $mermaid_js.RelPermalink }}"></ai-chat-widget>
+{{ end }}
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
 {{ $site_js := resources.Get "js/site.js" | js.Build (dict "targetPath" "js/site.js") | resources.Minify | resources.Fingerprint }}

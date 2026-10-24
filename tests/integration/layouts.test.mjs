@@ -71,7 +71,12 @@ test('generated layouts preserve structured types, public indexes, image selecti
     async function build(name, params = {}, extra = {}) {
         const config = path.join(temp, `${name}.json`);
         const destination = path.join(temp, name);
-        await writeFile(config, JSON.stringify({ assetDir: assets, params, ...extra, languages: { ...extra.languages, en: { params } } }));
+        // The chat libraries (Mermaid especially) make up ~90% of a build and are not asserted on here.
+        const buildParams = { skipChatLibraries: true, ...params };
+        await writeFile(
+            config,
+            JSON.stringify({ assetDir: assets, params: buildParams, ...extra, languages: { ...extra.languages, en: { params: buildParams } } }),
+        );
         const result = await exec(
             process.env.HUGO ?? 'hugo',
             ['--config', `config.toml,${config}`, '--contentDir', content, '--destination', destination, '--minify'],
@@ -238,5 +243,17 @@ test('generated layouts preserve structured types, public indexes, image selecti
             JSON.stringify(tags(home, 'img')),
         );
         assert.ok(tags(home, 'link').some((tag) => tag.as === 'image' && tag.href === '/layout-test.svg' && tag.type === 'image/svg+xml'));
+    });
+
+    await t.test('the default build links and emits the lazy chat libraries (only this test pays for bundling them)', async () => {
+        const destination = await build('libraries', { skipChatLibraries: false });
+        const widget = tags(await readFile(path.join(destination, 'index.html'), 'utf8'), 'ai-chat-widget')[0];
+        for (const [attribute, bundle] of [
+            ['data-markdown-src', 'chat-markdown'],
+            ['data-mermaid-src', 'mermaid'],
+        ]) {
+            assert.match(widget[attribute], new RegExp(`^/js/${bundle}\\.min\\.[a-f0-9]+\\.js$`));
+            assert.ok((await readFile(path.join(destination, widget[attribute]), 'utf8')).length > 1000, `${bundle} bundle must be emitted`);
+        }
     });
 });
