@@ -7,7 +7,7 @@ SHELL := /bin/bash
 	deps test test-layouts lint lint-fix typecheck format format-check lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
-	deploy-pages deploy-built deploy-needed cleanup-deployments ci ci-check
+	deploy deploy-built deploy-needed cleanup-vectors ci ci-check
 
 ifneq (,$(wildcard .env))
 include .env
@@ -15,8 +15,7 @@ export
 endif
 
 # ── Config ─────────────────────────────────────────────────────────────────────
-PROJECT_NAME      ?= sg
-BRANCH            ?= develop
+WORKER_NAME       ?= sg
 PUBLIC_DIR        ?= public
 DEV_PORT          ?= 8788
 REPORT_DIR        ?= reports
@@ -47,7 +46,7 @@ ACTIONLINT_OS     := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 ACTIONLINT_ARCH   := $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
 ACTIONLINT_BIN_DIR ?= $(HOME)/.local/bin
 
-export PROJECT_NAME BRANCH PUBLIC_DIR REPORT_DIR
+export WORKER_NAME PUBLIC_DIR REPORT_DIR
 export AI_MODELS AI_NAMESPACE AI_REFRESH_FLAGS AI_REPEATS AI_FIXTURE
 export AI_MIN_HIT_RATE AI_MIN_ANSWER_RATE AI_TIMEOUT_MS
 export AI_RETRIEVAL_REPORT AI_COMPARISON_REPORT
@@ -83,7 +82,7 @@ serve: check ## Start Hugo development server
 	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" $(HUGO) server $(HUGO_SERVER_FLAGS)
 
 dev-ai: check build ## Start local dev server with Cloudflare Workers AI
-	@$(WRANGLER) pages dev "$(PUBLIC_DIR)" --port=$(DEV_PORT)
+	@$(WRANGLER) dev --assets "$(PUBLIC_DIR)" --port=$(DEV_PORT)
 
 ##@ Build
 build: check ## Build the site (development)
@@ -191,9 +190,9 @@ ai-check: check ## Validate corpus IDs, model selection and evaluation labels (o
 	@$(NODE) scripts/generate_embeddings.mjs --check
 	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
-ai-build: check-node ## Bundle Pages Functions locally (no deployment)
-	@mkdir -p "$$REPORT_DIR"
-	@$(WRANGLER) pages functions build functions --outfile="$$REPORT_DIR/ai-functions-worker.js"
+ai-build: check-node ## Bundle the Worker locally (dry run: no credentials, no deployment)
+	@mkdir -p "$$REPORT_DIR/empty-assets"
+	@$(WRANGLER) deploy --dry-run --assets "$$REPORT_DIR/empty-assets" --outdir "$$REPORT_DIR/worker" >/dev/null
 
 ai-embeddings: check check-env check-ns ## Ingest explicit candidate namespace (paid API; no activation/deletion)
 	@$(NODE) scripts/generate_embeddings.mjs --namespace "$$AI_NAMESPACE" --manifest "$$REPORT_DIR/ai-corpus.json"
@@ -219,32 +218,29 @@ ai-release-check: check check-ns ## Gate activation using retrieval/model report
 		--retrieval-report "$$AI_RETRIEVAL_REPORT" --comparison-report "$$AI_COMPARISON_REPORT" \
 		--min-hit-rate "$$AI_MIN_HIT_RATE" --min-answer-rate "$$AI_MIN_ANSWER_RATE"
 
-deploy-ai: ## Run offline checks and candidate release gate before Pages deployment
+deploy-ai: ## Run offline checks and candidate release gate before deployment
 	@$(MAKE) --no-print-directory ai-check test
 	@$(MAKE) --no-print-directory ai-release-check
 	@$(MAKE) --no-print-directory ai-build
-	@$(MAKE) --no-print-directory deploy-pages
+	@$(MAKE) --no-print-directory deploy
 
 ##@ Deploy
-deploy-pages: build-prod ## Build (prod) and deploy to Cloudflare Pages
+deploy: build-prod ## Build (prod) and deploy the Worker with its static assets
 	@$(MAKE) --no-print-directory deploy-built
 
 deploy-built: check check-env ## Deploy an already validated production build (no rebuild)
 	@test -f "$(PUBLIC_DIR)/index.html" || { echo "Missing site build; run make build-prod first"; exit 1; }
 	@COMMIT_HASH=$$(git rev-parse HEAD); \
-	COMMIT_MESSAGE=$$(git log -1 --pretty=%s); \
-	$(WRANGLER) pages deploy $(PUBLIC_DIR) \
-		--project-name=$(PROJECT_NAME) \
-		--branch=$(BRANCH) \
-		--commit-hash=$$COMMIT_HASH \
-		--commit-dirty=true \
-		--commit-message="$$COMMIT_MESSAGE"
+	COMMIT_MESSAGE=$$(printf '%.100s' "$$(git log -1 --pretty=%s)"); \
+	$(WRANGLER) deploy --name "$(WORKER_NAME)" --assets "$(PUBLIC_DIR)" \
+		--var DEPLOY_COMMIT:$$COMMIT_HASH \
+		--message "$$COMMIT_MESSAGE"
 
-deploy-needed: check-node check-env ## Print deploy=true|false: whether deployable files changed since the active deployment
+deploy-needed: check-node check-env ## Print deploy=true|false: whether deployable files changed since the live Worker's commit
 	@$(NODE) scripts/deploy_needed.mjs
 
-cleanup-deployments: check-node check-env ## Keep production rollback history; delete previews and unreferenced corpora
-	@$(NODE) scripts/cleanup_deployments.mjs
+cleanup-vectors: check-node check-env ## Delete the vectors of every corpus except the live one
+	@$(NODE) scripts/cleanup_vectors.mjs
 
 csp-headers: check ## Generate public/_headers CSP from a fresh build (run after make build-prod)
 	@$(NODE) scripts/generate_csp.mjs

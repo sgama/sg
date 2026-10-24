@@ -7,12 +7,17 @@ import { DEPLOY_INPUTS, deployNeeded, main } from '../../scripts/deploy_needed.m
 const SHA = 'a'.repeat(40);
 const root = fileURLToPath(new URL('../../', import.meta.url));
 
-function client({ canonical = { id: 'active' }, metadata = { commit_hash: SHA } } = {}) {
+/** A stubbed live Worker: not deployed (404), or deployed with an optional DEPLOY_COMMIT variable. */
+function client({ deployed = true, commit = SHA } = {}) {
     return {
-        pages: {
-            projects: {
-                get: async () => ({ canonical_deployment: canonical }),
-                deployments: { get: async () => ({ id: 'active', deployment_trigger: { metadata } }) },
+        workers: {
+            scripts: {
+                scriptAndVersionSettings: {
+                    get: async () => {
+                        if (!deployed) throw Object.assign(new Error('Worker not found'), { status: 404 });
+                        return { bindings: commit ? [{ type: 'plain_text', name: 'DEPLOY_COMMIT', text: commit }] : [] };
+                    },
+                },
             },
         },
     };
@@ -32,9 +37,9 @@ function git({ has = true, fetchable = true, changed = '' } = {}) {
 
 test('a deployment is skipped only when no deployable file changed, and every doubt deploys', async () => {
     const decide = (clientOptions, gitOptions) => deployNeeded({ client: client(clientOptions), accountId: 'account', exec: git(gitOptions).exec });
-    assert.deepEqual(await decide({ canonical: null }), { needed: true, reason: 'there is no active deployment' });
-    assert.match((await decide({ metadata: {} })).reason, /no recorded commit/);
-    assert.match((await decide({ metadata: { commit_hash: 'abc123' } })).reason, /no recorded commit/);
+    assert.deepEqual(await decide({ deployed: false }), { needed: true, reason: 'the Worker has not been deployed yet' });
+    assert.match((await decide({ commit: '' })).reason, /no recorded commit/);
+    assert.match((await decide({ commit: 'abc123' })).reason, /no recorded commit/);
     assert.match((await decide({}, { has: false, fetchable: false })).reason, /not available/);
 
     const changed = await decide({}, { changed: 'content/a.md\nlayouts/b.html\n' });

@@ -58,8 +58,8 @@ async function fixture(t) {
         requests.push(pathname);
         const base = '/client/v4/accounts/account';
         let result;
-        if (pathname === `${base}/pages/projects/sg`) {
-            result = { canonical_deployment: null };
+        if (pathname === `${base}/workers/scripts/sg/settings`) {
+            return Response.json({ success: false, errors: [{ code: 10007, message: 'This Worker does not exist' }] }, { status: 404 });
         } else if (pathname === `${base}/ai/run/${AI_CONFIG.embedding.model}`) {
             result = { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] };
         } else if (pathname === `${base}/vectorize/v2/indexes/portfolio-index/query`) {
@@ -182,23 +182,10 @@ test('refresh CLI activates after indexing, skips unchanged content and honors f
     assert.match(f.output.mock.calls.at(-1).arguments[0], /indexed/);
     const unchanged = {
         fetchImpl: async (url) => {
-            const pathname = new URL(url).pathname;
-            if (pathname.endsWith('/pages/projects/sg')) {
-                return Response.json({
-                    success: true,
-                    result: { canonical_deployment: { id: 'active' } },
-                });
-            }
-            assert.ok(pathname.endsWith('/deployments/active'));
+            assert.ok(new URL(url).pathname.endsWith('/workers/scripts/sg/settings'));
             return Response.json({
                 success: true,
-                result: {
-                    id: 'active',
-                    environment: 'production',
-                    env_vars: {
-                        AI_CORPUS_NAMESPACE: { type: 'plain_text', value: f.corpus.namespace },
-                    },
-                },
+                result: { bindings: [{ type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: f.corpus.namespace }] },
             });
         },
     };
@@ -206,7 +193,7 @@ test('refresh CLI activates after indexing, skips unchanged content and honors f
     assert.match(f.output.mock.calls.at(-1).arguments[0], /ingestion skipped/);
     f.requests.length = 0;
     await refresh(['--force', '--config', 'wrangler.toml'], f);
-    assert.ok(!f.requests.some((request) => request.includes('/pages/')));
+    assert.ok(!f.requests.some((request) => request.includes('/workers/')), 'a forced refresh does not look up the live Worker');
     assert.ok(f.requests.some((request) => request.endsWith('/info')));
 });
 

@@ -18,7 +18,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         accountId,
         configPath: values.config,
         force: values.force,
-        project: process.env.PROJECT_NAME ?? 'sg',
+        worker: process.env.WORKER_NAME ?? 'sg',
     });
     console.log(
         `Corpus ${result.skipped ? 'unchanged; ingestion skipped' : 'indexed'}: ${result.namespace} (${result.count} chunks). Deployment configuration updated.`,

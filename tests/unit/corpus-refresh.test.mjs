@@ -9,12 +9,23 @@ import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { createMaintenanceClient, refreshCorpus, setCorpusNamespace } from '../../scripts/lib/corpus-deployment.mjs';
 
 const namespace = `corpus-${'a'.repeat(56)}`;
+/** A stubbed `client.workers`: the live Worker's corpus namespace, or a 404 (not deployed) when undefined. */
+const live = (value) => ({
+    scripts: {
+        scriptAndVersionSettings: {
+            get: async () => {
+                if (value === undefined) throw Object.assign(new Error('Worker not found'), { status: 404 });
+                return { bindings: [{ type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: value }] };
+            },
+        },
+    },
+});
 const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';
 
-test('force refresh ingests even when Pages lookup is unavailable', async (t) => {
+test('force refresh ingests even when the Worker lookup is unavailable', async (t) => {
     const { root, client, wait, calls } = await refreshFixture(t);
-    client.pages.projects.get = async () => {
-        throw new Error('Pages unavailable');
+    client.workers.scripts.scriptAndVersionSettings.get = async () => {
+        throw new Error('Worker settings unavailable');
     };
     const forced = await refreshCorpus({ client, accountId: 'account', root, wait, force: true });
     assert.equal(forced.skipped, false);
@@ -30,7 +41,7 @@ async function refreshFixture(t) {
     await fs.writeFile(configPath, config);
     const calls = [];
     const client = {
-        pages: { projects: { get: async () => ({ canonical_deployment: null }) } },
+        workers: live(),
         post: async () => ({ result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } }),
         vectorize: {
             indexes: {
@@ -52,18 +63,10 @@ async function refreshFixture(t) {
 }
 
 test('a failed refresh step leaves the Wrangler configuration untouched', async (t) => {
-    const active = (value) => async () => ({
-        id: 'active',
-        environment: 'production',
-        env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value } },
-    });
-    const withActive = (client, value) => {
-        client.pages.projects.get = async () => ({ canonical_deployment: { id: 'active' } });
-        client.pages.projects.deployments = { get: active(value) };
-    };
+    const withActive = (client, value) => (client.workers = live(value));
     for (const { name, arrange, wait, error } of [
         {
-            name: 'embedding fails with no active deployment',
+            name: 'embedding fails with no deployed Worker',
             arrange: (client) => (client.post = async () => Promise.reject(new Error('embedding failed'))),
             error: /embedding failed/,
         },
@@ -81,9 +84,10 @@ test('a failed refresh step leaves the Wrangler configuration untouched', async 
             error: /not ready/,
         },
         {
-            name: 'the Pages lookup fails',
-            arrange: (client) => (client.pages.projects.get = async () => Promise.reject(new Error('Pages unavailable'))),
-            error: /Pages unavailable/,
+            name: 'the Worker lookup fails',
+            arrange: (client) =>
+                (client.workers.scripts.scriptAndVersionSettings.get = async () => Promise.reject(new Error('Worker settings unavailable'))),
+            error: /Worker settings unavailable/,
         },
         { name: 'the active namespace is invalid', arrange: (client) => withActive(client, 'invalid'), error: /Invalid active corpus namespace/ },
     ]) {
@@ -112,32 +116,19 @@ test('refresh activates only after successful ingestion and readiness', async (t
     assert.ok((await fs.readFile(configPath, 'utf8')).includes(result.namespace));
 });
 
-test('SDK transport retrieves the active deployment snapshot using the SDK 7 signature', async (t) => {
+test('SDK transport reads the live Worker settings with the documented request', async (t) => {
     const { root, configPath } = await refreshFixture(t);
     const corpus = await buildCorpus({ root });
     const requests = [];
     const client = createMaintenanceClient('test-token', async (url) => {
         const pathname = new URL(url).pathname;
         requests.push(pathname);
-        const base = '/client/v4/accounts/account/pages/projects/sg';
-        assert.ok([base, `${base}/deployments/active`].includes(pathname));
-        return Response.json({
-            success: true,
-            result:
-                pathname === base
-                    ? { canonical_deployment: { id: 'active' } }
-                    : {
-                          id: 'active',
-                          environment: 'production',
-                          env_vars: {
-                              AI_CORPUS_NAMESPACE: { type: 'plain_text', value: corpus.namespace },
-                          },
-                      },
-        });
+        assert.equal(pathname, '/client/v4/accounts/account/workers/scripts/sg/settings');
+        return Response.json({ success: true, result: { bindings: [{ type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: corpus.namespace }] } });
     });
     const result = await refreshCorpus({ client, accountId: 'account', root });
     assert.equal(result.skipped, true);
-    assert.equal(requests.length, 2);
+    assert.equal(requests.length, 1);
     assert.ok((await fs.readFile(configPath, 'utf8')).includes(corpus.namespace));
 });
 
@@ -150,13 +141,7 @@ test('unchanged corpus skips all embeddings, uploads and readiness waits but set
         assert.fail('Unexpected upload');
     };
     const corpus = await buildCorpus({ root });
-    const snapshot = {
-        id: 'active',
-        environment: 'production',
-        env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: corpus.namespace } },
-    };
-    client.pages.projects.get = async () => ({ canonical_deployment: { id: 'active' } });
-    client.pages.projects.deployments = { get: async () => snapshot };
+    client.workers = live(corpus.namespace);
     const reused = await refreshCorpus({
         client,
         accountId: 'account',
@@ -174,7 +159,7 @@ test('concurrent configuration edits survive refresh without activation overwrit
     const { root, configPath, corpus } = await integrityFixture(t);
     const changed = '[vars]\nAI_MODEL = "gemma"\n';
     const client = {
-        pages: { projects: { get: async () => ({}) } },
+        workers: live(),
         post: async () => ({ result: { data: [Array(corpus.embedding.dimensions).fill(0.1)] } }),
         vectorize: { indexes: { upsert: async () => ({ mutationId: 'accepted' }) } },
     };

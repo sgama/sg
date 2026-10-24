@@ -1,4 +1,4 @@
-name: Build and Deploy to Cloudflare Pages
+name: Build and Deploy to Cloudflare Workers
 
 on:
   push:
@@ -107,7 +107,7 @@ jobs:
 
       # Deploy only on push to develop; PRs stop after validation.
       # A new deployment (and the corpus refresh before it) is skipped when no file that can change the site
-      # differs from the commit the active deployment was built from; any doubt deploys.
+      # differs from the commit the live Worker was built from; any doubt deploys.
       - name: Detect deployable changes
         id: changes
         if: github.event_name == 'push'
@@ -123,12 +123,10 @@ jobs:
         run: |
           make ai-refresh
           make deploy-built
-      # Always on push: cheap when there is nothing to delete, and it finishes any backlog.
-      - name: Prune old deployments and vectors
+      # Always on push: deletes the vectors of every corpus but the live one. Cheap when there is nothing to delete.
+      - name: Prune old corpus vectors
         if: github.event_name == 'push'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          # SDK request log: method, URL, status and duration of each call, including retries (the account ID is masked).
-          CLOUDFLARE_LOG: info
-        run: make cleanup-deployments
+        run: make cleanup-vectors

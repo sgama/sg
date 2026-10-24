@@ -6,6 +6,7 @@ import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus, validateCorpus, embeddingText } from './corpus.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';
+import { activeWorker } from './worker-deployment.mjs';
 
 export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
     return new Cloudflare({ apiToken, fetch, maxRetries: 2, timeout: 30000 });
@@ -144,7 +145,7 @@ export async function refreshCorpus({
     accountId,
     root = process.cwd(),
     configPath = path.join(root, 'wrangler.toml'),
-    project = 'sg',
+    worker = 'sg',
     force = false,
     wait = waitForMutation,
 }) {
@@ -152,23 +153,7 @@ export async function refreshCorpus({
     const corpus = await buildCorpus({ root });
     const updated = setCorpusNamespace(original, corpus.namespace);
     let activeNamespace;
-    if (!force) {
-        const info = await client.pages.projects.get(project, { account_id: accountId });
-        if (info.canonical_deployment?.id) {
-            const active = await client.pages.projects.deployments.get(info.canonical_deployment.id, {
-                account_id: accountId,
-                project_name: project,
-            });
-            if (active?.id !== info.canonical_deployment.id || active.environment !== 'production') {
-                throw new Error('Invalid active production deployment snapshot');
-            }
-            const setting = active.env_vars?.AI_CORPUS_NAMESPACE;
-            if (setting && (setting.type !== 'plain_text' || !/^corpus-[a-f0-9]{56}$/.test(setting.value))) {
-                throw new Error('Invalid active corpus namespace');
-            }
-            activeNamespace = setting?.value;
-        }
-    }
+    if (!force) activeNamespace = (await activeWorker(client, accountId, worker))?.namespace;
     const skipped = activeNamespace === corpus.namespace;
     // Process one upload batch at a time so no later batch can hide its readiness marker.
     const result = skipped
