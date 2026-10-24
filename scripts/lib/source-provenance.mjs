@@ -7,8 +7,13 @@ const execute = promisify(execFile);
 
 export async function publicSourceUrls(root, { hugo = process.env.HUGO || 'hugo' } = {}) {
     const { stdout } = await execute(hugo, ['list', 'published', '--source', root], { maxBuffer: 10 * 1024 * 1024 });
+    // Hugo may emit warning/info lines to stdout before the CSV header (version-dependent);
+    // keep only from the CSV header row onward.
+    const lines = stdout.split(/\r?\n/);
+    const headerIndex = lines.findIndex((line) => line.includes('permalink') && line.includes('path'));
+    const csvText = headerIndex >= 0 ? lines.slice(headerIndex).join('\n') : stdout;
     const sources = new Map();
-    for (const row of parse(stdout, { columns: true, skip_empty_lines: true })) {
+    for (const row of parse(csvText, { columns: true, skip_empty_lines: true, relax_column_count: true })) {
         const source = (path.isAbsolute(row.path) ? path.relative(root, row.path) : row.path).split(path.sep).join('/');
         if (source.startsWith('content/_context/')) continue;
         const url = new URL(row.permalink, 'https://hugo.invalid');

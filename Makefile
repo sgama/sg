@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
-.PHONY: help check check-env check-ns \
+.PHONY: help check check-node check-env check-ns \
 	serve dev-ai build postcss-build build-prod clean \
 	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
@@ -54,6 +54,11 @@ check: ## Verify hugo/node/npm (node 22+ required by wrangler)
 	@command -v $(NPM) >/dev/null || { echo "Missing npm"; exit 1; }
 	@$(NODE) -e 'if (Number(process.versions.node.split(".")[0]) < 22) { console.error("Node.js 22+ required"); process.exit(1); }'
 
+check-node: ## Verify node/npm (no Hugo required)
+	@command -v $(NODE) >/dev/null || { echo "Missing node"; exit 1; }
+	@command -v $(NPM) >/dev/null || { echo "Missing npm"; exit 1; }
+	@$(NODE) -e 'if (Number(process.versions.node.split(".")[0]) < 22) { console.error("Node.js 22+ required"); process.exit(1); }'
+
 check-env: ## Verify Cloudflare credentials are set
 	@test -n "$${CLOUDFLARE_ACCOUNT_ID:-}" || (echo "Missing CLOUDFLARE_ACCOUNT_ID" && exit 1)
 	@test -n "$${CLOUDFLARE_API_TOKEN:-}"  || (echo "Missing CLOUDFLARE_API_TOKEN"  && exit 1)
@@ -95,7 +100,7 @@ clean: ## Remove generated output within the repository's public build tree
 	test -z "$$(git ls-files -- "$$target")" || { echo "Refusing cleanup of tracked files: $$target"; exit 1; }; \
 	rm -rf -- "$$target"
 
-deps: check ## Install Node dependencies exactly from the lockfile
+deps: check-node ## Install Node dependencies exactly from the lockfile
 	@$(NPM) ci --no-fund
 
 ##@ Test & Audit
@@ -105,16 +110,16 @@ test: check ## Run the complete offline unit suite
 test-layouts: check ## Build Hugo fixtures and validate schema, public index, preloads and theme settings
 	@$(NODE) --test --test-timeout=120000 --test-reporter=$(TEST_REPORTER) tests/integration/layouts.test.mjs
 
-lint: check ## Lint all JavaScript with ESLint
+lint: check-node ## Lint all JavaScript with ESLint
 	@$(NPX) eslint . --max-warnings=0
 
-lint-fix: check ## Apply safe ESLint fixes
+lint-fix: check-node ## Apply safe ESLint fixes
 	@$(NPX) eslint . --max-warnings=0 --fix
 
-format: check ## Format JavaScript, source CSS and YAML (no Hugo content/templates)
+format: check-node ## Format JavaScript, source CSS and YAML (no Hugo content/templates)
 	@$(NPX) prettier --write "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 
-format-check: check ## Check formatting without edits
+format-check: check-node ## Check formatting without edits
 	@$(NPX) prettier --check "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 
 lint-workflows: ## Validate GitHub Actions with native actionlint
@@ -128,22 +133,22 @@ lint-workflows: ## Validate GitHub Actions with native actionlint
 install-actionlint: ## Install the pinned actionlint release using Go
 	@go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
 
-coverage: check ## Run offline tests with text, HTML and LCOV coverage
+coverage: check-node ## Run offline tests with text, HTML and LCOV coverage
 	@$(NODE) node_modules/c8/bin/c8.js $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
-audit-content: check ## Validate content front matter coverage (install dependencies first)
+audit-content: check-node ## Validate content front matter coverage (install dependencies first)
 	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs
 
-audit-urls: check ## Check external links (install dependencies first)
+audit-urls: check-node ## Check external links (install dependencies first)
 	@find content -name "*.md" -print0 | xargs -0 -r ./node_modules/.bin/markdown-link-check --config .markdown-link-check.json --quiet
 
 audit-site: audit-content audit-urls ## Run all content and link audits
 
-audit-rag: check ## Audit RAG prompt coverage, provenance and authoring gaps (offline)
+audit-rag: check-node ## Audit RAG prompt coverage, provenance and authoring gaps (offline)
 	@$(NODE) scripts/audit_rag.mjs
 
 ##@ AI
-ai-models: check ## List model aliases, parameters and dated prices (offline)
+ai-models: check-node ## List model aliases, parameters and dated prices (offline)
 	@$(NODE) scripts/ai-eval.mjs models
 
 ai-plan: check ## Validate corpus and write candidate manifest (offline)
@@ -153,7 +158,7 @@ ai-check: check ## Validate corpus IDs, model selection and evaluation labels (o
 	@$(NODE) scripts/generate_embeddings.mjs --check
 	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
 
-ai-build: check ## Bundle Pages Functions locally (no deployment)
+ai-build: check-node ## Bundle Pages Functions locally (no deployment)
 	@mkdir -p "$$REPORT_DIR"
 	@$(WRANGLER) pages functions build functions --outfile="$$REPORT_DIR/ai-functions-worker.js"
 
@@ -201,7 +206,7 @@ deploy-built: check check-env ## Deploy an already validated production build (n
 		--commit-hash=$$COMMIT_HASH \
 		--commit-message="$$COMMIT_MESSAGE"
 
-cleanup-deployments: check check-env ## Keep production rollback history; delete previews and unreferenced corpora
+cleanup-deployments: check-node check-env ## Keep production rollback history; delete previews and unreferenced corpora
 	@$(NODE) scripts/cleanup_deployments.mjs
 
 csp-headers: check ## Generate public/_headers CSP from a fresh build (run after make build-prod)
