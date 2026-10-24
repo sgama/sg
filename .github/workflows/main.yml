@@ -42,14 +42,15 @@ jobs:
         id: actionlint-version
         run: echo "version=$(make -s print-ACTIONLINT_VERSION)" >> "${GITHUB_OUTPUT}"
 
-      # Two cache entries with different lifetimes, so a content-only change never re-uploads
-      # the large, slow-moving one:
-      #   tools:  actionlint, Hugo and node_modules. Keyed by tool versions and the lockfile.
-      #   hugo-gen: processed images and assets (resources/_gen) and Hugo's compiled WebAssembly
-      #           (_warpc). Small; keyed by the inputs that change the output and restored from the
-      #           closest previous entry so unchanged images are never reprocessed.
-      # The Blowfish module (~365 MB) is deliberately not cached: downloading it takes about 3 s,
-      # less than restoring and re-saving it.
+      # Three cache entries with different lifetimes, so a content-only change never re-uploads the
+      # large, slow-moving ones:
+      #   tools:        actionlint, Hugo and node_modules. Keyed by tool versions and the lockfile.
+      #   hugo-modules: Hugo's cache dir, mostly the Blowfish module (~365 MB). Keyed by go.mod/go.sum,
+      #                 so it is saved only when the theme version changes. Downloading it instead took
+      #                 14s in CI, and parallel jobs racing to download it timed out a test.
+      #   hugo-gen:     processed images and assets (resources/_gen). Small; keyed by the inputs that
+      #                 change the output and restored from the closest previous entry so unchanged
+      #                 images are never reprocessed.
       - uses: actions/cache@v6
         with:
           path: |
@@ -61,9 +62,11 @@ jobs:
             ${{ runner.os }}-tools-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-
       - uses: actions/cache@v6
         with:
-          path: |
-            resources/_gen
-            ${{ env.HUGO_CACHEDIR }}/_warpc
+          path: ${{ env.HUGO_CACHEDIR }}
+          key: ${{ runner.os }}-hugo-modules-${{ env.HUGO_VERSION }}-${{ hashFiles('go.mod', 'go.sum') }}
+      - uses: actions/cache@v6
+        with:
+          path: resources/_gen
           key: ${{ runner.os }}-hugo-gen-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
           restore-keys: |
             ${{ runner.os }}-hugo-gen-${{ env.HUGO_VERSION }}-
@@ -90,6 +93,9 @@ jobs:
       # the one recorded in the restored node_modules.
       - name: Install Node dependencies
         run: make deps
+
+      # Fetch the Hugo modules once, before the parallel jobs, so they never race to download them.
+      - run: hugo mod graph > /dev/null
 
       # The offline checks are independent, so they run together (public runners have 4 vCPUs);
       # --output-sync keeps each target's log in one block. Make orders PostCSS before Hugo.

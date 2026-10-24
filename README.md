@@ -761,14 +761,15 @@ Pull requests targeting `develop` run `make ci-check` without Cloudflare credent
 or paid API calls. Production pushes run the same checks before refreshing the
 corpus, deploying the existing build, and pruning old deployments. Production
 runs remain serialized without cancellation to protect corpus/deployment updates.
-CI uses two cache entries with different lifetimes. The first holds actionlint,
-Hugo and `node_modules`, keyed by tool versions and the lockfile, so it is only
-re-saved when those change. The second holds `resources/_gen` (processed images
-and assets) and Hugo's compiled WebAssembly, keyed by Hugo version and the
+CI uses three cache entries with different lifetimes. The first holds actionlint,
+Hugo and `node_modules`, keyed by tool versions and the lockfile. The second holds
+Hugo's cache directory, mostly the Blowfish module (about 365 MB), keyed by `go.mod`
+and `go.sum`, so it is only re-saved when the theme version changes; downloading it
+instead took 14 seconds in CI and made parallel jobs race. The third holds
+`resources/_gen` (processed images and assets), keyed by Hugo version and the
 content, layouts and assets, and restored from the closest previous entry so
-unchanged images are never reprocessed. The Blowfish module (about 365 MB) is not
-cached: downloading it takes about three seconds, less than restoring and
-re-saving it. Both entries are saved after successful offline
+unchanged images are never reprocessed. A `hugo mod graph` step fetches the
+modules once before the parallel checks. All entries are saved after successful offline
 validation, before paid refresh or deployment. `make ci` remains a paid production workflow, not an offline
 check; use `make ci-check` for local validation.
 
