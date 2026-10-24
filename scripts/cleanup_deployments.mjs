@@ -189,9 +189,13 @@ export async function cleanupDeployments({
     verbose = false,
     wait = waitForMutation,
     sleep = delay,
+    progress = /** @type {(message: string) => void} */ (() => {}),
 }) {
+    const started = performance.now();
+    const mark = (message) => progress(`[${((performance.now() - started) / 1000).toFixed(1)}s] ${message}`);
     const activeId = await activeDeployment(client, project, accountId);
     const deployments = await inventory(client, project, accountId);
+    mark(`inventory: ${deployments.length} deployments, active ${activeId}`);
     if (!Number.isInteger(maxDeletes) || maxDeletes < 1) throw new Error('Invalid maximum deletions per run');
     if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error('Invalid deletion concurrency');
     const plan = planRetention(deployments, activeId, branch, previous, { now });
@@ -199,10 +203,12 @@ export async function cleanupDeployments({
     // re-checks every retained deployment, so the cap bounds how long one run can take.
     const batch = plan.remove.slice(0, maxDeletes);
     const deferred = plan.remove.length - batch.length;
+    mark(`plan: delete ${batch.length}${deferred ? ` (${deferred} deferred)` : ''}, retain ${plan.retain.length}`);
     const retainedIds = new Set(plan.retain.map((deployment) => deployment.id));
     const references = async (deployments) => referencedNamespaces(await retainedSnapshots(client, project, accountId, deployments));
     const referenced = await references(plan.retain);
     const vectors = await vectorInventory(client, accountId, indexName);
+    mark(`vectors: ${vectors.length} listed`);
     const staleIds = vectors
         .filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && !referenced.has(vector.namespace))
         .map((vector) => vector.id);
@@ -231,6 +237,7 @@ export async function cleanupDeployments({
                 throw new Error(`Deployment inventory changed during cleanup; stopping (acknowledged deletions still listed: ${pending.join(', ')})`);
             }
             // Only our acknowledged deletions may be stale; never retry unrelated inventory changes.
+            mark(`waiting for ${pending.length} deleted deployment(s) to leave the list (check ${attempt + 1})`);
             await sleep(1000);
         }
     };
@@ -249,6 +256,7 @@ export async function cleanupDeployments({
                         project_name: project,
                         ...(deployment.environment === 'preview' ? { force: true } : {}),
                     });
+                    mark(`deleted ${deployment.id} (${deployment.environment})`);
                     deletedIds.add(deployment.id);
                     remaining.delete(deployment.id);
                 }),
@@ -268,7 +276,9 @@ export async function cleanupDeployments({
             }
             lastMutationId = result.mutationId;
         }
+        mark(`vectors: ${vectorsToDelete.length} deleted`);
         if (lastMutationId) await wait(client, accountId, lastMutationId, { indexName });
+        mark('done');
         await assertStable(remaining);
     }
     return {
@@ -303,6 +313,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         previous: Number(values.keep),
         maxDeletes: Number(values['max-deletes']),
         concurrency: Number(values.concurrency),
+        progress: (message) => console.error(message),
     });
     console.log(JSON.stringify(result, null, 2));
 }

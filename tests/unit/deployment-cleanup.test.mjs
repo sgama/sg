@@ -68,6 +68,13 @@ test('verbose dry run explains why each deployment is retained or removed', asyn
         'production / develop / build:active': { count: 1, oldest: deployment(51).created_on },
     });
     assert.ok(result.removedDeployments.includes('d50'), 'other-branch production is removed');
+    const lines = [];
+    await cleanupDeployments({ ...data, accountId: 'account', dryRun: true, now, progress: (line) => lines.push(line) });
+    assert.match(lines[0], /^\[\d+\.\ds\] inventory: 10 deployments, active d8$/);
+    assert.ok(
+        lines.some((line) => /plan: delete \d+, retain 7/.test(line)),
+        lines.join('\n'),
+    );
 });
 
 test('by default only the active production deployment is kept; previews, finished and stale ones go, fresh builds stay', () => {
