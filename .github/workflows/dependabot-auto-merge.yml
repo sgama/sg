@@ -1,6 +1,8 @@
 name: Dependabot Auto-merge
 
-on: pull_request
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
@@ -11,8 +13,40 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - name: Enable auto-merge
+      - name: Check update type
+        id: update-type
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Parse the PR title for version change info
+          title="$PR_TITLE"
+          echo "PR title: $title"
+          # Dependabot titles look like: "chore(deps): bump X from 1.0.0 to 2.0.0"
+          if echo "$title" | grep -qE 'from [0-9]+\.[0-9]+\.[0-9]+ to [0-9]+\.[0-9]+\.[0-9]+'; then
+            old_major=$(echo "$title" | sed -E 's/.*from ([0-9]+)\..*/\1/')
+            new_major=$(echo "$title" | sed -E 's/.*to ([0-9]+)\..*/\1/')
+            if [ "$old_major" != "$new_major" ]; then
+              echo "major=true" >> "$GITHUB_OUTPUT"
+              echo "Major version update detected — requires manual review"
+            else
+              echo "major=false" >> "$GITHUB_OUTPUT"
+              echo "Minor/patch update — auto-merge eligible"
+            fi
+          else
+            echo "major=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enable auto-merge (minor/patch only)
+        if: steps.update-type.outputs.major != 'true'
         run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on major updates
+        if: steps.update-type.outputs.major == 'true'
+        run: |
+          gh pr comment "$PR_URL" --body "⚠️ Major version update detected. Auto-merge skipped — manual review required."
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

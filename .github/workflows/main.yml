@@ -25,6 +25,26 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 1
+      - name: Read pinned actionlint version
+        id: actionlint-version
+        run: |
+          version=$(awk '$1 == "ACTIONLINT_VERSION" && $2 == ":=" { print $3 }' Makefile)
+          test -n "$version"
+          echo "version=$version" >> "${GITHUB_OUTPUT}"
+      - uses: actions/cache@v6
+        id: actionlint-cache
+        with:
+          path: ${{ runner.temp }}/actionlint
+          key: ${{ runner.os }}-${{ runner.arch }}-actionlint-${{ steps.actionlint-version.outputs.version }}
+      - uses: actions/setup-go@v7
+        if: steps.actionlint-cache.outputs.cache-hit != 'true'
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install actionlint
+        if: steps.actionlint-cache.outputs.cache-hit != 'true'
+        run: GOBIN="${RUNNER_TEMP}/actionlint" make install-actionlint
+      - run: echo "${RUNNER_TEMP}/actionlint" >> "${GITHUB_PATH}"
       - uses: ./.github/actions/setup
       - run: make lint-workflows
       - run: make lint

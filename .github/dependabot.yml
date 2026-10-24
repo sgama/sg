@@ -1,5 +1,12 @@
 version: 2
-updates:
+# NOTE: Dependabot covers npm (package.json), gomod (go.mod), and github-actions
+# (workflow action versions). Pinned versions outside package managers are NOT
+# auto-checked and must be updated manually:
+#   - HUGO_VERSION in .github/workflows/main.yml (currently 0.167.0; Blowfish max)
+#   - node-version in .github/workflows/main.yml (currently 24)
+#   - compatibility_date in wrangler.toml (currently 2026-04-20)
+#   - Blowfish theme version in go.mod (covered by gomod ecosystem above)
+# Review these on the first Monday of each month.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -8,7 +15,7 @@ updates:
       time: '09:00'
       timezone: America/Vancouver
     target-branch: develop
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - npm
@@ -19,6 +26,9 @@ updates:
       npm:
         patterns:
           - '*'
+    # Auto-merge minor/patch; major updates require manual review
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: gomod
     directory: /
@@ -28,11 +38,10 @@ updates:
       time: '09:00'
       timezone: America/Vancouver
     target-branch: develop
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - go
-      - hugo-theme
     commit-message:
       prefix: 'chore(deps)'
       include: scope
@@ -49,7 +58,7 @@ updates:
       time: '09:00'
       timezone: America/Vancouver
     target-branch: develop
-    open-pull-requests-limit: 1
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - github-actions

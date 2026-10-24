@@ -1,0 +1,32 @@
+name: Close Stale Dependabot PRs
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Daily at 9 AM UTC
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  close-stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          # Only process dependabot PRs
+          only-pr-labels: 'dependencies'
+          # Close after 7 days with no stale warning period
+          days-before-stale: 7
+          days-before-close: 0
+          # Don't exempt any PRs
+          exempt-pr-labels: ''
+          # Message posted when closing
+          close-pr-message: 'Closed automatically: PR open longer than 7 days. A new update will be proposed on the next scheduled run.'
+          # Don't mark issues as stale (only PRs)
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          stale-pr-label: ''
+          # Remove stale label on activity
+          remove-stale-when-updated: true
