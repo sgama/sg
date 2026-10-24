@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fetchChatLogs, saveChatLog } from '../../functions/_lib/log.js';
 import { makeStream, drainStream, createContext } from '../helpers/mocks.mjs';
-import { onRequest } from '../../functions/api/logs.js';
+import { onRequest } from '../helpers/worker.mjs';
 
 test('KV list failures reject and the logs API reports an explicit 500', async (t) => {
     const error = new Error('KV unavailable');

@@ -5,4 +5,6 @@ interface Env {
     CHAT_LOGS?: KVNamespace;
     AI_MODEL?: string;
     AI_CORPUS_NAMESPACE?: string;
+    // The commit this version was deployed from (set by `make deploy-built`).
+    DEPLOY_COMMIT?: string;
 }

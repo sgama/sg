@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { onRequest } from '../../functions/api/chat.js';
+import { onRequest } from '../helpers/worker.mjs';
 import { createChatApp } from '../../functions/_lib/chat-app.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, URLS, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { createContext, makeStream, makeProviderStream } from '../helpers/mocks.mjs';

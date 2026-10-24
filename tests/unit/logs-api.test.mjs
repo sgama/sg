@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { onRequest } from '../../functions/api/logs.js';
+import { onRequest } from '../helpers/worker.mjs';
 import { buildKvKey, PAGINATION, TIMESTAMPS, URLS } from '../helpers/data.mjs';
 import { makeKv, createContext } from '../helpers/mocks.mjs';
 

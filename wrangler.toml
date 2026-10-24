@@ -1,6 +1,13 @@
-compatibility_date = "2026-04-20"
 name = "sg"
-pages_build_output_dir = "public"
+main = "functions/worker.js"
+compatibility_date = "2026-04-20"
+
+# The static site (Hugo's output) is served by Cloudflare directly. The Worker runs first only for the API paths
+# (functions/worker.js), so page requests never invoke it. Hugo emits 404.html for unknown pages.
+[assets]
+directory = "./public"
+not_found_handling = "404-page"
+run_worker_first = ["/api/*"]
 
 # Workers AI Binding (The "Brain")
 [ai]
@@ -12,7 +19,7 @@ binding = "AI"
 binding = "CHAT_LOGS"
 id = "2a8435a82e17425d8cff4b2777dbfd98"
 
-# Environment variables for the chat function (if needed)
+# Environment variables for the Worker. `make deploy-built` also sets DEPLOY_COMMIT (the commit being deployed).
 [vars]
 AI_MODEL = "glm"
 # CI sets AI_CORPUS_NAMESPACE after `make ai-refresh` finishes indexing the commit's corpus.
