@@ -7,7 +7,6 @@
 baseURL = "https://samsongama.com"
 buildDrafts = false  # https://gohugo.io/getting-started/configuration/#builddrafts
 buildFuture = false  # https://gohugo.io/getting-started/configuration/#buildfuture
-cleanDestinationDir = true  # https://gohugo.io/getting-started/configuration/#cleandestinationdir
 defaultContentLanguage = "en"  # https://gohugo.io/getting-started/configuration/#defaultcontentlanguage
 disableHugoGeneratorInject = true  # https://gohugo.io/getting-started/configuration/#disablehugogeneratorinject
 enableEmoji = true  # https://gohugo.io/getting-started/configuration/#enableemoji
@@ -35,6 +34,9 @@ title = "Samson Gama"
 # Build configuration - https://gohugo.io/getting-started/configuration/#configure-build
 [build]
 useResourceCacheWhen = "always"  # https://gohugo.io/getting-started/configuration/#configure-build
+
+[build.cleanDestinationDir]
+enable = true  # https://gohugo.io/configuration/build/#cleandestinationdir
 
 [build.buildStats]
 disableKinds = []  # Don't disable any content kinds
@@ -200,7 +202,7 @@ keepWhitespace = false
 
 [module.hugoVersion]
 extended = true
-min = "0.164.0"
+min = "0.167.0"
 
 # Theme and module imports - https://gohugo.io/hugo-modules/use-modules/
 [[module.imports]]
