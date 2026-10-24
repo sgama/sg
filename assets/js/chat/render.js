@@ -1,9 +1,7 @@
-export function createMessageRenderer({
-    loadModules = () => Promise.all([import('marked'), import('dompurify')]),
-    loadMermaid = () => import(window.__MERMAID_URL__ || 'mermaid'),
-    warn = (...args) => console.warn(...args),
-} = {}) {
+// Loaders are injected by the host; without them the renderer stays in plain-text mode.
+export function createMessageRenderer({ loadModules = null, loadMermaid = null, warn = (...args) => console.warn(...args) } = {}) {
     let markdown = null;
+    let warnedUnavailable = false;
     let loading = null;
     let purify = null;
     let diagrams = null;
@@ -15,6 +13,7 @@ export function createMessageRenderer({
             return markdown !== null;
         },
         load() {
+            if (!loadModules) return Promise.resolve();
             return (loading ??= Promise.resolve()
                 .then(loadModules)
                 .then(([markedModule, purifyModule]) => {
@@ -60,8 +59,11 @@ export function createMessageRenderer({
                         });
                 })
                 .catch((error) => {
-                    loading = null;
-                    warn('Chat markdown unavailable; displaying plain text.', error);
+                    loading = null; // a later load() may retry
+                    if (!warnedUnavailable) {
+                        warnedUnavailable = true;
+                        warn('Chat markdown unavailable; displaying plain text.', error);
+                    }
                 }));
         },
         renderDiagrams(element) {
@@ -70,10 +72,15 @@ export function createMessageRenderer({
                 rendering.add(code);
                 diagramQueue = diagramQueue.then(async () => {
                     try {
-                        const module = await (diagrams ??= loadMermaid().catch((error) => {
-                            diagrams = null;
-                            throw error;
-                        }));
+                        const module = await (diagrams ??= Promise.resolve()
+                            .then(() => {
+                                if (!loadMermaid) throw new Error('Mermaid is not configured.');
+                                return loadMermaid();
+                            })
+                            .catch((error) => {
+                                diagrams = null;
+                                throw error;
+                            }));
                         const mermaid = module.default;
                         mermaid.initialize({
                             startOnLoad: false,
@@ -122,5 +129,3 @@ export function createMessageRenderer({
         },
     };
 }
-
-export const messageRenderer = createMessageRenderer();

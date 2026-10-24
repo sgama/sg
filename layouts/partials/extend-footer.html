@@ -75,11 +75,12 @@
     </dialog>
 </template>
 
-<ai-chat-widget id="ai-chat-widget" class="chat-widget"></ai-chat-widget>
-
-{{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js" "externals" (slice "mermaid")) | resources.Minify | resources.Fingerprint }}
+{{/* Libraries are separate entries so the widget bundle stays small; the widget loads them by URL. */}}
+{{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js") | resources.Minify | resources.Fingerprint }}
+{{ $markdown_js := resources.Get "js/chat/markdown-entry.js" | js.Build (dict "targetPath" "js/chat-markdown.js") | resources.Minify | resources.Fingerprint }}
 {{ $mermaid_js := resources.Get "js/mermaid-entry.js" | js.Build (dict "targetPath" "js/mermaid.js") | resources.Minify | resources.Fingerprint }}
-<script>window.__MERMAID_URL__ = "{{ $mermaid_js.RelPermalink }}";</script>
+<ai-chat-widget id="ai-chat-widget" class="chat-widget"
+    data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ $mermaid_js.RelPermalink }}"></ai-chat-widget>
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
 {{ $site_js := resources.Get "js/site.js" | resources.Minify | resources.Fingerprint }}

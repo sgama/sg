@@ -1,6 +1,5 @@
 import { apiHistory, readHistory, STORAGE_KEY } from './history.js';
 import { streamAnswer as fetchAnswer } from './stream.js';
-import { publicEvidence } from './evidence.js';
 import { formatResponseMetrics } from './metrics.js';
 import { failureMessage, stageLabel } from './session.js';
 
@@ -15,7 +14,7 @@ export const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information fro
  *   message:update  { message }      a message's text changed
  *   history:reset   {}               the whole conversation was replaced
  *   busy            { busy }         a request started or finished
- *   stage           { request }      the server reported a new progress stage
+ *   stage           { request }      the server reported a new progress stage (request is a snapshot)
  *   answer          { request }      streamed answer text advanced
  *   status          { text }         a user-facing status line changed
  */
@@ -31,7 +30,27 @@ export function createChatController({
     let messages = [];
     let request = null;
 
-    const emit = (event) => listeners.forEach((listener) => listener(event));
+    // A failing view must not corrupt controller state, so each listener is isolated.
+    const emit = (event) => {
+        for (const listener of listeners) {
+            try {
+                listener(event);
+            } catch (error) {
+                log.error('Chat view failed to render an update.', error);
+            }
+        }
+    };
+    let nextId = 0;
+    // Views receive snapshots, never the live request (which holds the AbortController). `message` is
+    // shared by reference so the view can map it to its element.
+    const snapshot = (active) => ({
+        id: active.id,
+        message: active.message,
+        query: active.query,
+        stage: active.stage,
+        answer: active.answer,
+        elapsedMs: now() - active.started,
+    });
     const persist = () =>
         storage.set(
             STORAGE_KEY,
@@ -58,11 +77,12 @@ export function createChatController({
     function onStage(active, stage) {
         if (!isCurrent(active)) return;
         active.stage = stageLabel(stage);
-        emit({ type: 'stage', request: active });
+        emit({ type: 'stage', request: snapshot(active) });
     }
 
     function onEvidence(active, value) {
-        if (isCurrent(active)) active.message.evidence = publicEvidence(value);
+        // Stored as received; the view filters evidence to public sources at render time.
+        if (isCurrent(active)) active.message.evidence = value;
     }
 
     function onMetrics(active, metrics) {
@@ -74,7 +94,7 @@ export function createChatController({
     function onAnswer(active, answer) {
         if (!isCurrent(active)) return;
         active.answer = answer;
-        emit({ type: 'answer', request: active });
+        emit({ type: 'answer', request: snapshot(active) });
     }
 
     async function run(active) {
@@ -106,6 +126,7 @@ export function createChatController({
         const message = { text: '', sender: 'bot' };
         add(message);
         const active = {
+            id: ++nextId,
             query,
             history,
             message,
@@ -155,7 +176,7 @@ export function createChatController({
             return messages;
         },
         get activeRequest() {
-            return request;
+            return request ? snapshot(request) : null;
         },
         get busy() {
             return request !== null;

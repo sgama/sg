@@ -46,12 +46,18 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
     };
 }
 
-export async function streamAnswer(query, { history = [], signal, onUpdate, onMetrics, onProgress, onEvidence, fetcher = fetch }) {
+// A stalled stream fails instead of leaving the widget busy forever; the user can still cancel earlier.
+const REQUEST_TIMEOUT_MS = 120_000;
+
+export async function streamAnswer(
+    query,
+    { history = [], signal, onUpdate, onMetrics, onProgress, onEvidence, fetcher = fetch, timeoutMs = REQUEST_TIMEOUT_MS },
+) {
     const response = await fetcher('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, history }),
-        signal,
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
     if (!response.body) throw new Error('Chat response has no stream');

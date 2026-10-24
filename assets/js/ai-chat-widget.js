@@ -1,6 +1,6 @@
 import { createStore, SESSION_OPEN_KEY } from './chat/history.js';
 import { createChatScroller } from './chat/scroll.js';
-import { messageRenderer } from './chat/render.js';
+import { createMessageRenderer } from './chat/render.js';
 import { createMetricsFooter } from './chat/metrics.js';
 import { publicEvidence, createEvidencePanel } from './chat/evidence.js';
 import { createChatController, WELCOME_MESSAGE } from './chat/controller.js';
@@ -25,6 +25,7 @@ class AiChatWidget extends HTMLElement {
     #controller = createChatController({ storage: createStore(() => localStorage, { json: true }) });
     #unsubscribe = null;
     #session = createStore(() => sessionStorage);
+    #renderer = null;
     #opener = null;
     #openFrame = null;
     #conversationReady = false;
@@ -49,10 +50,28 @@ class AiChatWidget extends HTMLElement {
             return;
         }
         this.#events = new AbortController();
+        this.#renderer ??= this.#createRenderer();
         this.#unsubscribe = this.#controller.subscribe((event) => this.#render(event));
         this.#bindEvents();
         this.#setBusy(false);
         if (this.#session.get(SESSION_OPEN_KEY) === 'true') this.open();
+    }
+
+    // Markdown and diagram libraries are separate build entries, referenced by URL from data attributes.
+    // A missing URL is a misconfiguration: the loader rejects, so the renderer warns and shows plain text.
+    #createRenderer() {
+        const { markdownSrc, mermaidSrc } = this.dataset ?? {};
+        return createMessageRenderer({
+            loadModules: async () => {
+                if (!markdownSrc) throw new Error('Markdown library URL is not configured.');
+                const { marked, DOMPurify } = await import(markdownSrc);
+                return [{ marked }, { default: DOMPurify }];
+            },
+            loadMermaid: () => {
+                if (!mermaidSrc) return Promise.reject(new Error('Mermaid library URL is not configured.'));
+                return import(mermaidSrc);
+            },
+        });
     }
 
     disconnectedCallback() {
@@ -117,8 +136,8 @@ class AiChatWidget extends HTMLElement {
         });
         this.#controller.load();
         const events = this.#events;
-        messageRenderer.load().then(() => {
-            if (events.signal.aborted || !this.isConnected || !messageRenderer.ready) return;
+        this.#renderer.load().then(() => {
+            if (events.signal.aborted || !this.isConnected || !this.#renderer.ready) return;
             this.#dom.transcript.querySelectorAll('.message--bot').forEach((element) => this.#writeMessage(element, element.dataset.rawText, 'bot'));
             this.#scroller.changed();
         });
@@ -238,7 +257,7 @@ class AiChatWidget extends HTMLElement {
     #showElapsed() {
         const active = this.#controller.activeRequest;
         if (!active || active.answer) return;
-        const label = `${active.stage} · ${Math.floor((performance.now() - active.started) / 1000)}s elapsed`;
+        const label = `${active.stage} · ${Math.floor(active.elapsedMs / 1000)}s elapsed`;
         this.#elementOf.get(active.message).textContent = label;
         this.#scroller.changed();
     }
@@ -249,9 +268,8 @@ class AiChatWidget extends HTMLElement {
         if (this.#frame !== null) return;
         this.#frame = requestAnimationFrame(() => {
             this.#frame = null;
-            if (this.#controller.activeRequest === request) {
-                this.#writeMessage(this.#elementOf.get(request.message), request.answer, 'bot');
-            }
+            const current = this.#controller.activeRequest;
+            if (current?.id === request.id) this.#writeMessage(this.#elementOf.get(current.message), current.answer, 'bot');
         });
     }
 
@@ -280,10 +298,10 @@ class AiChatWidget extends HTMLElement {
     }
 
     #writeMessage(element, text, sender) {
-        messageRenderer.write(element, text, sender);
+        this.#renderer.write(element, text, sender);
         const message = this.#messageOf.get(element);
         const evidence = sender === 'bot' && message?.evidence ? publicEvidence(message.evidence) : null;
-        if (evidence?.length) element.append(createEvidencePanel(evidence, document, messageRenderer));
+        if (evidence?.length) element.append(createEvidencePanel(evidence, document, this.#renderer));
         const retry = message ? this.#controller.retryFor(message) : null;
         if (retry) {
             const button = document.createElement('button');
