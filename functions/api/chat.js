@@ -1,4 +1,4 @@
-import { handle } from 'hono/cloudflare-pages';
+import { pagesHandler } from '../_lib/pages-adapter.js';
 import { createChatApp } from '../_lib/chat-app.js';
 
-export const onRequest = handle(createChatApp());
+export const onRequest = pagesHandler(createChatApp());

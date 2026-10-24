@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { handle } from 'hono/cloudflare-pages';
 import { CONFIG } from '../_lib/application.js';
 import { LogService } from '../_lib/log.js';
+import { pagesHandler } from '../_lib/pages-adapter.js';
 
 const app = new Hono();
 
@@ -35,4 +35,4 @@ app.onError((err, c) => {
     return c.json({ error: 'Internal Server Error' }, 500);
 });
 
-export const onRequest = handle(app);
+export const onRequest = pagesHandler(app);
