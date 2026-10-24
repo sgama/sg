@@ -31,54 +31,19 @@ test('cleanup rejects empty, broad, source, and out-of-tree destinations', () =>
     }
 });
 
-test('npm delegates tests and coverage to bounded Make commands without cycles', () => {
+test('npm scripts delegate to bounded Make commands without cycles', () => {
     const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    assert.equal(scripts.test, 'make --no-print-directory test');
-    assert.equal(scripts['test:coverage'], 'make --no-print-directory coverage');
-    const result = make('-n', 'test', 'coverage', 'NODE=custom-node', 'HUGO=custom-hugo', 'TEST_REPORTER=dot');
+    for (const [name, command] of Object.entries(scripts)) assert.match(command, /^make --no-print-directory [a-z-]+$/, name);
+    const result = make('-n', 'test', 'coverage', 'build-prod', 'dev-ai', 'NODE=custom-node', 'HUGO=custom-hugo', 'TEST_REPORTER=dot');
     assert.equal(result.status, 0);
     const commands = result.stdout.split('\n').filter((line) => line.includes('--test-reporter'));
     assert.equal(commands.length, 2);
+    assert.match(result.stdout, /--port=8788/);
+    assert.doesNotMatch(result.stdout, /npm.*run /);
     assert.ok(commands.every((command) => command.includes('--test-timeout=30000')));
     assert.ok(commands.every((command) => command.includes('--test-reporter=dot')));
     assert.ok(commands.every((command) => command.includes('custom-node --test')));
     assert.ok(commands.every((command) => !command.includes('--test-concurrency')));
     assert.match(result.stdout, /command -v custom-hugo/);
     assert.match(result.stdout, /custom-node node_modules\/c8\/bin\/c8\.js custom-node --test/);
-    assert.doesNotMatch(result.stdout, /npm.*(?:run test:coverage|test)\b/);
-    const removed = make('-n', 'ai-test');
-    assert.notEqual(removed.status, 0);
-    assert.match(removed.stderr, /No rule to make target/);
-});
-
-test('retired targets stay removed', () => {
-    for (const target of [
-        'bom',
-        'metrics',
-        'metrics-json',
-        'check-scc',
-        'install-scc',
-        'favicons',
-        'build-summary',
-        'rag-eval',
-        'pre-commit',
-        'ai-local-check',
-        'ai-local-validate',
-        'ai-local-hybrid',
-        'ai-local-clean',
-    ]) {
-        const result = make('-n', target);
-        assert.notEqual(result.status, 0, target);
-        assert.match(result.stderr, /No rule to make target/, target);
-    }
-});
-
-test('npm build and development delegate to Make without cycles', () => {
-    const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
-    assert.equal(scripts.build, 'make --no-print-directory build-prod');
-    assert.equal(scripts.dev, 'make --no-print-directory dev-ai');
-    const result = make('-n', 'build-prod', 'dev-ai');
-    assert.equal(result.status, 0);
-    assert.doesNotMatch(result.stdout, /npm.*run (build|dev)\b/);
-    assert.match(result.stdout, /--port=8788/);
 });

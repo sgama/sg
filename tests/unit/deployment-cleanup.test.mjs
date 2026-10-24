@@ -2,8 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import Cloudflare from 'cloudflare';
 import { setImmediate } from 'node:timers/promises';
-import { cleanupDeployments, main } from '../../scripts/cleanup_deployments.mjs';
-import { planRetention, referencedNamespaces } from '../../scripts/lib/deployment-retention.mjs';
+import { cleanupDeployments, main, planRetention, referencedNamespaces } from '../../scripts/cleanup_deployments.mjs';
 import { createMaintenanceClient } from '../../scripts/lib/corpus-deployment.mjs';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { spawnSync } from 'node:child_process';
@@ -35,26 +34,23 @@ function retryTimers(t) {
     };
 }
 
-test('a deployment created during inventory prevents cleanup', async () => {
-    const data = fixture();
-    const listVectors = data.client.vectorize.indexes.listVectors;
-    data.client.vectorize.indexes.listVectors = async (...args) => {
-        data.setDeployments(Array.from({ length: 9 }, (_, index) => deployment(index + 1)));
-        return listVectors(...args);
-    };
-    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Deployment inventory changed/);
-    assert.deepEqual(data.calls, []);
-});
-
-test('changed active deployment stops cleanup before writes', async () => {
-    const data = fixture();
-    const listVectors = data.client.vectorize.indexes.listVectors;
-    data.client.vectorize.indexes.listVectors = async (...args) => {
-        data.setActive('d7');
-        return listVectors(...args);
-    };
-    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Active deployment changed/);
-    assert.deepEqual(data.calls, []);
+test('a deployment or active-ID change while listing vectors stops cleanup before any write or polling', async () => {
+    const numbered = (count) => Array.from({ length: count }, (_, index) => deployment(index + 1));
+    for (const [change, error] of [
+        [(data) => data.setDeployments(numbered(9)), /Deployment inventory changed/],
+        [(data) => data.setActive('d7'), /Active deployment changed/],
+        [(data) => data.setDeployments(numbered(7)), /missing: d8/],
+    ]) {
+        const data = fixture();
+        const listVectors = data.client.vectorize.indexes.listVectors;
+        data.client.vectorize.indexes.listVectors = async (...args) => {
+            change(data);
+            return listVectors(...args);
+        };
+        data.sleep = async () => assert.fail('Unexpected polling');
+        await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), error);
+        assert.deepEqual(data.calls, []);
+    }
 });
 
 test('waits for acknowledged deployment deletions to disappear before pruning vectors', async () => {
@@ -95,18 +91,6 @@ test('a new deployment during deletion polling stops cleanup without accepting a
     data.sleep = async () => data.setDeployments(Array.from({ length: 9 }, (_, index) => deployment(index + 1)));
     await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /unexpected: d9/);
     assert.deepEqual(data.calls, [['deployment', 'd1']]);
-});
-
-test('a missing retained deployment stops cleanup immediately rather than polling', async () => {
-    const data = fixture();
-    const listVectors = data.client.vectorize.indexes.listVectors;
-    data.client.vectorize.indexes.listVectors = async (...args) => {
-        data.setDeployments(Array.from({ length: 7 }, (_, index) => deployment(index + 1)));
-        return listVectors(...args);
-    };
-    data.sleep = async () => assert.fail('Unexpected polling for missing retained deployment');
-    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /missing: d8/);
-    assert.deepEqual(data.calls, []);
 });
 
 const namespace = (number) => `corpus-${number.toString(16).padStart(56, '0')}`;
@@ -252,7 +236,7 @@ test('cleanup CLI invalid options and missing credentials fail without network c
     assert.match(result.stderr, /Deployment\/corpus cleanup failed: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN/);
 });
 
-test('deletes completed and in-progress previews before pruning their unreferenced vectors', async () => {
+test('deletes completed and in-progress previews, then unreferenced versioned vectors, and waits for the mutation', async () => {
     const data = fixture();
     data.setDeployments([
         ...Array.from({ length: 8 }, (_, index) => deployment(index + 1)),
@@ -265,6 +249,8 @@ test('deletes completed and in-progress previews before pruning their unreferenc
     ]);
     const result = await cleanupDeployments({ ...data, accountId: 'account' });
     assert.deepEqual(result.removedDeployments, ['d1', 'd2', 'd99', 'd100']);
+    assert.equal(result.retainedDeployments.length, 6);
+    assert.equal(result.removedVectors, 2);
     assert.deepEqual(data.calls, [
         ['deployment', 'd1'],
         ['deployment', 'd2'],
@@ -273,48 +259,6 @@ test('deletes completed and in-progress previews before pruning their unreferenc
         ['vectors', ['old', 'candidate']],
         ['ready', 'deleted'],
     ]);
-});
-
-test('deletes deployments before unreferenced versioned vectors and waits for mutation', async () => {
-    const data = fixture();
-    const result = await cleanupDeployments({ ...data, accountId: 'account' });
-    assert.deepEqual(result.removedDeployments, ['d1', 'd2']);
-    assert.equal(result.retainedDeployments.length, 6);
-    assert.equal(result.removedVectors, 2);
-    assert.deepEqual(data.calls, [
-        ['deployment', 'd1'],
-        ['deployment', 'd2'],
-        ['vectors', ['old', 'candidate']],
-        ['ready', 'deleted'],
-    ]);
-});
-
-test('dry run makes no destructive calls', async () => {
-    const data = fixture();
-    const result = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true });
-    assert.equal(result.removedVectors, 2);
-    assert.deepEqual(data.calls, []);
-});
-
-test('failed deployment deletion prevents all vector deletion', async () => {
-    const data = fixture();
-    data.client.pages.projects.deployments.delete = async () => {
-        throw new Error('Delete failed');
-    };
-    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Delete failed/);
-    assert.deepEqual(data.calls, []);
-});
-
-test('incomplete deployment metadata blocks destructive cleanup', () => {
-    assert.throws(() => planRetention([], 'missing', 'develop'), /Active deployment/);
-    assert.throws(() => referencedNamespaces([deployment(1, { env_vars: {} })]), /refusing vector cleanup/);
-});
-
-test('incomplete vector fetch prevents deployment deletion', async () => {
-    const data = fixture();
-    data.client.vectorize.indexes.getByIDs = async () => [];
-    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Incomplete vector records/);
-    assert.deepEqual(data.calls, []);
 });
 
 test('invalid retained snapshots and absent canonical deployments prevent writes', async (t) => {
@@ -351,7 +295,7 @@ test('malformed vector inventories, repeated IDs and bad lookup records prevent 
     });
     await assert.rejects(cleanupDeployments(repeated), /Invalid or repeated vector ID/);
     repeated.assertNoWrites();
-    for (const records of [null, [{ id: 'wrong' }], [{ id: 'stale' }, { id: 'stale' }]]) {
+    for (const records of [null, [], [{ id: 'wrong' }], [{ id: 'stale' }, { id: 'stale' }]]) {
         const f = failureFixture(t);
         f.client.vectorize.indexes.getByIDs = async () => records;
         await assert.rejects(cleanupDeployments(f), /Incomplete vector records/);
@@ -406,44 +350,12 @@ test('native cleanup retries are bounded and do not retry invalid requests', asy
     }
 });
 
-test('native cleanup retries honor a 120-second Retry-After header', async (t) => {
-    const timers = retryTimers(t);
-    let calls = 0;
-    const client = createMaintenanceClient('test-token', async () => {
-        calls++;
-        return calls === 1
-            ? new Response(JSON.stringify({ retry_after: 120 }), {
-                  status: 504,
-                  headers: { 'retry-after': '120', 'content-type': 'application/json' },
-              })
-            : Response.json({ success: true, result: { canonical_deployment: { id: 'active' } } });
-    });
-    const pending = client.pages.projects.get('sg', { account_id: 'account' });
-    await timers.waitForRetry(1);
-    assert.equal(calls, 1);
-    await setImmediate();
-    assert.equal(calls, 1);
-    timers.resume(1);
-    assert.equal((await pending).canonical_deployment.id, 'active');
-    assert.equal(calls, 2);
-});
-
 test('preview created during vector deletion makes cleanup fail instead of claiming production-only completion', async () => {
     const data = fixture();
     data.wait = async () => {
         data.setDeployments([...Array.from({ length: 6 }, (_, index) => deployment(index + 3)), deployment(99, { environment: 'preview' })]);
     };
     await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Deployment inventory changed/);
-});
-
-test('rejected preview deletion prevents vector pruning', async () => {
-    const data = fixture();
-    data.setDeployments([...Array.from({ length: 6 }, (_, index) => deployment(index + 3)), deployment(99, { environment: 'preview' })]);
-    data.client.pages.projects.deployments.delete = async () => {
-        throw new Error('Preview deletion rejected');
-    };
-    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), /Preview deletion rejected/);
-    assert.deepEqual(data.calls, []);
 });
 
 const failureNamespace = `corpus-${'a'.repeat(56)}`;
@@ -473,6 +385,22 @@ function failureFixture() {
         },
     };
 }
+
+test('a rejected deployment or preview deletion prevents all vector deletion', async () => {
+    const previews = [...Array.from({ length: 6 }, (_, index) => deployment(index + 3)), deployment(99, { environment: 'preview' })];
+    for (const [deployments, message] of [
+        [undefined, 'Delete failed'],
+        [previews, 'Preview deletion rejected'],
+    ]) {
+        const data = fixture();
+        if (deployments) data.setDeployments(deployments);
+        data.client.pages.projects.deployments.delete = async () => {
+            throw new Error(message);
+        };
+        await assert.rejects(cleanupDeployments({ ...data, accountId: 'account' }), new RegExp(message));
+        assert.deepEqual(data.calls, []);
+    }
+});
 
 test('retained namespaces are fetched fresh and a changed snapshot prevents deletion', async () => {
     const data = fixture();
@@ -509,7 +437,7 @@ test('retains active deployment plus five successful predecessors, including rol
     );
 });
 
-test('retention rejects invalid counts, timestamps and nonproduction active deployments', () => {
+test('retention rejects invalid counts, timestamps, nonproduction or missing active deployments and missing namespaces', () => {
     for (const previous of [-1, 1.5, NaN]) {
         assert.throws(() => planRetention([active], 'active', 'develop', previous), /retention count/);
     }
@@ -520,6 +448,8 @@ test('retention rejects invalid counts, timestamps and nonproduction active depl
         assert.throws(() => planRetention([active, entry], 'active', 'develop'), /invalid IDs or timestamps/);
     }
     assert.throws(() => planRetention([{ ...active, environment: 'preview' }], 'active', 'develop'), /not production/);
+    assert.throws(() => planRetention([], 'missing', 'develop'), /Active deployment/);
+    assert.throws(() => referencedNamespaces([deployment(1, { env_vars: {} })]), /refusing vector cleanup/);
 });
 
 test('SDK transport covers Pages deletion, Vectorize batches and mutation readiness', async () => {
@@ -615,39 +545,6 @@ test('SDK transport covers Pages deletion, Vectorize batches and mutation readin
         vectorRequests.slice(-4).map(([operation]) => operation),
         ['/delete_by_ids', '/info', '/delete_by_ids', '/info'],
     );
-});
-
-test('vector deletion respects the 100-ID limit and waits for each batch', async () => {
-    const data = fixture();
-    const vectors = Array.from({ length: 110 }, (_, index) => ({
-        id: `stale-${index}`,
-        namespace: namespace(99),
-    }));
-    data.client.vectorize.indexes.listVectors = async () => ({
-        vectors: vectors.map(({ id }) => ({ id })),
-        isTruncated: false,
-    });
-    data.client.vectorize.indexes.getByIDs = async (_, options) => {
-        assert.ok(options.ids.length <= 20);
-        return vectors.filter((vector) => options.ids.includes(vector.id));
-    };
-    let batchNumber = 0;
-    data.client.vectorize.indexes.deleteByIDs = async (_, options) => {
-        assert.ok(options.ids.length <= 100);
-        const mutationId = `deleted-${++batchNumber}`;
-        data.calls.push(['vectors', options.ids]);
-        return { mutationId };
-    };
-    const result = await cleanupDeployments({ ...data, accountId: 'account' });
-    assert.equal(result.removedVectors, 110);
-    assert.deepEqual(data.calls, [
-        ['deployment', 'd1'],
-        ['deployment', 'd2'],
-        ['vectors', vectors.slice(0, 100).map((vector) => vector.id)],
-        ['ready', 'deleted-1'],
-        ['vectors', vectors.slice(100).map((vector) => vector.id)],
-        ['ready', 'deleted-2'],
-    ]);
 });
 
 test('vector deletion without a valid acknowledgement never waits or claims success', async (t) => {

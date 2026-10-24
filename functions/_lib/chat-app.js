@@ -2,10 +2,30 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { AppError, CONFIG } from './application.js';
-import { isPromptInjectionAttempt, ChatRequestSchema } from './validation.js';
+import { isPromptInjectionAttempt, ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
+import { createSseMessageStream } from './chat-stream.js';
+import { LogService } from './log.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
-import { answerChat as defaultAnswerChat } from './chat-flow.js';
+
+/**
+ * One chat turn: retrieve context, announce evidence, then either abstain or
+ * generate. Returns the answer stream, wrapped for logging when a log store is
+ * bound. Events leave through `emit`, so the route owns the transport.
+ */
+async function defaultAnswerChat({ aiService, env, executionCtx, query, history, emit }) {
+    const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));
+    await emit({ evidence });
+
+    let stream;
+    if (shouldAbstainForMissingContext(contextText)) {
+        stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
+    } else {
+        await emit({ progress: 'generation' });
+        stream = await aiService.generateStream(query, contextText, history);
+    }
+    return env.CHAT_LOGS ? LogService.save(env, query, stream, executionCtx) : stream;
+}
 
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 

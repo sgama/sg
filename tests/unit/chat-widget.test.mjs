@@ -234,44 +234,46 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
     };
 }
 
-test('answer parser forwards progress, evidence and metrics apart from the answer text', () => {
-    const seen = { answers: [], metrics: [], progress: [], evidence: [] };
-    const parser = createAnswerParser(
-        (text) => seen.answers.push(text),
-        (value) => seen.metrics.push(value),
-        {
-            onProgress: (stage) => seen.progress.push(stage),
-            onEvidence: (value) => seen.evidence.push(value),
-        },
-    );
-    parser.push('data: {"progress":"search"}\ndata: {"evidence":[]}\ndata: {"response":"Answer"}\ndata: {"metrics":{"totalMs":123}}\ndata: [DONE]\n');
-    assert.deepEqual(seen, { answers: ['Answer'], metrics: [{ totalMs: 123 }], progress: ['search'], evidence: [[]] });
-});
-
-test('answer parser handles split CRLF events, usage, and completion', () => {
-    const deltas = [];
-    const parser = createAnswerParser((delta) => deltas.push(delta));
-    parser.push('data:{"response":"Hel');
-    parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n');
-    parser.push('data: {"response":"!"}\ndata: [DONE]\ndata: {"response":"ignored"}\n');
-    parser.flush();
-    assert.deepEqual(deltas, ['Hello', '!']);
-    assert.equal(parser.finished, true);
-});
-
-test('answer parser rejects provider errors and malformed events', () => {
-    const malformed = [
-        { error: 'Provider failed' },
-        { response: 42 },
-        { progress: 'invented' },
-        { evidence: null },
-        { metrics: [] },
-        null,
-        [],
-        'invalid',
-    ];
-    for (const event of malformed) {
-        assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify(event)}\n`));
+test('answer parser separates metadata from answer text, handles split events and rejects malformed ones', () => {
+    {
+        const seen = { answers: [], metrics: [], progress: [], evidence: [] };
+        const parser = createAnswerParser(
+            (text) => seen.answers.push(text),
+            (value) => seen.metrics.push(value),
+            {
+                onProgress: (stage) => seen.progress.push(stage),
+                onEvidence: (value) => seen.evidence.push(value),
+            },
+        );
+        parser.push(
+            'data: {"progress":"search"}\ndata: {"evidence":[]}\ndata: {"response":"Answer"}\ndata: {"metrics":{"totalMs":123}}\ndata: [DONE]\n',
+        );
+        assert.deepEqual(seen, { answers: ['Answer'], metrics: [{ totalMs: 123 }], progress: ['search'], evidence: [[]] });
+    }
+    {
+        const deltas = [];
+        const parser = createAnswerParser((delta) => deltas.push(delta));
+        parser.push('data:{"response":"Hel');
+        parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n');
+        parser.push('data: {"response":"!"}\ndata: [DONE]\ndata: {"response":"ignored"}\n');
+        parser.flush();
+        assert.deepEqual(deltas, ['Hello', '!']);
+        assert.equal(parser.finished, true);
+    }
+    {
+        const malformed = [
+            { error: 'Provider failed' },
+            { response: 42 },
+            { progress: 'invented' },
+            { evidence: null },
+            { metrics: [] },
+            null,
+            [],
+            'invalid',
+        ];
+        for (const event of malformed) {
+            assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify(event)}\n`));
+        }
     }
 });
 
@@ -627,25 +629,6 @@ test('stream reader decodes fragmented UTF-8 and posts the query and history API
     assert.equal(updates.at(-1), answer);
 });
 
-test('successful submissions persist answers and restore idle state', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    await f.submit(' Question ');
-    const history = JSON.parse(f.local.get(STORAGE_KEY));
-    assert.deepEqual(history.slice(1), [
-        { sender: 'user', text: 'Question' },
-        { sender: 'bot', text: 'Answer' },
-    ]);
-    assert.equal(f.roles.status.textContent, 'Response complete.');
-    assert.equal(f.roles.transcript.attributes.get('aria-busy'), 'false');
-    f.roles.close.dispatchEvent(new Event('click'));
-    assert.equal(f.roles.window.open, false);
-    f.widget.toggle();
-    assert.equal(f.roles.window.open, true);
-    f.widget.toggle();
-    assert.equal(f.roles.window.open, false);
-});
-
 test('widget defers history reads and transcript rendering until first open', async (t) => {
     const f = await widgetFixture(t, { history: [{ sender: 'bot', text: 'Saved answer' }] });
     assert.equal(f.reads.mock.callCount(), 0);
@@ -744,10 +727,10 @@ test('widget renders and persists response metrics outside answer text and API h
     assert.deepEqual(apiHistory(saved, saved[0].text).at(-1), { role: 'assistant', content: 'Answer' });
 });
 
-test('widget sends prior user and assistant turns with follow-up questions', async (t) => {
+test('widget sends prior turns with follow-ups, persists answers and restores idle state', async (t) => {
     const f = await widgetFixture(t);
     f.widget.open();
-    await f.submit('What did Samson do last?');
+    await f.submit(' What did Samson do last? ');
     await f.submit('Most recently?');
     assert.deepEqual(f.fetchRequests, [
         { query: 'What did Samson do last?', history: [] },
@@ -759,4 +742,14 @@ test('widget sends prior user and assistant turns with follow-up questions', asy
             ],
         },
     ]);
+    assert.deepEqual(JSON.parse(f.local.get(STORAGE_KEY)).slice(-2), [
+        { sender: 'user', text: 'Most recently?' },
+        { sender: 'bot', text: 'Answer' },
+    ]);
+    assert.equal(f.roles.status.textContent, 'Response complete.');
+    assert.equal(f.roles.transcript.attributes.get('aria-busy'), 'false');
+    f.roles.close.dispatchEvent(new Event('click'));
+    assert.equal(f.roles.window.open, false);
+    f.widget.toggle();
+    assert.equal(f.roles.window.open, true);
 });

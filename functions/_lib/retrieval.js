@@ -1,5 +1,7 @@
-// Retrieval helpers: pure functions that turn Vectorize matches into record IDs,
-// parent-section expansion and bounded model context. No I/O and no bindings.
+// Retrieval: pure helpers that turn Vectorize matches into record IDs, parent-section expansion and bounded
+// model context, plus the one pipeline (retrieveEvidence) that chains them. Production (AiService) and the
+// evaluation harness both call the pipeline, so the evaluation measures the code that serves visitors; only
+// the transport adapters (embed, search, fetchSections) differ, and they are injected. No bindings here.
 import { AI_CONFIG } from './application.js';
 
 export async function corpusRecordId(namespace, source, index) {
@@ -93,4 +95,25 @@ export function contextFromMatches(matches, onExcerpt) {
         onExcerpt?.({ ...identity, text });
     }
     return context;
+}
+
+// Visitors only see public pages as evidence. Internal `_context` excerpts still feed the model.
+function isPublicEvidence(excerpt) {
+    return (
+        typeof excerpt.url === 'string' && /^\/(?!\/)/.test(excerpt.url) && !/[\\\r\n]/.test(excerpt.url) && !/\/_context(?:\/|$)/.test(excerpt.url)
+    );
+}
+
+export async function retrieveEvidence({ retrievalQuery, namespace, embed, search, fetchSections }) {
+    const vector = await embed(retrievalQuery);
+    const matches = await search(vector);
+    if (!Array.isArray(matches)) throw new Error('Invalid retrieval result');
+    const ids = await parentSectionIds(matches, namespace);
+    const sections = ids.length ? await fetchSections(ids) : [];
+    const expanded = expandSectionMatches(matches, sections);
+    const evidence = [];
+    const contextText = contextFromMatches(expanded, (excerpt) => {
+        if (isPublicEvidence(excerpt)) evidence.push(excerpt);
+    });
+    return { retrievalQuery, matches: expanded, contextText, evidence };
 }

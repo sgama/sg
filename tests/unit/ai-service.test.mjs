@@ -116,24 +116,6 @@ test('AiService', async (t) => {
             assert.equal(calls[0].payload.stream, true);
             assert.deepEqual(calls[0].payload.chat_template_kwargs, { enable_thinking: false });
         });
-
-        await t.test('reports generation service failure explicitly', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const failure = new Error('model unavailable');
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => {
-                        throw failure;
-                    },
-                }),
-            );
-            await assert.rejects(svc.generateStream('query', 'context'), {
-                status: 503,
-                message: 'Generation service unavailable',
-            });
-            assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Generation Failed:', failure]);
-        });
     });
 
     await t.test('retrieve', async (t) => {
@@ -220,171 +202,109 @@ test('AiService', async (t) => {
 
             assert.deepEqual(payloads, [{ text: ['Standalone question'] }]);
         });
-
-        await t.test('reports contextualization failures explicitly', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => {
-                        throw new Error('model unavailable');
-                    },
-                    vectorizeQuery: async () => buildVectorizeResult([]),
-                }),
-            );
-
-            await assert.rejects(svc.retrieve('Follow-up?', [{ role: 'user', content: 'Earlier question?' }]), {
-                status: 503,
-                message: 'Query contextualization service unavailable',
-            });
-            assert.equal(logged.mock.calls[0].arguments[0], 'Query Contextualization Failed:');
-        });
-
-        await t.test('passes the selected corpus namespace to Vectorize', async () => {
-            const svc = new AiService({
-                ...makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse([0.1]),
-                    vectorizeQuery: async (vector, options) => {
-                        assert.equal(options.namespace, 'corpus-test');
-                        return buildVectorizeResult([]);
-                    },
-                }),
-                AI_CORPUS_NAMESPACE: 'corpus-test',
-            });
-            assert.equal((await svc.retrieve('query')).contextText, '');
-        });
-
-        await t.test('rejects malformed embeddings instead of abstaining', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const svc = new AiService(makeEnv({ aiRun: async () => ({ data: [[]] }) }));
-            await assert.rejects(svc.getEmbeddings('query'), {
-                status: 503,
-                message: 'Embedding service unavailable',
-            });
-            assert.equal(logged.mock.callCount(), 1);
-            const [label, failure] = logged.mock.calls[0].arguments;
-            assert.equal(logged.mock.calls[0].arguments.length, 2);
-            assert.equal(label, 'Embedding Generation Failed:');
-            assert.ok(failure instanceof Error);
-            assert.equal(failure.message, 'Invalid embedding response');
-        });
-
-        await t.test('missing parent section fails explicitly rather than silently using incomplete evidence', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const svc = new AiService({
-                AI_CORPUS_NAMESPACE: 'corpus-test',
-                AI: { run: async () => buildEmbeddingsResponse([0.1]) },
-                VECTORIZE_INDEX: {
-                    query: async () => ({
-                        matches: [{ metadata: { recordType: 'chunk', source: 'content/page.md', parentIndex: -1, text: 'Partial evidence' } }],
-                    }),
-                    getByIds: async () => [],
-                },
-            });
-            await assert.rejects(svc.retrieve('before that'), { status: 503, message: 'Retrieval service unavailable' });
-            assert.match(logged.mock.calls[0].arguments[1].message, /Missing or invalid parent section/);
-        });
-
-        await t.test('does not fetch unrelated sections for unlinked hits or empty search results', async () => {
-            for (const matches of [[], [{ id: 'current', metadata: { recordType: 'chunk', text: 'Original evidence' } }]]) {
-                const svc = new AiService({
-                    AI_CORPUS_NAMESPACE: 'corpus-test',
-                    AI: { run: async () => buildEmbeddingsResponse([0.1]) },
-                    VECTORIZE_INDEX: {
-                        query: async () => ({ matches }),
-                        getByIds: async () => assert.fail('Unrelated parent lookup'),
-                    },
-                });
-                assert.equal((await svc.retrieve('question')).contextText, matches.length ? 'Original evidence' : '');
-            }
-        });
-
-        await t.test('rejects legacy corpus records without an explicit type', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse([0.1]),
-                    vectorizeQuery: async () => ({ matches: [{ id: 'old', metadata: { text: 'Old evidence' } }] }),
-                }),
-            );
-            await assert.rejects(svc.retrieve('query'), { status: 503, message: 'Retrieval service unavailable' });
-            assert.equal(logged.mock.callCount(), 1);
-            assert.match(logged.mock.calls[0].arguments[1].message, /Unsupported corpus record type/);
-            assert.throws(() => expandSectionMatches([{ metadata: { text: 'Old evidence' } }], []), /Unsupported corpus record type/);
-        });
-
-        await t.test('reports service unavailable when embedding fails', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const failure = new Error('fail');
-            const query = t.mock.fn(async () => {
-                throw new Error('should not be called');
-            });
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => {
-                        throw failure;
-                    },
-                    vectorizeQuery: query,
-                }),
-            );
-
-            await assert.rejects(svc.retrieve('query'), {
-                status: 503,
-                message: 'Embedding service unavailable',
-            });
-            assert.equal(query.mock.callCount(), 0);
-            assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Embedding Generation Failed:', failure]);
-        });
-
-        await t.test('reports service unavailable when vectorize throws', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const failure = new Error('vectorize down');
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse([0.1]),
-                    vectorizeQuery: async () => {
-                        throw failure;
-                    },
-                }),
-            );
-
-            await assert.rejects(svc.retrieve('query'), {
-                status: 503,
-                message: 'Retrieval service unavailable',
-            });
-            assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Vector Search Failed:', failure]);
-        });
-
-        await t.test('reports service unavailable when VECTORIZE_INDEX is not bound', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const svc = new AiService({
-                AI: { run: async () => buildEmbeddingsResponse([0.1]) },
-            });
-
-            await assert.rejects(svc.retrieve('query'), {
-                status: 503,
-                message: 'Retrieval service unavailable',
-            });
-            assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
-        });
-
-        await t.test('skips matches with no metadata text', async () => {
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse([0.1]),
-                    vectorizeQuery: async () => ({
-                        matches: [{ metadata: { recordType: 'chunk', text: 'good chunk' } }, { metadata: { recordType: 'chunk' } }],
-                    }),
-                }),
-            );
-
-            const result = (await svc.retrieve('query')).contextText;
-
-            assert.equal(result, 'good chunk');
-        });
     });
+});
+
+test('service failures surface as 503s with the cause logged once', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const failure = new Error('upstream down');
+    const fail = async () => {
+        throw failure;
+    };
+    const embedded = async () => buildEmbeddingsResponse([0.1]);
+    const noMatches = async () => buildVectorizeResult([]);
+    const search = t.mock.fn(noMatches);
+    const withMatches = (matches, getByIds = async () => []) =>
+        new AiService({ AI_CORPUS_NAMESPACE: 'corpus-test', AI: { run: embedded }, VECTORIZE_INDEX: { query: async () => ({ matches }), getByIds } });
+    const scenarios = [
+        {
+            service: new AiService(makeEnv({ aiRun: fail })),
+            run: (svc) => svc.generateStream('query', 'context'),
+            message: 'Generation service unavailable',
+            label: 'Generation Failed:',
+            cause: failure,
+        },
+        {
+            service: new AiService(makeEnv({ aiRun: fail, vectorizeQuery: noMatches })),
+            run: (svc) => svc.retrieve('Follow-up?', [{ role: 'user', content: 'Earlier question?' }]),
+            message: 'Query contextualization service unavailable',
+            label: 'Query Contextualization Failed:',
+            cause: failure,
+        },
+        {
+            service: new AiService(makeEnv({ aiRun: async () => ({ data: [[]] }) })),
+            run: (svc) => svc.getEmbeddings('query'),
+            message: 'Embedding service unavailable',
+            label: 'Embedding Generation Failed:',
+            cause: /Invalid embedding response/,
+        },
+        {
+            service: new AiService(makeEnv({ aiRun: fail, vectorizeQuery: search })),
+            run: (svc) => svc.retrieve('query'),
+            message: 'Embedding service unavailable',
+            label: 'Embedding Generation Failed:',
+            cause: failure,
+            after: () => assert.equal(search.mock.callCount(), 0, 'A failed embedding must not search'),
+        },
+        {
+            service: new AiService(makeEnv({ aiRun: embedded, vectorizeQuery: fail })),
+            run: (svc) => svc.retrieve('query'),
+            message: 'Retrieval service unavailable',
+            label: 'Vector Search Failed:',
+            cause: failure,
+        },
+        {
+            service: new AiService({ AI: { run: embedded } }),
+            run: (svc) => svc.retrieve('query'),
+            message: 'Retrieval service unavailable',
+            label: 'Vector Search Failed: VECTORIZE_INDEX binding missing',
+        },
+        {
+            service: withMatches([{ metadata: { recordType: 'chunk', source: 'content/page.md', parentIndex: -1, text: 'Partial evidence' } }]),
+            run: (svc) => svc.retrieve('before that'),
+            message: 'Retrieval service unavailable',
+            label: 'Vector Search Failed:',
+            cause: /Missing or invalid parent section/,
+        },
+        {
+            service: withMatches([{ id: 'old', metadata: { text: 'Old evidence' } }]),
+            run: (svc) => svc.retrieve('query'),
+            message: 'Retrieval service unavailable',
+            label: 'Vector Search Failed:',
+            cause: /Unsupported corpus record type/,
+        },
+    ];
+    for (const { service, run, message, label, cause, after } of scenarios) {
+        logged.mock.resetCalls();
+        await assert.rejects(run(service), { status: 503, message });
+        assert.equal(logged.mock.callCount(), 1, label);
+        const [actualLabel, actualCause] = logged.mock.calls[0].arguments;
+        assert.equal(actualLabel, label);
+        if (cause instanceof RegExp) assert.match(actualCause.message, cause);
+        else if (cause) assert.equal(actualCause, cause);
+        after?.();
+    }
+});
+
+test('retrieval keeps text-bearing matches, passes the namespace and skips unrelated section lookups', async () => {
+    for (const [matches, expected] of [
+        [[], ''],
+        [[{ id: 'current', metadata: { recordType: 'chunk', text: 'Original evidence' } }], 'Original evidence'],
+        [[{ metadata: { recordType: 'chunk', text: 'good chunk' } }, { metadata: { recordType: 'chunk' } }], 'good chunk'],
+    ]) {
+        const svc = new AiService({
+            AI_CORPUS_NAMESPACE: 'corpus-test',
+            AI: { run: async () => buildEmbeddingsResponse([0.1]) },
+            VECTORIZE_INDEX: {
+                query: async (_, options) => {
+                    assert.equal(options.namespace, 'corpus-test');
+                    return { matches };
+                },
+                getByIds: async () => assert.fail('Unrelated parent lookup'),
+            },
+        });
+        assert.equal((await svc.retrieve('question')).contextText, expected);
+    }
 });
 
 test('prompt uses retrieved evidence without injecting a separate resume copy', () => {

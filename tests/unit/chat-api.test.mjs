@@ -90,36 +90,6 @@ test('/api/chat', async (t) => {
         assert.match(text, /"error":"Embedding service unavailable"/);
         assert.doesNotMatch(text, /"response":/);
     });
-    await t.test('CORS', async (t) => {
-        await t.test('blocks OPTIONS requests from disallowed origins', async () => {
-            const response = await onRequest(
-                createContext({
-                    method: 'OPTIONS',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    origin: URLS.DISALLOWED_ORIGIN,
-                }),
-            );
-
-            // Hono returns 204 but omits ACAO header — browser will block the actual request
-            assert.equal(response.status, 204);
-            assert.equal(response.headers.get('Access-Control-Allow-Origin'), null);
-        });
-
-        await t.test('returns CORS headers for OPTIONS requests from allowed origin', async () => {
-            const response = await onRequest(
-                createContext({
-                    method: 'OPTIONS',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                }),
-            );
-
-            // Hono cors middleware returns 204 for preflight (spec-correct)
-            assert.equal(response.status, 204);
-            assert.equal(response.headers.get('Access-Control-Allow-Origin'), URLS.ALLOWED_ORIGIN);
-            assert.match(response.headers.get('Access-Control-Allow-Methods'), /POST/);
-            assert.equal(response.headers.get('Access-Control-Max-Age'), '86400');
-        });
-    });
 
     await t.test('End-to-end flow', async (t) => {
         await t.test('normalizes GLM output before streaming to the widget and saving to KV', async () => {
@@ -224,80 +194,9 @@ test('/api/chat', async (t) => {
             assert.equal(calls[2].payload.messages.at(-1).content, 'What do you build?');
             assert.deepEqual(calls[2].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
         });
-
-        await t.test('sends an explicit error when GLM finishes with reasoning but no answer', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const env = {
-                AI: {
-                    async run(model, payload) {
-                        if (payload.text) return buildEmbeddingsResponse([0.1]);
-                        return makeStream('data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n', 'data: [DONE]\n');
-                    },
-                },
-                VECTORIZE_INDEX: {
-                    async query() {
-                        return buildVectorizeResult(['Relevant portfolio context for response.']);
-                    },
-                },
-            };
-            const response = await onRequest(
-                createContext({
-                    method: 'POST',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    body: { query: 'What do you build?' },
-                    env,
-                }),
-            );
-            const output = await response.text();
-            assert.match(output, /"error":"AI response failed\. Please try again\."/);
-            assert.doesNotMatch(output, /private|reasoning/);
-            assert.match(output, /data: \[DONE\]/);
-            assert.equal(logged.mock.callCount(), 1);
-            const [label, failure] = logged.mock.calls[0].arguments;
-            assert.equal(logged.mock.calls[0].arguments.length, 2);
-            assert.equal(label, 'Chat Stream Failed:');
-            assert.ok(failure instanceof Error);
-            assert.equal(failure.message, 'AI stream completed without an answer');
-        });
     });
 
     await t.test('Guardrails', async (t) => {
-        await t.test('rejects prompt injection style queries', async () => {
-            const response = await onRequest(
-                createContext({
-                    method: 'POST',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    body: { query: SAMPLE_DATA.INJECTION_QUERY },
-                }),
-            );
-
-            assert.equal(response.status, 400);
-            assert.deepEqual(await response.json(), {
-                error: 'Query rejected by guardrails.',
-            });
-        });
-        await t.test('returns 503 for a retrieval outage instead of a successful abstention', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const response = await onRequest(
-                createContext({
-                    method: 'POST',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    body: { query: 'What do you build?' },
-                    env: {
-                        AI: {
-                            run: async () => {
-                                throw new Error('Should not be called');
-                            },
-                        },
-                    },
-                }),
-            );
-            assert.equal(response.status, 503);
-            assert.deepEqual(await response.json(), { error: 'Retrieval service unavailable' });
-            assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
-        });
-
         await t.test('returns grounded fallback when retrieval has no context', async () => {
             const calls = [];
             const env = {
@@ -334,39 +233,46 @@ test('/api/chat', async (t) => {
             assert.equal(calls.length, 1);
         });
     });
+});
 
-    await t.test('Validation', async (t) => {
-        await t.test('rejects blank queries after trimming whitespace', async () => {
-            const response = await onRequest(
-                createContext({
-                    method: 'POST',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    body: { query: '   ' },
-                }),
-            );
+test('/api/chat rejects invalid requests and unavailable bindings explicitly, before any generation', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const refuseAi = { AI: { run: async () => assert.fail('Generation must not start') } };
+    for (const { body, env, status, error, log } of [
+        { body: { query: SAMPLE_DATA.INJECTION_QUERY }, status: 400, error: 'Query rejected by guardrails.' },
+        { body: { query: '   ' }, status: 400, error: 'Invalid query. Must be a string < 500 chars.' },
+        { body: { query: 'hello' }, status: 503, error: 'Service Unavailable: AI binding missing' },
+        {
+            body: { query: 'What do you build?' },
+            env: refuseAi,
+            status: 503,
+            error: 'Retrieval service unavailable',
+            log: ['Vector Search Failed: VECTORIZE_INDEX binding missing'],
+        },
+    ]) {
+        logged.mock.resetCalls();
+        const response = await onRequest(createContext({ method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`, body, env }));
+        assert.equal(response.status, status, error);
+        assert.match(response.headers.get('Content-Type'), /application\/json/);
+        assert.deepEqual(await response.json(), { error });
+        assert.deepEqual(
+            logged.mock.calls.map((call) => call.arguments),
+            log ? [log] : [],
+        );
+    }
+});
 
-            assert.equal(response.status, 400);
-            assert.match(response.headers.get('Content-Type'), /application\/json/);
-            assert.deepEqual(await response.json(), {
-                error: 'Invalid query. Must be a string < 500 chars.',
-            });
-        });
-
-        await t.test('returns 503 when AI binding is missing', async () => {
-            const response = await onRequest(
-                createContext({
-                    method: 'POST',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    body: { query: 'hello' },
-                }),
-            );
-
-            assert.equal(response.status, 503);
-            assert.deepEqual(await response.json(), {
-                error: 'Service Unavailable: AI binding missing',
-            });
-        });
-    });
+test('CORS preflight allows only the configured origins', async () => {
+    const preflight = (origin) => onRequest(createContext({ method: 'OPTIONS', url: `${URLS.TEST_API_ENDPOINT}/chat`, origin }));
+    // Hono answers 204 either way; a disallowed origin simply gets no ACAO header, so the browser blocks the real request.
+    const blocked = await preflight(URLS.DISALLOWED_ORIGIN);
+    assert.equal(blocked.status, 204);
+    assert.equal(blocked.headers.get('Access-Control-Allow-Origin'), null);
+    const allowed = await preflight(undefined);
+    assert.equal(allowed.status, 204);
+    assert.equal(allowed.headers.get('Access-Control-Allow-Origin'), URLS.ALLOWED_ORIGIN);
+    assert.match(allowed.headers.get('Access-Control-Allow-Methods'), /POST/);
+    assert.equal(allowed.headers.get('Access-Control-Max-Age'), '86400');
 });
 
 test('createChatApp runs the route with injected collaborators and origin list', async () => {

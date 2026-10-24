@@ -34,6 +34,7 @@ HUGO              ?= hugo
 HUGO_FLAGS        ?= --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?=
 NODE              ?= node
+PRETTIER_FILES    := "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 NPM               ?= npm
 NPX               ?= npx --no-install
 WRANGLER          ?= npx wrangler
@@ -126,10 +127,10 @@ lint-fix: check-node ## Apply safe ESLint fixes
 	@$(NPX) eslint . --max-warnings=0 --fix
 
 format: check-node ## Format JavaScript, source CSS and YAML (no Hugo content/templates)
-	@$(NPX) prettier --write "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
+	@$(NPX) prettier --write $(PRETTIER_FILES)
 
 format-check: check-node ## Check formatting without edits
-	@$(NPX) prettier --check "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
+	@$(NPX) prettier --check $(PRETTIER_FILES)
 
 lint-workflows: ## Validate GitHub Actions with the pinned actionlint release
 	@command -v $(ACTIONLINT) >/dev/null || { \

@@ -5,11 +5,9 @@
 //   this    builds both, subscribes to the conversation's events and forwards user intent to it
 import { createStore } from './chat/model/history.js';
 import { createConversation, WELCOME_MESSAGE } from './chat/model/conversation.js';
-import { hydrate } from './chat/view/roles.js';
 import { createDialog } from './chat/view/dialog.js';
 import { createComposer } from './chat/view/composer.js';
-import { createTranscript } from './chat/view/transcript.js';
-import { createStarters } from './chat/view/starters.js';
+import { createStarters, createTranscript } from './chat/view/transcript.js';
 import { evidenceDecorator, metricsDecorator, retryDecorator } from './chat/view/decorators.js';
 import { createChatScroller } from './chat/view/scroll.js';
 import { createMessageRenderer } from './chat/view/markdown-renderer.js';
@@ -20,6 +18,29 @@ const STARTERS = [
     ['What has he built at scale?', 'What has Samson built or operated at scale?'],
     ['How does this assistant work?', "How does Samson's portfolio AI assistant work?"],
 ];
+
+const ROLES = ['toggle', 'window', 'close', 'clear', 'form', 'input', 'send', 'stop', 'messages', 'transcript', 'latest', 'status'];
+
+/**
+ * Finds the widget's DOM by `data-role`, cloning the page template first when the host is empty.
+ * Returns null after logging the reason, which leaves the widget inert instead of half-working.
+ */
+function hydrate(host, { document = globalThis.document, log = console } = {}) {
+    if (!host.querySelector('[data-role="window"]')) {
+        const template = document.getElementById('ai-chat-template');
+        if (!template) {
+            log.error('Chat widget template is missing.');
+            return null;
+        }
+        host.append(template.content.cloneNode(true));
+    }
+    const roles = Object.fromEntries(ROLES.map((role) => [role, host.querySelector(`[data-role="${role}"]`)]));
+    if (ROLES.some((role) => !roles[role])) {
+        log.error('Chat widget template is incomplete.');
+        return null;
+    }
+    return roles;
+}
 
 class AiChatWidget extends HTMLElement {
     #chat = createConversation({ storage: createStore(() => localStorage, { json: true }) });

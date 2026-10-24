@@ -1,6 +1,6 @@
 import { AI_CONFIG, AppError, CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel, generationInput } from './application.js';
 import { buildMessages } from './prompts.js';
-import { retrieveEvidence } from './retrieval-pipeline.js';
+import { retrieveEvidence } from './retrieval.js';
 import { normalizeChatStream } from './chat-stream.js';
 import { createResponseMetrics } from './response-metrics.js';
 

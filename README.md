@@ -98,7 +98,7 @@ if cancellation also fails.
 The public methods are `open()`, `close()`, `toggle()` and
 `setPendingQuestion(text)`, with bubbling `chat-open` and `chat-close` events.
 [`assets/js/site.js`](assets/js/site.js) lists the site features in
-[`assets/js/site/features/`](assets/js/site/features/): chat triggers
+[`assets/js/site/features.js`](assets/js/site/features.js): chat triggers
 (`.js-chat-trigger` and its optional `data-question`), suggestion chips,
 accessibility-panel settings and the starfield. Each feature is
 `{ name, phase, init(context) }`, run by the small host in

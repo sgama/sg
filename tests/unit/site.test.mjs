@@ -1,10 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createFeatureHost } from '../../assets/js/core/feature-host.js';
-import { a11yBlur, a11yStars } from '../../assets/js/site/features/a11y.js';
-import { chatTriggers } from '../../assets/js/site/features/chat-triggers.js';
-import { starfield } from '../../assets/js/site/features/starfield.js';
-import { suggestionChips } from '../../assets/js/site/features/suggestion-chips.js';
+import { a11yBlur, a11yStars, chatTriggers, starfield, suggestionChips } from '../../assets/js/site/features.js';
 
 function classList() {
     const classes = new Set();

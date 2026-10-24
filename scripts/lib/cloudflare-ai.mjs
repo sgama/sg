@@ -1,6 +1,6 @@
 import Cloudflare from 'cloudflare';
 import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
-import { retrieveEvidence } from '../../functions/_lib/retrieval-pipeline.js';
+import { retrieveEvidence } from '../../functions/_lib/retrieval.js';
 
 /** One error message for every CLI that needs Cloudflare credentials. */
 export function requireCloudflareCredentials(env = process.env) {
@@ -54,7 +54,7 @@ export function createCloudflareAi({
         return payload?.result;
     };
     return {
-        /** Same pipeline as production (retrieval-pipeline.js); only the transports differ. */
+        /** Same pipeline as production (retrieveEvidence in retrieval.js); only the transports differ. */
         async retrieve(query, history = []) {
             const retrievalQuery = history.length
                 ? contextualizedQueryFromResponse(

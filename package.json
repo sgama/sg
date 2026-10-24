@@ -7,10 +7,10 @@
         "dev": "make --no-print-directory dev-ai",
         "build": "make --no-print-directory build-prod",
         "test": "make --no-print-directory test",
-        "lint": "eslint . --max-warnings=0",
-        "lint:fix": "npm run lint -- --fix",
-        "format": "prettier --write \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
-        "format:check": "prettier --check \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
+        "lint": "make --no-print-directory lint",
+        "lint:fix": "make --no-print-directory lint-fix",
+        "format": "make --no-print-directory format",
+        "format:check": "make --no-print-directory format-check",
         "test:coverage": "make --no-print-directory coverage"
     },
     "repository": {

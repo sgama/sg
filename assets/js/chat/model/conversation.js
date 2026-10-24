@@ -1,7 +1,23 @@
 import { apiHistory, readHistory, STORAGE_KEY } from './history.js';
 import { streamAnswer as fetchAnswer } from './stream.js';
 import { formatResponseMetrics } from './metrics.js';
-import { failureMessage, stageLabel } from './session.js';
+
+const STAGE_LABELS = {
+    rewrite: '🧠 Understanding your follow-up…',
+    embedding: '🧩 Preparing source search…',
+    search: '🔎 Finding sources…',
+    generation: '✍️ Writing answer…',
+};
+
+/** Human label for a server progress stage; undefined for unknown stages. */
+function stageLabel(stage) {
+    return STAGE_LABELS[stage];
+}
+
+/** Explanation shown when a request fails, depending on connectivity. */
+function failureMessage(online) {
+    return online ? 'The response could not be completed. Please try again.' : 'You appear to be offline. Check your connection and try again.';
+}
 
 export const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information from this portfolio. Ask me about my projects or background.";
 

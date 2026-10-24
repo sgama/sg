@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createFeatureHost } from '../../assets/js/core/feature-host.js';
-import { menuButtons } from '../../assets/js/menu/buttons.js';
-import { mobileMenuDismissal } from '../../assets/js/menu/mobile-dismissal.js';
+import { menuButtons, mobileMenuDismissal } from '../../assets/js/menu/features.js';
 
 function fixture({ loading = false, missing = false } = {}) {
     const documentEvents = new Map();

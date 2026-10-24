@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { buildCorpus, embeddingText } from '../../scripts/lib/corpus.mjs';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { corpusRecordId, expandSectionMatches, parentSectionIds } from '../../functions/_lib/retrieval.js';
+import { buildCorpus, chunkId, corpusHash, embeddingText, namespaceFor, validateCorpus } from '../../scripts/lib/corpus.mjs';
 import { corpusFixture as fixture, integrityFixture } from '../helpers/corpus.mjs';
-
-test('embedding text includes title and section labels', () => {
-    assert.equal(embeddingText({ text: 'Facts', metadata: { title: 'Project', section: 'Deployment' } }), 'Project — Deployment\n\nFacts');
-});
 
 test('authoring comments are excluded from internal chunks and comment-only files are empty', async (t) => {
     const root = await fixture(t, {
@@ -27,6 +26,87 @@ test('authoring comments are excluded from internal chunks and comment-only file
     assert.equal(corpus.chunks.find((chunk) => chunk.metadata.type === 'content').text, 'Public body.');
     await writeFile(path.join(root, 'content/_context/profile.md'), 'Known fact. <!-- unfinished');
     await assert.rejects(buildCorpus({ root }), /Unclosed authoring comment/);
+});
+
+test('canonical linkage rejects ambiguous, internal, draft and oversized target sections', async (t) => {
+    for (const [target, text, expected] of [
+        ['content/page.md', '## Evidence\nOne\n## Evidence\nTwo', /Missing or ambiguous/],
+        ['content/page.md', '## Evidence', /Empty public retrieval section/],
+        ['content/_context/private.md', '## Evidence\nInternal facts', /Missing or ambiguous/],
+        ['content/page.md', '---\ndraft: true\n---\n## Evidence\nDraft facts', /Missing or ambiguous/],
+        ['content/page.md', `## Evidence\n${'Long evidence. '.repeat(500)}`, /exceeds context budget/],
+    ]) {
+        const root = await fixture(t, {
+            'content/_context/link.md': `---\nretrievalSource: ${target}\nretrievalSection: Evidence\n---\nSearchable facts`,
+            [target]: text,
+        });
+        await assert.rejects(buildCorpus({ root }), expected);
+    }
+});
+
+test('corpus contracts reject invalid shapes and inconsistent evidence even with recomputed hashes', async (t) => {
+    const root = await mkdtemp(path.join(tmpdir(), 'sg-contract-'));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    await mkdir(path.join(root, 'content'));
+    await writeFile(path.join(root, 'content/page.md'), '---\ntitle: Page\n---\nEvidence.');
+    const corpus = await buildCorpus({ root, sourceUrls: new Map([['content/page.md', '/page/']]) });
+    for (const [mutate, expected] of [
+        [
+            (value) => {
+                delete value.chunks[0].metadata.recordType;
+            },
+            /invalid_value/,
+        ],
+        [
+            (value) => {
+                delete value.chunking.normalizationVersion;
+            },
+            /invalid_value/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.parentIndex = 'bad';
+            },
+            /invalid_type/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.text = 'Different evidence';
+            },
+            /Inconsistent evidence/,
+        ],
+        [
+            (value) => {
+                value.counts.chunks++;
+            },
+            /counts/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.parentIndex = -1;
+            },
+            /Missing or invalid parent/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.url = undefined;
+            },
+            /missing its URL/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.type = 'context';
+            },
+            /Internal evidence/,
+        ],
+    ]) {
+        const changed = structuredClone(corpus);
+        mutate(changed);
+        changed.hash = corpusHash(changed);
+        changed.namespace = namespaceFor(changed.hash);
+        for (const chunk of changed.chunks) chunk.id = chunkId(changed.namespace, chunk.metadata.source, chunk.chunkIndex);
+        assert.throws(() => validateCorpus(changed), expected);
+    }
 });
 
 test('corpus IDs distinguish full source paths and chunk indices; canonical metadata', async (t) => {
@@ -59,9 +139,68 @@ test('corpus IDs distinguish full source paths and chunk indices; canonical meta
     assert.equal(new Set(firstChunks.map((chunk) => chunk.id)).size, firstChunks.length);
 });
 
+test('embedding text includes title and section labels', () => {
+    assert.equal(embeddingText({ text: 'Facts', metadata: { title: 'Project', section: 'Deployment' } }), 'Project — Deployment\n\nFacts');
+});
+
 test('file parsing errors reject rather than silently skipping files', async (t) => {
     const root = await fixture(t, { 'content/bad.md': '---\ntitle: [invalid\n---\nBody' });
     await assert.rejects(buildCorpus({ root }));
+});
+
+test('generic curated source linkage expands to a public section regardless of file order', async (t) => {
+    const root = await fixture(t, {
+        'content/_context/project.md':
+            '---\ntitle: Searchable project excerpt\nretrievalSource: content/posts/project/index.md\nretrievalSection: Deployment\n---\nSpecific search phrasing.',
+        'content/posts/project/index.md':
+            '---\ntitle: Project\n---\n## Deployment\n\nCanonical deployment and rollback facts.\n\n## Other\n\nUnrelated facts.',
+        'content/portrait.md': '---\ntitle: Portrait\n---\n{{< figure src="portrait.webp" >}}',
+    });
+    const corpus = await buildCorpus({ root });
+    assert.equal(corpus.counts.emptyFiles, 1);
+    const child = corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/project.md');
+    assert.equal(child.metadata.canonicalSource, 'content/posts/project/index.md');
+    const ids = await parentSectionIds([child], corpus.namespace);
+    const parents = corpus.chunks.filter((chunk) => ids.includes(chunk.id));
+    const expanded = expandSectionMatches([child], parents);
+    assert.equal(expanded[0].metadata.url, '/posts/project/');
+    assert.match(expanded[0].metadata.text, /Canonical deployment/);
+    assert.doesNotMatch(expanded[0].metadata.text, /Unrelated/);
+    assert.equal(expanded[1].metadata.text, 'Specific search phrasing.');
+    assert.equal(expanded[1].metadata.url, undefined);
+    assert.equal(expandSectionMatches([child, child], parents).length, 2);
+    for (const canonicalSource of ['', 42, null]) {
+        await assert.rejects(parentSectionIds([{ ...child, metadata: { ...child.metadata, canonicalSource } }], corpus.namespace), /Invalid parent/);
+    }
+    await writeFile(
+        path.join(root, 'content/_context/project.md'),
+        '---\nretrievalSource: content/missing.md\nretrievalSection: Missing\n---\nFacts',
+    );
+    await assert.rejects(buildCorpus({ root }), /Missing or ambiguous/);
+});
+
+test('generic parent records are bounded, linked, source-specific and updated with content', async (t) => {
+    const body = 'Deployment detail and rollback instructions. '.repeat(200);
+    const root = await fixture(t, {
+        'content/posts/project/index.md': `---\ntitle: Project\n---\n## Deployment\n\n${body}\n\n## Monitoring\n\nAlerts`,
+        'content/_context/project.md': `## Deployment\n\n${body}`,
+    });
+    const corpus = await buildCorpus({ root });
+    assert.equal(corpus.version, 2);
+    const parents = corpus.chunks.filter((chunk) => chunk.metadata.recordType === 'section');
+    assert.ok(parents.length >= 4);
+    assert.ok(parents.every((chunk) => chunk.text.length <= AI_CONFIG.retrieval.maxSectionChars));
+    assert.ok(parents.filter((chunk) => chunk.metadata.type === 'context').every((chunk) => !Object.hasOwn(chunk.metadata, 'url')));
+    const children = corpus.chunks.filter((chunk) => Number.isInteger(chunk.metadata.parentIndex));
+    assert.ok(children.length);
+    for (const child of children) {
+        const parent = parents.find((chunk) => chunk.metadata.source === child.metadata.source && chunk.chunkIndex === child.metadata.parentIndex);
+        assert.ok(parent.text.includes(child.text));
+        assert.equal(parent.id, await corpusRecordId(corpus.namespace, child.metadata.source, child.metadata.parentIndex));
+        assert.equal(parent.metadata.section, 'Deployment');
+    }
+    await writeFile(path.join(root, 'content/posts/project/index.md'), '## Deployment\n\nUpdated source.');
+    assert.notEqual((await buildCorpus({ root })).namespace, corpus.namespace);
 });
 
 test('hash and IDs repeat deterministically and change with corpus or embedding/chunk configuration', async (t) => {
@@ -98,5 +237,40 @@ test('invalid embedding and chunk configurations reject before corpus generation
         { chunkSize: 5, chunkOverlap: 1.5 },
     ]) {
         await assert.rejects(buildCorpus({ root, chunking }), /Invalid chunk configuration/);
+    }
+});
+
+test('runtime record IDs match corpus chunk IDs for the same namespace, source and index', async () => {
+    for (const [namespace, source, index] of [
+        ['corpus-' + 'a'.repeat(56), 'content/posts/a/index.md', 0],
+        ['corpus-' + 'a'.repeat(56), 'content/posts/a/index.md', -1],
+        ['corpus-' + 'b'.repeat(56), 'content/portfolio/b/index.md', 3],
+    ]) {
+        assert.equal(await corpusRecordId(namespace, source, index), chunkId(namespace, source, index));
+    }
+});
+
+test('tampered metadata, namespaces and chunk IDs fail integrity validation', async (t) => {
+    const { corpus } = await integrityFixture(t);
+    for (const mutate of [
+        (value) => {
+            value.chunks[0].metadata.source = 'content/other.md';
+        },
+        (value) => {
+            value.chunks[0].metadata.text = 'Invented evidence';
+        },
+        (value) => {
+            value.chunks[0].chunkIndex = 99;
+        },
+        (value) => {
+            value.namespace = `corpus-${'0'.repeat(56)}`;
+        },
+        (value) => {
+            value.chunks[0].id = 'wrong';
+        },
+    ]) {
+        const changed = structuredClone(corpus);
+        mutate(changed);
+        assert.throws(() => validateCorpus(changed), /hash or namespace|Invalid chunk ID/);
     }
 });

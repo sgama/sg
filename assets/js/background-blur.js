@@ -21,22 +21,20 @@ function setBackgroundBlur(targetId, scrollDivisor = 300, disableBlur = false, i
         blurElement.removeAttribute('aria-hidden');
     }
 
+    const shouldBlur = !disableBlur || isMenuBlur;
     let ticking = false;
     const updateBlur = () => {
-        if (!disableBlur || isMenuBlur) {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    const scroll = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-                    if (scroll <= scrollDivisor * 1.5) {
-                        blurElement.style.opacity = Math.min(scroll / scrollDivisor, 1);
-                    } else {
-                        blurElement.style.opacity = '1';
-                    }
-                    ticking = false;
-                });
-                ticking = true;
+        if (!shouldBlur || ticking) return;
+        requestAnimationFrame(() => {
+            const scroll = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            if (scroll <= scrollDivisor * 1.5) {
+                blurElement.style.opacity = Math.min(scroll / scrollDivisor, 1);
+            } else {
+                blurElement.style.opacity = '1';
             }
-        }
+            ticking = false;
+        });
+        ticking = true;
     };
 
     blurElement.setAttribute('role', 'presentation');
@@ -55,7 +53,7 @@ function setBackgroundBlur(targetId, scrollDivisor = 300, disableBlur = false, i
         } else {
             window.removeEventListener('scroll', updateBlur);
             // Hard clamp the opacity to max when the sentinel is fully off-screen
-            if (!disableBlur || isMenuBlur) blurElement.style.opacity = '1';
+            if (shouldBlur) blurElement.style.opacity = '1';
         }
     });
 
