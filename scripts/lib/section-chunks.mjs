@@ -16,7 +16,14 @@ export async function sectionChunks(identity, sections, config) {
                 chunks.push({
                     chunkIndex: parentIndex,
                     text,
-                    metadata: { ...identity, section: section.heading, recordType: 'section', sectionIndex: parentIndex, text },
+                    metadata: {
+                        ...identity,
+                        section: section.heading,
+                        recordType: 'section',
+                        sectionIndex: parentIndex,
+                        text,
+                        sectionText: section.text,
+                    },
                 });
             }
             for (const segment of segments) {
@@ -29,6 +36,7 @@ export async function sectionChunks(identity, sections, config) {
                         section: section.heading,
                         ...(parentIndex !== null ? { parentIndex } : {}),
                         text: segment,
+                        sectionText: section.text,
                     },
                 });
             }

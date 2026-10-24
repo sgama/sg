@@ -44,3 +44,7 @@ ignore: |
   themes/
   node_modules/
   .git/
+  public/
+  resources/
+  reports/
+  coverage/

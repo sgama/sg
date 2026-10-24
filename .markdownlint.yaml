@@ -64,4 +64,7 @@ MD048: # Code fence style
 ignore:
   - 'themes/'
   - 'node_modules/'
+  - 'public/'
+  - 'resources/'
+  - 'reports/'
   - 'README.md' # Often has specific formatting requirements

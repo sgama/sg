@@ -27,8 +27,20 @@ docker-compose.override.yml
 results/
 .lighthouseci/
 
-# Env
+# Env / secrets
 .env
+.env.local
+.env.*.local
 reports/
 
+# Logs
+*.log
+
+# Wrangler local state
+.wrangler/
+
+# OpenCode local state
 .opencode
+
+# deepwork state (gitignored; searchable via .ignore)
+.slim/deepwork/

@@ -21,11 +21,12 @@ app.get('/api/logs', async (c) => {
         return c.json({ error: 'Service Unavailable: KV binding missing' }, 503);
     }
 
-    const cursor = c.req.query('cursor') ?? undefined;
-    const limitParam = parseInt(c.req.query('limit'));
-    const limit = !isNaN(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT ? limitParam : CONFIG.PAGINATION.DEFAULT_LIMIT;
+    const cursor = typeof c.req.query('cursor') === 'string' ? c.req.query('cursor') : undefined;
+    const limitParam = Number.parseInt(c.req.query('limit') ?? '', 10);
+    const limit =
+        Number.isInteger(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT ? limitParam : CONFIG.PAGINATION.DEFAULT_LIMIT;
 
-    const data = await LogService.fetchLogs(env.CHAT_LOGS, limit, cursor);
+    const data = await LogService.fetchLogs(env, limit, cursor);
     return c.json(data);
 });
 

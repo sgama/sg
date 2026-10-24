@@ -4,7 +4,8 @@
     "## How to Use This Site"
     "- Start with the About and Resume pages for a high-level overview."
     "- Use Portfolio for project highlights and Posts for technical deep dives."
-    "- For quick info, scan the Skills / Tags Snapshot below." ""
+    "- For quick info, scan the Skills / Tags Snapshot below."
+    "- Programmatic chat API: POST /api/chat for agent access to the assistant." ""
     "## Key Pages" -}}
 {{- range slice "/about" "/resume" "/contact" -}}
   {{- with site.GetPage . -}}

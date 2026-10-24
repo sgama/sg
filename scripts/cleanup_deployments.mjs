@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
+import pLimit from 'p-limit';
 import { AI_CONFIG } from '../functions/_lib/application.js';
 import { createMaintenanceClient, waitForMutation } from './lib/corpus-deployment.mjs';
 
@@ -69,17 +70,21 @@ async function inventory(client, project, accountId) {
 }
 
 async function retainedSnapshots(client, project, accountId, deployments) {
-    const snapshots = [];
-    for (const deployment of deployments) {
-        const snapshot = await client.pages.projects.deployments.get(deployment.id, {
-            account_id: accountId,
-            project_name: project,
-        });
-        if (snapshot?.id !== deployment.id || snapshot.environment !== deployment.environment) {
-            throw new Error('Invalid retained deployment snapshot; refusing cleanup');
-        }
-        snapshots.push(snapshot);
-    }
+    const limit = pLimit(5);
+    const snapshots = await Promise.all(
+        deployments.map((deployment) =>
+            limit(async () => {
+                const snapshot = await client.pages.projects.deployments.get(deployment.id, {
+                    account_id: accountId,
+                    project_name: project,
+                });
+                if (snapshot?.id !== deployment.id || snapshot.environment !== deployment.environment) {
+                    throw new Error('Invalid retained deployment snapshot; refusing cleanup');
+                }
+                return snapshot;
+            }),
+        ),
+    );
     return snapshots;
 }
 
@@ -108,22 +113,31 @@ async function vectorInventory(client, accountId, indexName) {
             throw new Error('Invalid or repeated vector ID during cleanup');
         }
         ids.forEach((id) => seen.add(id));
+        const batches = [];
         for (let offset = 0; offset < ids.length; offset += 20) {
-            const batch = ids.slice(offset, offset + 20);
-            const records = await client.vectorize.indexes.getByIDs(indexName, {
-                account_id: accountId,
-                ids: batch,
-            });
-            if (
-                !Array.isArray(records) ||
-                records.length !== batch.length ||
-                new Set(records.map((record) => record.id)).size !== batch.length ||
-                records.some((record) => !batch.includes(record.id))
-            ) {
-                throw new Error('Incomplete vector records; refusing cleanup');
-            }
-            vectors.push(...records);
+            batches.push(ids.slice(offset, offset + 20));
         }
+        const limit = pLimit(5);
+        const results = await Promise.all(
+            batches.map((batch) =>
+                limit(async () => {
+                    const records = await client.vectorize.indexes.getByIDs(indexName, {
+                        account_id: accountId,
+                        ids: batch,
+                    });
+                    if (
+                        !Array.isArray(records) ||
+                        records.length !== batch.length ||
+                        new Set(records.map((record) => record.id)).size !== batch.length ||
+                        records.some((record) => !batch.includes(record.id))
+                    ) {
+                        throw new Error('Incomplete vector records; refusing cleanup');
+                    }
+                    return records;
+                }),
+            ),
+        );
+        vectors.push(...results.flat());
         if (!page.isTruncated) break;
         cursor = page.nextCursor;
         if (!cursor || cursors.has(cursor)) throw new Error('Invalid vector inventory cursor');

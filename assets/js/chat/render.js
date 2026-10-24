@@ -1,6 +1,6 @@
 export function createMessageRenderer({
-    loadModules = () => Promise.all([import('https://esm.sh/marked@13'), import('https://esm.sh/dompurify@3')]),
-    loadMermaid = () => import('https://esm.sh/mermaid@11'),
+    loadModules = () => Promise.all([import('marked'), import('dompurify')]),
+    loadMermaid = () => import(window.__MERMAID_URL__ || 'mermaid'),
     warn = (...args) => console.warn(...args),
 } = {}) {
     let markdown = null;

@@ -39,7 +39,7 @@ app.post('/api/chat', async (c) => {
         return c.json({ error: 'Service Unavailable: AI binding missing' }, 503);
     }
 
-    const aiService = new AiService(env);
+    const aiService = new AiService(env, { cache: typeof caches !== 'undefined' ? caches.default : null });
     if (!env.VECTORIZE_INDEX) {
         console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
         throw new AppError('Retrieval service unavailable', 503);
@@ -58,7 +58,7 @@ app.post('/api/chat', async (c) => {
                 await sse.writeSSE({ data: JSON.stringify({ progress: 'generation' }) });
                 stream = await aiService.generateStream(query, contextText, history);
             }
-            if (env.CHAT_LOGS) stream = await LogService.save(env.CHAT_LOGS, query, stream, c.executionCtx);
+            if (env.CHAT_LOGS) stream = await LogService.save(env, query, stream, c.executionCtx);
             await sse.pipe(stream);
         } catch (err) {
             console.error('Chat Request Failed:', err);

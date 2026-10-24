@@ -1,0 +1,24 @@
+{{- $sites := slice "/about" "/resume" "/contact" -}}
+{{- $lines := slice
+    (printf "# %s — full content" site.Title)
+    (printf "> Root index: %s" (printf "%sllms.txt" site.BaseURL))
+    (site.Params.description | default "Personal Portfolio and Technical Blog of Samson Gama." | plainify) ""
+    (printf "Generated from public pages only. Internal RAG context is not included.") ""
+-}}
+{{- range $sites -}}
+  {{- with site.GetPage . -}}
+    {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .RawContent "" -}}
+  {{- end -}}
+{{- end -}}
+{{- $publicPages := where site.RegularPages "RelPermalink" "ne" "" -}}
+{{- $projects := where $publicPages "Section" "portfolio" -}}
+{{- $posts := where $publicPages "Section" "posts" -}}
+{{- $lines = $lines | append "## Portfolio Projects" -}}
+{{- range $projects -}}
+  {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .RawContent "" -}}
+{{- end -}}
+{{- $lines = $lines | append "## Technical Blog Posts" -}}
+{{- range $posts.ByDate.Reverse -}}
+  {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .RawContent "" -}}
+{{- end -}}
+{{- printf "%s\n" (delimit $lines "\n") -}}

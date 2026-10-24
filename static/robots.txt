@@ -1,0 +1,27 @@
+# AI-crawler policy for samsongama.com
+# Site content (posts, portfolio, resume, about) is intentionally open to AI agents and crawlers.
+# Internal RAG corpus (content/_context/) is not published, tagged headless, and excluded from sitemap/llms files.
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://samsongama.com/sitemap.xml

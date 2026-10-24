@@ -82,6 +82,7 @@ description = "Samson Gama — SRE, DevOps engineer, and cloud architect. Writin
 displayName = "EN"
 isoCode = "en"
 # logo = "icon.svg"
+robots = "index, follow"  # default robots meta; pages can override with own `robots` param
 rtl = false
 
 [languages.en.params.author]
@@ -217,9 +218,14 @@ baseName = "llms"
 isPlainText = true
 mediaType = "text/llms"
 
+[outputFormats.LLMS_FULL]
+baseName = "llms-full"
+isPlainText = true
+mediaType = "text/llms"
+
 # Output formats - https://gohugo.io/templates/output-formats/
 [outputs]
-home = ["HTML", "RSS", "JSON", "LLMS"]  # JSON needed for search; LLMS for AI
+home = ["HTML", "RSS", "JSON", "LLMS", "LLMS_FULL"]  # JSON needed for search; LLMS and LLMS_FULL for AI
 section = ["HTML", "RSS"]
 taxonomy = ["HTML"]
 term = ["HTML"]

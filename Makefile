@@ -204,6 +204,9 @@ deploy-built: check check-env ## Deploy an already validated production build (n
 cleanup-deployments: check check-env ## Keep production rollback history; delete previews and unreferenced corpora
 	@$(NODE) scripts/cleanup_deployments.mjs
 
+csp-headers: check ## Generate public/_headers CSP from a fresh build (run after make build-prod)
+	@$(NODE) scripts/generate_csp.mjs
+
 ##@ CI
 ci-check: lint-workflows lint coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
 
