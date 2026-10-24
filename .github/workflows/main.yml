@@ -25,6 +25,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 1
+          persist-credentials: false
       - name: Read pinned actionlint version
         id: actionlint-version
         run: |
@@ -59,6 +60,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 1
+          persist-credentials: false
       - uses: ./.github/actions/setup
         with:
           hugo: 'true'
@@ -70,7 +72,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
       - run: make coverage
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: javascript-coverage
@@ -85,6 +87,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 1
+          persist-credentials: false
       - uses: ./.github/actions/setup
         with:
           hugo: 'true'
@@ -108,7 +111,7 @@ jobs:
           path: ${{ env.HUGO_CACHEDIR }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
       - name: Upload site build
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: site-build
           path: public/
@@ -126,6 +129,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 1
+          persist-credentials: false
       - uses: ./.github/actions/setup
         with:
           hugo: 'true'

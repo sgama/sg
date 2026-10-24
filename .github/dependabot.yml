@@ -7,6 +7,8 @@ version: 2
 #   - compatibility_date in wrangler.toml (currently 2026-04-20)
 #   - Blowfish theme version in go.mod (covered by gomod ecosystem above)
 # Review these on the first Monday of each month.
+
+updates:
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -26,9 +28,6 @@ version: 2
       npm:
         patterns:
           - '*'
-    # Auto-merge minor/patch; major updates require manual review
-    allow:
-      - dependency-type: all
 
   - package-ecosystem: gomod
     directory: /
