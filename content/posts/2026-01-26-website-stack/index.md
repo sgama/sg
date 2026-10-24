@@ -68,27 +68,15 @@ Actions -->|Deploy| Pages
 
 ## 1. Development & Quality Assurance
 
-Quality starts before the code even leaves my machine. I use **pre-commit** hooks to ensure standards are met.
+Quality starts before any deployment. Quality checks run through **Make targets** on demand and in CI:
 
-### Pre-commit Configuration
+1. **Linting**: `make lint` checks all JavaScript (ESLint); `make format-check` checks YAML and CSS formatting; workflow linting uses `actionlint`.
+2. **Content Checks**: `make audit-content` validates front matter coverage. Production rendering is checked separately in CI.
+3. **Tests**: `make test` runs the complete offline Node.js unit suite.
 
-Every time I run `git commit`, a series of checks fire off locally:
-
-1. **File Safety**: Checks for private keys, merge conflicts, large files, and invalid configuration syntax. Private-key detection is not a comprehensive API-token scanner.
-2. **Linting**: Checks JavaScript, YAML, Markdown, TOML formatting, and spelling.
-3. **Content Checks**: Checks front matter presence and flags oversized images. Production rendering is checked separately in CI.
-
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
-      - id: detect-private-key
+```bash
+# The offline validation entry point
+make ci-check
 ```
 
 ---

@@ -81,9 +81,9 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('go.sum') }}-${{ github.run_id }}
+          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('go.sum') }}-
+            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
 
       - name: Set up Node for Wrangler
         uses: actions/setup-node@v7

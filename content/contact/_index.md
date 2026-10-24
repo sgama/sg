@@ -1,5 +1,6 @@
 ---
 title: "Contact"
+description: "How to reach Samson: send a message through the contact form or connect directly via Signal, LinkedIn or GitHub."
 showDate: false
 ---
 

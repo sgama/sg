@@ -29,28 +29,28 @@ Coverage uses c8 and includes unexecuted browser, Functions, and script files. I
 
 Keep detailed behavior tests with the module that owns it. Keep cross-module regressions only where they verify integration rather than repeating the same isolated assertions. Files under `unit/` include offline contract and CLI integration tests as well as isolated unit tests.
 
-| Suite | Responsibility |
-| --- | --- |
-| `content-normalization.test.mjs` | Markdown/HTML normalization, shortcode parsing, literal code, media removal, and heading boundaries |
-| `source-provenance.test.mjs` | Hugo-owned URLs, slugs, explicit URLs, and permalinks |
-| `section-chunks.test.mjs` | Bounded parent sections and deterministic child/parent linkage |
-| `canonical-evidence.test.mjs` | Curated-to-public linkage, target validation, and runtime supplementation |
-| `corpus.test.mjs` | Corpus assembly, embedding labels, source classification, configuration, and reproducibility |
-| `corpus-content.test.mjs` | Repository content regressions: homepage prose, resume chronology/skills, and internal evidence |
-| `corpus-contract.test.mjs` | Schema and semantic invariants, including edits with and without recomputed hashes |
-| `corpus-deployment.test.mjs` | Embedding/upload transport, NDJSON, retries, cancellation, and pre-request validation |
-| `corpus-refresh.test.mjs` | Mutation readiness, activation, unchanged-corpus handling, and concurrent configuration edits |
-| `ai-cli.test.mjs` | Offline manifests, side-effect-safe imports, evaluation, and refresh CLI contracts |
-| `ai-evaluation.test.mjs`, `local-ai.test.mjs`, `cloudflare-ai.test.mjs` | Evaluation gates and injected local/cloud transport contracts |
-| `ai-service.test.mjs`, `chat-api.test.mjs`, `validation.test.mjs`, `guardrails.test.mjs` | Request validation, query contextualization, retrieval, generation, and error behavior |
-| `chat-stream.test.mjs`, `chat-metrics.test.mjs` | Provider SSE normalization, usage, costs, and timing |
-| `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior |
-| `log-service.test.mjs`, `logs-api.test.mjs` | KV persistence, pagination, public log access, and failures |
-| `content-audit.test.mjs`, `rag-audit.test.mjs`, `favicons.test.mjs`, `makefile.test.mjs` | Content policies, provenance review, favicon command wiring, and build/test commands |
-| `postcss.test.mjs` | Production purging preserves theme-owned dark selectors and chat colors |
-| `menu-a11y.test.mjs` | Native menu button wiring, expanded state, Escape, and outside-click dismissal |
-| `deployment-cleanup.test.mjs`, `local-ai-lifecycle.test.mjs` | Retention and owned-resource teardown safety |
-| `integration/layouts.test.mjs` | Generated Hugo schema, public LLM index, image preloads, and theme settings |
+| Suite                                                                                       | Responsibility                                                                                      |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `content-normalization.test.mjs`                                                            | Markdown/HTML normalization, shortcode parsing, literal code, media removal, and heading boundaries |
+| `source-provenance.test.mjs`                                                                | Hugo-owned URLs, slugs, explicit URLs, and permalinks                                               |
+| `section-chunks.test.mjs`                                                                   | Bounded parent sections and deterministic child/parent linkage                                      |
+| `canonical-evidence.test.mjs`                                                               | Curated-to-public linkage, target validation, and runtime supplementation                           |
+| `corpus.test.mjs`                                                                           | Corpus assembly, embedding labels, source classification, configuration, and reproducibility        |
+| `corpus-content.test.mjs`                                                                   | Repository content regressions: homepage prose, resume chronology/skills, and internal evidence     |
+| `corpus-contract.test.mjs`                                                                  | Schema and semantic invariants, including edits with and without recomputed hashes                  |
+| `corpus-deployment.test.mjs`                                                                | Embedding/upload transport, NDJSON, retries, cancellation, and pre-request validation               |
+| `corpus-refresh.test.mjs`                                                                   | Mutation readiness, activation, unchanged-corpus handling, and concurrent configuration edits       |
+| `ai-cli.test.mjs`                                                                           | Offline manifests, side-effect-safe imports, evaluation, and refresh CLI contracts                  |
+| `ai-evaluation.test.mjs`, `local-ai.test.mjs`, `cloudflare-ai.test.mjs`                     | Evaluation gates and injected local/cloud transport contracts                                       |
+| `ai-service.test.mjs`, `chat-api.test.mjs`, `validation.test.mjs`, `guardrails.test.mjs`    | Request validation, query contextualization, retrieval, generation, and error behavior              |
+| `chat-stream.test.mjs`, `chat-metrics.test.mjs`                                             | Provider SSE normalization, usage, costs, and timing                                                |
+| `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior                             |
+| `log-service.test.mjs`, `logs-api.test.mjs`                                                 | KV persistence, pagination, public log access, and failures                                         |
+| `content-audit.test.mjs`, `rag-audit.test.mjs`, `favicons.test.mjs`, `makefile.test.mjs`    | Content policies, provenance review, favicon command wiring, and build/test commands                |
+| `postcss.test.mjs`                                                                          | Production purging preserves theme-owned dark selectors and chat colors                             |
+| `menu-a11y.test.mjs`                                                                        | Native menu button wiring, expanded state, Escape, and outside-click dismissal                      |
+| `deployment-cleanup.test.mjs`, `local-ai-lifecycle.test.mjs`                                | Retention and owned-resource teardown safety                                                        |
+| `integration/layouts.test.mjs`                                                              | Generated Hugo schema, public LLM index, image preloads, and theme settings                         |
 
 This table groups responsibilities rather than serving as an exhaustive file inventory.
 
@@ -80,7 +80,7 @@ Normalization tests compare Markdown structure and preserve nested lists, indent
 
 Parent expansion replaces narrow child evidence with its bounded section. Canonical expansion supplements curated facts with public evidence; unique internal facts remain in model context, while only public excerpts are displayed. Runtime/cloud/local tests verify deduplication, ordering, context budgets, and explicit missing-vector errors. Current chunks without section references require no parent lookup. Legacy records without an explicit record type are rejected by runtime retrieval.
 
-Cloudflare contract tests use the installed SDK with injected fetch and native `Request`/`Response` objects. They verify actual payload bytes, model paths, pagination, mutations, readiness, and safe deletion acknowledgements. Local AI tests mock HTTP and container CLI boundaries. `make ai-local-validate` is the separate explicit real-GPU integration check; hybrid generation can make paid cloud calls and is not part of offline tests.
+Cloudflare contract tests use the installed SDK with injected fetch and native `Request`/`Response` objects. They verify actual payload bytes, model paths, pagination, mutations, readiness, and safe deletion acknowledgements.
 
 ## Evaluation limits
 

@@ -30,3 +30,5 @@ results/
 # Env
 .env
 reports/
+
+.opencode

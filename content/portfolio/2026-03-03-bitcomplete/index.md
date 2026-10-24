@@ -1,6 +1,6 @@
 ---
 title: "Bitcomplete"
-summary: ""
+summary: "Operated a cloud AI infrastructure platform serving GPU-resale providers — Kubernetes operations, production reliability for training and inference workloads, incident response, observability and automation."
 showPagination: true
 invertPagination: true
 weight: 100

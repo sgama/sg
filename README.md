@@ -19,8 +19,7 @@ A modern, responsive personal website built with [Hugo](https://gohugo.io/) and 
 - [Hugo](https://gohugo.io/installation/) (Extended version recommended)
 - [Go](https://golang.org/doc/install) matching the version declared in `go.mod`
 - [Git](https://git-scm.com/)
-- Node.js 22+ for Wrangler and the local AI infrastructure tools
-- [Pre-commit](https://pre-commit.com/) (optional but recommended)
+- Node.js 22+ for Wrangler
 
 ### AI Assistant Setup
 
@@ -28,33 +27,33 @@ To enable the AI chatbot feature:
 
 1. **Install dependencies**:
 
-   ```bash
-   npm install
-   ```
+    ```bash
+    npm install
+    ```
 
 2. **Create Vector Database** (One-time setup):
 
-   ```bash
-   npx wrangler vectorize create portfolio-index --dimensions=768 --metric=cosine
-   ```
+    ```bash
+    npx wrangler vectorize create portfolio-index --dimensions=768 --metric=cosine
+    ```
 
 3. **Validate and plan the corpus** (offline):
 
-   ```bash
-   npm ci
-   make ai-check ai-plan
-   ```
+    ```bash
+    npm ci
+    make ai-check ai-plan
+    ```
 
 4. **Ingest a candidate**, using the namespace printed by the plan:
 
-   ```bash
-   export CLOUDFLARE_ACCOUNT_ID="your_id"
-   export CLOUDFLARE_API_TOKEN="your_token"
-   make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
-   ```
+    ```bash
+    export CLOUDFLARE_ACCOUNT_ID="your_id"
+    export CLOUDFLARE_API_TOKEN="your_token"
+    make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
+    ```
 
-   This makes paid Cloudflare API calls. It does not activate or delete a corpus.
-   Follow the evaluation and release procedure below before changing production.
+    This makes paid Cloudflare API calls. It does not activate or delete a corpus.
+    Follow the evaluation and release procedure below before changing production.
 
 ### Chat Widget Architecture
 
@@ -215,7 +214,7 @@ Formatting is separate from ESLint correctness checks (`make lint`). Hugo
 templates, Markdown content, TOML and generated output are outside this
 formatting pass, including `assets/css/site.purged.css`. YAML linting and
 TOML tooling remain unchanged; CSS formatting does not add CSS linting.
-No CI or pre-commit formatting gate is added by this rollout.
+No CI formatting gate is added by this rollout.
 
 ### Chat model details and response metrics
 
@@ -257,8 +256,6 @@ with a keyboard-accessible Details disclosure for timing and token-count tables.
 `make audit-content` uses separate policies: posts require title/date and recommend tags plus description/summary; public pages (including section indexes) and internal context require title and recommend description/summary. The internal context's headless cascade configuration index is excluded, not public section indexes. Required dates must be parseable dates, not merely present values. Environment field overrides apply explicitly to every type. `make test` is the canonical complete offline suite.
 
 Newly built corpora require explicit record types and normalization version 3. Runtime section expansion rejects records without an explicit current record type. Rebuild and activate the current corpus before serving these stricter Functions.
-
-`make favicons` uses the existing WebP portrait and supports ImageMagick 7 (`magick`) or 6 (`convert`). It never installs system packages. Override `FAVICON_SOURCE` and `FAVICON_OUTPUT_DIR` to use a different source or validate into a temporary directory.
 
 Ingestion uses structured Markdown/HTML ASTs (remark with GFM, mdast-to-hast, hast-util-raw and hast-to-mdast). It removes media and presentation controls without flattening nested lists, indented code or inline code. A quote-aware Hugo shortcode tokenizer runs only outside Markdown code spans/blocks; Mermaid shortcodes become fenced diagrams. Serialization normalizes Markdown formatting and resolves reference links, while preserving rendered meaning. Embedding inputs include page/section labels; stored excerpts contain normalized source evidence. Local and Cloudflare embedding paths use the same helper.
 Hugo Mermaid shortcodes become fenced Mermaid blocks during ingestion. Opening
@@ -364,105 +361,10 @@ tests. Evidence assertions and the audit do not publish or re-index content.
 
 ### Local Docker/GPU validation
 
-For fully local RAG validation on an NVIDIA GPU:
-
-```bash
-make ai-local-check       # Offline settings/corpus/fixture validation
-make ai-local-validate    # Download/cache models, evaluate on GPU, tear down and exit
-make ai-local-hybrid      # Local BGE retrieval + paid Cloudflare GLM generation
-make ai-local-clean       # Explicitly delete the owned model-cache volume
-
-# Override model, repetitions, cache or report destination
-make ai-local-validate AI_REPEATS=3 AI_LOCAL_CONTEXT=4096 \
-  AI_LOCAL_VOLUME=sg-ollama-models AI_LOCAL_REPORT=reports/ai-local-glm.json
-```
-
-Requires Docker Compose v2, NVIDIA Container Toolkit configured for Docker,
-Node dependencies (`make deps`) and curl. Embeddings now default to the production
-model family, `BAAI/bge-base-en-v1.5` (768 dimensions), served by Hugging Face
-Text Embeddings Inference (TEI) with its CUDA image and float32 weights.
-Local generation defaults to
-`hf.co/unsloth/GLM-4.7-Flash-GGUF:GLM-4.7-Flash-UD-IQ3_XXS.gguf`
-through Ollama with thinking disabled. This is a community quantization of the
-deployed GLM-4.7-Flash model family, not the same precision or serving engine.
-The GGUF download is 12,907,368,800 bytes (about 12.0 GiB); runtime buffers and
-KV cache need additional VRAM. `AI_LOCAL_CONTEXT=4096` bounds context memory
-for the 16 GB RTX 4080, but full GPU residency is not guaranteed. The GPU check
-requires some GPU residency, not all layers; partial CPU offload can slow runs.
-Override `AI_LOCAL_MODEL` to choose another model or quantization.
-Override `AI_LOCAL_EMBED_IMAGE` to pin TEI (default
-`ghcr.io/huggingface/text-embeddings-inference:cuda-1.9`).
-Override `AI_LOCAL_IMAGE` to pin an
-Ollama version or image digest; the default is `ollama/ollama:latest`, and the
-resolved image ID and loaded model digests are recorded in the local report.
-First use downloads several GB; subsequent runs reuse the named model cache.
-Ollama's local API is bound only to loopback on a dynamically assigned port.
-The default local mode makes no Cloudflare calls. `make ai-local-hybrid` uses
-local retrieval followed by paid Cloudflare generation, defaulting to the
-shared `glm` model registry entry. Override `AI_LOCAL_CLOUD_MODEL` for another
-registered model. Credentials remain on the host and are not passed into either
-container. Neither mode changes cloud indexes or deployments.
-
-[`docker-compose.yml`](docker-compose.yml) defines GPU reservations and an
-external named volume (`sg-ollama-models` by default). Each invocation gets its
-own Compose project and network. The TEI embedding container runs first and is
-stopped before the Ollama generation container starts; GPU inference does not
-overlap. Hybrid mode never starts Ollama. Exit, validation failure, Ctrl-C and
-termination trigger teardown without deleting the model cache. SIGKILL or host
-failure cannot run cleanup: the printed project name can be recovered with
-`docker compose -f docker-compose.yml -p PROJECT_NAME down --remove-orphans`.
-Cache cleanup checks the ownership label and uses non-forced volume deletion;
-Docker refuses removal while any container still uses it. Existing unowned
-volumes are rejected rather than adopted or deleted. Never use a shared
-production volume as `AI_LOCAL_VOLUME`.
-
-The evaluator embeds the current corpus locally in batches, uses exact in-memory
-cosine search (no database container needed for this small corpus), and reuses
-the existing retrieval fixture, source headers, prompt, answer checks and timing
-logic. BGE receives unprefixed text, matching the production request payload;
-vectors are normalized for cosine search. TEI truncates inputs to its model's
-512-token limit; this is recorded explicitly in local report preprocessing.
-The production character-based chunks can exceed that token limit.
-Matching model weights does not guarantee
-identical provider preprocessing or numerical results. Override
-`AI_LOCAL_EMBED_MODEL` and its matching `AI_LOCAL_DIMENSIONS` together.
-TEI uses the explicit CUDA image and NVIDIA device reservation, and its reported
-model identity is checked. Ollama generation GPU residency is checked explicitly.
-Local generation is serial with temperature 0, 512 completion tokens, and
-`AI_LOCAL_TIMEOUT_MS=120000` per API request. Model downloads and initial
-indexing are outside answer latency measurements.
-Generation model loading is included in the first answer's latency; p95 over
-13 samples includes that cold start. Use repetitions to inspect warm samples
-separately rather than interpreting the aggregate p95 as steady-state latency.
-
-`reports/ai-local.json` is private and ignored, with local model/corpus provenance
-and retrieval/comparison results. The command exits nonzero on transport/GPU
-errors, hit rate below `AI_MIN_HIT_RATE`, answer-check rate below
-`AI_MIN_ANSWER_RATE`, or any required regression failure. Threshold overrides
-can make a diagnostic run less restrictive but do not disable required checks.
-Cloud pricing is absent for local generation; hybrid mode estimates generation
-cost from the shared registry. Local hardware/electricity costs are not measured.
-Exact search differs from Vectorize, and quantized local GLM can differ from deployed GLM,
-so **local reports cannot satisfy the Cloudflare release gate** or establish
-Cloudflare latency, cost, or factual accuracy.
-
-The initial Nomic/Qwen run (before switching embeddings to BGE) on 2026-10-07
-verified GPU residency for both models
-(approximately 0.60 GB embedding / 5.98 GB generation VRAM reported by Ollama),
-completed all 13 generation requests and removed its container and network.
-It failed quality validation: source hit@3 was 5/12 (41.7%) and answer checks
-were 3/13 (23.1%). First-answer p50 was 217 ms; the 25.2-second p95 included
-the first model load. Retrieval often missed the resume entirely, so this run
-does not isolate generation quality. Token usage was present for 13/13 answers;
-the initial summary incorrectly reported zero usage coverage because local
-models have no cloud token price. Usage coverage now counts valid token usage
-independently of pricing; estimated dollar cost remains unavailable.
-
-The subsequent BGE/Qwen staged run on the same date completed 13/13 generations,
-with source hit@3 of 8/12 (66.7%) and answer checks of 4/13 (30.8%).
-Both services and the network were removed afterward; the embedding service
-was stopped before generation started. This is still below validation thresholds
-and is not a measurement of deployed GLM generation.
+Removed: the previous local Docker/GPU RAG validation lane was retired. Use
+`make ai-check`, `make ai-retrieval-eval` and `make ai-compare` (paid API) with
+live Vectorize retrieval. **Local reports cannot satisfy the Cloudflare release
+gate** or establish Cloudflare latency, cost, or factual accuracy.
 
 ### Measured GLM baseline
 
@@ -471,18 +373,18 @@ On 2026-10-07, a developer-run baseline used the current production corpus,
 Vectorize retrieval, including the salary question. No visitor transcripts,
 index mutations, deployments or local browser checks were used.
 
-| Metric | Result |
-| --- | --- |
-| Successful retrieval queries | 13/13 |
-| Labeled source hit@3 | 10/12 (83.3%; salary question excluded) |
-| Retrieval latency p50 / p95 | 143 / 384 ms |
-| Successful generation requests | 13/13; no empty-context abstentions |
-| Deterministic answer checks | 5/13 (38.5%) |
-| Required regression checks | 1/7 (14.3%) |
-| First visible answer p50 / p95 | 343 / 537 ms |
-| Generation completion p50 / p95 | 1,665 / 4,846 ms |
-| Reported prompt / completion tokens | 16,388 / 1,240 |
-| Estimated generation-only cost | $0.001487474; usage available for 13/13 |
+| Metric                              | Result                                  |
+| ----------------------------------- | --------------------------------------- |
+| Successful retrieval queries        | 13/13                                   |
+| Labeled source hit@3                | 10/12 (83.3%; salary question excluded) |
+| Retrieval latency p50 / p95         | 143 / 384 ms                            |
+| Successful generation requests      | 13/13; no empty-context abstentions     |
+| Deterministic answer checks         | 5/13 (38.5%)                            |
+| Required regression checks          | 1/7 (14.3%)                             |
+| First visible answer p50 / p95      | 343 / 537 ms                            |
+| Generation completion p50 / p95     | 1,665 / 4,846 ms                        |
+| Reported prompt / completion tokens | 16,388 / 1,240                          |
+| Estimated generation-only cost      | $0.001487474; usage available for 13/13 |
 
 The baseline **does not pass the release gate**. Retrieval was below the default
 90% threshold; generation continued with `AI_MIN_HIT_RATE=0` for this diagnostic
@@ -617,9 +519,9 @@ chunking remains approximate, not a guaranteed tokenizer limit.
    `wrangler.toml`. The namespace must exactly match the plan and reports.
 5. Run the ordered release command:
 
-   ```bash
-   make deploy-ai AI_NAMESPACE=corpus-HASH_FROM_PLAN
-   ```
+    ```bash
+    make deploy-ai AI_NAMESPACE=corpus-HASH_FROM_PLAN
+    ```
 
 The release gate requires the current corpus/fixture, retrieval configuration,
 prompt, generation settings, selected model and successful retrieved-context
@@ -764,29 +666,29 @@ Generation accepts content deltas and aggregate usage, including the current Wor
 
 1. **Clone the repository**
 
-   ```bash
-   git clone https://github.com/sgama/sg.git
-   cd sg
-   ```
+    ```bash
+    git clone https://github.com/sgama/sg.git
+    cd sg
+    ```
 
 2. **Install dependencies** (Blowfish is a Hugo module, not a submodule)
 
-   ```bash
-   npm ci
-   hugo mod get
-   ```
+    ```bash
+    npm ci
+    hugo mod get
+    ```
 
 3. **Start the development server**
 
-   ```bash
-   make serve
-   ```
+    ```bash
+    make serve
+    ```
 
-   Normal builds and the development server preserve Hugo's shared module cache:
-   they do not use `--gc` or `--ignoreCache`. Avoid cache cleanup while a Hugo
-   server is running, since it can invalidate theme assets used by hot reload.
-   If a theme asset disappears, stop the server, run `hugo mod graph` to restore
-   the pinned modules, then restart with `make serve`.
+    Normal builds and the development server preserve Hugo's shared module cache:
+    they do not use `--gc` or `--ignoreCache`. Avoid cache cleanup while a Hugo
+    server is running, since it can invalidate theme assets used by hot reload.
+    If a theme asset disappears, stop the server, run `hugo mod graph` to restore
+    the pinned modules, then restart with `make serve`.
 
 4. **Visit your site**
    Open [http://localhost:1313](http://localhost:1313) in your browser
@@ -799,29 +701,28 @@ charges even during local development.
 
 Use the Makefile for common development tasks:
 
-| Command | Description |
-| ------- | ----------- |
-| `make help` | Show all available commands |
-| `make deps` | Install dependencies reproducibly with npm ci |
-| `make serve` | Start Hugo development server |
-| `make dev-ai` | Run the site with Pages Functions through Wrangler |
-| `make build` | Build the site without the production CSS purge |
-| `make build-prod` | Build production assets with PostCSS and PurgeCSS |
-| `make test` | Run the Node.js unit tests |
-| `make lint` | Lint browser, Functions, scripts, and test JavaScript |
-| `make lint-fix` | Apply ESLint automatic fixes |
-| `make lint-workflows` | Validate all GitHub Actions workflows with actionlint |
-| `make coverage` | Run tests and write HTML/LCOV coverage reports |
-| `make ci-check` | Run offline checks and build the production site and Functions (Node 22+) |
-| `make audit-content` | Validate content front matter coverage |
-| `make audit-urls` | Check links using markdown-link-check |
-| `make audit-site` | Run content and link checks |
-| `make clean` | Remove generated output within the repository's public build tree |
-| `make deploy-pages` | Build production assets and deploy to Cloudflare Pages |
-| `make deploy-built` | Deploy an existing validated production build without rebuilding |
-| `make deploy-ai` | Validate and gate an AI corpus/model release before deployment |
-| `make ai-refresh` | Rebuild and index the current corpus, then update Wrangler's namespace |
-| `make pre-commit` | Run all pre-commit hooks manually |
+| Command               | Description                                                               |
+| --------------------- | ------------------------------------------------------------------------- |
+| `make help`           | Show all available commands                                               |
+| `make deps`           | Install dependencies reproducibly with npm ci                             |
+| `make serve`          | Start Hugo development server                                             |
+| `make dev-ai`         | Run the site with Pages Functions through Wrangler                        |
+| `make build`          | Build the site without the production CSS purge                           |
+| `make build-prod`     | Build production assets with PostCSS and PurgeCSS                         |
+| `make test`           | Run the Node.js unit tests                                                |
+| `make lint`           | Lint browser, Functions, scripts, and test JavaScript                     |
+| `make lint-fix`       | Apply ESLint automatic fixes                                              |
+| `make lint-workflows` | Validate all GitHub Actions workflows with actionlint                     |
+| `make coverage`       | Run tests and write HTML/LCOV coverage reports                            |
+| `make ci-check`       | Run offline checks and build the production site and Functions (Node 22+) |
+| `make audit-content`  | Validate content front matter coverage                                    |
+| `make audit-urls`     | Check links using markdown-link-check                                     |
+| `make audit-site`     | Run content and link checks                                               |
+| `make clean`          | Remove generated output within the repository's public build tree         |
+| `make deploy-pages`   | Build production assets and deploy to Cloudflare Pages                    |
+| `make deploy-built`   | Deploy an existing validated production build without rebuilding          |
+| `make deploy-ai`      | Validate and gate an AI corpus/model release before deployment            |
+| `make ai-refresh`     | Rebuild and index the current corpus, then update Wrangler's namespace    |
 
 Validation commands suppress recipe echo and stream tools' native output without
 filtering warnings or errors. Tests use Node's `spec` reporter; use
@@ -869,28 +770,28 @@ also checks embedded shell scripts.
 
 ```md
 sg/
-├── archetypes/          # Content templates
-├── assets/              # Site assets (images, CSS, JS)
-├── config.toml          # Hugo, theme, language and menu configuration
-├── content/             # Markdown content files
-│   ├── _context/        # Internal RAG corpus, not user-facing pages
-│   ├── posts/           # Blog and project page bundles
-│   ├── portfolio/       # Portfolio content
-│   ├── about/           # About page
-│   ├── contact/         # Contact page
-│   └── resume/          # Resume page
-├── functions/           # Cloudflare Pages Functions and shared AI helpers
-├── scripts/             # Audits, ingestion and AI evaluation tooling
-├── tests/               # Unit tests and labeled AI evaluation fixtures
-├── layouts/             # Custom Hugo templates
-│   ├── partials/       # Reusable template components
-│   └── shortcodes/     # Custom Hugo shortcodes
-├── public/              # Generated static site (git-ignored)
-├── resources/           # Hugo processed resources
-├── static/              # Static files (copied as-is)
-├── go.mod              # Go module dependencies
-├── Makefile            # Development commands
-└── .pre-commit-config.yaml # Code quality configuration
+├── archetypes/ # Content templates
+├── assets/ # Site assets (images, CSS, JS)
+├── config.toml # Hugo, theme, language and menu configuration
+├── content/ # Markdown content files
+│ ├── _context/ # Internal RAG corpus, not user-facing pages
+│ ├── posts/ # Blog and project page bundles
+│ ├── portfolio/ # Portfolio content
+│ ├── about/ # About page
+│ ├── contact/ # Contact page
+│ └── resume/ # Resume page
+├── functions/ # Cloudflare Pages Functions and shared AI helpers
+├── scripts/ # Audits, ingestion and AI evaluation tooling
+├── tests/ # Unit tests and labeled AI evaluation fixtures
+├── layouts/ # Custom Hugo templates
+│ ├── partials/ # Reusable template components
+│ └── shortcodes/ # Custom Hugo shortcodes
+├── public/ # Generated static site (git-ignored)
+├── resources/ # Hugo processed resources
+├── static/ # Static files (copied as-is)
+├── go.mod # Go module dependencies
+├── Makefile # Development commands
+└── .markdownlint.yaml # Markdown lint configuration
 ```
 
 ## 🎨 Theme Configuration
@@ -936,28 +837,6 @@ results. These audit steps are currently commented out in the push workflow.
 CI runs unit tests, embedding refresh/indexing, and the production build/deployment. Developers run AI
 corpus/fixture checks, model comparisons, and release gates locally.
 
-### Pre-commit Hooks
-
-The project uses [pre-commit](https://pre-commit.com/) for automated code quality checks:
-
-- **File validation**: Large files, merge conflicts, YAML/TOML syntax
-- **Formatting**: YAML, TOML, and Markdown formatting
-- **Hugo-specific**: Front matter delimiters and large static-image checks
-- **Spell checking**: Automated typo detection
-
-### Setup Pre-commit
-
-```bash
-# Install pre-commit
-pip install pre-commit
-
-# Install hooks
-pre-commit install
-
-# Run all hooks manually
-make pre-commit
-```
-
 ### Go Module Management
 
 Blowfish and shortcodes are managed through Hugo modules. Useful manual checks:
@@ -966,9 +845,6 @@ Blowfish and shortcodes are managed through Hugo modules. Useful manual checks:
 hugo mod tidy
 hugo mod verify
 ```
-
-The current pre-commit configuration does not run djLint, Go vulnerability
-scanning, or a Hugo build; the build hook is commented out.
 
 ## 📝 Content Management
 
@@ -988,42 +864,17 @@ scanning, or a Hugo build; the build hook is commented out.
 
 ```yaml
 ---
-title: "My New Post"
+title: 'My New Post'
 date: 2024-01-01
-tags: ["technology", "hugo"]
-categories: ["blog"]
+tags: ['technology', 'hugo']
+categories: ['blog']
 draft: false
-description: "A concise description for metadata and sharing."
-summary: "A brief description of the post"
+description: 'A concise description for metadata and sharing.'
+summary: 'A brief description of the post'
 ---
 ```
 
 ## 🚀 Deployment
-
-### Source metrics
-
-```bash
-make install-scc                 # Explicit install of pinned scc v4.1.0; requires Go 1.26.4+
-export PATH="$(go env GOPATH)/bin:$PATH"
-make metrics                     # Native per-language table; make bom is an alias
-make metrics-json                # Native JSON to stdout
-make --no-print-directory metrics-json > reports/source-metrics.json
-```
-
-Create `reports/` before redirecting a report there. Metrics commands never
-install tools implicitly; `SCC=/path/to/scc` selects an existing binary.
-The inventory measures the current working tree, including nonignored untracked
-source, documentation, tests, configuration and RAG Markdown. It respects
-`.gitignore` and excludes dependencies, build/cache/report trees, generated
-purged CSS and dependency lock inventories. Binary images are not counted as
-source lines.
-
-The table shows files, total/blank/comment/code lines and approximate complexity,
-with repository size; JSON retains native per-language metrics. Hugo templates
-are classified by the tool rather than fully analyzed as Go-template programs.
-Complexity is a heuristic, not a quality score, and generated site output remains
-separate under `make build-summary`. COCOMO cost estimates are disabled.
-`make bom` is a source inventory, **not** an SPDX/CycloneDX dependency SBOM.
 
 ### Layout validation
 
@@ -1081,14 +932,13 @@ needed by the chat API.
 
 - Use `make serve` for development with hot reloading
 - Test production builds with `make build-prod` before deployment
-- Run `make pre-commit` to catch issues early
+- Run `make lint` and `make test` to catch issues early
 
 ### Content Organization
 
 - Use consistent date-based naming for posts
 - Optimize images before adding to `assets/` or `static/`
-- Keep image files under 1MB; pre-commit checks newly added large files and
-  oversized static images
+- Keep image files under 1MB
 
 ### Theme Updates
 
@@ -1107,7 +957,7 @@ Review and commit the resulting `go.mod` / `go.sum` changes; do not vendor the t
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run `make pre-commit` to ensure code quality
+4. Run `make lint` and `make test` to ensure code quality
 5. Submit a pull request
 
 ## 📄 License

@@ -60,7 +60,7 @@ test('/api/logs', async (t) => {
             assert.equal(body.data[1].query, 'hello');
         });
 
-        await t.test('reports unsupported log formats explicitly', async (t) => {
+        await t.test('skips unsupported log formats explicitly', async (t) => {
             const logged = t.mock.method(console, 'error', () => {});
             const keys = [{ name: 'chat:old', metadata: { query: 'q', response: 'r' } }];
             const res = await onRequest(
@@ -72,10 +72,11 @@ test('/api/logs', async (t) => {
             );
 
             const body = await res.json();
-            assert.equal(res.status, 500);
-            assert.deepEqual(body, { error: 'Internal Server Error' });
+            assert.equal(res.status, 200);
+            assert.deepEqual(body.data, []);
+            assert.equal(body.meta.count, 0);
             assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Logs API Error: Unsupported log record version: chat:old']);
+            assert.deepEqual(logged.mock.calls[0].arguments, ['Unsupported log record version:', 'chat:old']);
         });
     });
 

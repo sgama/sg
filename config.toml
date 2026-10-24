@@ -24,8 +24,6 @@ ignoreFiles = [
   "node_modules",
   "package\\.json",
   "package-lock\\.json",
-  "docker-compose\\.yml",
-  "generate_favicons\\.sh",
   "LICENSE",
   "Makefile",
   "README\\.md"

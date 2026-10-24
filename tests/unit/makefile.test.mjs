@@ -31,15 +31,6 @@ test('cleanup rejects empty, broad, source, and out-of-tree destinations', () =>
     }
 });
 
-test('local GPU targets do not invoke cloud commands and have explicit cache cleanup', () => {
-    const result = make('-n', 'ai-local-validate', 'ai-local-clean');
-    assert.equal(result.status, 0);
-    assert.match(result.stdout, /ai-local-eval\.mjs --dry-run/);
-    assert.match(result.stdout, /bash scripts\/run_local_ai\.sh\n/);
-    assert.match(result.stdout, /bash scripts\/run_local_ai\.sh clean/);
-    assert.doesNotMatch(result.stdout, /check-env|ai-refresh|ai-eval\.mjs|wrangler|deploy/);
-});
-
 test('npm delegates tests and coverage to bounded Make commands without cycles', () => {
     const { scripts } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
     assert.equal(scripts.test, 'make --no-print-directory test');
@@ -55,27 +46,31 @@ test('npm delegates tests and coverage to bounded Make commands without cycles',
     assert.match(result.stdout, /command -v custom-hugo/);
     assert.match(result.stdout, /custom-node node_modules\/c8\/bin\/c8\.js custom-node --test/);
     assert.doesNotMatch(result.stdout, /npm.*(?:run test:coverage|test)\b/);
-    const coverage = make('-n', 'coverage');
-    assert.match(coverage.stdout, /Missing Hugo/);
     const removed = make('-n', 'ai-test');
     assert.notEqual(removed.status, 0);
     assert.match(removed.stderr, /No rule to make target/);
 });
 
-test('metrics delegate to native scc without installing or counting generated trees', () => {
-    for (const target of ['bom', 'metrics', 'metrics-json']) {
+test('retired targets stay removed', () => {
+    for (const target of [
+        'bom',
+        'metrics',
+        'metrics-json',
+        'check-scc',
+        'install-scc',
+        'favicons',
+        'build-summary',
+        'rag-eval',
+        'pre-commit',
+        'ai-local-check',
+        'ai-local-validate',
+        'ai-local-hybrid',
+        'ai-local-clean',
+    ]) {
         const result = make('-n', target);
-        assert.equal(result.status, 0);
-        assert.match(result.stdout, /--exclude-dir \.git,node_modules,public,resources,reports,coverage,\.wrangler,\.npm/);
-        assert.match(result.stdout, /--exclude-file site\.purged\.css,package-lock\.json,go\.sum/);
-        assert.match(result.stdout, /--no-cocomo/);
-        assert.match(result.stdout, target === 'metrics-json' ? /--format json \./ : /--wide \./);
-        assert.doesNotMatch(result.stdout, /^\s*(?:go install|npm|hugo|wrangler)\b/m);
+        assert.notEqual(result.status, 0, target);
+        assert.match(result.stderr, /No rule to make target/, target);
     }
-    const missing = make('metrics-json', 'SCC=sg-nonexistent-scc-command');
-    assert.notEqual(missing.status, 0);
-    assert.equal(missing.stdout, '');
-    assert.match(missing.stderr, /Missing scc/);
 });
 
 test('npm build and development delegate to Make without cycles', () => {

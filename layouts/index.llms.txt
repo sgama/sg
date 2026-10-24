@@ -21,11 +21,6 @@
       (printf "  %s" (.Description | default .Summary | plainify)) -}}
   {{- with .Params.tags -}}{{- $lines = $lines | append (printf "  Stack: %s" (delimit . ", ")) -}}{{- end -}}
 {{- end -}}
-{{- $lines = $lines | append "" "## Recent Posts" -}}
-{{- range first 10 $posts.ByDate.Reverse -}}
-  {{- $lines = $lines | append (printf "- [%s](%s)" .Title .Permalink)
-      (printf "  %s" (.Description | default .Summary | plainify)) -}}
-{{- end -}}
 {{- $lines = $lines | append "" "## Technical Blog Posts" -}}
 {{- range $posts -}}
   {{- $lines = $lines | append (printf "- [%s](%s)" .Title .Permalink)

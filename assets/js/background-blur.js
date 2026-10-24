@@ -63,7 +63,13 @@ document.querySelectorAll('script[data-blur-id]').forEach((script) => {
     const targetId = script.getAttribute('data-blur-id');
     const scrollDivisor = Number(script.getAttribute('data-scroll-divisor') || 300);
     const isMenuBlur = targetId === 'menu-blur';
-    const settings = JSON.parse(localStorage.getItem('a11ySettings') || '{}');
+    const settings = (() => {
+        try {
+            return JSON.parse(localStorage.getItem('a11ySettings') || '{}');
+        } catch {
+            return {}; // corrupted persisted settings must not break page init
+        }
+    })();
     const disableBlur = settings.disableBlur || false;
     setBackgroundBlur(targetId, scrollDivisor, disableBlur, isMenuBlur);
 });

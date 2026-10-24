@@ -61,13 +61,17 @@ test('LogService', async (t) => {
             assert.equal(captured.limit, 5);
             assert.equal(captured.cursor, 'cursor-token');
         });
-        await t.test('rejects unversioned and unsupported records before reading values', async () => {
+        await t.test('skips unversioned and unsupported records without reading values', async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
             for (const metadata of [undefined, {}, { query: 'old', response: 'old' }, { version: 1 }, { version: 3 }]) {
                 const kv = {
                     list: async () => ({ keys: [{ name: 'chat:old', metadata }], list_complete: true }),
                     get: async () => assert.fail('Unsupported record must not be read'),
                 };
-                await assert.rejects(LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT), /Unsupported log record version: chat:old/);
+                const result = await LogService.fetchLogs(kv, PAGINATION.DEFAULT_LIMIT);
+                assert.deepEqual(result.data, []);
+                assert.equal(result.meta.count, 0);
+                assert.deepEqual(logged.mock.calls.at(-1).arguments, ['Unsupported log record version:', 'chat:old']);
             }
         });
 
