@@ -13,7 +13,7 @@ jobs:
   close-stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v9
+      - uses: actions/stale@v11
         with:
           # Only process dependabot PRs
           only-pr-labels: 'dependencies'

@@ -33,7 +33,8 @@ jobs:
               echo "Minor/patch update — auto-merge eligible"
             fi
           else
-            echo "major=false" >> "$GITHUB_OUTPUT"
+            echo "major=true" >> "$GITHUB_OUTPUT"
+            echo "Unrecognised update title — requires manual review"
           fi
 
       - name: Enable auto-merge (minor/patch only)

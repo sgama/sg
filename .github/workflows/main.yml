@@ -38,58 +38,69 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # Tooling: each binary is cached on its own key and installed only on a miss.
       - name: Read pinned actionlint version
         id: actionlint-version
         run: |
           version=$(awk '$1 == "ACTIONLINT_VERSION" && $2 == ":=" { print $3 }' Makefile)
           test -n "$version"
           echo "version=$version" >> "${GITHUB_OUTPUT}"
-      - uses: actions/cache@v6
-        id: actionlint-cache
-        with:
-          path: ${{ runner.temp }}/actionlint
-          key: ${{ runner.os }}-actionlint-${{ steps.actionlint-version.outputs.version }}
-      - uses: actions/setup-go@v7
-        if: steps.actionlint-cache.outputs.cache-hit != 'true'
-        with:
-          go-version-file: go.mod
-          cache: false
-      - name: Install actionlint
-        if: steps.actionlint-cache.outputs.cache-hit != 'true'
-        run: GOBIN="${RUNNER_TEMP}/actionlint" make install-actionlint
-      - run: echo "${RUNNER_TEMP}/actionlint" >> "${GITHUB_PATH}"
 
+      # One cache entry holds every reusable artifact: tool binaries, node_modules and
+      # Hugo's build state. Keys hash the inputs that change each artifact, and the
+      # restore-keys fall back to the closest previous entry.
       - uses: actions/cache@v6
-        id: hugo-binary-cache
+        id: cache
         with:
-          path: ${{ runner.temp }}/hugo
-          key: ${{ runner.os }}-hugo-bin-${{ env.HUGO_VERSION }}
-      - name: Install Hugo
-        if: steps.hugo-binary-cache.outputs.cache-hit != 'true'
+          path: |
+            ${{ runner.temp }}/actionlint
+            ${{ runner.temp }}/hugo
+            node_modules
+            ${{ env.HUGO_CACHEDIR }}
+          key: ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
+          restore-keys: |
+            ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-
+
+      # Tools are checked on disk, not by cache-hit, so a partial restore still works.
+      - name: Install missing tools
+        env:
+          ACTIONLINT_VERSION: ${{ steps.actionlint-version.outputs.version }}
         run: |
-          mkdir -p "${RUNNER_TEMP}/hugo"
-          release="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}"
-          curl --fail --silent --show-error --location \
-            "${release}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" \
-            | tar -xz -C "${RUNNER_TEMP}/hugo"
-      - run: echo "${RUNNER_TEMP}/hugo" >> "${GITHUB_PATH}"
+          if [ ! -x "${RUNNER_TEMP}/actionlint/actionlint" ]; then
+            mkdir -p "${RUNNER_TEMP}/actionlint"
+            curl --fail --silent --show-error --location \
+              "https://github.com/rhysd/actionlint/releases/download/${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION#v}_linux_amd64.tar.gz" \
+              | tar -xz -C "${RUNNER_TEMP}/actionlint"
+          fi
+          if [ ! -x "${RUNNER_TEMP}/hugo/hugo" ]; then
+            mkdir -p "${RUNNER_TEMP}/hugo"
+            curl --fail --silent --show-error --location \
+              "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" \
+              | tar -xz -C "${RUNNER_TEMP}/hugo"
+          fi
+          echo "${RUNNER_TEMP}/actionlint" >> "${GITHUB_PATH}"
+          echo "${RUNNER_TEMP}/hugo" >> "${GITHUB_PATH}"
 
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: actions/cache@v6
-        id: node-modules
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-      - name: Install Node dependencies
-        if: steps.node-modules.outputs.cache-hit != 'true'
-        run: make deps
 
-      # Independent checks run concurrently; output is grouped per target.
-      - name: Static checks and unit tests
-        run: make -j4 --output-sync=target lint-workflows lint format-check coverage
+      # npm ci wipes node_modules, so reinstall only when the lockfile differs from
+      # the one recorded in the restored node_modules.
+      - name: Install Node dependencies
+        env:
+          LOCK_HASH: ${{ hashFiles('package-lock.json') }}
+        run: |
+          if [ "$(cat node_modules/.lock-hash 2>/dev/null)" != "${LOCK_HASH}" ]; then
+            make deps
+            echo "${LOCK_HASH}" > node_modules/.lock-hash
+          fi
+
+      # Cheap-first ordering: each stage fails before the slower ones start.
+      - run: make lint-workflows
+      - run: make lint format-check
+      - run: make ai-check
+      - run: make coverage
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -98,41 +109,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      # Build: restore the Hugo cache, then run the build-dependent steps.
-      - uses: actions/cache/restore@v6
-        id: cache-restore
-        with:
-          path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
+      # Build outputs are independent of each other, so they run concurrently.
       - name: Bundle functions and build production site
         run: make -j2 --output-sync=target ai-build build-prod
       - run: make csp-headers
-      - run: make ai-check
+      # Reads only repository sources, so it does not need the build output.
       - run: make test-layouts
-      - uses: actions/cache/save@v6
-        if: success()
-        with:
-          path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       # Deploy only on push to develop; PRs stop after validation.
-      - name: Refresh chat corpus
+      - name: Refresh corpus, deploy, and prune
         if: github.event_name == 'push'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: make ai-refresh
-      - name: Deploy to Cloudflare Pages
-        if: github.event_name == 'push'
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: make deploy-built
-      - name: Prune old deployments and corpora
-        if: github.event_name == 'push'
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: make cleanup-deployments
+        run: |
+          make ai-refresh
+          make deploy-built
+          make cleanup-deployments

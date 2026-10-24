@@ -1,91 +1,92 @@
 {
-  "name": "sg",
-  "version": "1.0.0",
-  "type": "module",
-  "description": "[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml) [![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)",
-  "scripts": {
-    "dev": "make --no-print-directory dev-ai",
-    "build": "make --no-print-directory build-prod",
-    "test": "make --no-print-directory test",
-    "lint": "eslint . --max-warnings=0",
-    "lint:fix": "npm run lint -- --fix",
-    "format": "prettier --write \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
-    "format:check": "prettier --check \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
-    "test:coverage": "make --no-print-directory coverage"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sgama/sg.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "engines": {
-    "node": ">=22"
-  },
-  "bugs": {
-    "url": "https://github.com/sgama/sg/issues"
-  },
-  "homepage": "https://github.com/sgama/sg#readme",
-  "overrides": {
-    "uuid": "^14.0.0"
-  },
-  "dependencies": {
-    "cloudflare": "^7.3.0",
-    "csv-parse": "^7.0.3",
-    "dompurify": "3.4.17",
-    "dotenv": "^18.0.6",
-    "glob": "^13.0.2",
-    "gray-matter": "^4.0.3",
-    "hast-util-raw": "^9.1.0",
-    "hast-util-to-mdast": "^10.1.2",
-    "hono": "^4.12.14",
-    "marked": "13.0.3",
-    "mdast-util-to-hast": "^13.2.0",
-    "mdast-util-to-string": "^4.0.0",
-    "mermaid": "12.2.0",
-    "p-limit": "^7.0.0",
-    "remark-gfm": "^4.0.1",
-    "remark-parse": "^11.0.0",
-    "remark-stringify": "^11.0.0",
-    "unified": "^11.0.5",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@fullhuman/postcss-purgecss": "^8.0.0",
-    "@langchain/textsplitters": "^1.0.1",
-    "autoprefixer": "^10.4.21",
-    "c8": "^12.0.0",
-    "eslint": "^10.0.0",
-    "globals": "^17.0.0",
-    "markdown-link-check": "3.11.2",
-    "postcss": "^8.5.3",
-    "postcss-cli": "^12.0.0",
-    "prettier": "3.9.9",
-    "wrangler": "^4.15.2"
-  },
-  "c8": {
-    "all": true,
-    "include": [
-      "assets/js/**/*.js",
-      "functions/**/*.js",
-      "scripts/**/*.mjs"
-    ],
-    "exclude": [
-      "**/node_modules/**"
-    ],
-    "reporter": [
-      "text-summary",
-      "html",
-      "lcov",
-      "json-summary"
-    ],
-    "reports-dir": "coverage"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true,
-    "sharp@0.35.5": true,
-    "workerd@1.20261019.1": true
-  }
+    "name": "sg",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "[![Build and Deploy](https://github.com/sgama/sg/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/sgama/sg/actions/workflows/main.yml) [![Last Commit](https://img.shields.io/github/last-commit/sgama/sg/develop)](https://github.com/sgama/sg/commits/develop)",
+    "scripts": {
+        "dev": "make --no-print-directory dev-ai",
+        "build": "make --no-print-directory build-prod",
+        "test": "make --no-print-directory test",
+        "lint": "eslint . --max-warnings=0",
+        "lint:fix": "npm run lint -- --fix",
+        "format": "prettier --write \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
+        "format:check": "prettier --check \"assets/js/**/*.js\" \"functions/**/*.js\" \"scripts/**/*.mjs\" \"tests/**/*.mjs\" \"*.config.js\" \"assets/css/**/*.css\" \"*.{yml,yaml}\" \".*.{yml,yaml}\" \"data/**/*.{yml,yaml}\" \".github/**/*.{yml,yaml}\"",
+        "test:coverage": "make --no-print-directory coverage"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sgama/sg.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "engines": {
+        "node": ">=22"
+    },
+    "bugs": {
+        "url": "https://github.com/sgama/sg/issues"
+    },
+    "homepage": "https://github.com/sgama/sg#readme",
+    "overrides": {
+        "uuid": "^14.0.0",
+        "undici": "7.30.1"
+    },
+    "dependencies": {
+        "cloudflare": "^7.3.0",
+        "csv-parse": "^7.0.3",
+        "dompurify": "3.4.17",
+        "dotenv": "^18.0.6",
+        "glob": "^13.0.2",
+        "gray-matter": "^4.0.3",
+        "hast-util-raw": "^9.1.0",
+        "hast-util-to-mdast": "^10.1.2",
+        "hono": "^4.12.14",
+        "marked": "13.0.3",
+        "mdast-util-to-hast": "^13.2.0",
+        "mdast-util-to-string": "^4.0.0",
+        "mermaid": "12.2.0",
+        "p-limit": "^7.0.0",
+        "remark-gfm": "^4.0.1",
+        "remark-parse": "^11.0.0",
+        "remark-stringify": "^11.0.0",
+        "unified": "^11.0.5",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@fullhuman/postcss-purgecss": "^8.0.0",
+        "@langchain/textsplitters": "^1.0.1",
+        "autoprefixer": "^10.4.21",
+        "c8": "^12.0.0",
+        "eslint": "^10.0.0",
+        "globals": "^17.0.0",
+        "markdown-link-check": "3.11.2",
+        "postcss": "^8.5.3",
+        "postcss-cli": "^12.0.0",
+        "prettier": "3.9.9",
+        "wrangler": "^4.152.0"
+    },
+    "c8": {
+        "all": true,
+        "include": [
+            "assets/js/**/*.js",
+            "functions/**/*.js",
+            "scripts/**/*.mjs"
+        ],
+        "exclude": [
+            "**/node_modules/**"
+        ],
+        "reporter": [
+            "text-summary",
+            "html",
+            "lcov",
+            "json-summary"
+        ],
+        "reports-dir": "coverage"
+    },
+    "allowScripts": {
+        "esbuild@0.28.2": true,
+        "sharp@0.35.5": true,
+        "workerd@1.20261019.1": true
+    }
 }

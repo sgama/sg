@@ -7,6 +7,9 @@ version: 2
 #   - compatibility_date in wrangler.toml (currently 2026-04-20)
 #   - Blowfish theme version in go.mod (covered by gomod ecosystem above)
 # Review these on the first Monday of each month.
+#
+# Updates are intentionally NOT grouped: each dependency gets its own PR whose
+# title names the version change, which dependabot-auto-merge.yml relies on.
 
 updates:
   - package-ecosystem: npm
@@ -24,10 +27,6 @@ updates:
     commit-message:
       prefix: 'chore(deps)'
       include: scope
-    groups:
-      npm:
-        patterns:
-          - '*'
 
   - package-ecosystem: gomod
     directory: /
@@ -44,10 +43,6 @@ updates:
     commit-message:
       prefix: 'chore(deps)'
       include: scope
-    groups:
-      gomod:
-        patterns:
-          - '*'
 
   - package-ecosystem: github-actions
     directory: /
@@ -64,7 +59,3 @@ updates:
     commit-message:
       prefix: 'chore(ci)'
       include: scope
-    groups:
-      github-actions:
-        patterns:
-          - '*'
