@@ -40,9 +40,9 @@ export const ChatRequestSchema = z
         const totalLength = val.history.reduce((sum, m) => sum + m.content.length, 0);
         if (totalLength > CONFIG.HISTORY.MAX_TOTAL_LENGTH) {
             ctx.addIssue({
-                code: z.ZodIssueCode.too_big,
+                code: 'too_big',
                 maximum: CONFIG.HISTORY.MAX_TOTAL_LENGTH,
-                type: 'string',
+                origin: 'string',
                 inclusive: true,
                 path: ['history'],
                 message: `Total history length exceeds ${CONFIG.HISTORY.MAX_TOTAL_LENGTH} characters`,
