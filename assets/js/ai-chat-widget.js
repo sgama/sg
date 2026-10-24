@@ -27,7 +27,7 @@ const ROLES = ['toggle', 'window', 'close', 'clear', 'form', 'input', 'send', 's
  */
 function hydrate(host, { document = globalThis.document, log = console } = {}) {
     if (!host.querySelector('[data-role="window"]')) {
-        const template = document.getElementById('ai-chat-template');
+        const template = /** @type {HTMLTemplateElement | null} */ (document.getElementById('ai-chat-template'));
         if (!template) {
             log.error('Chat widget template is missing.');
             return null;

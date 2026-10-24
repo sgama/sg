@@ -4,7 +4,7 @@ SHELL := /bin/bash
 
 .PHONY: help check check-node check-env check-ns \
 	serve dev-ai build postcss-build build-prod clean \
-	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage \
+	deps test test-layouts lint lint-fix typecheck format format-check lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
 	deploy-pages deploy-built deploy-needed cleanup-deployments ci ci-check
@@ -123,6 +123,11 @@ test-layouts: check ## Build Hugo fixtures and validate schema, public index, pr
 
 lint: check-node ## Lint all JavaScript with ESLint
 	@$(NPX) eslint . --max-warnings=0
+
+typecheck: check-node ## Type-check JavaScript (JSDoc, checkJs) for the Worker, scripts and browser code
+	@$(NPX) tsc -p tsconfig.json
+	@$(NPX) tsc -p tsconfig.scripts.json
+	@$(NPX) tsc -p tsconfig.browser.json
 
 lint-fix: check-node ## Apply safe ESLint fixes
 	@$(NPX) eslint . --max-warnings=0 --fix
@@ -245,7 +250,7 @@ csp-headers: check ## Generate public/_headers CSP from a fresh build (run after
 	@$(NODE) scripts/generate_csp.mjs
 
 ##@ CI
-ci-check: lint-workflows lint format-check coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
+ci-check: lint-workflows lint typecheck format-check coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
 
 ci: ## Run checks, refresh embeddings and deploy the matching chat corpus
 	@$(MAKE) --no-print-directory --jobs=2 --output-sync=target ci-check audit-site

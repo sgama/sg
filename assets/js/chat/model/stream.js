@@ -4,6 +4,10 @@ const PROGRESS_STAGES = new Set(['rewrite', 'embedding', 'search', 'generation']
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 /**
+ * @param {(text: string) => void} onDelta
+ * @param {((metrics: object) => void) | undefined} [onMetrics]
+ * @param {{ onProgress?: (stage: string) => void, onEvidence?: (items: unknown[]) => void }} [handlers]
+ *
  * Feeds raw SSE text and calls back for each validated event field. Framing (CRLF, split chunks, comments) is
  * eventsource-parser's job; this validates the widget's event shapes and fails loudly on anything else.
  */

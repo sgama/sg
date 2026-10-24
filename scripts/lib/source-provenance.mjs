@@ -13,7 +13,9 @@ export async function publicSourceUrls(root, { hugo = process.env.HUGO || 'hugo'
     const headerIndex = lines.findIndex((line) => line.includes('permalink') && line.includes('path'));
     const csvText = headerIndex >= 0 ? lines.slice(headerIndex).join('\n') : stdout;
     const sources = new Map();
-    for (const row of parse(csvText, { columns: true, skip_empty_lines: true, relax_column_count: true })) {
+    /** @type {Record<string, string>[]} */
+    const rows = parse(csvText, { columns: true, skip_empty_lines: true, relax_column_count: true });
+    for (const row of rows) {
         const source = (path.isAbsolute(row.path) ? path.relative(root, row.path) : row.path).split(path.sep).join('/');
         if (source.startsWith('content/_context/')) continue;
         const url = new URL(row.permalink, 'https://hugo.invalid');

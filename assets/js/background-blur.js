@@ -28,7 +28,7 @@ function setBackgroundBlur(targetId, scrollDivisor = 300, disableBlur = false, i
         requestAnimationFrame(() => {
             const scroll = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
             if (scroll <= scrollDivisor * 1.5) {
-                blurElement.style.opacity = Math.min(scroll / scrollDivisor, 1);
+                blurElement.style.opacity = String(Math.min(scroll / scrollDivisor, 1));
             } else {
                 blurElement.style.opacity = '1';
             }

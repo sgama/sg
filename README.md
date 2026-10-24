@@ -736,28 +736,29 @@ charges even during local development.
 
 Use the Makefile for common development tasks:
 
-| Command               | Description                                                                      |
-| --------------------- | -------------------------------------------------------------------------------- |
-| `make help`           | Show all available commands                                                      |
-| `make deps`           | Install dependencies reproducibly with npm ci                                    |
-| `make serve`          | Start Hugo development server                                                    |
-| `make dev-ai`         | Run the site with Pages Functions through Wrangler                               |
-| `make build`          | Build the site without the production CSS purge                                  |
-| `make build-prod`     | Build production assets with PostCSS and PurgeCSS                                |
-| `make test`           | Run the Node.js unit tests                                                       |
-| `make lint`           | Lint browser, Functions, scripts, and test JavaScript                            |
-| `make lint-fix`       | Apply ESLint automatic fixes                                                     |
-| `make lint-workflows` | Validate all GitHub Actions workflows with actionlint                            |
-| `make coverage`       | Run tests with coverage (`COVERAGE_REPORTERS`, default text-summary, HTML, LCOV) |
-| `make ci-check`       | Run offline checks and build the production site and Functions (Node 22+)        |
-| `make audit-content`  | Validate content front matter coverage                                           |
-| `make audit-urls`     | Check links using markdown-link-check                                            |
-| `make audit-site`     | Run content and link checks                                                      |
-| `make clean`          | Remove generated output within the repository's public build tree                |
-| `make deploy-pages`   | Build production assets and deploy to Cloudflare Pages                           |
-| `make deploy-built`   | Deploy an existing validated production build without rebuilding                 |
-| `make deploy-ai`      | Validate and gate an AI corpus/model release before deployment                   |
-| `make ai-refresh`     | Rebuild and index the current corpus, then update Wrangler's namespace           |
+| Command               | Description                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `make help`           | Show all available commands                                                              |
+| `make deps`           | Install dependencies reproducibly with npm ci                                            |
+| `make serve`          | Start Hugo development server                                                            |
+| `make dev-ai`         | Run the site with Pages Functions through Wrangler                                       |
+| `make build`          | Build the site without the production CSS purge                                          |
+| `make build-prod`     | Build production assets with PostCSS and PurgeCSS                                        |
+| `make test`           | Run the Node.js unit tests                                                               |
+| `make lint`           | Lint browser, Functions, scripts, and test JavaScript                                    |
+| `make typecheck`      | Type-check the JavaScript (JSDoc with `checkJs`) for Functions, scripts and browser code |
+| `make lint-fix`       | Apply ESLint automatic fixes                                                             |
+| `make lint-workflows` | Validate all GitHub Actions workflows with actionlint                                    |
+| `make coverage`       | Run tests with coverage (`COVERAGE_REPORTERS`, default text-summary, HTML, LCOV)         |
+| `make ci-check`       | Run offline checks and build the production site and Functions (Node 22+)                |
+| `make audit-content`  | Validate content front matter coverage                                                   |
+| `make audit-urls`     | Check links using markdown-link-check                                                    |
+| `make audit-site`     | Run content and link checks                                                              |
+| `make clean`          | Remove generated output within the repository's public build tree                        |
+| `make deploy-pages`   | Build production assets and deploy to Cloudflare Pages                                   |
+| `make deploy-built`   | Deploy an existing validated production build without rebuilding                         |
+| `make deploy-ai`      | Validate and gate an AI corpus/model release before deployment                           |
+| `make ai-refresh`     | Rebuild and index the current corpus, then update Wrangler's namespace                   |
 
 Validation commands suppress recipe echo and stream tools' native output without
 filtering warnings or errors. Tests use Node's `spec` reporter; use

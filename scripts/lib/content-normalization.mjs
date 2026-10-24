@@ -141,7 +141,7 @@ export function normalizedDocument(content, { rejectUnclosedComments = false } =
     preserveLiteralTags(tree);
     const html = raw(toHast(tree, { allowDangerousHtml: true }));
     cleanHtml(html);
-    return toMdast(html);
+    return /** @type {import('mdast').Root} */ (toMdast(html));
 }
 
 export function ingestionText(content, options) {

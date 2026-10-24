@@ -3,7 +3,7 @@ import { CONFIG } from '../_lib/application.js';
 import { fetchChatLogs } from '../_lib/log.js';
 import { pagesHandler } from '../_lib/pages-adapter.js';
 
-const app = new Hono();
+const app = /** @type {Hono<{ Bindings: Env }>} */ (new Hono());
 
 app.use('/api/logs', async (c, next) => {
     await next();

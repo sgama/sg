@@ -38,7 +38,7 @@ const defaultCreateAiService = (env) =>
  * AI service, cache store, chat flow or origin list without touching the handler.
  */
 export function createChatApp({ createAiService = defaultCreateAiService, answerChat = defaultAnswerChat, allowedOrigins = ALLOWED_ORIGINS } = {}) {
-    const app = new Hono();
+    const app = /** @type {Hono<{ Bindings: Env }>} */ (new Hono());
 
     app.use(
         '/api/chat',

@@ -47,7 +47,7 @@ export class AiService {
      * Retrieval for one question: returns the bounded context and the public evidence it came from.
      * Stateless per call (no evidence kept on the instance); only timings feed the response metrics.
      */
-    async retrieve(query, history = [], onProgress = async () => {}) {
+    async retrieve(query, history = [], onProgress = /** @type {(stage: string) => Promise<void>} */ (async () => {})) {
         if (!this.vectorize) {
             console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
             throw new AppError('Retrieval service unavailable', 503);

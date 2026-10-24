@@ -9,13 +9,18 @@
 const idleScheduler = (window) => (task) =>
     'requestIdleCallback' in window ? window.requestIdleCallback(task, { timeout: 2000 }) : setTimeout(task, 250);
 
+/**
+ * @typedef {{ document: Document, window: Window, log: Pick<Console, 'error'> }} FeatureContext
+ * @typedef {{ name: string, phase?: 'ready' | 'idle', init: (context: FeatureContext) => void }} Feature
+ * @param {{ features: Feature[], document?: Document, window?: Window, schedule?: (task: () => void) => void, log?: Pick<Console, 'error'> }} options
+ */
 export function createFeatureHost({
     features,
     document = globalThis.document,
     window = globalThis.window,
     schedule = idleScheduler(window),
     log = console,
-} = {}) {
+}) {
     const context = { document, window, log };
     const phaseOf = (feature) => feature.phase ?? 'ready';
     const run = (phase) => {

@@ -11,6 +11,14 @@ export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
     return new Cloudflare({ apiToken, fetch, maxRetries: 2, timeout: 30000 });
 }
 
+/** @typedef {Awaited<ReturnType<typeof import('./corpus.mjs').buildCorpus>>} Corpus */
+
+/**
+ * @param {import('cloudflare').Cloudflare} client
+ * @param {string} accountId
+ * @param {Corpus} corpus
+ * @param {{ namespace?: string, indexName?: string, concurrency?: number, batchSize?: number, afterMutation?: (mutationId: string) => Promise<void> }} [options]
+ */
 export async function ingestCorpus(
     client,
     accountId,
@@ -59,7 +67,7 @@ export async function ingestCorpus(
     const mutationIds = [];
     for (let i = 0; i < vectors.length; i += batchSize) {
         const batch = vectors.slice(i, i + batchSize);
-        const body = await toFile(batch.map((vector) => JSON.stringify(vector)).join('\n') + '\n', 'vectors.ndjson', {
+        const body = await toFile(new TextEncoder().encode(batch.map((vector) => JSON.stringify(vector)).join('\n') + '\n'), 'vectors.ndjson', {
             type: 'application/x-ndjson',
         });
         const result = await client.vectorize.indexes.upsert(indexName, {

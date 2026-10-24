@@ -19,13 +19,16 @@ export async function runEmbedding(client, accountId, model, text, options = {})
     return response?.result;
 }
 
+/**
+ * @param {{ accountId?: string, apiToken?: string, namespace: string, timeoutMs?: number, fetchImpl?: typeof fetch }} options
+ */
 export function createCloudflareAi({
     accountId = process.env.CLOUDFLARE_ACCOUNT_ID,
     apiToken = process.env.CLOUDFLARE_API_TOKEN,
     namespace,
     timeoutMs = 60000,
     fetchImpl = fetch,
-} = {}) {
+}) {
     if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
     if (!namespace) throw new Error('A versioned corpus namespace is required');
     const client = new Cloudflare({
@@ -49,6 +52,7 @@ export function createCloudflareAi({
             await response.body?.cancel();
             throw new Error(`Workers AI ${modelId} returned HTTP ${response.status}`);
         }
+        /** @type {any} */
         const payload = await response.json();
         if (payload?.success === false) throw new Error(`Workers AI ${modelId} returned an unsuccessful response`);
         return payload?.result;
@@ -88,6 +92,7 @@ export function createCloudflareAi({
                                 await client.vectorize.indexes.query(AI_CONFIG.retrieval.indexName, {
                                     account_id: accountId,
                                     vector,
+                                    // @ts-expect-error The SDK's IndexQueryParams type omits the Vectorize v2 `namespace` parameter.
                                     namespace,
                                     topK: AI_CONFIG.retrieval.topK,
                                     returnMetadata: 'all',

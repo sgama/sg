@@ -38,7 +38,7 @@ function checkReviewed(reviewed, now, { errors, warnings }) {
     const date = new Date(`${reviewed}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reviewed) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== reviewed || date > now) {
         errors.push('Invalid reviewed date');
-    } else if (now - date > 90 * 86400000) {
+    } else if (now.getTime() - date.getTime() > 90 * 86400000) {
         warnings.push('Provenance review is older than 90 days');
     }
 }

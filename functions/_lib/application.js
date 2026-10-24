@@ -79,6 +79,10 @@ export const CONFIG = {
 };
 
 export class AppError extends Error {
+    /**
+     * @param {string} message
+     * @param {import('hono/utils/http-status').ContentfulStatusCode} [status]
+     */
     constructor(message, status = 500) {
         super(message);
         this.status = status;

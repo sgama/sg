@@ -9,7 +9,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - Prefer Make targets: they handle tool checks and environment wiring.
 - Install locked dependencies explicitly with `make deps`; audits and tests must
   not install packages implicitly.
-- Validate relevant changes with focused tests, `make lint` and, for Functions
+- Validate relevant changes with focused tests, `make lint`, `make typecheck` (JSDoc types, checked by
+  `tsc` in three environments: `tsconfig.json` Functions, `tsconfig.scripts.json`, `tsconfig.browser.json`) and, for Functions
   changes, `make ai-build`. `make ci-check` is the broader offline validation.
 - Keep test cases and nested suites alphabetized case-insensitively. Files use
   Node's default parallel execution; do not serialize them for output ordering.

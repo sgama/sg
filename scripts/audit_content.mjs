@@ -61,10 +61,10 @@ async function runAudit({ cwd = process.cwd(), env = process.env } = {}) {
     const recommendedGroups = parseList(env.CONTENT_RECOMMENDED_FIELDS).map((entry) => entry.split('|').map((v) => v.trim()));
     const requiredMin = Number.parseFloat(env.CONTENT_REQUIRED_MIN || '1.0');
     const recommendedMin = Number.parseFloat(env.CONTENT_RECOMMENDED_MIN || '0.8');
-    for (const [name, value] of [
+    for (const [name, value] of /** @type {[string, number][]} */ ([
         ['CONTENT_REQUIRED_MIN', requiredMin],
         ['CONTENT_RECOMMENDED_MIN', recommendedMin],
-    ]) {
+    ])) {
         if (!Number.isFinite(value) || value < 0 || value > 1) throw new Error(`${name} must be between 0 and 1`);
     }
 

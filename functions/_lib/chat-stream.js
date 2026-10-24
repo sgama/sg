@@ -16,6 +16,9 @@ export function createSseMessageStream(message, metrics) {
  * Turns the provider's SSE stream into the widget's: `{ response }`, `{ usage }`, a final `{ metrics }` and `[DONE]`.
  * Framing (CRLF, comments, multi-line data, split UTF-8) is left to eventsource-parser; any failure becomes one
  * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream.
+ *
+ * @param {ReadableStream<Uint8Array>} stream
+ * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object }} [options]
  */
 export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } = {}) {
     const encoder = new TextEncoder();

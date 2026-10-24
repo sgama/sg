@@ -101,7 +101,7 @@ jobs:
       # The offline checks are independent, so they run together (public runners have 4 vCPUs);
       # --output-sync keeps each target's log in one block. Make orders PostCSS before Hugo.
       - name: Lint, test and build
-        run: make -j4 --output-sync=target COVERAGE_REPORTERS=text-summary lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts
+        run: make -j4 --output-sync=target COVERAGE_REPORTERS=text-summary lint-workflows lint typecheck format-check ai-check coverage ai-build build-prod test-layouts
       # Needs the production build, so it runs after the parallel block.
       - run: make csp-headers
 

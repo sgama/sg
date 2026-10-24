@@ -86,7 +86,7 @@ test('disabled backgrounds hide while disabled menu backgrounds remain visible',
     assert.equal(menu.element.style.opacity, '1');
     menu.intersect(true);
     menu.flush();
-    assert.equal(menu.element.style.opacity, 0);
+    assert.equal(menu.element.style.opacity, '0');
 });
 
 test('missing targets are ignored and absent IDs report an error', () => {
@@ -104,7 +104,7 @@ test('scroll updates are frame-coalesced, clamped and stopped outside the sentin
     assert.equal(f.frames.length, 1);
     f.window.pageYOffset = 50;
     f.flush();
-    assert.equal(f.element.style.opacity, 0.5);
+    assert.equal(f.element.style.opacity, '0.5');
     f.window.pageYOffset = 200;
     f.listeners.get('scroll')();
     f.flush();
@@ -113,12 +113,12 @@ test('scroll updates are frame-coalesced, clamped and stopped outside the sentin
     f.document.documentElement.scrollTop = 75;
     f.listeners.get('scroll')();
     f.flush();
-    assert.equal(f.element.style.opacity, 0.75);
+    assert.equal(f.element.style.opacity, '0.75');
     f.document.documentElement.scrollTop = 0;
     f.document.body.scrollTop = 25;
     f.listeners.get('scroll')();
     f.flush();
-    assert.equal(f.element.style.opacity, 0.25);
+    assert.equal(f.element.style.opacity, '0.25');
     f.intersect(false);
     assert.equal(f.listeners.size, 0);
     assert.equal(f.element.style.opacity, '1');

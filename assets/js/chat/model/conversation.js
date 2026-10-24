@@ -33,6 +33,9 @@ export const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information fro
  *   stage           { request }      the server reported a new progress stage (request is a snapshot)
  *   answer          { request }      streamed answer text advanced
  *   status          { text }         a user-facing status line changed
+ *
+ * @typedef {{ get(key: string, fallback?: any): any, set(key: string, value: any): void, remove(key: string): void }} Store
+ * @param {{ storage: Store, streamAnswer?: typeof fetchAnswer, isOnline?: () => boolean, now?: () => number, log?: Pick<Console, 'error'> }} options
  */
 export function createConversation({
     storage,
@@ -40,7 +43,7 @@ export function createConversation({
     isOnline = () => globalThis.navigator?.onLine !== false,
     now = () => performance.now(),
     log = console,
-} = {}) {
+}) {
     const listeners = new Set();
     const retries = new WeakMap();
     let messages = [];

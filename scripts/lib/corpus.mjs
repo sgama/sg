@@ -210,6 +210,9 @@ export function embeddingText(chunk) {
     return labels.length ? `${labels.join(' — ')}\n\n${chunk.text}` : chunk.text;
 }
 
+/**
+ * @param {{ root?: string, embedding?: { model: string, dimensions: number }, chunking?: { chunkSize: number, chunkOverlap: number }, sourceUrls?: Map<string, string> }} [options]
+ */
 export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.embedding, chunking = CHUNK_CONFIG, sourceUrls } = {}) {
     const embeddingConfig = { model: embedding.model, dimensions: embedding.dimensions };
     const chunkConfig = {

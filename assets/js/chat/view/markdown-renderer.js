@@ -1,4 +1,7 @@
-// Loaders are injected by the host; without them the renderer stays in plain-text mode.
+/**
+ * Loaders are injected by the host; without them the renderer stays in plain-text mode.
+ * @param {{ loadModules?: (() => Promise<[{ marked: any }, { default: any }]>) | null, loadMermaid?: (() => Promise<any>) | null, warn?: (...args: unknown[]) => void }} [options]
+ */
 export function createMessageRenderer({ loadModules = null, loadMermaid = null, warn = (...args) => console.warn(...args) } = {}) {
     let markdown = null;
     let warnedUnavailable = false;
