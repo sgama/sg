@@ -8,9 +8,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@v7
-      with:
-        fetch-depth: 1
     - name: Cache Hugo binary
       if: inputs.hugo == 'true'
       id: hugo-binary-cache
