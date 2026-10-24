@@ -80,7 +80,7 @@
      by config.toml, so a diagram only downloads the chunks it needs and Hugo never has to bundle 5 MB. Chunk names are
      content-hashed and the entry file is revalidated, so an upgrade needs no URL change. */}}
 {{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js") | resources.Minify | resources.Fingerprint }}
-{{ $markdown_js := resources.Get "js/chat/markdown-entry.js" | js.Build (dict "targetPath" "js/chat-markdown.js") | resources.Minify | resources.Fingerprint }}
+{{ $markdown_js := resources.Get "js/chat/markdown-entry.js" | js.Build (dict "targetPath" "js/chat-markdown.js" "format" "esm") | resources.Minify | resources.Fingerprint }}
 <ai-chat-widget id="ai-chat-widget" class="chat-widget"
     data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ "vendor/mermaid/mermaid.esm.min.mjs" | relURL }}"></ai-chat-widget>
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"

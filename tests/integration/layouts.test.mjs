@@ -254,7 +254,12 @@ test('generated layouts preserve structured types, public indexes, image selecti
         const destination = await build('libraries');
         const widget = tags(await readFile(path.join(destination, 'index.html'), 'utf8'), 'ai-chat-widget')[0];
         assert.match(widget['data-markdown-src'], /^\/js\/chat-markdown\.min\.[a-f0-9]+\.js$/);
-        assert.ok((await readFile(path.join(destination, widget['data-markdown-src']), 'utf8')).length > 1000, 'Markdown bundle must be emitted');
+        const markdownSource = await readFile(path.join(destination, widget['data-markdown-src']), 'utf8');
+        assert.ok(markdownSource.length > 1000, 'Markdown bundle must be emitted');
+        // The widget imports it by URL, so it must be an ES module exporting both libraries (an IIFE exports nothing).
+        const markdown = await import(`data:text/javascript;base64,${Buffer.from(markdownSource).toString('base64')}`);
+        assert.equal(typeof markdown.marked.parse, 'function');
+        assert.ok('DOMPurify' in markdown);
         assert.equal(widget['data-mermaid-src'], '/vendor/mermaid/mermaid.esm.min.mjs');
         const entry = await readFile(path.join(destination, widget['data-mermaid-src']), 'utf8');
         const chunks = [...new Set(entry.match(/\.\/chunks\/mermaid\.esm\.min\/[\w.-]+\.mjs/g))];
