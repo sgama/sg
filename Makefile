@@ -231,6 +231,7 @@ deploy-built: check check-env ## Deploy an already validated production build (n
 		--project-name=$(PROJECT_NAME) \
 		--branch=$(BRANCH) \
 		--commit-hash=$$COMMIT_HASH \
+		--commit-dirty=true \
 		--commit-message="$$COMMIT_MESSAGE"
 
 cleanup-deployments: check-node check-env ## Keep production rollback history; delete previews and unreferenced corpora
