@@ -551,10 +551,10 @@ No inference is performed during the offline gate.
 
 Every push to `develop` validates code and builds the production site before
 `make ai-refresh` and deployment. Refresh builds the exact commit's corpus and
-compares its namespace with the active deployment snapshot. Unchanged corpora
+compares its namespace with the live Worker's. Unchanged corpora
 skip embeddings/uploads; changed corpora are ingested and each accepted mutation
 must finish indexing. Both paths update `AI_CORPUS_NAMESPACE` in the runner's
-Wrangler configuration. The subsequent Pages deployment includes that setting;
+Wrangler configuration. The subsequent Worker deployment includes that setting;
 the runner does not commit the generated configuration back to Git.
 
 The old deployment continues serving its corpus if ingestion, indexing, or
@@ -568,109 +568,53 @@ locally reviewed model/retrieval changes, or mirror the content refresh flow:
 
 ```bash
 make ai-refresh
-make deploy-pages
+make deploy
 ```
 
-#### Deployment and corpus retention
+#### One live version and corpus retention
 
-After deployment, CI runs `make cleanup-deployments`. Cleanup keeps one production
-deployment: the active one. Every other production deployment, of any branch, is
-deleted once it has finished (success, failure, canceled or skipped) or has been
-queued or building for over 24 hours; a fresh build in progress is kept. All
-preview deployments are deleted, including in-progress previews. There is no
-rollback history: to roll back, redeploy an earlier commit. Keep a window with
-`--keep N`, which retains N older successful production deployments on `develop`.
+The site is a Cloudflare Worker with static assets: one live version, no deployment
+history to prune, and no rollback history. To roll back, redeploy an earlier commit.
+The live Worker records its corpus namespace (`AI_CORPUS_NAMESPACE`) and the commit it
+was built from (`DEPLOY_COMMIT`) as plain-text variables; refresh and deploy-skip read
+them with the Workers settings API.
 
-Each run deletes at most `--max-deletes` deployments (default 100), oldest first,
-`--concurrency` at a time (default 5; the Pages API has no bulk delete), re-checking
-the inventory before each group. It does not prune vectors until none are left to
-delete. Vector deletion uses the API maximum of 100 IDs per request and waits once,
-for the last mutation, because mutations are processed in order. A backlog beyond the
-cap is cleared over several deploys, since every group re-checks all retained
-deployments.
-
-Cleanup reads each retained deployment's environment snapshot to preserve its
-`AI_CORPUS_NAMESPACE`. It first deletes obsolete deployments, then deletes vectors
-in every unreferenced `corpus-*` namespace, including undeployed evaluation
-candidates. Unversioned/foreign namespaces are untouched. Vector deletion waits
-for the accepted mutation to finish processing.
-
-Cleanup uses Cloudflare SDK 7 native retries: at most two retries per request,
-with a 30-second timeout per attempt. The SDK retries connection failures,
-HTTP 408/409/429, and 5xx responses, honoring `Retry-After` headers (including
-120 seconds). Without a retry header it uses its default exponential backoff;
-the JSON body's `retry_after` field is not used. Exhausted retries still fail CI.
-Retries repeat the failed request, not the whole cleanup plan; existing inventory
-checks remain in place, but they do not run between native retry attempts.
-Inventory rechecks use fresh deployment lists and fetch detailed environment
-snapshots only for retained deployments; obsolete deployment details are not
-fetched. Retained namespace snapshots are re-read before each deletion.
-Corpus refresh and direct ingestion use the same maintenance retry/timeout
-policy for Pages and Vectorize operations. Paid embedding requests explicitly
-disable retries to avoid automatic repeat inference charges.
-
-After an acknowledged deployment deletion, cleanup allows up to five inventory
-checks, one second apart, for that deleted ID to disappear from the Pages list.
-Vectors are not pruned while deleted deployments remain visible. New or missing
-deployment IDs, active-deployment changes, and retained corpus namespace changes
-still stop cleanup immediately. Errors distinguish unexpected inventory changes
-from acknowledged deletions that remain listed; the cleanup plan is never
-automatically replaced.
-The first embedding failure aborts in-flight requests and prevents queued
-inference from starting; already-started inference may still incur charges.
-Mutation readiness has an end-to-end three-minute deadline across requests,
-SDK retry backoff and polling sleeps. Requests and sleeps receive its abort
-signal; readiness still fails on time if SDK backoff delays observing cancellation.
-
-Preview-only versioned corpora are pruned after preview deletion; corpora also
-referenced by retained production deployments remain protected. Aliased previews
-use the SDK's `force` deletion option, enabled only for previews; it does not
-bypass production retention checks. API rejection
-of preview deletion fails cleanup before vector pruning. A final inventory check
-detects deployments created during cleanup. Disable unwanted automatic preview
-builds in Pages branch controls and avoid concurrent external deployments:
-cleanup cannot prevent previews being created after its final check.
-
-Preview the plan without deletion:
+After deployment, CI runs `make cleanup-vectors`. It deletes the vectors of every
+versioned `corpus-*` namespace except the live one, including undeployed evaluation
+candidates. Unversioned and foreign namespaces are untouched. Deletion uses the API
+maximum of 100 IDs per request and waits once, for the last mutation, because
+mutations are processed in order. The live namespace is re-read before each deletion;
+if a deploy changes it mid-run, cleanup stops. It refuses to run when the live
+namespace cannot be determined.
 
 ```bash
-node scripts/cleanup_deployments.mjs --dry-run             # plan only; GET requests, no deletion
-node scripts/cleanup_deployments.mjs --dry-run --verbose   # also group retained deployments by why they are kept
-node scripts/cleanup_deployments.mjs --keep 3 --max-deletes 10 --concurrency 2
+node scripts/cleanup_vectors.mjs --dry-run   # plan only; reads, no deletion
 ```
 
-`--verbose` adds `retainedBreakdown`, counting retained deployments by environment,
-branch and last stage with the oldest creation date of each group. Every retained
-deployment's snapshot is re-read at each safety check, so a large retained set makes
-cleanup slow; use the breakdown to see which rule is keeping them.
+The command needs Workers read and Vectorize read/write permissions. Maintenance calls
+use Cloudflare SDK 7 native retries (two retries per request, 30-second timeout per
+attempt, `Retry-After` honored). Paid embedding requests disable retries to avoid
+repeat inference charges. The first embedding failure aborts in-flight requests and
+prevents queued inference from starting; already-started inference may still incur
+charges. Mutation readiness has an end-to-end three-minute deadline.
 
-The command needs Pages read/delete and Vectorize read/write permissions.
-Missing deployment namespace metadata, incomplete inventories, and detected
-deployment changes stop cleanup explicitly. Legacy deployments without a known
-namespace must be resolved before vector pruning can proceed. This index must
-be dedicated to this project: other projects' references are not discovered.
+Keep manual deployments and ingestion out of the serialized production
+refresh/deploy/cleanup window; the live-namespace check is not a distributed lock.
+Re-ingest a candidate if cleanup prunes it before your developer evaluation or
+deployment. The index must be dedicated to this project.
 
-Keep manual deployments, rollback, and ingestion out of the serialized production
-refresh/deploy/cleanup window. Inventory rechecks reduce races but do not provide
-a distributed lock against external writers. Re-ingest a candidate if cleanup
-prunes it before your developer evaluation or deployment.
-
-`ai-refresh` compares the computed corpus namespace with the active production
-deployment snapshot. Matching corpora skip paid embeddings and uploads; changed
+`ai-refresh` compares the computed corpus namespace with the live Worker's
+`AI_CORPUS_NAMESPACE`. Matching corpora skip paid embeddings and uploads; changed
 corpora are ingested and indexing must succeed before local `wrangler.toml` is
-updated. Both paths set the deployment namespace. Pages lookup failures stop
-refresh; initial deployments or legacy snapshots without a namespace require ingestion.
-Use `make ai-refresh AI_REFRESH_FLAGS=--force` (or the CLI's `--force`) to rebuild
-a missing or damaged index explicitly. Force refresh bypasses the Pages lookup.
-Refresh itself does not delete older namespaces; post-deploy cleanup prunes
-unreferenced versioned vectors. The hash includes source files, embedding and
-chunking settings, including draft/front-matter changes. Individual unchanged
-chunk reuse is not implemented. Deleted content is absent from
-the new active namespace. Retained rollback namespaces continue consuming storage.
-Leaving `AI_CORPUS_NAMESPACE` unset is only a migration fallback for deployments
-not using the refresh flow. Rollback to an existing deployment retains its pinned
-namespace; a manual rollback deployment must restore the previous namespace/model
-configuration and avoid running refresh against newer content.
+updated. Both paths set the deployment namespace. Lookup failures stop refresh; a
+Worker that is not deployed yet, or has no namespace, requires ingestion. Use
+`make ai-refresh AI_REFRESH_FLAGS=--force` (or the CLI's `--force`) to rebuild a
+missing or damaged index explicitly; force bypasses the Worker lookup. The hash
+includes source files, embedding and chunking settings, including draft/front-matter
+changes. Individual unchanged chunk reuse is not implemented. Leaving
+`AI_CORPUS_NAMESPACE` unset is only a migration fallback. A manual rollback to an
+earlier commit must restore its namespace/model configuration and re-ingest it if
+cleanup already pruned it.
 
 Runtime retrieval outages return 503 instead of pretending no context was found.
 
@@ -728,7 +672,7 @@ Generation accepts content deltas and aggregate usage, including the current Wor
 4. **Visit your site**
    Open [http://localhost:1313](http://localhost:1313) in your browser
 
-`make serve` runs Hugo only. Use `make dev-ai` to build the site and run Pages
+`make serve` runs Hugo only. Use `make dev-ai` to build the site and run the Worker
 Functions through Wrangler when testing `/api/chat`; Workers AI calls can incur
 charges even during local development.
 
@@ -741,7 +685,7 @@ Use the Makefile for common development tasks:
 | `make help`           | Show all available commands                                                              |
 | `make deps`           | Install dependencies reproducibly with npm ci                                            |
 | `make serve`          | Start Hugo development server                                                            |
-| `make dev-ai`         | Run the site with Pages Functions through Wrangler                                       |
+| `make dev-ai`         | Run the site and Worker API through Wrangler                                             |
 | `make build`          | Build the site without the production CSS purge                                          |
 | `make build-prod`     | Build production assets with PostCSS and PurgeCSS                                        |
 | `make test`           | Run the Node.js unit tests                                                               |
@@ -755,7 +699,7 @@ Use the Makefile for common development tasks:
 | `make audit-urls`     | Check links using markdown-link-check                                                    |
 | `make audit-site`     | Run content and link checks                                                              |
 | `make clean`          | Remove generated output within the repository's public build tree                        |
-| `make deploy-pages`   | Build production assets and deploy to Cloudflare Pages                                   |
+| `make deploy`         | Build production assets and deploy the Worker with its static assets                     |
 | `make deploy-built`   | Deploy an existing validated production build without rebuilding                         |
 | `make deploy-ai`      | Validate and gate an AI corpus/model release before deployment                           |
 | `make ai-refresh`     | Rebuild and index the current corpus, then update Wrangler's namespace                   |
@@ -829,7 +773,7 @@ sg/
 │ ├── about/ # About page
 │ ├── contact/ # Contact page
 │ └── resume/ # Resume page
-├── functions/ # Cloudflare Pages Functions and shared AI helpers
+├── functions/ # Cloudflare Worker (worker.js) and shared AI helpers
 ├── scripts/ # Audits, ingestion and AI evaluation tooling
 ├── tests/ # Unit tests and labeled AI evaluation fixtures
 ├── layouts/ # Custom Hugo templates
@@ -873,7 +817,7 @@ Checks for content health and link integrity are available via Makefile targets:
 - **Content coverage:** Required front matter fields and recommended metadata coverage.
 - **Link integrity:** Links checked with markdown-link-check.
 - **Build health:** Production Hugo build/deployment in CI; `make ai-build` locally
-  for standalone Pages Functions compilation.
+  for a Worker bundling dry run.
 
 Generate local reports:
 
@@ -961,14 +905,21 @@ make build-prod
 
 This generates the static site in the `public/` directory.
 
-### Cloudflare Pages
+### Cloudflare Workers
 
-The production branch is `develop`. The push workflow builds and deploys the
-site to the `sg` Pages project. For a manual deployment:
+The production branch is `develop`. The push workflow builds and deploys the site
+to the `sg` Worker: Cloudflare serves `public/` directly, and `wrangler.toml` runs the
+Worker (`functions/worker.js`) first only for `/api/*`. `public/_headers` applies to
+static assets only; API responses set their own headers. For a manual deployment:
 
 ```bash
-make deploy-pages
+make deploy
 ```
+
+Moving from Pages needs a one-time manual cutover: after the first Worker deploy,
+attach `samsongama.com` and `www.samsongama.com` to the `sg` Worker as custom
+domains in the Cloudflare dashboard (Workers & Pages, Settings, Domains), then
+delete the old Pages project.
 
 This requires `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Use `make deploy-ai`
 for an AI corpus/model activation, following the release procedure above.

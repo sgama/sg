@@ -48,7 +48,7 @@ Keep detailed behavior tests with the module that owns it. Keep cross-module reg
 | `content-audit.test.mjs`, `rag-audit.test.mjs`, `makefile.test.mjs`                         | Content policies, provenance review, and build/test commands                                                                          |
 | `postcss.test.mjs`                                                                          | Production purging preserves theme-owned dark selectors and chat colors                                                               |
 | `menu-a11y.test.mjs`                                                                        | Native menu button wiring, expanded state, Escape, and outside-click dismissal                                                        |
-| `deployment-cleanup.test.mjs`                                                               | Retention and owned-resource teardown safety                                                                                          |
+| `vector-cleanup.test.mjs`                                                                   | Live-Worker lookup and stale-vector pruning safety                                                                                    |
 | `deploy-needed.test.mjs`                                                                    | Skip-deploy decision: only unchanged deployable files skip; every doubt deploys                                                       |
 | `integration/layouts.test.mjs`                                                              | Generated Hugo schema, public LLM index, image preloads, and theme settings                                                           |
 
