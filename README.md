@@ -278,7 +278,10 @@ files) at `/vendor/mermaid/`, so a diagram downloads only the chunks it needs an
 Hugo does not bundle 5 MB on every build. `static/_headers` pins the JavaScript
 `Content-Type` and caches the chunks as immutable. Declaring that mount replaces
 Hugo's default mounts, so `config.toml` lists them all and the layout tests supply
-their own temporary content and assets mounts. Invalid or truncated diagrams retain their code with an
+their own temporary content and assets mounts. Posts with a `mermaid` shortcode use
+the same files: `assets/lib/mermaid/mermaid.min.js` overrides the theme's 5.5 MB
+single-file build with a small facade that imports the ESM build on the first
+`mermaid.run()`, which the theme's dark-mode glue still calls. Invalid or truncated diagrams retain their code with an
 explicit explanation. Existing indexed shortcode excerpts need reindexing.
 HTML layout wrappers become readable prose and headings; scripts, styles, icons,
 forms, buttons and HTML comments are excluded. Fenced code and inline code stay

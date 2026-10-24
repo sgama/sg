@@ -1,6 +1,7 @@
 name = "sg"
 main = "functions/worker.js"
 compatibility_date = "2026-04-20"
+minify = true
 
 # The static site (Hugo's output) is served by Cloudflare directly. The Worker runs first only for the API paths
 # (functions/worker.js), so page requests never invoke it. Hugo emits 404.html for unknown pages.
