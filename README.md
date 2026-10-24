@@ -747,11 +747,13 @@ Pull requests targeting `develop` run `make ci-check` without Cloudflare credent
 or paid API calls. Production pushes run the same checks before refreshing the
 corpus, deploying the existing build, and pruning old deployments. Production
 runs remain serialized without cancellation to protect corpus/deployment updates.
-CI caches npm downloads (not `node_modules`) and scopes Hugo caches by version and
-module dependencies. The actionlint binary is cached by its Makefile-pinned
-version, runner OS, and architecture; cache hits skip Go setup and compilation.
-Hugo's build cache is saved after successful offline validation, before paid
-refresh or deployment. `make ci` remains a paid production workflow, not an offline
+CI uses two cache entries with different lifetimes. The first holds actionlint,
+Hugo and `node_modules`, keyed by tool versions and the lockfile, so it is only
+re-saved when those change. The second holds Hugo's module and resource caches and
+`resources/_gen` (processed images and assets), keyed by Hugo version and the
+content, layouts and assets, and restored from the closest previous entry so
+unchanged images are never reprocessed. Both are saved after successful offline
+validation, before paid refresh or deployment. `make ci` remains a paid production workflow, not an offline
 check; use `make ci-check` for local validation.
 
 Install dependencies explicitly with `make deps` before checks; audits never

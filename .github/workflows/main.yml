@@ -42,21 +42,29 @@ jobs:
         id: actionlint-version
         run: echo "version=$(make -s print-ACTIONLINT_VERSION)" >> "${GITHUB_OUTPUT}"
 
-      # One cache entry holds every reusable artifact: tool binaries, node_modules and
-      # Hugo's build state. Keys hash the inputs that change each artifact, and the
-      # restore-keys fall back to the closest previous entry.
+      # Two cache entries with different lifetimes, so a content-only change never re-uploads
+      # the large, slow-moving one:
+      #   tools:  actionlint, Hugo and node_modules. Keyed by tool versions and the lockfile.
+      #   hugo:   Hugo's module/resource caches and resources/_gen (processed images and assets).
+      #           Small, keyed by the inputs that change the output, restored from the closest
+      #           previous entry so unchanged images are never reprocessed.
       - uses: actions/cache@v6
-        id: cache
         with:
           path: |
             ${{ runner.temp }}/actionlint
             ${{ runner.temp }}/hugo
             node_modules
-            ${{ env.HUGO_CACHEDIR }}
-          key: ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
+          key: ${{ runner.os }}-tools-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-${{ hashFiles('package-lock.json') }}-
-            ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-
+            ${{ runner.os }}-tools-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.HUGO_CACHEDIR }}
+            resources/_gen
+          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
+          restore-keys: |
+            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
 
       # Tools are checked on disk, not by cache-hit, so a partial restore still works.
       - name: Install actionlint
