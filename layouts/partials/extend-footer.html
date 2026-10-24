@@ -75,18 +75,14 @@
     </dialog>
 </template>
 
-{{/* Libraries are separate entries so the widget bundle stays small; the widget loads them by URL. Bundling
-     Mermaid dominates every Hugo build, so layout tests set params.skipChatLibraries to leave the URLs out (the
-     widget then renders plain text); normal and production builds always include them. */}}
+{{/* The Markdown libraries are a separate bundle so the widget stays small; the widget loads them by URL on first
+     open. Mermaid is not bundled: its prebuilt ESM (an entry plus lazily loaded chunks) is mounted as static files
+     by config.toml, so a diagram only downloads the chunks it needs and Hugo never has to bundle 5 MB. Chunk names are
+     content-hashed and the entry file is revalidated, so an upgrade needs no URL change. */}}
 {{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js") | resources.Minify | resources.Fingerprint }}
-{{ if site.Params.skipChatLibraries }}
-<ai-chat-widget id="ai-chat-widget" class="chat-widget"></ai-chat-widget>
-{{ else }}
 {{ $markdown_js := resources.Get "js/chat/markdown-entry.js" | js.Build (dict "targetPath" "js/chat-markdown.js") | resources.Minify | resources.Fingerprint }}
-{{ $mermaid_js := resources.Get "js/mermaid-entry.js" | js.Build (dict "targetPath" "js/mermaid.js") | resources.Minify | resources.Fingerprint }}
 <ai-chat-widget id="ai-chat-widget" class="chat-widget"
-    data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ $mermaid_js.RelPermalink }}"></ai-chat-widget>
-{{ end }}
+    data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ "vendor/mermaid/mermaid.esm.min.mjs" | relURL }}"></ai-chat-widget>
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
 {{ $site_js := resources.Get "js/site.js" | js.Build (dict "targetPath" "js/site.js") | resources.Minify | resources.Fingerprint }}

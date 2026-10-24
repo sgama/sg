@@ -69,7 +69,7 @@ const root = await corpusFixture(t, {
 const corpus = await buildCorpus({ root });
 ```
 
-Hugo layout tests use temporary content, assets, and output directories. They verify JSON-LD escaping/types, public-only index entries, preload parity, meta descriptions, progress settings, redirects, and absence of AdSense markup. Favicon unit tests mock ImageMagick commands; they verify wiring and errors, not actual encoded images or dimensions. Layout builds set `params.skipChatLibraries`, which leaves out the lazy Markdown and Mermaid chat bundles (about 90% of a Hugo build); one test builds without it and checks that both bundles are linked and emitted.
+Hugo layout tests use temporary content, assets, and output directories. They verify JSON-LD escaping/types, public-only index entries, preload parity, meta descriptions, progress settings, redirects, and absence of AdSense markup. Favicon unit tests mock ImageMagick commands; they verify wiring and errors, not actual encoded images or dimensions.
 
 The local [mobile-menu partial](../layouts/partials/header/components/mobile-menu.html) and [menu script](../assets/js/menu-a11y.js) override Blowfish v3.9.0's label-based controls with native buttons, including submenu toggles. They retain the theme's checkbox/peer styling and desktop dropdown behavior. Recheck both overrides against upstream changes when upgrading the theme; generated-layout tests verify button semantics and control targets, while menu unit tests verify state synchronization and dismissal.
 

@@ -272,7 +272,13 @@ Newly built corpora require explicit record types and normalization version 3. R
 Ingestion uses structured Markdown/HTML ASTs (remark with GFM, mdast-to-hast, hast-util-raw and hast-to-mdast). It removes media and presentation controls without flattening nested lists, indented code or inline code. A quote-aware Hugo shortcode tokenizer runs only outside Markdown code spans/blocks; Mermaid shortcodes become fenced diagrams. Serialization normalizes Markdown formatting and resolves reference links, while preserving rendered meaning. Embedding inputs include page/section labels; stored excerpts contain normalized source evidence. Local and Cloudflare embedding paths use the same helper.
 Hugo Mermaid shortcodes become fenced Mermaid blocks during ingestion. Opening
 retrieved sources lazy-loads Mermaid to render those blocks with strict security
-and sanitized SVG. Invalid or truncated diagrams retain their code with an
+and sanitized SVG. Mermaid is not bundled: `config.toml` mounts its prebuilt ESM
+(`mermaid.esm.min.mjs` and its content-hashed `chunks/*.mjs`, about 5.5 MB in 105
+files) at `/vendor/mermaid/`, so a diagram downloads only the chunks it needs and
+Hugo does not bundle 5 MB on every build. `static/_headers` pins the JavaScript
+`Content-Type` and caches the chunks as immutable. Declaring that mount replaces
+Hugo's default mounts, so `config.toml` lists them all and the layout tests supply
+their own temporary content and assets mounts. Invalid or truncated diagrams retain their code with an
 explicit explanation. Existing indexed shortcode excerpts need reindexing.
 HTML layout wrappers become readable prose and headings; scripts, styles, icons,
 forms, buttons and HTML comments are excluded. Fenced code and inline code stay

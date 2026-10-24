@@ -71,17 +71,22 @@ test('generated layouts preserve structured types, public indexes, image selecti
     async function build(name, params = {}, extra = {}) {
         const config = path.join(temp, `${name}.json`);
         const destination = path.join(temp, name);
-        // The chat libraries (Mermaid especially) make up ~90% of a build and are not asserted on here.
-        const buildParams = { skipChatLibraries: true, ...params };
-        await writeFile(
-            config,
-            JSON.stringify({ assetDir: assets, params: buildParams, ...extra, languages: { ...extra.languages, en: { params: buildParams } } }),
-        );
-        const result = await exec(
-            process.env.HUGO ?? 'hugo',
-            ['--config', `config.toml,${config}`, '--contentDir', content, '--destination', destination, '--minify'],
-            { cwd: root, env: { ...process.env, HUGO_BUILD_SHA: buildSha }, timeout: 90000, maxBuffer: 2 * 1024 * 1024 },
-        );
+        // Explicit mounts in config.toml replace Hugo's defaults, so the temporary content and assets are mounted here
+        // (everything else, including the Mermaid mount, comes from the project's own list).
+        const projectMounts = Object.entries({ data: 'data', layouts: 'layouts', static: 'static' }).map(([source, target]) => ({ source, target }));
+        const mermaid = {
+            source: 'node_modules/mermaid/dist',
+            target: 'static/vendor/mermaid',
+            files: ['mermaid.esm.min.mjs', 'chunks/mermaid.esm.min/*.mjs'],
+        };
+        const mounts = [{ source: assets, target: 'assets' }, { source: content, target: 'content' }, ...projectMounts, mermaid];
+        await writeFile(config, JSON.stringify({ module: { mounts }, params, ...extra, languages: { ...extra.languages, en: { params } } }));
+        const result = await exec(process.env.HUGO ?? 'hugo', ['--config', `config.toml,${config}`, '--destination', destination, '--minify'], {
+            cwd: root,
+            env: { ...process.env, HUGO_BUILD_SHA: buildSha },
+            timeout: 90000,
+            maxBuffer: 2 * 1024 * 1024,
+        });
         const buildOutput = (result.stdout + result.stderr).replace(
             /WARN\s+Module "github\.com\/nunocoracao\/blowfish\/v3" is not compatible with this Hugo version:[^\n]*/g,
             '',
@@ -245,15 +250,15 @@ test('generated layouts preserve structured types, public indexes, image selecti
         assert.ok(tags(home, 'link').some((tag) => tag.as === 'image' && tag.href === '/layout-test.svg' && tag.type === 'image/svg+xml'));
     });
 
-    await t.test('the default build links and emits the lazy chat libraries (only this test pays for bundling them)', async () => {
-        const destination = await build('libraries', { skipChatLibraries: false });
+    await t.test('the build links the lazy chat libraries and emits every Mermaid chunk the entry loads', async () => {
+        const destination = await build('libraries');
         const widget = tags(await readFile(path.join(destination, 'index.html'), 'utf8'), 'ai-chat-widget')[0];
-        for (const [attribute, bundle] of [
-            ['data-markdown-src', 'chat-markdown'],
-            ['data-mermaid-src', 'mermaid'],
-        ]) {
-            assert.match(widget[attribute], new RegExp(`^/js/${bundle}\\.min\\.[a-f0-9]+\\.js$`));
-            assert.ok((await readFile(path.join(destination, widget[attribute]), 'utf8')).length > 1000, `${bundle} bundle must be emitted`);
-        }
+        assert.match(widget['data-markdown-src'], /^\/js\/chat-markdown\.min\.[a-f0-9]+\.js$/);
+        assert.ok((await readFile(path.join(destination, widget['data-markdown-src']), 'utf8')).length > 1000, 'Markdown bundle must be emitted');
+        assert.equal(widget['data-mermaid-src'], '/vendor/mermaid/mermaid.esm.min.mjs');
+        const entry = await readFile(path.join(destination, widget['data-mermaid-src']), 'utf8');
+        const chunks = [...new Set(entry.match(/\.\/chunks\/mermaid\.esm\.min\/[\w.-]+\.mjs/g))];
+        assert.ok(chunks.length > 0, 'The entry must load chunks');
+        for (const chunk of chunks) await readFile(path.join(destination, 'vendor/mermaid', chunk));
     });
 });

@@ -19,6 +19,12 @@
 /*.webmanifest
   Cache-Control: public, max-age=31536000, immutable
 
+/vendor/mermaid/*
+  Content-Type: text/javascript; charset=utf-8
+
+/vendor/mermaid/chunks/*
+  Cache-Control: public, max-age=31536000, immutable
+
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

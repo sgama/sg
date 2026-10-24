@@ -204,6 +204,33 @@ keepWhitespace = false
 extended = true
 min = "0.167.0"
 
+# Project mounts. Declaring any mount replaces Hugo's defaults, so all of them are listed.
+# Mermaid's prebuilt ESM (an entry plus lazily loaded chunks) is served as static files, not bundled.
+[[module.mounts]]
+source = "assets"
+target = "assets"
+
+[[module.mounts]]
+source = "content"
+target = "content"
+
+[[module.mounts]]
+source = "data"
+target = "data"
+
+[[module.mounts]]
+source = "layouts"
+target = "layouts"
+
+[[module.mounts]]
+source = "static"
+target = "static"
+
+[[module.mounts]]
+source = "node_modules/mermaid/dist"
+target = "static/vendor/mermaid"
+files = ["mermaid.esm.min.mjs", "chunks/mermaid.esm.min/*.mjs"]
+
 # Theme and module imports - https://gohugo.io/hugo-modules/use-modules/
 [[module.imports]]
 disable = false
