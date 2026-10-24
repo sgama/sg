@@ -22,7 +22,6 @@ export async function sectionChunks(identity, sections, config) {
                         recordType: 'section',
                         sectionIndex: parentIndex,
                         text,
-                        sectionText: section.text,
                     },
                 });
             }
@@ -36,7 +35,8 @@ export async function sectionChunks(identity, sections, config) {
                         section: section.heading,
                         ...(parentIndex !== null ? { parentIndex } : {}),
                         text: segment,
-                        sectionText: section.text,
+                        // Full parent section text, truncated to stay under Vectorize's 10KB metadata limit.
+                        sectionText: section.text.slice(0, 4000),
                     },
                 });
             }

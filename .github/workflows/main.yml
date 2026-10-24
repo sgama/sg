@@ -50,7 +50,14 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: make deps
+      - uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
       - run: make lint-workflows
       - run: make lint
       - run: make format-check
@@ -84,7 +91,14 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: make deps
+      - uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
       - run: make coverage
       - uses: actions/upload-artifact@v7
         if: always()
@@ -131,7 +145,14 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: make deps
+      - uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
       - run: make ai-check
       - run: make ai-build
       - run: make build-prod
@@ -159,7 +180,14 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: make deps
+      - uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
       - run: make audit-site
 
   deploy:
@@ -195,7 +223,14 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - run: make deps
+      - uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
       - run: make ai-refresh
       - run: make deploy-built
       - run: make cleanup-deployments
