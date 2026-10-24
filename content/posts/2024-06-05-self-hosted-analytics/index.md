@@ -32,7 +32,7 @@ subgraph "Cloudflare Edge Network"
     TunnelEntry[Tunnel End Point]
 end
 
-subgraph "Cloudflare Pages"
+subgraph "Cloudflare Worker (static assets)"
     Static[Static Assets]
     HTML[index.html]
 end
@@ -60,7 +60,7 @@ linkStyle 3,4,5,6 stroke:orange,stroke-width:2px;
 
 This dual-path architecture enables the best of both worlds:
 
-1. **Blue Path:** Static content is served instantly from Cloudflare's global cache (Pages).
+1. **Blue Path:** Static content is served instantly from Cloudflare's global cache (Workers static assets).
 2. **Orange Path:** Analytics data travels securely through the tunnel to my home server without ever exposing my IP.
 
 ## 1. The Infrastructure: Docker Compose

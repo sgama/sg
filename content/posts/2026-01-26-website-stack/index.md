@@ -1,9 +1,9 @@
 ---
 title: "My Over-Engineered Serverless & Self-Hosted Stack"
 date: 2026-01-26
-lastmod: 2026-10-07
+lastmod: 2026-10-24
 slug: "website-stack"
-description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, Cloudflare Pages, Workers, Vectorize, and Tunnels."
+description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, a Cloudflare Worker with static assets, Workers AI, Vectorize, and Tunnels."
 summary: "Why have a simple website when you can have a complex one? A deep dive into the CI/CD pipeline, serverless AI integration, and zero-trust self-hosted analytics stack that powers samsongama.com."
 tags: ["infrastructure", "cloudflare", "github-actions", "devops", "self-hosted", "hugo"]
 showDate: true
@@ -28,8 +28,8 @@ subgraph Cloudflare["☁️ Cloudflare Edge"]
     DNS[DNS & DDoS Protection]
     CDN[CDN Cache]
     WAF[Web App Firewall]
-    Pages[Cloudflare Pages]
-    Functions[Pages Functions /api/chat]
+    Assets[Static Assets]
+    Functions[Worker /api/*]
     Workers[Cloudflare Workers AI]
     Vectorize[Vectorize]
     KV[KV Chat Logs]
@@ -50,7 +50,7 @@ User -->|HTTPS| DNS
 DNS --> WAF
 WAF --> CDN
 
-CDN -->|Static Content| Pages
+CDN -->|Static Content| Assets
 CDN -->|Dynamic API| Functions
 Functions --> Workers
 Functions --> Vectorize
@@ -61,7 +61,8 @@ Tunnel <-->|Secure Connection| Cloudflared
 Cloudflared <--> Analytics
 
 Repo -->|Push| Actions
-Actions -->|Deploy| Pages
+Actions -->|Deploy| Assets
+Actions -->|Deploy| Functions
 {{< /mermaid >}}
 
 ---
@@ -89,19 +90,20 @@ Production deployment is handled by a **GitHub Actions** workflow on pushes to `
 
 1. **Checkout**: Pulls the latest code.
 2. **Setup Node & Hugo**: Installs dependencies.
-3. **Validate & Build**: Runs `make ci-check`: workflow and JavaScript linting, offline tests with coverage, corpus checks, Functions compilation, PostCSS/PurgeCSS, the production Hugo build, and generated-layout tests.
-4. **Refresh Corpus**: Runs `make ai-refresh` to skip an unchanged corpus or embed a changed one into a versioned Vectorize namespace. It waits for indexing before preparing the matching deployment configuration; failure blocks deployment.
-5. **Deploy**: Runs `make deploy-built` to upload the validated `public/` output and Functions to Cloudflare Pages.
-6. **Cleanup**: Removes previews, prunes old production deployments while retaining rollback history, and deletes versioned corpora no retained deployment references.
+3. **Validate & Build**: Runs `make ci-check`: workflow and JavaScript linting, offline tests with coverage, corpus checks, Worker bundling check, type checking, PostCSS/PurgeCSS, the production Hugo build, and generated-layout tests.
+4. **Detect Changes**: Runs `make deploy-needed`, which compares the commit the live Worker was built from (recorded in its `DEPLOY_COMMIT` variable) with the current one. If no file that can change the site differs, the refresh and deploy are skipped; any doubt deploys.
+5. **Refresh Corpus**: Runs `make ai-refresh` to skip an unchanged corpus or embed a changed one into a versioned Vectorize namespace. It waits for indexing before preparing the matching deployment configuration; failure blocks deployment.
+6. **Deploy**: Runs `make deploy-built`, one `wrangler deploy` that uploads the validated `public/` output as static assets and the Worker together, as a single live version.
+7. **Prune**: Runs `make cleanup-vectors`, deleting the vectors of every versioned corpus except the one the live Worker uses. There are no old deployments to clean up, and no rollback history: rolling back means redeploying an earlier commit.
 
-For example, a CSS-only change can reuse the existing corpus. A published content edit changes the corpus hash and requires new embeddings before the deployment proceeds.
+For example, a CSS-only change can reuse the existing corpus. A published content edit changes the corpus hash and requires new embeddings before the deployment proceeds. Three caches (tools, Hugo modules, generated resources) and parallel Make jobs keep a cached run to about a minute.
 
 {{< mermaid >}}
 sequenceDiagram
 participant Dev as Developer
 participant GH as GitHub Actions
 participant Build as Build Container
-participant CF as Cloudflare Pages
+participant CF as Cloudflare Worker
 participant Vec as Vectorize DB
 participant AI as Workers AI
 
@@ -121,10 +123,9 @@ rect rgb(20, 20, 20)
     end
 end
 
-Build->>CF: Deploy assets, Functions and matching namespace
+Build->>CF: Deploy assets, Worker and matching namespace
 CF-->>Dev: Deployment Success 🚀
-Build->>CF: Prune previews and old deployments
-Build->>Vec: Delete unreferenced corpora
+Build->>Vec: Delete corpora other than the live one
 {{< /mermaid >}}
 
 ---
@@ -143,7 +144,7 @@ Cloudflare proxies all traffic. This means:
 
 ### Workers & Vectorize (The "Smart" Layer)
 
-This is where the [AI Assistant](/posts/2026-01-25-ai-chat/) lives. A **Cloudflare Pages Function** handles `/api/chat`, **Workers AI** provides embedding and answer models, and **Vectorize** holds the searchable corpus. I do not operate a dedicated Python inference server or train model weights.
+This is where the [AI Assistant](/posts/2026-01-25-ai-chat/) lives. A **Cloudflare Worker** handles `/api/chat` and `/api/logs`; Cloudflare serves the static site directly and runs the Worker first only for `/api/*`. **Workers AI** provides embedding and answer models, and **Vectorize** holds the searchable corpus. I do not operate a dedicated Python inference server or train model weights.
 
 - **Conversation:** The browser sends bounded recent history. A follow-up such as "What did he do before that?" is rewritten into a standalone search question before embedding.
 - **Retrieval:** Vectorize returns three semantic matches. Matching child excerpts expand into bounded source sections, with generic canonical-source links keeping curated summaries tied to authoritative public content.

@@ -12,14 +12,14 @@ showDate: true
 
 An LLM integration is not finished when a prompt returns a plausible answer. It needs a reproducible knowledge pipeline, a stable API contract, measurable quality, and a deployment that cannot silently serve broken data.
 
-This portfolio uses **Hugo, Cloudflare Pages Functions, Workers AI, Vectorize, and KV**. The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights.
+This portfolio uses **Hugo, a Cloudflare Worker with static assets, Workers AI, Vectorize, and KV**. The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights.
 
 ## How a question becomes an answer
 
 ```text
 Browser question
   + bounded recent conversation
-  -> Pages Function: validate input and check prompt-pattern guardrails
+  -> Worker: validate input and check prompt-pattern guardrails
   -> Workers AI: rewrite a follow-up into a standalone search question
   -> Workers AI: embed the search question
   -> Vectorize: retrieve three matches from the deployed corpus namespace
@@ -91,7 +91,7 @@ Using only the filename would make unrelated `index.md` bundles overwrite one an
 
 Ingestion uses bounded concurrency, validates vector dimensions and finite values, uploads NDJSON, and fails on incomplete work. Upsert acceptance is asynchronous: the refresh script waits for each mutation to finish indexing before updating the deployment namespace.
 
-Every production push to `develop` refreshes the corpus and deploys the matching namespace. An unchanged corpus skips ingestion; a changed corpus is re-embedded. Failed ingestion prevents deployment. Cleanup prunes old deployments and unreferenced versioned corpora while protecting namespaces used by retained deployments. Reusing individual embeddings across changed corpora remains a future cost improvement.
+Every production push to `develop` refreshes the corpus and deploys the matching namespace. An unchanged corpus skips ingestion; a changed corpus is re-embedded. Failed ingestion prevents deployment. The site is one live Worker version, so cleanup deletes the vectors of every versioned corpus except the namespace the live Worker uses, and stops if a deploy changes that namespace mid-run. Reusing individual embeddings across changed corpora remains a future cost improvement.
 
 ## Developing and verifying the integration
 
@@ -100,7 +100,7 @@ The application is built locally before any paid evaluation:
 ```bash
 make ai-check   # Validate corpus identities and evaluation labels
 make test    # Run offline unit and integration-style tests
-make ai-build   # Compile Pages Functions; requires Node.js 22+
+make ai-build   # Bundle the Worker (dry run); requires Node.js 22+
 make dev-ai     # Run Hugo output with Wrangler and the chat API
 ```
 

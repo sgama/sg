@@ -1,9 +1,9 @@
 ---
 title: "Building a Serverless AI Chatbot for My Static Portfolio"
 date: 2026-01-25
-lastmod: 2026-10-07
+lastmod: 2026-10-24
 slug: "ai-chat"
-description: "How this Hugo portfolio uses Cloudflare Pages Functions, Workers AI and a versioned Vectorize corpus to answer questions with source excerpts."
+description: "How this Hugo portfolio uses a Cloudflare Worker, Workers AI and a versioned Vectorize corpus to answer questions with source excerpts."
 summary: "A custom portfolio assistant with contextual follow-ups, streamed answers, public source evidence and measurable latency and token cost."
 tags: ["ai", "cloudflare", "hugo", "javascript", "rag"]
 showDate: true
@@ -19,7 +19,7 @@ Static sites are fast and straightforward to host, but visitors still need a way
 The assistant uses **Retrieval-Augmented Generation (RAG)**: find relevant portfolio evidence, supply it to an answer model, and stream the response. It does not train a model or browse the web.
 
 - **Frontend:** Hugo with Blowfish, a native dialog and modular JavaScript.
-- **API:** Cloudflare Pages Functions with Hono at `/api/chat`.
+- **API:** One Cloudflare Worker with Hono at `/api/chat` (and `/api/logs`). Cloudflare serves the static site itself and runs the Worker first only for `/api/*`.
 - **Inference:** Workers AI; GLM-4.7-Flash is the default answer and rewrite model.
 - **Search:** Cloudflare Vectorize with BGE-base-en-v1.5 embeddings, 768 dimensions.
 - **State:** Browser conversation history, plus optional server-side KV response logging.
@@ -32,7 +32,7 @@ The browser sends a question and bounded recent history. First-turn questions go
 sequenceDiagram
 participant User
 participant Frontend
-participant Function as Pages Function
+participant Function as Worker
 participant VectorDB as Vectorize
 participant AI as Workers AI
 User->>Frontend: Ask a question
@@ -106,7 +106,7 @@ Conversation history persists on the device across deployments until manually cl
 ```bash
 make ai-check   # Corpus identities, Hugo URL provenance and evaluation labels
 make test       # Offline regressions
-make ai-build   # Compile Functions with Node.js 22+
+make ai-build   # Bundle the Worker (dry run) with Node.js 22+
 make dev-ai     # Local site with the chat API
 ```
 

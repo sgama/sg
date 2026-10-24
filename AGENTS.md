@@ -27,6 +27,9 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - Posts need `description` front matter for page metadata and social previews.
 - Do not duplicate OG/Twitter tags or `<html lang>`; Blowfish already emits them.
 - Template data lookups use `hugo.Data.X`; both `site.Data.X` and `.Site.Data.X` are deprecated.
+- Scripts loaded by URL with `import()` (the chat Markdown entry) need `"format" "esm"` in `js.Build`;
+  the default IIFE exports nothing. `assets/lib/mermaid/mermaid.min.js` overrides the theme's
+  5.5 MB Mermaid with a facade over the chunked ESM build in `/vendor/mermaid/`.
 - Prefer `resources.Minify` and `resources.Fingerprint` in new pipeline code.
 - Valid Hugo cache names are `assets`, `getresource`, `images`, `modules`, `misc`;
   do not restore removed `getcsv`/`getjson` entries.
@@ -51,18 +54,18 @@ test patterns. Keep general documentation there rather than duplicating it here.
 ## Production safety
 
 - `develop` is the production branch; there is no separate `main`.
-- Cleanup keeps one production deployment: the active one (`--keep N` retains N
-  older successful `develop` deployments). Every other production deployment is
-  removed once finished, or once stuck in progress for over 24 hours; fresh
-  builds are kept. Each run deletes at most `--max-deletes` (default 100), five at a time, oldest
-  first, so a backlog clears over several deploys.
-- All previews are targeted, including in-progress previews; force deletion is
-  preview-only. Vector pruning waits until no deployment is left to delete and
-  preserves namespaces referenced by retained deployment snapshots.
+- The site is one Cloudflare Worker with static assets (`wrangler.toml`; `functions/worker.js` runs
+  first only for `/api/*`). It has one live version and no deployment history; rollback means
+  redeploying an earlier commit. The live version records `AI_CORPUS_NAMESPACE` and `DEPLOY_COMMIT`
+  as plain-text variables, which refresh, deploy-skip and cleanup read.
+- `make cleanup-vectors` deletes the vectors of every versioned corpus except the live one. It
+  refuses to run without a live namespace and stops if a deploy changes it mid-run.
+- `make cutover-domains` is a one-time Pages-to-Worker custom domain move; the Pages project is
+  frozen until it has run.
 - CI skips the corpus refresh and deployment when no file that can change the site
-  differs from the commit the active deployment was built from
-  (`scripts/deploy_needed.mjs`, `make deploy-needed`); any doubt deploys. Cleanup
-  always runs. Edit its `DEPLOY_INPUTS` list when adding a directory that affects
+  differs from the commit the live Worker was built from
+  (`scripts/deploy_needed.mjs`, `make deploy-needed`); any doubt deploys. The vector
+  cleanup always runs. Edit its `DEPLOY_INPUTS` list when adding a directory that affects
   the build.
 - Keep active-ID, fresh inventory, namespace and mutation-readiness checks.
   Serialized CI does not lock out manual cloud writers.
