@@ -88,13 +88,7 @@ jobs:
       # npm ci wipes node_modules, so reinstall only when the lockfile differs from
       # the one recorded in the restored node_modules.
       - name: Install Node dependencies
-        env:
-          LOCK_HASH: ${{ hashFiles('package-lock.json') }}
-        run: |
-          if [ "$(cat node_modules/.lock-hash 2>/dev/null)" != "${LOCK_HASH}" ]; then
-            make deps
-            echo "${LOCK_HASH}" > node_modules/.lock-hash
-          fi
+        run: make deps
 
       # Cheap-first ordering: each stage fails before the slower ones start.
       - run: make lint-workflows

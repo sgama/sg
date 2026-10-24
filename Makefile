@@ -100,8 +100,13 @@ clean: ## Remove generated output within the repository's public build tree
 	test -z "$$(git ls-files -- "$$target")" || { echo "Refusing cleanup of tracked files: $$target"; exit 1; }; \
 	rm -rf -- "$$target"
 
-deps: check-node ## Install Node dependencies exactly from the lockfile
-	@$(NPM) ci --no-fund
+deps: check-node ## Install Node dependencies from the lockfile (skipped when node_modules matches the lockfile and Node ABI)
+	@stamp=$$($(NODE) -e "const c=require('crypto'),f=require('fs');process.stdout.write(process.versions.modules+' '+c.createHash('sha256').update(f.readFileSync('package-lock.json')).digest('hex'))"); \
+	if [ "$$(cat node_modules/.deps-stamp 2>/dev/null)" = "$$stamp" ]; then \
+		echo "Dependencies up to date"; \
+	else \
+		$(NPM) ci --no-fund && echo "$$stamp" > node_modules/.deps-stamp; \
+	fi
 
 ##@ Test & Audit
 test: check ## Run the complete offline unit suite
