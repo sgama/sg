@@ -60,6 +60,22 @@ export function referencedNamespaces(deployments) {
     return namespaces;
 }
 
+// Groups deployments by what decides their fate (environment, branch, last stage) so a dry run shows why each is kept.
+function breakdown(deployments) {
+    const groups = {};
+    for (const deployment of deployments) {
+        const key = [
+            deployment.environment,
+            deployment.deployment_trigger?.metadata?.branch ?? 'no branch',
+            deployment.is_skipped ? 'skipped' : `${deployment.latest_stage?.name}:${deployment.latest_stage?.status}`,
+        ].join(' / ');
+        const group = (groups[key] ??= { count: 0, oldest: deployment.created_on });
+        group.count++;
+        if (Date.parse(deployment.created_on) < Date.parse(group.oldest)) group.oldest = deployment.created_on;
+    }
+    return groups;
+}
+
 async function inventory(client, project, accountId) {
     const result = [];
     for await (const deployment of client.pages.projects.deployments.list(project, {
@@ -155,6 +171,7 @@ export async function cleanupDeployments({
     previous = 5,
     indexName = AI_CONFIG.retrieval.indexName,
     dryRun = false,
+    verbose = false,
     wait = waitForMutation,
     sleep = delay,
 }) {
@@ -228,13 +245,14 @@ export async function cleanupDeployments({
         retainedDeployments: plan.retain.map((item) => item.id),
         removedDeployments: plan.remove.map((item) => item.id),
         removedVectors: staleIds.length,
+        ...(verbose ? { retainedBreakdown: breakdown(plan.retain) } : {}),
     };
 }
 
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({
         args,
-        options: { 'dry-run': { type: 'boolean', default: false } },
+        options: { 'dry-run': { type: 'boolean', default: false }, verbose: { type: 'boolean', default: false } },
     });
     const { accountId, apiToken } = requireCloudflareCredentials();
     const result = await cleanupDeployments({
@@ -243,6 +261,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         project: process.env.PROJECT_NAME ?? 'sg',
         branch: process.env.BRANCH ?? 'develop',
         dryRun: values['dry-run'],
+        verbose: values.verbose,
     });
     console.log(JSON.stringify(result, null, 2));
 }

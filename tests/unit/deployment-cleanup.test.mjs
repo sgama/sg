@@ -53,6 +53,23 @@ test('a deployment or active-ID change while listing vectors stops cleanup befor
     }
 });
 
+test('verbose dry run explains why each deployment is retained, including other-branch production', async () => {
+    const data = fixture();
+    data.setDeployments([
+        ...Array.from({ length: 8 }, (_, index) => deployment(index + 1)),
+        deployment(50, { deployment_trigger: { metadata: { branch: 'main' } } }),
+        deployment(51, { latest_stage: { name: 'build', status: 'active' } }),
+    ]);
+    const quiet = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true });
+    assert.equal(quiet.retainedBreakdown, undefined);
+    const { retainedBreakdown } = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true, verbose: true });
+    assert.deepEqual(retainedBreakdown, {
+        'production / develop / deploy:success': { count: 6, oldest: deployment(3).created_on },
+        'production / main / deploy:success': { count: 1, oldest: deployment(50).created_on },
+        'production / develop / build:active': { count: 1, oldest: deployment(51).created_on },
+    });
+});
+
 test('waits for acknowledged deployment deletions to disappear before pruning vectors', async () => {
     const data = fixture();
     const remove = data.client.pages.projects.deployments.delete;

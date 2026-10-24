@@ -618,8 +618,14 @@ cleanup cannot prevent previews being created after its final check.
 Preview the plan without deletion:
 
 ```bash
-node scripts/cleanup_deployments.mjs --dry-run
+node scripts/cleanup_deployments.mjs --dry-run             # plan only; GET requests, no deletion
+node scripts/cleanup_deployments.mjs --dry-run --verbose   # also group retained deployments by why they are kept
 ```
+
+`--verbose` adds `retainedBreakdown`, counting retained deployments by environment,
+branch and last stage with the oldest creation date of each group. Every retained
+deployment's snapshot is re-read at each safety check, so a large retained set makes
+cleanup slow; use the breakdown to see which rule is keeping them.
 
 The command needs Pages read/delete and Vectorize read/write permissions.
 Missing deployment namespace metadata, incomplete inventories, and detected
