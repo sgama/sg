@@ -238,7 +238,7 @@ test('cleanup CLI invalid options and missing credentials fail without network c
     process.env.CLOUDFLARE_API_TOKEN = '';
     const fetchImpl = async () => assert.fail('Unexpected network request');
     await assert.rejects(main(['--invalid'], { fetchImpl }), /Unknown option/);
-    await assert.rejects(main([], { fetchImpl }), /Missing Cloudflare credentials/);
+    await assert.rejects(main([], { fetchImpl }), /Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN/);
     const root = await mkdtemp(path.join(os.tmpdir(), 'sg-cleanup-cli-'));
     t.after(() => rm(root, { recursive: true, force: true }));
     const result = spawnSync(process.execPath, [fileURLToPath(new URL('../../scripts/cleanup_deployments.mjs', import.meta.url))], {
@@ -249,7 +249,7 @@ test('cleanup CLI invalid options and missing credentials fail without network c
     });
     assert.ifError(result.error);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Deployment\/corpus cleanup failed: Missing Cloudflare credentials/);
+    assert.match(result.stderr, /Deployment\/corpus cleanup failed: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN/);
 });
 
 test('deletes completed and in-progress previews before pruning their unreferenced vectors', async () => {

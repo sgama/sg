@@ -66,10 +66,14 @@ beside the claim and labels matching the public destination (for example, Resume
 or About), not the title of an internal excerpt.
 
 [`assets/js/ai-chat-widget.js`](assets/js/ai-chat-widget.js) registers
-`<ai-chat-widget>` and coordinates the dialog, messages and request lifecycle.
-Independent history, stream, scroll and message-rendering modules live in
-[`assets/js/chat/`](assets/js/chat/); Hugo bundles the local modules into one
-widget script. [`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
+`<ai-chat-widget>` and wires a model to its views. Under
+[`assets/js/chat/`](assets/js/chat/), `model/` holds conversation state, history
+storage and the streaming protocol with no DOM access, and `view/` holds the
+dialog, composer, transcript and Markdown renderer with no conversation logic.
+Per-message extras (sources, retry, metrics) are decorators passed to the
+transcript, so a new one needs no change to existing view code. Hugo bundles the
+local modules into one widget script.
+[`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
 supplies the light-DOM template and loads fingerprinted scripts.
 [`assets/css/site.css`](assets/css/site.css) supplies widget-scoped styles, and
 [`postcss.config.js`](postcss.config.js) preserves dynamically generated message
@@ -93,9 +97,17 @@ if cancellation also fails.
 
 The public methods are `open()`, `close()`, `toggle()` and
 `setPendingQuestion(text)`, with bubbling `chat-open` and `chat-close` events.
-[`assets/js/site.js`](assets/js/site.js) wires `.js-chat-trigger` elements and
-their optional `data-question`, randomizes suggestion chips, and integrates
-accessibility-panel settings.
+[`assets/js/site.js`](assets/js/site.js) lists the site features in
+[`assets/js/site/features/`](assets/js/site/features/): chat triggers
+(`.js-chat-trigger` and its optional `data-question`), suggestion chips,
+accessibility-panel settings and the starfield. Each feature is
+`{ name, phase, init(context) }`, run by the small host in
+[`assets/js/core/feature-host.js`](assets/js/core/feature-host.js), which the
+navigation menu entry ([`assets/js/menu-a11y.js`](assets/js/menu-a11y.js)) also
+uses; one failing feature does not stop the others. Hugo bundles each entry with
+`js.Build`. [`assets/js/background-blur.js`](assets/js/background-blur.js) is the
+exception: Blowfish's own partials load that path directly, so it must stay a
+self-contained classic script.
 
 Connection clones the template once and installs abortable event listeners.
 History reads, transcript rendering, resize observation and Markdown loading

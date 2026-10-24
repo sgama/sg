@@ -1,3 +1,6 @@
+// Deliberately a self-contained classic script (no imports). Blowfish's header, hero and home partials load
+// this exact path through a plain Minify pipeline, so this file overrides the theme's copy on every page.
+// Making it a module would ship `import` statements to the browser as a classic script.
 function setBackgroundBlur(targetId, scrollDivisor = 300, disableBlur = false, isMenuBlur = false) {
     if (!targetId) {
         console.error('data-blur-id is null');

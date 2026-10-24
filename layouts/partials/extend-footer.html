@@ -83,6 +83,6 @@
     data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ $mermaid_js.RelPermalink }}"></ai-chat-widget>
 <script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
     crossorigin="anonymous"></script>
-{{ $site_js := resources.Get "js/site.js" | resources.Minify | resources.Fingerprint }}
+{{ $site_js := resources.Get "js/site.js" | js.Build (dict "targetPath" "js/site.js") | resources.Minify | resources.Fingerprint }}
 <script defer src="{{ $site_js.RelPermalink }}" integrity="{{ $site_js.Data.Integrity }}"
     crossorigin="anonymous"></script>

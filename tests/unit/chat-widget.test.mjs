@@ -1,408 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setMaxListeners } from 'node:events';
-import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from '../../assets/js/chat/history.js';
-import { createAnswerParser, streamAnswer } from '../../assets/js/chat/stream.js';
-import { createChatScroller } from '../../assets/js/chat/scroll.js';
+import { apiHistory, createStore, readHistory, STORAGE_KEY, SESSION_OPEN_KEY } from '../../assets/js/chat/model/history.js';
+import { createAnswerParser, streamAnswer } from '../../assets/js/chat/model/stream.js';
+import { createChatScroller } from '../../assets/js/chat/view/scroll.js';
 import { setImmediate } from 'node:timers/promises';
-import { publicEvidence, createEvidencePanel } from '../../assets/js/chat/evidence.js';
-
-test('answer parser handles split CRLF events, usage, and completion', () => {
-    const deltas = [];
-    const parser = createAnswerParser((delta) => deltas.push(delta));
-    parser.push('data:{"response":"Hel');
-    parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n');
-    parser.push('data: {"response":"!"}\ndata: [DONE]\ndata: {"response":"ignored"}\n');
-    parser.flush();
-    assert.deepEqual(deltas, ['Hello', '!']);
-    assert.equal(parser.finished, true);
-});
-
-test('loading the widget preserves saved conversation history', async (t) => {
-    const f = await widgetFixture(t, {
-        history: [{ sender: 'bot', text: 'Saved answer' }],
-    });
-    assert.equal(f.local.has(STORAGE_KEY), true);
-    f.widget.open();
-    assert.equal(f.roles.transcript.children.length, 1);
-    assert.equal(f.roles.transcript.children[0].dataset.rawText, 'Saved answer');
-});
-
-test('answer parser forwards metrics separately without including them in the answer', () => {
-    const answers = [];
-    const metrics = [];
-    const parser = createAnswerParser(
-        (text) => answers.push(text),
-        (value) => metrics.push(value),
-    );
-    parser.push('data: {"response":"Answer"}\ndata: {"metrics":{"totalMs":123}}\ndata: [DONE]\n');
-    assert.deepEqual(answers, ['Answer']);
-    assert.deepEqual(metrics, [{ totalMs: 123 }]);
-    for (const value of [null, [], 123, 'invalid']) {
-        assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify({ metrics: value })}\n`), /metrics/);
-    }
-});
-
-test('progress and evidence events are separate from answer text and malformed stages fail', () => {
-    const progress = [];
-    const evidence = [];
-    const parser = createAnswerParser(() => assert.fail('Not an answer'), undefined, {
-        onProgress: (stage) => progress.push(stage),
-        onEvidence: (value) => evidence.push(value),
-    });
-    parser.push('data: {"progress":"search"}\ndata: {"evidence":[]}\n');
-    assert.deepEqual(progress, ['search']);
-    assert.deepEqual(evidence, [[]]);
-    assert.throws(() => parser.push('data: {"progress":"invented"}\n'), /Invalid chat progress/);
-    assert.throws(() => createAnswerParser(() => {}).push('data: {"evidence":null}\n'), /Invalid chat evidence/);
-});
-
-test('public evidence excludes internal and unsafe links and strips internal metadata', () => {
-    const evidence = publicEvidence([
-        { url: '/resume/', title: 'Resume', text: 'Facts', source: 'content/resume/_index.md' },
-        { text: 'Internal' },
-        { url: '/_context/profile', text: 'Internal' },
-        { url: '//outside.test', text: 'External' },
-        { url: '/\\outside.test', text: 'External' },
-        { url: 'javascript:alert(1)', text: 'Invalid' },
-    ]);
-    assert.deepEqual(evidence, [{ url: '/resume/', title: 'Resume', section: '', text: 'Facts' }]);
-});
-
-test('source excerpts delegate Markdown to the shared renderer with a literal fallback', () => {
-    const document = {
-        createElement: () => ({
-            children: [],
-            classList: { add() {} },
-            addEventListener() {},
-            append(...children) {
-                this.children.push(...children);
-            },
-        }),
-    };
-    const evidence = [{ url: '/resume/', title: 'Resume', text: '## Experience\n\n**Engineer**' }];
-    const rendered = [];
-    const panel = createEvidencePanel(evidence, document, {
-        write(element, text, sender) {
-            rendered.push({ text, sender });
-            element.textContent = 'Rendered safely';
-        },
-    });
-    assert.deepEqual(rendered, [{ text: evidence[0].text, sender: 'bot' }]);
-    assert.equal(panel.children[2].children[1].textContent, 'Rendered safely');
-    assert.equal(createEvidencePanel(evidence, document).children[2].children[1].textContent, evidence[0].text);
-});
-
-test('widget exposes public evidence without a copy button and keeps evidence out of API history', async (t) => {
-    const f = await widgetFixture(t);
-    t.mock.method(
-        globalThis,
-        'fetch',
-        async () =>
-            new Response(
-                'data: {"progress":"search"}\n\n' +
-                    'data: {"evidence":[{"url":"/resume/","title":"Resume","section":"Experience","text":"Source facts"}]}\n\n' +
-                    'data: {"response":"Answer only"}\n\ndata: [DONE]\n\n',
-            ),
-    );
-    f.widget.open();
-    await f.submit('Question');
-    const message = f.roles.transcript.children.at(-1);
-    const evidence = message.children.find((child) => child.classList.contains('response-evidence'));
-    assert.ok(evidence);
-    assert.equal(evidence.children[0].textContent, 'Retrieved sources (1)');
-    assert.equal(
-        message.children.some((child) => child.classList.contains('copy-answer')),
-        false,
-    );
-    const history = JSON.parse(f.local.get(STORAGE_KEY));
-    assert.equal(history.at(-1).evidence[0].url, '/resume/');
-    assert.deepEqual(apiHistory(history, history[0].text).at(-1), { role: 'assistant', content: 'Answer only' });
-});
-
-test('widget displays actual server progress before answer tokens arrive', async (t) => {
-    const f = await widgetFixture(t);
-    let stream;
-    t.mock.method(
-        globalThis,
-        'fetch',
-        async () =>
-            new Response(
-                new ReadableStream({
-                    start(controller) {
-                        stream = controller;
-                    },
-                }),
-            ),
-    );
-    f.widget.open();
-    await f.submit('Question');
-    stream.enqueue(new TextEncoder().encode('data: {"progress":"search"}\n\n'));
-    await setImmediate();
-    assert.equal(f.roles.status.textContent, '🔎 Finding sources…');
-    assert.match(f.roles.transcript.children.at(-1).textContent, /^🔎 Finding sources… · \d+s elapsed$/);
-    stream.enqueue(new TextEncoder().encode('data: {"response":"Finished"}\n\ndata: [DONE]\n\n'));
-    stream.close();
-    await setImmediate();
-    assert.equal(f.roles.status.textContent, 'Response complete.');
-});
-
-test('starter shortcuts appear in an empty conversation and submit only on click', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    const starters = f.roles.transcript.children.find((child) => child.classList.contains('chat-starters'));
-    assert.equal(starters.children.length, 4);
-    assert.equal(f.fetchRequests.length, 0);
-    starters.children[0].dispatchEvent(new Event('click'));
-    await setImmediate();
-    assert.equal(f.fetchRequests.length, 1);
-    assert.equal(
-        f.roles.transcript.children.some((child) => child.classList.contains('chat-starters')),
-        false,
-    );
-});
-
-test('retry is manual and reuses the original query and prior history without failed exchange', async (t) => {
-    const f = await widgetFixture(t);
-    const requests = [];
-    t.mock.method(globalThis, 'fetch', async (_url, init) => {
-        requests.push(JSON.parse(init.body));
-        if (requests.length === 1) throw new Error('Connection failed');
-        return new Response('data: {"response":"Success"}\n\ndata: [DONE]\n\n');
-    });
-    f.widget.open();
-    await f.submit('Retry question');
-    assert.equal(requests.length, 1);
-    const retry = f.roles.transcript.children.at(-1).children.find((child) => child.classList.contains('chat-retry'));
-    assert.ok(retry);
-    retry.dispatchEvent(new Event('click'));
-    await setImmediate();
-    assert.deepEqual(requests[1], requests[0]);
-    assert.equal(f.roles.transcript.children.at(-1).dataset.rawText, 'Success');
-});
-
-test('widget renders and persists response metrics outside answer text and API history', async (t) => {
-    const f = await widgetFixture(t);
-    const metrics = { totalMs: 1200, firstTokenMs: 300, estimatedLlmCostUsd: null, generationUsage: null };
-    t.mock.method(
-        globalThis,
-        'fetch',
-        async () => new Response(`data: {"response":"Answer"}\n\ndata: ${JSON.stringify({ metrics })}\n\ndata: [DONE]\n\n`),
-    );
-    f.widget.open();
-    await f.submit('Question');
-    const saved = JSON.parse(f.local.get(STORAGE_KEY));
-    assert.equal(saved.at(-1).text, 'Answer');
-    assert.deepEqual(saved.at(-1).metrics, metrics);
-    const footer = f.roles.transcript.children.at(-1).children.at(-1);
-    assert.ok(footer.classList.contains('response-metrics'));
-    assert.match(footer.children[0].textContent, /🕧1.20s/);
-    assert.match(footer.children[0].textContent, /Cost unavailable/);
-    assert.equal(footer.children[1].children[0].textContent, 'Details');
-    assert.match(footer.children[2].textContent, /AI answers may be inaccurate/);
-    assert.deepEqual(apiHistory(saved, saved[0].text).at(-1), { role: 'assistant', content: 'Answer' });
-});
-test('answer parser reports provider errors and malformed answer fields', () => {
-    for (const event of [{ error: 'Provider failed' }, { response: 42 }, null, [], 'invalid', 42]) {
-        const parser = createAnswerParser(() => {});
-        assert.throws(() => parser.push(`data: ${JSON.stringify(event)}\n`));
-    }
-});
-
-test('stream cleanup preserves request errors and always releases the reader lock', async (t) => {
-    const failure = new Error('Read failed');
-    const cleanupFailure = new Error('Cancel failed');
-    const warning = t.mock.method(console, 'warn', () => {});
-    let released = false;
-    await assert.rejects(
-        streamAnswer('Question', {
-            onUpdate() {},
-            fetcher: async () => ({
-                ok: true,
-                body: {
-                    getReader: () => ({
-                        read: async () => {
-                            throw failure;
-                        },
-                        cancel: async () => {
-                            throw cleanupFailure;
-                        },
-                        releaseLock: () => {
-                            released = true;
-                        },
-                    }),
-                },
-            }),
-        }),
-        (error) => error === failure,
-    );
-    assert.equal(released, true);
-    assert.equal(warning.mock.callCount(), 1);
-    assert.equal(warning.mock.calls[0].arguments[1], cleanupFailure);
-});
-
-test('disconnect resets launcher state and reconnect restores the session without duplicate handlers', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'true');
-    f.widget.disconnectedCallback();
-    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'false');
-    assert.equal(f.roles.window.open, false);
-    assert.equal(f.frames.size, 0);
-    f.widget.connectedCallback();
-    assert.equal(f.roles.window.open, true);
-    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'true');
-    await f.submit('Question');
-    assert.equal(f.roles.transcript.children.length, 3);
-});
-
-test('cleanup failure after a complete answer is reported and still releases the reader lock', async () => {
-    const failure = new Error('Cancel failed');
-    let released = false;
-    let read = false;
-    await assert.rejects(
-        streamAnswer('Question', {
-            onUpdate() {},
-            fetcher: async () => ({
-                ok: true,
-                body: {
-                    getReader: () => ({
-                        read: async () => {
-                            assert.equal(read, false);
-                            read = true;
-                            return { done: false, value: new TextEncoder().encode('data: {"response":"Answer"}\ndata: [DONE]\n') };
-                        },
-                        cancel: async () => {
-                            throw failure;
-                        },
-                        releaseLock: () => {
-                            released = true;
-                        },
-                    }),
-                },
-            }),
-        }),
-        (error) => error === failure,
-    );
-    assert.equal(released, true);
-});
-
-test('clear history requires confirmation and persists only the welcome message', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    await f.submit('Question');
-    assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 3);
-    f.confirm(false);
-    f.roles.clear.dispatchEvent(new Event('click'));
-    assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 3);
-    f.confirm(true);
-    f.roles.clear.dispatchEvent(new Event('click'));
-    assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 1);
-    assert.equal(f.roles.transcript.children.length, 2);
-    assert.equal(f.roles.status.textContent, 'Chat history cleared.');
-});
-
-test('empty and invalid submissions do not fetch; Enter respects shift and composition', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('Unexpected request'));
-    await f.submit(' ');
-    f.valid(false);
-    await f.submit('Invalid');
-    const submit = t.mock.method(f.roles.form, 'requestSubmit', () => {});
-    for (const extra of [{ shiftKey: true }, { isComposing: true }, { key: 'a' }, {}]) {
-        const event = Object.assign(new Event('keydown', { cancelable: true }), {
-            key: 'Enter',
-            ...extra,
-        });
-        f.roles.input.dispatchEvent(event);
-        assert.equal(event.defaultPrevented, Object.keys(extra).length === 0);
-    }
-    assert.equal(submit.mock.callCount(), 1);
-    assert.equal(fetch.mock.callCount(), 0);
-});
-
-test('empty, interrupted, and unsuccessful responses fail explicitly', async () => {
-    for (const [body, expected] of [
-        ['data: [DONE]\n', /without an answer/],
-        ['data: {"response":"Partial"}\n', /before completion/],
-    ]) {
-        await assert.rejects(
-            streamAnswer('Question', {
-                onUpdate() {},
-                fetcher: async () => new Response(body),
-            }),
-            expected,
-        );
-    }
-    await assert.rejects(
-        streamAnswer('Question', {
-            onUpdate() {},
-            fetcher: async () => new Response('Unavailable', { status: 503 }),
-        }),
-        /503/,
-    );
-});
-
-test('history validates stored messages and preserves the existing storage key', () => {
-    const values = new Map();
-    const store = createStore(
-        () => ({
-            getItem: (key) => values.get(key) ?? null,
-            setItem: (key, value) => values.set(key, value),
-            removeItem: (key) => values.delete(key),
-        }),
-        { json: true },
-    );
-    assert.deepEqual(readHistory(store, 'Welcome'), [{ sender: 'bot', text: 'Welcome' }]);
-    store.set(STORAGE_KEY, [{ sender: 'user', text: 'Question' }, { sender: 'bot', text: 'Answer' }, { sender: 'invalid', text: 'Ignored' }, null]);
-    assert.deepEqual(readHistory(store, 'Welcome'), [
-        { sender: 'user', text: 'Question' },
-        { sender: 'bot', text: 'Answer' },
-    ]);
-    store.remove(STORAGE_KEY);
-    assert.equal(values.size, 0);
-});
-
-test('API history excludes the welcome message and keeps a bounded recent window', () => {
-    const welcome = 'Welcome';
-    const messages = [
-        { sender: 'bot', text: welcome },
-        { sender: 'user', text: 'Old question' },
-        { sender: 'bot', text: 'Old answer' },
-        { sender: 'user', text: 'Recent question' },
-        { sender: 'bot', text: 'Recent answer' },
-    ];
-    assert.deepEqual(apiHistory(messages, welcome), [
-        { role: 'user', content: 'Old question' },
-        { role: 'assistant', content: 'Old answer' },
-        { role: 'user', content: 'Recent question' },
-        { role: 'assistant', content: 'Recent answer' },
-    ]);
-    assert.deepEqual(apiHistory([...messages, { sender: 'user', text: 'x'.repeat(2001) }], welcome), [
-        { role: 'user', content: 'Old question' },
-        { role: 'assistant', content: 'Old answer' },
-        { role: 'user', content: 'Recent question' },
-        { role: 'assistant', content: 'Recent answer' },
-    ]);
-});
-
-test('widget sends prior user and assistant turns with follow-up questions', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    await f.submit('What did Samson do last?');
-    await f.submit('Most recently?');
-    assert.deepEqual(f.fetchRequests, [
-        { query: 'What did Samson do last?', history: [] },
-        {
-            query: 'Most recently?',
-            history: [
-                { role: 'user', content: 'What did Samson do last?' },
-                { role: 'assistant', content: 'Answer' },
-            ],
-        },
-    ]);
-});
+import { publicEvidence } from '../../assets/js/chat/model/evidence.js';
 
 function scrollFixture() {
     const viewport = Object.assign(new EventTarget(), {
@@ -458,100 +61,8 @@ function scrollFixture() {
     };
 }
 
-test('invalid history warns and empty or invalid messages restore the welcome message', (t) => {
-    const warning = t.mock.method(console, 'warn', () => {});
-    const welcome = [{ sender: 'bot', text: 'Welcome' }];
-    for (const value of [null, {}, 'invalid']) {
-        assert.deepEqual(readHistory({ get: () => value }, 'Welcome'), welcome);
-    }
-    assert.equal(warning.mock.callCount(), 3);
-    assert.ok(warning.mock.calls.every((call) => call.arguments[0] === 'Ignoring invalid chat history.'));
-    for (const value of [[], [null, {}, { sender: 'user', text: ' ' }, { sender: 'user', text: 1 }, { sender: 'system', text: 'Invalid' }]]) {
-        assert.deepEqual(readHistory({ get: () => value }, 'Welcome'), welcome);
-    }
-});
-
-test('malformed JSON warns and returns the supplied fallback', (t) => {
-    const warning = t.mock.method(console, 'warn', () => {});
-    const fallback = [];
-    const store = createStore(() => ({ getItem: () => '{' }), { json: true });
-    assert.equal(store.get(STORAGE_KEY, fallback), fallback);
-    assert.equal(warning.mock.callCount(), 1);
-    assert.equal(warning.mock.calls[0].arguments[0], 'Chat storage could not be read.');
-    assert.ok(warning.mock.calls[0].arguments[1] instanceof SyntaxError);
-});
-
-test('missing or incomplete templates log errors and leave opening inert', async (t) => {
-    for (const [label, options] of [
-        ['incomplete', { incomplete: true }],
-        ['missing', { template: false }],
-    ]) {
-        await t.test(label, async (t) => {
-            const f = await widgetFixture(t, options);
-            f.widget.open();
-            assert.equal(f.roles.window.open, undefined);
-            assert.match(f.errors.mock.calls[0].arguments[0], new RegExp(label));
-        });
-    }
-});
-
-test('offline and HTTP failures show actionable messages and reset busy controls', async (t) => {
-    const f = await widgetFixture(t);
-    f.widget.open();
-    navigator.onLine = false;
-    await f.submit('Question');
-    assert.match(f.roles.status.textContent, /offline/);
-    navigator.onLine = true;
-    t.mock.method(globalThis, 'fetch', async () => new Response('Unavailable', { status: 503 }));
-    await f.submit('Again');
-    assert.match(f.roles.status.textContent, /could not be completed/);
-    assert.equal(f.roles.send.disabled, false);
-    assert.equal(f.roles.stop.hidden, true);
-    assert.equal(f.errors.mock.callCount(), 2);
-    assert.ok(f.errors.mock.calls.every((call) => call.arguments[0] === 'Chat request failed.'));
-});
-
-test('opening history scrolls after layout; streaming and resizing keep following', () => {
-    const fixture = scrollFixture();
-    fixture.scroller.changed(true);
-    fixture.flush();
-    assert.equal(fixture.viewport.scrollTop, 0, 'closed dialog must not scroll');
-    fixture.open();
-    fixture.scroller.changed(true);
-    fixture.flush();
-    assert.equal(fixture.viewport.scrollTop, 1000);
-    fixture.viewport.scrollHeight = 1200;
-    fixture.resize();
-    fixture.flush();
-    assert.equal(fixture.viewport.scrollTop, 1200);
-    fixture.dispose();
-});
-
-test('pending questions truncate, session restore opens and Escape restores opener focus', async (t) => {
-    const f = await widgetFixture(t, { restore: true });
-    assert.equal(f.roles.window.open, true);
-    f.widget.connectedCallback();
-    f.widget.setPendingQuestion('x'.repeat(100));
-    assert.equal(f.roles.input.value.length, 20);
-    f.flush();
-    assert.equal(f.roles.input.focused, true);
-    const escape = Object.assign(new Event('keydown', { cancelable: true }), { key: 'Escape' });
-    f.roles.window.dispatchEvent(escape);
-    assert.equal(escape.defaultPrevented, true);
-    assert.equal(f.roles.window.open, false);
-    assert.equal(f.session.has(SESSION_OPEN_KEY), false);
-    assert.equal(f.opener.focus.mock.callCount(), 1);
-    f.widget.close();
-    f.widget.setPendingQuestion('Queued');
-    f.roles.toggle.dispatchEvent(new Event('click'));
-    assert.equal(f.roles.input.value, 'Queued');
-    f.roles.window.dispatchEvent(new Event('close'));
-    assert.equal(f.roles.window.open, true);
-    f.roles.window.dispatchEvent(new Event('cancel', { cancelable: true }));
-    assert.equal(f.roles.window.open, false);
-});
-
 let index = 0;
+
 async function widgetFixture(t, { template = true, incomplete = false, restore = false, history = [] } = {}) {
     let widget;
     t.after(() => widget?.disconnectedCallback());
@@ -723,24 +234,228 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
     };
 }
 
-test('plain and JSON stores round-trip values and remove keys', () => {
-    for (const json of [false, true]) {
-        const values = new Map();
-        const store = createStore(
-            () => ({
-                getItem: (key) => values.get(key) ?? null,
-                setItem: (key, value) => values.set(key, value),
-                removeItem: (key) => values.delete(key),
-            }),
-            { json },
-        );
-        const value = json ? [{ sender: 'user', text: 'Hello' }] : 'true';
-        assert.equal(store.get('missing', 'fallback'), 'fallback');
-        store.set('key', value);
-        assert.deepEqual(store.get('key'), value);
-        store.remove('key');
-        assert.equal(values.size, 0);
+test('answer parser forwards progress, evidence and metrics apart from the answer text', () => {
+    const seen = { answers: [], metrics: [], progress: [], evidence: [] };
+    const parser = createAnswerParser(
+        (text) => seen.answers.push(text),
+        (value) => seen.metrics.push(value),
+        {
+            onProgress: (stage) => seen.progress.push(stage),
+            onEvidence: (value) => seen.evidence.push(value),
+        },
+    );
+    parser.push('data: {"progress":"search"}\ndata: {"evidence":[]}\ndata: {"response":"Answer"}\ndata: {"metrics":{"totalMs":123}}\ndata: [DONE]\n');
+    assert.deepEqual(seen, { answers: ['Answer'], metrics: [{ totalMs: 123 }], progress: ['search'], evidence: [[]] });
+});
+
+test('answer parser handles split CRLF events, usage, and completion', () => {
+    const deltas = [];
+    const parser = createAnswerParser((delta) => deltas.push(delta));
+    parser.push('data:{"response":"Hel');
+    parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n');
+    parser.push('data: {"response":"!"}\ndata: [DONE]\ndata: {"response":"ignored"}\n');
+    parser.flush();
+    assert.deepEqual(deltas, ['Hello', '!']);
+    assert.equal(parser.finished, true);
+});
+
+test('answer parser rejects provider errors and malformed events', () => {
+    const malformed = [
+        { error: 'Provider failed' },
+        { response: 42 },
+        { progress: 'invented' },
+        { evidence: null },
+        { metrics: [] },
+        null,
+        [],
+        'invalid',
+    ];
+    for (const event of malformed) {
+        assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify(event)}\n`));
     }
+});
+
+test('API history excludes the welcome message and keeps a bounded recent window', () => {
+    const welcome = 'Welcome';
+    const messages = [
+        { sender: 'bot', text: welcome },
+        { sender: 'user', text: 'Old question' },
+        { sender: 'bot', text: 'Old answer' },
+        { sender: 'user', text: 'Recent question' },
+        { sender: 'bot', text: 'Recent answer' },
+    ];
+    assert.deepEqual(apiHistory(messages, welcome), [
+        { role: 'user', content: 'Old question' },
+        { role: 'assistant', content: 'Old answer' },
+        { role: 'user', content: 'Recent question' },
+        { role: 'assistant', content: 'Recent answer' },
+    ]);
+    assert.deepEqual(apiHistory([...messages, { sender: 'user', text: 'x'.repeat(2001) }], welcome), [
+        { role: 'user', content: 'Old question' },
+        { role: 'assistant', content: 'Old answer' },
+        { role: 'user', content: 'Recent question' },
+        { role: 'assistant', content: 'Recent answer' },
+    ]);
+});
+
+test('clear history requires confirmation and persists only the welcome message', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    await f.submit('Question');
+    assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 3);
+    f.confirm(false);
+    f.roles.clear.dispatchEvent(new Event('click'));
+    assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 3);
+    f.confirm(true);
+    f.roles.clear.dispatchEvent(new Event('click'));
+    assert.equal(JSON.parse(f.local.get(STORAGE_KEY)).length, 1);
+    assert.equal(f.roles.transcript.children.length, 2);
+    assert.equal(f.roles.status.textContent, 'Chat history cleared.');
+});
+
+test('disconnect resets launcher state and reconnect restores the session without duplicate handlers', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'true');
+    f.widget.disconnectedCallback();
+    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'false');
+    assert.equal(f.roles.window.open, false);
+    assert.equal(f.frames.size, 0);
+    f.widget.connectedCallback();
+    assert.equal(f.roles.window.open, true);
+    assert.equal(f.roles.toggle.attributes.get('aria-expanded'), 'true');
+    await f.submit('Question');
+    assert.equal(f.roles.transcript.children.length, 3);
+});
+
+test('empty and invalid submissions do not fetch; Enter respects shift and composition', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    const fetch = t.mock.method(globalThis, 'fetch', async () => assert.fail('Unexpected request'));
+    await f.submit(' ');
+    f.valid(false);
+    await f.submit('Invalid');
+    const submit = t.mock.method(f.roles.form, 'requestSubmit', () => {});
+    for (const extra of [{ shiftKey: true }, { isComposing: true }, { key: 'a' }, {}]) {
+        const event = Object.assign(new Event('keydown', { cancelable: true }), {
+            key: 'Enter',
+            ...extra,
+        });
+        f.roles.input.dispatchEvent(event);
+        assert.equal(event.defaultPrevented, Object.keys(extra).length === 0);
+    }
+    assert.equal(submit.mock.callCount(), 1);
+    assert.equal(fetch.mock.callCount(), 0);
+});
+
+test('empty, interrupted, and unsuccessful responses fail explicitly', async () => {
+    for (const [body, expected] of [
+        ['data: [DONE]\n', /without an answer/],
+        ['data: {"response":"Partial"}\n', /before completion/],
+    ]) {
+        await assert.rejects(
+            streamAnswer('Question', {
+                onUpdate() {},
+                fetcher: async () => new Response(body),
+            }),
+            expected,
+        );
+    }
+    await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            fetcher: async () => new Response('Unavailable', { status: 503 }),
+        }),
+        /503/,
+    );
+});
+
+test('history storage round-trips values and discards invalid stored messages', (t) => {
+    const warning = t.mock.method(console, 'warn', () => {});
+    const values = new Map();
+    const storage = {
+        getItem: (key) => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value),
+        removeItem: (key) => values.delete(key),
+    };
+    const store = createStore(() => storage, { json: true });
+    const welcome = [{ sender: 'bot', text: 'Welcome' }];
+    assert.deepEqual(readHistory(store, 'Welcome'), welcome);
+    store.set(STORAGE_KEY, [{ sender: 'user', text: 'Question' }, { sender: 'bot', text: 'Answer' }, { sender: 'system', text: 'Ignored' }, null]);
+    assert.deepEqual(readHistory(store, 'Welcome'), [
+        { sender: 'user', text: 'Question' },
+        { sender: 'bot', text: 'Answer' },
+    ]);
+    store.remove(STORAGE_KEY);
+    assert.equal(values.size, 0);
+    for (const invalid of [null, {}, 'invalid']) assert.deepEqual(readHistory({ get: () => invalid }, 'Welcome'), welcome);
+    assert.equal(warning.mock.callCount(), 3);
+});
+
+test('missing or incomplete templates log errors and leave opening inert', async (t) => {
+    for (const [label, options] of [
+        ['incomplete', { incomplete: true }],
+        ['missing', { template: false }],
+    ]) {
+        await t.test(label, async (t) => {
+            const f = await widgetFixture(t, options);
+            f.widget.open();
+            assert.equal(f.roles.window.open, undefined);
+            assert.match(f.errors.mock.calls[0].arguments[0], new RegExp(label));
+        });
+    }
+});
+
+test('offline and HTTP failures show actionable messages and reset busy controls', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    navigator.onLine = false;
+    await f.submit('Question');
+    assert.match(f.roles.status.textContent, /offline/);
+    navigator.onLine = true;
+    t.mock.method(globalThis, 'fetch', async () => new Response('Unavailable', { status: 503 }));
+    await f.submit('Again');
+    assert.match(f.roles.status.textContent, /could not be completed/);
+    assert.equal(f.roles.send.disabled, false);
+    assert.equal(f.roles.stop.hidden, true);
+    assert.equal(f.errors.mock.callCount(), 2);
+    assert.ok(f.errors.mock.calls.every((call) => call.arguments[0] === 'Chat request failed.'));
+});
+
+test('pending questions truncate, session restore opens and Escape restores opener focus', async (t) => {
+    const f = await widgetFixture(t, { restore: true });
+    assert.equal(f.roles.window.open, true);
+    f.widget.connectedCallback();
+    f.widget.setPendingQuestion('x'.repeat(100));
+    assert.equal(f.roles.input.value.length, 20);
+    f.flush();
+    assert.equal(f.roles.input.focused, true);
+    const escape = Object.assign(new Event('keydown', { cancelable: true }), { key: 'Escape' });
+    f.roles.window.dispatchEvent(escape);
+    assert.equal(escape.defaultPrevented, true);
+    assert.equal(f.roles.window.open, false);
+    assert.equal(f.session.has(SESSION_OPEN_KEY), false);
+    assert.equal(f.opener.focus.mock.callCount(), 1);
+    f.widget.close();
+    f.widget.setPendingQuestion('Queued');
+    f.roles.toggle.dispatchEvent(new Event('click'));
+    assert.equal(f.roles.input.value, 'Queued');
+    f.roles.window.dispatchEvent(new Event('close'));
+    assert.equal(f.roles.window.open, true);
+    f.roles.window.dispatchEvent(new Event('cancel', { cancelable: true }));
+    assert.equal(f.roles.window.open, false);
+});
+
+test('public evidence excludes internal and unsafe links and strips internal metadata', () => {
+    const evidence = publicEvidence([
+        { url: '/resume/', title: 'Resume', text: 'Facts', source: 'content/resume/_index.md' },
+        { text: 'Internal' },
+        { url: '/_context/profile', text: 'Internal' },
+        { url: '//outside.test', text: 'External' },
+        { url: '/\\outside.test', text: 'External' },
+        { url: 'javascript:alert(1)', text: 'Invalid' },
+    ]);
+    assert.deepEqual(evidence, [{ url: '/resume/', title: 'Resume', section: '', text: 'Facts' }]);
 });
 
 test('reading older messages pauses follow; latest button or sending resumes it', () => {
@@ -766,6 +481,40 @@ test('reading older messages pauses follow; latest button or sending resumes it'
     fixture.flush();
     assert.equal(fixture.viewport.scrollTop, 1400);
     fixture.dispose();
+});
+
+test('retry is manual and reuses the original query and prior history without failed exchange', async (t) => {
+    const f = await widgetFixture(t);
+    const requests = [];
+    t.mock.method(globalThis, 'fetch', async (_url, init) => {
+        requests.push(JSON.parse(init.body));
+        if (requests.length === 1) throw new Error('Connection failed');
+        return new Response('data: {"response":"Success"}\n\ndata: [DONE]\n\n');
+    });
+    f.widget.open();
+    await f.submit('Retry question');
+    assert.equal(requests.length, 1);
+    const retry = f.roles.transcript.children.at(-1).children.find((child) => child.classList.contains('chat-retry'));
+    assert.ok(retry);
+    retry.dispatchEvent(new Event('click'));
+    await setImmediate();
+    assert.deepEqual(requests[1], requests[0]);
+    assert.equal(f.roles.transcript.children.at(-1).dataset.rawText, 'Success');
+});
+
+test('starter shortcuts appear in an empty conversation and submit only on click', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    const starters = f.roles.transcript.children.find((child) => child.classList.contains('chat-starters'));
+    assert.equal(starters.children.length, 4);
+    assert.equal(f.fetchRequests.length, 0);
+    starters.children[0].dispatchEvent(new Event('click'));
+    await setImmediate();
+    assert.equal(f.fetchRequests.length, 1);
+    assert.equal(
+        f.roles.transcript.children.some((child) => child.classList.contains('chat-starters')),
+        false,
+    );
 });
 
 test('stop aborts streaming, preserves partial output and prevents late completion', async (t) => {
@@ -804,43 +553,55 @@ test('stop aborts streaming, preserves partial output and prevents late completi
     assert.throws(() => controller.close());
 });
 
-test('storage access and operation failures warn explicitly without breaking the widget', (t) => {
+test('storage failures and malformed JSON warn and fall back instead of breaking the widget', (t) => {
     const warning = t.mock.method(console, 'warn', () => {});
     const failure = new Error('Storage blocked');
-    for (const storage of [
-        () => {
-            throw failure;
-        },
-        () => ({
-            getItem() {
-                throw failure;
-            },
-            setItem() {
-                throw failure;
-            },
-            removeItem() {
-                throw failure;
-            },
-        }),
-    ]) {
+    const blocked = () => {
+        throw failure;
+    };
+    for (const storage of [blocked, () => ({ getItem: blocked, setItem: blocked, removeItem: blocked })]) {
         const store = createStore(storage);
         assert.equal(store.get('key', 'fallback'), 'fallback');
         store.set('key', 'value');
         store.remove('key');
     }
     assert.equal(warning.mock.callCount(), 6);
-    assert.deepEqual(
-        warning.mock.calls.map((call) => call.arguments[0]),
-        [
-            'Chat storage could not be read.',
-            'Chat history could not be saved on this device.',
-            'Chat storage could not be cleared.',
-            'Chat storage could not be read.',
-            'Chat history could not be saved on this device.',
-            'Chat storage could not be cleared.',
-        ],
-    );
     assert.ok(warning.mock.calls.every((call) => call.arguments[1] === failure));
+    const fallback = [];
+    assert.equal(createStore(() => ({ getItem: () => '{' }), { json: true }).get(STORAGE_KEY, fallback), fallback);
+    assert.ok(warning.mock.calls.at(-1).arguments[1] instanceof SyntaxError);
+});
+
+test('stream cleanup preserves request errors and always releases the reader lock', async (t) => {
+    const failure = new Error('Read failed');
+    const cleanupFailure = new Error('Cancel failed');
+    const warning = t.mock.method(console, 'warn', () => {});
+    let released = false;
+    await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            fetcher: async () => ({
+                ok: true,
+                body: {
+                    getReader: () => ({
+                        read: async () => {
+                            throw failure;
+                        },
+                        cancel: async () => {
+                            throw cleanupFailure;
+                        },
+                        releaseLock: () => {
+                            released = true;
+                        },
+                    }),
+                },
+            }),
+        }),
+        (error) => error === failure,
+    );
+    assert.equal(released, true);
+    assert.equal(warning.mock.callCount(), 1);
+    assert.equal(warning.mock.calls[0].arguments[1], cleanupFailure);
 });
 
 test('stream reader decodes fragmented UTF-8 and posts the query and history API contract', async () => {
@@ -905,4 +666,97 @@ test('widget defers history reads and transcript rendering until first open', as
     await setImmediate();
     assert.equal(f.warnings.mock.callCount(), 1);
     assert.match(f.warnings.mock.calls[0].arguments[0], /displaying plain text/);
+});
+
+test('widget displays actual server progress before answer tokens arrive', async (t) => {
+    const f = await widgetFixture(t);
+    let stream;
+    t.mock.method(
+        globalThis,
+        'fetch',
+        async () =>
+            new Response(
+                new ReadableStream({
+                    start(controller) {
+                        stream = controller;
+                    },
+                }),
+            ),
+    );
+    f.widget.open();
+    await f.submit('Question');
+    stream.enqueue(new TextEncoder().encode('data: {"progress":"search"}\n\n'));
+    await setImmediate();
+    assert.equal(f.roles.status.textContent, '🔎 Finding sources…');
+    assert.match(f.roles.transcript.children.at(-1).textContent, /^🔎 Finding sources… · \d+s elapsed$/);
+    stream.enqueue(new TextEncoder().encode('data: {"response":"Finished"}\n\ndata: [DONE]\n\n'));
+    stream.close();
+    await setImmediate();
+    assert.equal(f.roles.status.textContent, 'Response complete.');
+});
+
+test('widget exposes public evidence without a copy button and keeps evidence out of API history', async (t) => {
+    const f = await widgetFixture(t);
+    t.mock.method(
+        globalThis,
+        'fetch',
+        async () =>
+            new Response(
+                'data: {"progress":"search"}\n\n' +
+                    'data: {"evidence":[{"url":"/resume/","title":"Resume","section":"Experience","text":"Source facts"}]}\n\n' +
+                    'data: {"response":"Answer only"}\n\ndata: [DONE]\n\n',
+            ),
+    );
+    f.widget.open();
+    await f.submit('Question');
+    const message = f.roles.transcript.children.at(-1);
+    const evidence = message.children.find((child) => child.classList.contains('response-evidence'));
+    assert.ok(evidence);
+    assert.equal(evidence.children[0].textContent, 'Retrieved sources (1)');
+    assert.equal(
+        message.children.some((child) => child.classList.contains('copy-answer')),
+        false,
+    );
+    const history = JSON.parse(f.local.get(STORAGE_KEY));
+    assert.equal(history.at(-1).evidence[0].url, '/resume/');
+    assert.deepEqual(apiHistory(history, history[0].text).at(-1), { role: 'assistant', content: 'Answer only' });
+});
+
+test('widget renders and persists response metrics outside answer text and API history', async (t) => {
+    const f = await widgetFixture(t);
+    const metrics = { totalMs: 1200, firstTokenMs: 300, estimatedLlmCostUsd: null, generationUsage: null };
+    t.mock.method(
+        globalThis,
+        'fetch',
+        async () => new Response(`data: {"response":"Answer"}\n\ndata: ${JSON.stringify({ metrics })}\n\ndata: [DONE]\n\n`),
+    );
+    f.widget.open();
+    await f.submit('Question');
+    const saved = JSON.parse(f.local.get(STORAGE_KEY));
+    assert.equal(saved.at(-1).text, 'Answer');
+    assert.deepEqual(saved.at(-1).metrics, metrics);
+    const footer = f.roles.transcript.children.at(-1).children.at(-1);
+    assert.ok(footer.classList.contains('response-metrics'));
+    assert.match(footer.children[0].textContent, /🕧1.20s/);
+    assert.match(footer.children[0].textContent, /Cost unavailable/);
+    assert.equal(footer.children[1].children[0].textContent, 'Details');
+    assert.match(footer.children[2].textContent, /AI answers may be inaccurate/);
+    assert.deepEqual(apiHistory(saved, saved[0].text).at(-1), { role: 'assistant', content: 'Answer' });
+});
+
+test('widget sends prior user and assistant turns with follow-up questions', async (t) => {
+    const f = await widgetFixture(t);
+    f.widget.open();
+    await f.submit('What did Samson do last?');
+    await f.submit('Most recently?');
+    assert.deepEqual(f.fetchRequests, [
+        { query: 'What did Samson do last?', history: [] },
+        {
+            query: 'Most recently?',
+            history: [
+                { role: 'user', content: 'What did Samson do last?' },
+                { role: 'assistant', content: 'Answer' },
+            ],
+        },
+    ]);
 });

@@ -3,15 +3,13 @@
  * Provides reusable mock objects for AI bindings, KV stores, vectorize indexes, etc.
  */
 
-import { TIMESTAMPS } from './data.mjs';
-
 /**
  * Create a mock Cloudflare AI binding
  * @param {Object} options
  * @param {Function} options.aiRun - Mock AI.run implementation
  * @returns {Object} Mock AI binding
  */
-export function makeAiBinding({ aiRun } = {}) {
+function makeAiBinding({ aiRun } = {}) {
     return {
         AI: {
             run:
@@ -28,7 +26,7 @@ export function makeAiBinding({ aiRun } = {}) {
  * @param {Function} queryFn - Mock query implementation
  * @returns {Object} Mock Vectorize index
  */
-export function makeVectorizeIndex(queryFn) {
+function makeVectorizeIndex(queryFn) {
     if (!queryFn) return undefined;
     return {
         query: queryFn,
@@ -144,11 +142,12 @@ export function drainStream(stream) {
     return new Response(stream).text();
 }
 
-/**
- * Create a fixed timestamp provider for testing
- * @param {string} timestamp - ISO timestamp to return
- * @returns {Function} Function that returns the fixed timestamp
- */
-export function makeTimestamp(timestamp = TIMESTAMPS.FIXED_TS) {
-    return () => timestamp;
+/** In-memory retrieval store honouring the get/put contract of functions/_lib/retrieval-cache.js. */
+export function makeRetrievalStore() {
+    const entries = new Map();
+    const key = (namespace, query) => `${namespace}\0${query}`;
+    return {
+        get: async (namespace, query) => structuredClone(entries.get(key(namespace, query)) ?? null),
+        put: async (namespace, query, payload) => void entries.set(key(namespace, query), structuredClone(payload)),
+    };
 }

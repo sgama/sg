@@ -1,9 +1,10 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { buildCorpus } from './lib/corpus.mjs';
+import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { createMaintenanceClient, ingestCorpus } from './lib/corpus-deployment.mjs';
+import { runIfMain } from './lib/cli.mjs';
 
 export async function main(args = process.argv.slice(2)) {
     const { values } = parseArgs({
@@ -44,8 +45,7 @@ export async function main(args = process.argv.slice(2)) {
         throw new Error(`Explicit --namespace must match computed namespace: ${corpus.namespace}`);
     }
     await import('dotenv/config');
-    const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
-    if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
+    const { accountId, apiToken } = requireCloudflareCredentials();
     const result = await ingestCorpus(createMaintenanceClient(apiToken), accountId, corpus, {
         namespace: values.namespace,
     });
@@ -53,9 +53,4 @@ export async function main(args = process.argv.slice(2)) {
     return result;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    main().catch((error) => {
-        console.error(`Embedding pipeline failed: ${error.message}`);
-        process.exitCode = 1;
-    });
-}
+runIfMain(import.meta.url, main, 'Embedding pipeline failed');

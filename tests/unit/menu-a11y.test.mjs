@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { runInNewContext } from 'node:vm';
 import { test } from 'node:test';
-
-const source = await readFile(new URL('../../assets/js/menu-a11y.js', import.meta.url), 'utf8');
+import { createFeatureHost } from '../../assets/js/core/feature-host.js';
+import { menuButtons } from '../../assets/js/menu/buttons.js';
+import { mobileMenuDismissal } from '../../assets/js/menu/mobile-dismissal.js';
 
 function fixture({ loading = false, missing = false } = {}) {
     const documentEvents = new Map();
@@ -39,28 +38,14 @@ function fixture({ loading = false, missing = false } = {}) {
         querySelectorAll: (selector) => (selector === 'button[data-menu-toggle]' ? buttons : []),
         getElementById: (id) => (missing ? undefined : { [toggle.id]: toggle, [submenu.id]: submenu, 'mobile-menu-dialog': dialog }[id]),
     };
-    runInNewContext(source, { document, Event, console: { error: (...args) => errors.push(args) } });
+    createFeatureHost({
+        features: [menuButtons, mobileMenuDismissal],
+        document,
+        window: { Event },
+        log: { error: (...args) => errors.push(args) },
+    }).start();
     return { open, close, nested, toggle, submenu, documentEvents, errors };
 }
-
-test('native button clicks synchronize checkbox state and all expanded attributes', () => {
-    const { open, close, nested, toggle, submenu, documentEvents } = fixture();
-    assert.equal(open.attributes.get('aria-expanded'), 'false');
-    assert.equal(nested.attributes.get('aria-expanded'), 'true');
-    open.listeners.get('click')();
-    documentEvents.get('click')({ target: open });
-    assert.equal(toggle.checked, true);
-    assert.equal(open.attributes.get('aria-expanded'), 'true');
-    assert.equal(close.attributes.get('aria-expanded'), 'true');
-    nested.listeners.get('click')();
-    assert.equal(submenu.checked, false);
-    assert.equal(nested.attributes.get('aria-expanded'), 'false');
-    close.listeners.get('click')();
-    assert.equal(toggle.checked, false);
-    assert.equal(open.attributes.get('aria-expanded'), 'false');
-    assert.equal(close.attributes.get('aria-expanded'), 'false');
-    assert.equal(open.listeners.has('keydown'), false, 'Native buttons must not emulate Enter/Space and double-toggle');
-});
 
 test('Escape restores opener focus and outside clicks dismiss the menu', () => {
     const { open, close, toggle, documentEvents } = fixture();
@@ -84,4 +69,23 @@ test('initializes after DOM readiness and reports missing toggle wiring', () => 
     const missing = fixture({ missing: true });
     assert.equal(missing.errors.length, 3);
     assert.equal(missing.errors[0][0], 'Menu toggle checkbox missing:');
+});
+
+test('native button clicks synchronize checkbox state and all expanded attributes', () => {
+    const { open, close, nested, toggle, submenu, documentEvents } = fixture();
+    assert.equal(open.attributes.get('aria-expanded'), 'false');
+    assert.equal(nested.attributes.get('aria-expanded'), 'true');
+    open.listeners.get('click')();
+    documentEvents.get('click')({ target: open });
+    assert.equal(toggle.checked, true);
+    assert.equal(open.attributes.get('aria-expanded'), 'true');
+    assert.equal(close.attributes.get('aria-expanded'), 'true');
+    nested.listeners.get('click')();
+    assert.equal(submenu.checked, false);
+    assert.equal(nested.attributes.get('aria-expanded'), 'false');
+    close.listeners.get('click')();
+    assert.equal(toggle.checked, false);
+    assert.equal(open.attributes.get('aria-expanded'), 'false');
+    assert.equal(close.attributes.get('aria-expanded'), 'false');
+    assert.equal(open.listeners.has('keydown'), false, 'Native buttons must not emulate Enter/Space and double-toggle');
 });

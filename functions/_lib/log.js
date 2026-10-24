@@ -35,46 +35,67 @@ export class LogService {
             }
         };
 
-        const loggingTransform = new TransformStream({
-            transform(chunk, controller) {
-                controller.enqueue(chunk);
+        const observe = (value) => {
+            const decoded = decoder.decode(value, { stream: true });
+            messageBuffer += decoded;
 
-                const decoded = decoder.decode(chunk, { stream: true });
-                messageBuffer += decoded;
+            const lines = messageBuffer.split('\n');
+            messageBuffer = lines.pop() || '';
 
-                const lines = messageBuffer.split('\n');
-                messageBuffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6).trim();
-                        if (data === '[DONE]') continue;
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.response) accumulatedResponse += parsed.response;
-                            if (parsed.usage) usageData = parsed.usage;
-                            if (parsed.error) {
-                                streamError = parsed.error;
-                                // Persist on error so an aborted stream still records the partial answer.
-                                if (!persisted) {
-                                    persisted = true;
-                                    persist();
-                                }
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6).trim();
+                    if (data === '[DONE]') continue;
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.response) accumulatedResponse += parsed.response;
+                        if (parsed.usage) usageData = parsed.usage;
+                        if (parsed.error) {
+                            streamError = parsed.error;
+                            // Persist on error so an aborted stream still records the partial answer.
+                            if (!persisted) {
+                                persisted = true;
+                                persist();
                             }
-                        } catch (_error) {
-                            /* partial JSON */
                         }
+                    } catch (_error) {
+                        /* partial JSON */
                     }
                 }
+            }
+        };
+
+        // Persist once: on normal end, on an error event, or when the client disconnects. A
+        // TransformStream would miss the disconnect case, so the stream is built by hand.
+        const finalise = () => {
+            if (persisted) return;
+            persisted = true;
+            return persist();
+        };
+        const reader = responseStream.getReader();
+        return new ReadableStream({
+            async pull(controller) {
+                let result;
+                try {
+                    result = await reader.read();
+                } catch (error) {
+                    finalise();
+                    controller.error(error);
+                    return;
+                }
+                if (result.done) {
+                    finalise();
+                    controller.close();
+                    return;
+                }
+                observe(result.value);
+                controller.enqueue(result.value);
             },
-            flush() {
-                if (persisted) return; // already persisted on an error event
-                persisted = true;
-                return persist();
+            cancel(reason) {
+                finalise();
+                return reader.cancel(reason);
             },
         });
-
-        return responseStream.pipeThrough(loggingTransform);
     }
 
     static async fetchLogs(env, limit, cursor) {
@@ -112,10 +133,11 @@ export class LogService {
                 }),
         );
 
+        const data = logs.filter(Boolean);
         return {
-            data: logs.filter(Boolean),
+            data,
             meta: {
-                count: logs.filter(Boolean).length,
+                count: data.length,
                 limit,
                 cursor: listResult.cursor,
                 has_more: !listResult.list_complete,

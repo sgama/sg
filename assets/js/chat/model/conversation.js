@@ -18,7 +18,7 @@ export const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information fro
  *   answer          { request }      streamed answer text advanced
  *   status          { text }         a user-facing status line changed
  */
-export function createChatController({
+export function createConversation({
     storage,
     streamAnswer = fetchAnswer,
     isOnline = () => globalThis.navigator?.onLine !== false,

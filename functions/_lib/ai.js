@@ -1,16 +1,8 @@
-import {
-    AI_CONFIG,
-    AppError,
-    CONFIG,
-    contextualizationInput,
-    contextualizedQueryFromResponse,
-    getModel,
-    generationInput,
-    estimateCost,
-} from './application.js';
+import { AI_CONFIG, AppError, CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel, generationInput } from './application.js';
 import { buildMessages } from './prompts.js';
 import { retrieveEvidence } from './retrieval-pipeline.js';
 import { normalizeChatStream } from './chat-stream.js';
+import { createResponseMetrics } from './response-metrics.js';
 
 export class AiService {
     constructor(env, { retrievalStore = null } = {}) {
@@ -19,12 +11,7 @@ export class AiService {
         this.namespace = env.AI_CORPUS_NAMESPACE;
         this.model = getModel(env.AI_MODEL);
         this.contextualizationModel = getModel(AI_CONFIG.contextualization.model);
-        this.started = performance.now();
-        this.timings = { rewriteMs: 0, embeddingMs: 0, retrievalMs: 0 };
-        this.rewriteUsed = false;
-        this.rewriteUsage = null;
-        this.generationUsage = null;
-        this.firstTokenMs = null;
+        this.metrics = createResponseMetrics({ model: this.model, rewriteModel: this.contextualizationModel });
         // Optional store (see retrieval-cache.js); null disables retrieval caching.
         this.retrievalStore = retrievalStore;
     }
@@ -45,12 +32,10 @@ export class AiService {
 
     async contextualizeQuery(query, history = []) {
         if (!history.length) return query;
-        this.rewriteUsed = true;
-        const start = performance.now();
+        const begun = this.metrics.startRewrite();
         try {
             const response = await this.ai.run(this.contextualizationModel.id, contextualizationInput(this.contextualizationModel, query, history));
-            this.timings.rewriteMs = performance.now() - start;
-            this.rewriteUsage = response?.usage ?? null;
+            this.metrics.rewrite({ begun, usage: response?.usage });
             return contextualizedQueryFromResponse(response);
         } catch (err) {
             console.error('Query Contextualization Failed:', err);
@@ -74,19 +59,11 @@ export class AiService {
         // Deterministic for a given corpus namespace and query, so repeat questions skip paid calls.
         const cached = this.retrievalStore ? await this.retrievalStore.get(this.namespace, retrievalQuery) : null;
         if (cached) {
-            this.timings.retrievalMs = 0;
+            this.metrics.resetTiming('retrievalMs');
             await onProgress('search');
             return { contextText: cached.contextText, evidence: cached.evidence.map((item) => ({ ...item })) };
         }
 
-        const timed = async (key, work) => {
-            const started = performance.now();
-            try {
-                return await work();
-            } finally {
-                this.timings[key] += performance.now() - started;
-            }
-        };
         let result;
         try {
             result = await retrieveEvidence({
@@ -94,11 +71,11 @@ export class AiService {
                 namespace: this.namespace,
                 embed: async (text) => {
                     await onProgress('embedding');
-                    return timed('embeddingMs', () => this.getEmbeddings(text));
+                    return this.metrics.time('embeddingMs', () => this.getEmbeddings(text));
                 },
                 search: async (vector) => {
                     await onProgress('search');
-                    return timed('retrievalMs', async () => {
+                    return this.metrics.time('retrievalMs', async () => {
                         const results = await this.vectorize.query(vector, {
                             topK: AI_CONFIG.retrieval.topK,
                             returnMetadata: 'all',
@@ -107,7 +84,7 @@ export class AiService {
                         return results.matches;
                     });
                 },
-                fetchSections: (ids) => timed('retrievalMs', () => this.vectorize.getByIds(ids)),
+                fetchSections: (ids) => this.metrics.time('retrievalMs', () => this.vectorize.getByIds(ids)),
             });
         } catch (err) {
             if (err instanceof AppError) throw err;
@@ -125,21 +102,8 @@ export class AiService {
         return { contextText: result.contextText, evidence: result.evidence };
     }
 
-    responseMetrics({ abstained = false } = {}) {
-        const generationCost = abstained ? 0 : estimateCost(this.generationUsage, this.model);
-        const rewriteCost = this.rewriteUsed ? estimateCost(this.rewriteUsage, this.contextualizationModel) : 0;
-        return {
-            ...Object.fromEntries(Object.entries(this.timings).map(([key, value]) => [key, Math.round(value)])),
-            totalMs: Math.round(performance.now() - this.started),
-            firstTokenMs: this.firstTokenMs === null ? null : Math.round(this.firstTokenMs),
-            generationModel: abstained ? null : this.model.id,
-            generationUsage: this.generationUsage,
-            rewriteUsage: this.rewriteUsage,
-            rewriteUsed: this.rewriteUsed,
-            estimatedLlmCostUsd: generationCost === null || rewriteCost === null ? null : generationCost + rewriteCost,
-            pricingDate: AI_CONFIG.pricingDate,
-            abstained,
-        };
+    responseMetrics(options) {
+        return this.metrics.snapshot(options);
     }
 
     async generateStream(query, contextText, history = []) {
@@ -147,12 +111,8 @@ export class AiService {
         try {
             const stream = await this.ai.run(this.model.id, generationInput(this.model, messages));
             return normalizeChatStream(stream, {
-                onFirstToken: () => {
-                    this.firstTokenMs = performance.now() - this.started;
-                },
-                onUsage: (usage) => {
-                    this.generationUsage = usage;
-                },
+                onFirstToken: () => this.metrics.firstToken(),
+                onUsage: (usage) => this.metrics.generationUsed(usage),
                 metrics: () => this.responseMetrics(),
             });
         } catch (err) {

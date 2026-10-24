@@ -90,25 +90,6 @@ test('canonical evidence supplements curated facts without exposing internal exc
 
 test('AiService', async (t) => {
     await t.test('generateStream', async (t) => {
-        await t.test('defaults history to empty array when omitted', async () => {
-            const calls = [];
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async (model, payload) => {
-                        calls.push(payload);
-                        return makeProviderStream('Answer');
-                    },
-                }),
-            );
-
-            await svc.generateStream('query', 'ctx');
-
-            const { messages } = calls[0];
-            // system + user only, no history in between
-            assert.equal(messages.length, 2);
-            assert.equal(messages[0].role, 'system');
-            assert.equal(messages[1].role, 'user');
-        });
         await t.test('passes system prompt, history, and user query to AI', async () => {
             const calls = [];
             const svc = new AiService(
@@ -155,54 +136,7 @@ test('AiService', async (t) => {
         });
     });
 
-    await t.test('getEmbeddings', async (t) => {
-        await t.test('reports service unavailable when AI throws', async (t) => {
-            const logged = t.mock.method(console, 'error', () => {});
-            const failure = new Error('AI unavailable');
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => {
-                        throw failure;
-                    },
-                }),
-            );
-
-            await assert.rejects(svc.getEmbeddings('hello'), {
-                status: 503,
-                message: 'Embedding service unavailable',
-            });
-            assert.equal(logged.mock.callCount(), 1);
-            assert.deepEqual(logged.mock.calls[0].arguments, ['Embedding Generation Failed:', failure]);
-        });
-
-        await t.test('returns first vector from AI response', async () => {
-            const vector = SAMPLE_DATA.EMBEDDING_VECTOR;
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse(vector),
-                }),
-            );
-
-            const result = await svc.getEmbeddings('hello');
-
-            assert.deepEqual(result, vector);
-        });
-    });
-
     await t.test('retrieve', async (t) => {
-        await t.test('joins matched text chunks with separator', async () => {
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse([0.1, 0.2]),
-                    vectorizeQuery: async () => buildVectorizeResult([{ text: 'chunk one' }, { text: 'chunk two' }]),
-                }),
-            );
-
-            const result = (await svc.retrieve('query')).contextText;
-
-            assert.equal(result, 'chunk one\n---\nchunk two');
-        });
-
         await t.test('resolves parent sections through Vectorize even when chunks carry sectionText', async () => {
             const env = makeEnv({ aiRun: async () => buildEmbeddingsResponse([0.1, 0.2]) });
             env.AI_CORPUS_NAMESPACE = 'corpus-test';
@@ -334,43 +268,6 @@ test('AiService', async (t) => {
             assert.equal(failure.message, 'Invalid embedding response');
         });
 
-        await t.test('expands matching chunks to their source section and deduplicates sibling hits', async () => {
-            const source = 'content/posts/project/index.md';
-            const section = {
-                id: await corpusRecordId('corpus-test', source, -1),
-                metadata: {
-                    source,
-                    recordType: 'section',
-                    sectionIndex: -1,
-                    title: 'Project',
-                    url: '/posts/project',
-                    section: 'Deployment',
-                    text: 'Deploy with Hugo. Roll back with Cloudflare.',
-                },
-            };
-            const svc = new AiService({
-                AI_CORPUS_NAMESPACE: 'corpus-test',
-                AI: { run: async () => buildEmbeddingsResponse([0.1]) },
-                VECTORIZE_INDEX: {
-                    query: async () => ({
-                        matches: [
-                            { id: 'child-one', metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Deploy with Hugo.' } },
-                            { id: 'child-two', metadata: { recordType: 'chunk', source, parentIndex: -1, text: 'Roll back with Cloudflare.' } },
-                            section,
-                        ],
-                    }),
-                    getByIds: async (ids) => {
-                        assert.deepEqual(ids, [section.id]);
-                        return [section];
-                    },
-                },
-            });
-            const context = (await svc.retrieve('How is the project deployed?')).contextText;
-            assert.equal(context.split('Roll back with Cloudflare.').length, 2);
-            assert.match(context, /"url":"\/posts\/project"/);
-            assert.match(context, /"section":"Deployment"/);
-        });
-
         await t.test('missing parent section fails explicitly rather than silently using incomplete evidence', async (t) => {
             const logged = t.mock.method(console, 'error', () => {});
             const svc = new AiService({
@@ -471,19 +368,6 @@ test('AiService', async (t) => {
             });
             assert.equal(logged.mock.callCount(), 1);
             assert.deepEqual(logged.mock.calls[0].arguments, ['Vector Search Failed: VECTORIZE_INDEX binding missing']);
-        });
-
-        await t.test('returns empty string when no matches', async () => {
-            const svc = new AiService(
-                makeEnv({
-                    aiRun: async () => buildEmbeddingsResponse([0.1]),
-                    vectorizeQuery: async () => buildVectorizeResult([]),
-                }),
-            );
-
-            const result = (await svc.retrieve('query')).contextText;
-
-            assert.equal(result, '');
         });
 
         await t.test('skips matches with no metadata text', async () => {

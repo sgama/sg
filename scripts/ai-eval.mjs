@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import 'dotenv/config';
 import { AI_CONFIG, AI_MODELS, getModel } from '../functions/_lib/application.js';
@@ -8,6 +7,7 @@ import { contextualizationMessages } from '../functions/_lib/prompts.js';
 import { contextFromMatches, expandSectionMatches } from '../functions/_lib/retrieval.js';
 import { buildCorpus } from './lib/corpus.mjs';
 import { createCloudflareAi } from './lib/cloudflare-ai.mjs';
+import { runIfMain } from './lib/cli.mjs';
 import {
     validateFixture,
     validateRetrievalReport,
@@ -194,9 +194,4 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    main().catch((error) => {
-        console.error(`AI evaluation failed: ${error.message}`);
-        process.exitCode = 1;
-    });
-}
+runIfMain(import.meta.url, main, 'AI evaluation failed');

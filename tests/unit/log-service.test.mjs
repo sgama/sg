@@ -105,3 +105,34 @@ test('write failures are logged once without breaking answer delivery or waitUnt
     assert.equal(logged.mock.callCount(), 2);
     assert.ok(logged.mock.calls.every((call) => call.arguments[0] === 'Log Flush Error' && call.arguments[1] === failure));
 });
+
+test('client disconnects persist the partial answer and cancel the upstream stream', async () => {
+    let payload;
+    let upstreamCancelReason;
+    const encoder = new TextEncoder();
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode('data: {"response":"Partial"}\n'));
+            // Deliberately never closes, simulating a still-open upstream connection.
+        },
+        cancel(reason) {
+            upstreamCancelReason = reason;
+        },
+    });
+    const stream = await LogService.save(
+        {
+            CHAT_LOGS: {
+                put: async (_, value) => {
+                    payload = JSON.parse(value);
+                },
+            },
+        },
+        'Question',
+        source,
+    );
+    const reader = stream.getReader();
+    await reader.read();
+    await reader.cancel('client aborted');
+    assert.equal(payload.response, 'Partial');
+    assert.equal(upstreamCancelReason, 'client aborted');
+});

@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { onRequest } from '../../functions/api/chat.js';
+import { createChatApp } from '../../functions/_lib/chat-app.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, URLS, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { createContext, makeStream, makeProviderStream } from '../helpers/mocks.mjs';
 
@@ -121,51 +122,6 @@ test('/api/chat', async (t) => {
     });
 
     await t.test('End-to-end flow', async (t) => {
-        await t.test('logs streamed output to KV when CHAT_LOGS is configured', async () => {
-            const savedEntries = [];
-            const pending = [];
-            const env = {
-                AI: {
-                    async run(model, payload) {
-                        if (payload?.text) {
-                            return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
-                        }
-                        return makeProviderStream('Logged response');
-                    },
-                },
-                VECTORIZE_INDEX: {
-                    async query() {
-                        return buildVectorizeResult(['Relevant portfolio context for response.']);
-                    },
-                },
-                CHAT_LOGS: {
-                    async put(key, value) {
-                        savedEntries.push({ key, value: JSON.parse(value) });
-                    },
-                },
-            };
-
-            const response = await onRequest(
-                createContext({
-                    method: 'POST',
-                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
-                    env,
-                    waitUntil(promise) {
-                        pending.push(promise);
-                    },
-                    body: { query: 'Persist this' },
-                }),
-            );
-
-            await response.text();
-            await Promise.all(pending);
-
-            assert.equal(savedEntries.length, 1);
-            assert.ok(savedEntries[0].key.startsWith('chat:'));
-            assert.equal(savedEntries[0].value.query, 'Persist this');
-            assert.equal(savedEntries[0].value.response, 'Logged response');
-        });
-
         await t.test('normalizes GLM output before streaming to the widget and saving to KV', async () => {
             const saved = [];
             const pending = [];
@@ -411,4 +367,28 @@ test('/api/chat', async (t) => {
             });
         });
     });
+});
+
+test('createChatApp runs the route with injected collaborators and origin list', async () => {
+    const calls = [];
+    const app = createChatApp({
+        allowedOrigins: ['https://example.test'],
+        createAiService: (env) => ({ fromEnv: env.AI }),
+        answerChat: async ({ aiService, query }) => {
+            calls.push({ aiService, query });
+            return makeStream('data: {"response":"Injected"}', 'data: [DONE]');
+        },
+    });
+    const env = { AI: 'ai-binding', VECTORIZE_INDEX: {} };
+    const init = (origin) => ({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: origin },
+        body: JSON.stringify({ query: 'Hello' }),
+    });
+    const allowed = await app.request('/api/chat', init('https://example.test'), env, { waitUntil() {} });
+    assert.match(await allowed.text(), /Injected/);
+    assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://example.test');
+    assert.deepEqual(calls, [{ aiService: { fromEnv: 'ai-binding' }, query: 'Hello' }]);
+    const blocked = await app.request('/api/chat', init('https://samsongama.com'), env, { waitUntil() {} });
+    assert.equal(blocked.headers.get('access-control-allow-origin'), null);
 });

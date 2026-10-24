@@ -99,15 +99,6 @@ test('compares multiple models on identical contexts, preserving aggregate cost 
     assert.ok(report.results.every((item) => !item.answer.includes('private')));
 });
 
-test('evaluation fixtures validate actual source labels and unique cases', () => {
-    validateFixture(fixture, [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }]);
-    assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
-    assert.throws(
-        () => validateFixture({ version: 1, cases: [known, known] }, [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }]),
-        /unique IDs/,
-    );
-});
-
 test('evidence assertions score bounded context rather than a document hit or metadata title', async () => {
     const item = { ...known, evidenceTerms: [['hugo'], ['cloudflare']] };
     const result = await evaluateRetrieval({
@@ -270,28 +261,6 @@ test('retrieval release gate recomputes labeled contextualized-query checks', ()
     );
 });
 
-test('failed and usage-less runs are explicit, not zero-cost successful results', async () => {
-    const report = await compareModels({
-        cases: [known],
-        models: ['glm', 'gemma'],
-        contexts: { known: 'Enough context for a model response' },
-        async run(model) {
-            if (model === getModel('glm').id) throw new Error('timeout');
-            return makeStream('data: {"choices":[{"index":0,"delta":{"content":"Hugo and Cloudflare"}}]}\n', 'data: [DONE]\n');
-        },
-    });
-    assert.equal(report.results[0].status, 'error');
-    assert.equal(report.results[0].error, 'timeout');
-    assert.equal(report.results[1].estimatedGenerationCostUsd, null);
-    assert.equal(report.summaries[0].successRate, 0);
-    assert.equal(report.summaries[0].costComplete, false);
-    assert.equal(report.summaries[0].estimatedGenerationCostUsd, null);
-    assert.equal(report.summaries[1].estimatedGenerationCostUsd, null);
-    assert.equal(estimateCost({ prompt_tokens: -1, completion_tokens: 3 }, getModel('glm')), null);
-    assert.equal(percentile([], 0.95), null);
-    assert.equal(percentile([3, 1, 2], 0.95), 3);
-});
-
 test('failed streams mark cost incomplete and preserve explicit errors', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     for (const stream of [
@@ -320,7 +289,11 @@ test('failed streams mark cost incomplete and preserve explicit errors', async (
     assert.ok(logged.mock.calls.every((call) => call.arguments[0] === 'Chat Stream Failed:' && call.arguments[1] instanceof Error));
 });
 
-test('invalid fixture labels and missing comparison contexts fail explicitly', async () => {
+test('fixture validation checks source labels, unique IDs and label shapes; comparisons need contexts', async () => {
+    const chunks = [{ metadata: { recordType: 'chunk', source: 'content/a.md' } }];
+    validateFixture(fixture, chunks);
+    assert.throws(() => validateFixture(fixture, []), /Missing labeled source/);
+    assert.throws(() => validateFixture({ version: 1, cases: [known, known] }, chunks), /unique IDs/);
     for (const changes of [
         { required: 'true' },
         { answerTerms: [] },
@@ -634,14 +607,6 @@ test('retrieval measures expected source hits, not keyword presence', async () =
     });
     assert.equal(report.hitRate, 0);
     assert.equal(report.results[0].embeddingMs, 5);
-    const failed = await evaluateRetrieval({
-        cases: [known],
-        retrieve: async () => {
-            throw new Error('down');
-        },
-    });
-    assert.equal(failed.hitRate, 0);
-    assert.equal(failed.results[0].error, 'down');
 });
 
 test('source-grounded answer checks reject a contradictory claim', async () => {

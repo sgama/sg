@@ -1,317 +1,448 @@
 {
-  "version": 1,
-  "cases": [
-    {
-      "id": "recent-engineering-summary",
-      "query": "Summarize Samson's recent engineering experience.",
-      "expectedSources": ["content/resume/_index.md", "content/about/_index.md"],
-      "evidenceTerms": [["bitcomplete"], ["demonware"], ["2026"]],
-      "answerTerms": [["bitcomplete"], ["demonware"], ["2026"]],
-      "forbiddenTerms": ["recently completed a role as a software developer intern", "currently serves", "currently works"],
-      "required": true
-    },
-    {
-      "id": "site-stack",
-      "evidenceTerms": [["hugo"], ["cloudflare"]],
-      "query": "What is Samson's website built with?",
-      "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
-      "answerTerms": [["hugo"], ["cloudflare"]],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "site-stack-paraphrase",
-      "evidenceTerms": [["cloudflare"], ["github"]],
-      "query": "Which services publish and host this portfolio?",
-      "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
-      "answerTerms": [["cloudflare"], ["github"]],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "chat-architecture",
-      "evidenceTerms": [["vectorize"], ["retrieval", "rag"]],
-      "query": "How does Samson's portfolio chat retrieve information?",
-      "expectedSources": ["content/posts/2026-01-25-ai-chat/index.md"],
-      "answerTerms": [["vectorize"], ["rag", "retrieval"]],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "analytics",
-      "evidenceTerms": [["umami"]],
-      "query": "What analytics platform does Samson self-host?",
-      "expectedSources": ["content/posts/2024-06-05-self-hosted-analytics/index.md"],
-      "answerTerms": [["umami"]],
-      "forbiddenTerms": ["google analytics is used"]
-    },
-    {
-      "id": "languages",
-      "evidenceTerms": [["python"], ["javascript"], ["go"], ["c/c++", "c++"], ["bash"], ["java"], ["rust"]],
-      "query": "Which programming languages are listed in Samson's skills profile?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
-      "answerTerms": [["python"], ["javascript"], ["go"], ["c++"], ["bash"], ["java"], ["rust"]],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "platform-experience",
-      "evidenceTerms": [
-        ["automation", "automate"],
-        ["infrastructure", "kubernetes"]
-      ],
-      "query": "What platform engineering work is documented in Samson's resume?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/reliability-practice.md", "content/_context/profile.md"],
-      "answerTerms": [
-        ["automation", "automate", "ci/cd"],
-        ["cloudflare", "infrastructure", "devops"]
-      ],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "resume-cpp",
-      "evidenceTerms": [["programming"], ["c/c++", "c++"]],
-      "query": "Is C++ listed in Samson's technical skills?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
-      "answerTerms": [["yes"], ["c++"], ["/resume/"]],
-      "forbiddenTerms": ["not listed", "does not list", "doesn't list", "not mentioned"],
-      "required": true
-    },
-    {
-      "id": "resume-cpp-false-premise",
-      "evidenceTerms": [["programming"], ["c/c++", "c++"]],
-      "query": "Samson's resume doesn't list C++, right?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
-      "answerTerms": [["c/c++"], ["/resume/"]],
-      "forbiddenTerms": ["you're right", "you are right", "correct, it does not", "not listed"],
-      "required": true
-    },
-    {
-      "id": "resume-bitcomplete",
-      "evidenceTerms": [["bitcomplete"], ["senior service reliability engineer"], ["jun 2026", "june 2026"], ["gpu"], ["argocd"]],
-      "query": "What was Samson's role at Bitcomplete, when did it end, and what GPU work did he do?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/experience-bitcomplete.md"],
-      "answerTerms": [["senior service reliability engineer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
-      "forbiddenTerms": ["currently works", "2026 - present", "ai reliability engineer"],
-      "required": true
-    },
-    {
-      "id": "followup-most-recent-role",
-      "history": [
-        { "role": "user", "content": "What did Samson do last?" },
-        { "role": "assistant", "content": "His latest internship was at Prizm Media in 2016." }
-      ],
-      "query": "Most recently?",
-      "retrievalTerms": [["Samson"], ["most recent", "latest"], ["role", "employment", "job"]],
-      "evidenceTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["senior service reliability engineer"]],
-      "expectedSources": ["content/_context/experience-bitcomplete.md", "content/_context/profile.md", "content/resume/_index.md"],
-      "answerTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["ended", "through"]],
-      "forbiddenTerms": ["currently works at bitcomplete", "present"],
-      "required": true
-    },
-    {
-      "id": "followup-immediately-previous-role",
-      "history": [
-        { "role": "user", "content": "What did he do last" },
-        { "role": "assistant", "content": "Samson Gama was a Senior Service Reliability Engineer, GPU Infrastructure at Bitcomplete, ending in June 2026 [Resume](/resume/)." }
-      ],
-      "query": "before that",
-      "retrievalTerms": [["samson"], ["before", "preceding", "prior"], ["bitcomplete"]],
-      "evidenceTerms": [["demonware"], ["aug 2020", "august 2020"], ["jan 2026", "january 2026"]],
-      "expectedSources": ["content/_context/experience-demonware.md", "content/resume/_index.md"],
-      "answerTerms": [["demonware"], ["aug 2020", "august 2020"], ["jan 2026", "january 2026"], ["/resume/"]],
-      "forbiddenTerms": ["mastercard", "june 2022", "june 2025", "medusa"],
-      "required": true
-    },
-    {
-      "id": "followup-site-deployment",
-      "history": [
-        { "role": "user", "content": "What is Samson's website built with?" },
-        { "role": "assistant", "content": "It is a Hugo static site hosted on Cloudflare Pages." }
-      ],
-      "query": "How is it deployed?",
-      "retrievalTerms": [["website", "site", "portfolio"], ["deploy", "publish"]],
-      "evidenceTerms": [["github actions"], ["cloudflare pages"]],
-      "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
-      "answerTerms": [["github actions"], ["cloudflare pages"]],
-      "forbiddenTerms": [],
-      "required": true
-    },
-    {
-      "id": "followup-topic-change",
-      "history": [
-        { "role": "user", "content": "What did Samson build at Grin Technologies?" },
-        { "role": "assistant", "content": "He built web apps for electric-vehicle telemetry." }
-      ],
-      "query": "What GPU work did he do at Bitcomplete?",
-      "retrievalTerms": [["bitcomplete"], ["gpu"]],
-      "evidenceTerms": [["gpu"], ["argocd"], ["nvidia"]],
-      "expectedSources": ["content/_context/experience-bitcomplete.md", "content/resume/_index.md"],
-      "answerTerms": [["gpu"], ["argocd", "nvidia"], ["bitcomplete"]],
-      "forbiddenTerms": ["electric vehicle", "grin technologies"],
-      "required": true
-    },
-    {
-      "id": "resume-demonware",
-      "evidenceTerms": [["load-testing", "load testing"], ["kubernetes"], ["go"], ["redis"]],
-      "query": "What technologies did Samson use for the distributed load-testing platform at Demonware?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/experience-demonware.md"],
-      "answerTerms": [["kubernetes"], ["go"], ["redis"], ["/resume/"]],
-      "forbiddenTerms": [],
-      "required": true
-    },
-    {
-      "id": "resume-absolute",
-      "evidenceTerms": [["20x"], ["90%"], ["throughput"]],
-      "query": "What measured improvements did Samson achieve at Absolute Software?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/experience-absolute.md", "content/portfolio/2017-06-05-absolute/index.md"],
-      "answerTerms": [["20"], ["90%"], ["throughput"], ["/resume/"]],
-      "forbiddenTerms": ["2000%", "2000 percent"],
-      "required": true
-    },
-    {
-      "id": "resume-skill-ratings",
-      "evidenceTerms": [["programming", "programming languages"], ["python"], ["go"]],
-      "query": "Does Samson's resume rate Go as intermediate and Python as expert?",
-      "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
-      "answerTerms": [["no"], ["rating", "level", "proficiency"], ["/resume/"]],
-      "forbiddenTerms": ["go is intermediate", "python is expert"],
-      "required": true
-    },
-    {
-      "id": "hr-background",
-      "query": "Give me a short introduction to Samson's professional background for an initial screening call.",
-      "expectedSources": ["content/_context/profile.md", "content/resume/_index.md"],
-      "evidenceTerms": [["8+ years"], ["sre"], ["kubernetes"]],
-      "answerTerms": [["sre", "reliability"], ["kubernetes"], ["infrastructure"]],
-      "forbiddenTerms": ["20 years of professional experience"]
-    },
-    {
-      "id": "hr-location",
-      "query": "Where is Samson based?",
-      "expectedSources": ["content/_context/hiring.md", "content/_context/profile.md", "content/resume/_index.md"],
-      "evidenceTerms": [["vancouver"], ["bc"]],
-      "answerTerms": [["vancouver"], ["bc", "british columbia"]],
-      "forbiddenTerms": ["based in toronto"]
-    },
-    {
-      "id": "hr-contact",
-      "query": "How should our recruiting team contact Samson about an opportunity?",
-      "expectedSources": ["content/_context/hiring.md", "content/resume/_index.md"],
-      "evidenceTerms": [["resume@samsongama.com"]],
-      "answerTerms": [["resume@samsongama.com", "/contact/"]],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "hr-education",
-      "query": "What degree did Samson earn, where did he study, and when did he graduate?",
-      "expectedSources": ["content/_context/education-security.md", "content/resume/_index.md"],
-      "evidenceTerms": [["university of british columbia"], ["computer engineering"], ["2017"]],
-      "answerTerms": [["university of british columbia", "ubc"], ["computer engineering"], ["2017"]],
-      "forbiddenTerms": ["phd", "master's degree"]
-    },
-    {
-      "id": "hr-mentorship",
-      "query": "What evidence is there that Samson can mentor engineers and collaborate across teams?",
-      "expectedSources": ["content/_context/leadership.md", "content/_context/experience-demonware.md", "content/resume/_index.md"],
-      "evidenceTerms": [["mentored"], ["code reviews"], ["rfcs"]],
-      "answerTerms": [["mentor"], ["code review", "rfc", "technical design"], ["demonware"]],
-      "forbiddenTerms": ["managed a team of 20"]
-    },
-    {
-      "id": "hr-stakeholders",
-      "query": "Does Samson have experience working with non-engineering stakeholders?",
-      "expectedSources": ["content/_context/leadership.md", "content/resume/_index.md"],
-      "evidenceTerms": [["strata"], ["1,200"], ["stakeholders"]],
-      "answerTerms": [
-        ["strata", "foundation"],
-        ["stakeholder", "governance", "residents"]
-      ],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "hr-working-style",
-      "query": "How does Samson describe his approach to engineering work?",
-      "expectedSources": ["content/_context/reliability-practice.md", "content/about/_index.md"],
-      "evidenceTerms": [["automate"], ["measure"], ["traffic spikes"]],
-      "answerTerms": [["automat"], ["measur"], ["production", "reliability"]],
-      "forbiddenTerms": []
-    },
-    {
-      "id": "hr-start-date",
-      "query": "Can Samson start next Monday, and what is his notice period?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
-      "forbiddenTerms": ["can start next monday", "two-week notice", "two weeks' notice", "available immediately"],
-      "required": true
-    },
-    {
-      "id": "hr-work-authorization",
-      "query": "Is Samson authorized to work in the United States without sponsorship?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
-      "forbiddenTerms": ["he does not require sponsorship", "he is a us citizen", "he is a u.s. citizen", "he is a green card holder"],
-      "required": true
-    },
-    {
-      "id": "hr-relocation",
-      "query": "Will Samson relocate to Seattle for an on-site role?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
-      "forbiddenTerms": ["willing to relocate to seattle", "will relocate to seattle", "will not relocate"],
-      "required": true
-    },
-    {
-      "id": "hr-work-arrangement",
-      "query": "Does Samson only want remote work, or is he open to hybrid and on-site roles?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
-      "forbiddenTerms": ["he only wants remote", "he prefers remote work", "he is open to hybrid and on-site"],
-      "required": true
-    },
-    {
-      "id": "hr-compensation",
-      "query": "What salary range is Samson targeting for his next position?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "not disclosed", "does not specify", "doesn't specify", "cannot determine", "can't determine", "insufficient"]],
-      "forbiddenTerms": ["$150,000", "$200,000", "150k", "200k"],
-      "required": true
-    },
-    {
-      "id": "hr-departure-reason",
-      "query": "Why did Samson leave Bitcomplete after June 2026? Was he laid off?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot confirm", "can't confirm", "insufficient"]],
-      "forbiddenTerms": ["he was laid off", "he was fired", "left for a better opportunity", "contract ended"],
-      "required": true
-    },
-    {
-      "id": "hr-management-scope",
-      "query": "How many engineers reported directly to Samson?",
-      "expectedSources": [],
-      "answerTerms": [["not specified", "not provided", "not available", "not documented", "does not specify", "doesn't specify", "cannot determine", "can't determine", "insufficient"]],
-      "forbiddenTerms": ["five direct reports", "ten direct reports", "no direct reports", "zero direct reports"],
-      "required": true
-    },
-    {
-      "id": "hr-references",
-      "query": "Give me the names and contact details of Samson's professional references.",
-      "expectedSources": [],
-      "answerTerms": [["not provided", "not available", "not listed", "not documented", "does not include", "doesn't include", "cannot provide", "can't provide", "contact samson", "ask samson"]],
-      "forbiddenTerms": ["reference: john smith", "reference: jane doe"],
-      "required": true
-    },
-    {
-      "id": "hr-behavioral-story",
-      "query": "Tell me a specific story about a disagreement Samson had with a colleague and how he resolved it.",
-      "expectedSources": [],
-      "answerTerms": [["not provided", "not available", "not documented", "does not include", "doesn't include", "insufficient", "no specific", "don't have", "do not have"]],
-      "forbiddenTerms": ["a colleague wanted to", "his manager insisted", "he convinced the team to"],
-      "required": true
-    },
-    {
-      "id": "unknown-fact",
-      "query": "What is Samson's exact current salary?",
-      "expectedSources": [],
-      "answerTerms": [["don't have enough reliable context", "not available", "not provided", "not disclosed", "cannot determine", "can't determine", "do not have", "don't have"]],
-      "forbiddenTerms": ["$100,000"],
-      "required": true
-    }
-  ]
+    "version": 1,
+    "cases": [
+        {
+            "id": "recent-engineering-summary",
+            "query": "Summarize Samson's recent engineering experience.",
+            "expectedSources": ["content/resume/_index.md", "content/about/_index.md"],
+            "evidenceTerms": [["bitcomplete"], ["demonware"], ["2026"]],
+            "answerTerms": [["bitcomplete"], ["demonware"], ["2026"]],
+            "forbiddenTerms": ["recently completed a role as a software developer intern", "currently serves", "currently works"],
+            "required": true
+        },
+        {
+            "id": "site-stack",
+            "evidenceTerms": [["hugo"], ["cloudflare"]],
+            "query": "What is Samson's website built with?",
+            "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
+            "answerTerms": [["hugo"], ["cloudflare"]],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "site-stack-paraphrase",
+            "evidenceTerms": [["cloudflare"], ["github"]],
+            "query": "Which services publish and host this portfolio?",
+            "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
+            "answerTerms": [["cloudflare"], ["github"]],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "chat-architecture",
+            "evidenceTerms": [["vectorize"], ["retrieval", "rag"]],
+            "query": "How does Samson's portfolio chat retrieve information?",
+            "expectedSources": ["content/posts/2026-01-25-ai-chat/index.md"],
+            "answerTerms": [["vectorize"], ["rag", "retrieval"]],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "analytics",
+            "evidenceTerms": [["umami"]],
+            "query": "What analytics platform does Samson self-host?",
+            "expectedSources": ["content/posts/2024-06-05-self-hosted-analytics/index.md"],
+            "answerTerms": [["umami"]],
+            "forbiddenTerms": ["google analytics is used"]
+        },
+        {
+            "id": "languages",
+            "evidenceTerms": [["python"], ["javascript"], ["go"], ["c/c++", "c++"], ["bash"], ["java"], ["rust"]],
+            "query": "Which programming languages are listed in Samson's skills profile?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
+            "answerTerms": [["python"], ["javascript"], ["go"], ["c++"], ["bash"], ["java"], ["rust"]],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "platform-experience",
+            "evidenceTerms": [
+                ["automation", "automate"],
+                ["infrastructure", "kubernetes"]
+            ],
+            "query": "What platform engineering work is documented in Samson's resume?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/reliability-practice.md", "content/_context/profile.md"],
+            "answerTerms": [
+                ["automation", "automate", "ci/cd"],
+                ["cloudflare", "infrastructure", "devops"]
+            ],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "resume-cpp",
+            "evidenceTerms": [["programming"], ["c/c++", "c++"]],
+            "query": "Is C++ listed in Samson's technical skills?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
+            "answerTerms": [["yes"], ["c++"], ["/resume/"]],
+            "forbiddenTerms": ["not listed", "does not list", "doesn't list", "not mentioned"],
+            "required": true
+        },
+        {
+            "id": "resume-cpp-false-premise",
+            "evidenceTerms": [["programming"], ["c/c++", "c++"]],
+            "query": "Samson's resume doesn't list C++, right?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
+            "answerTerms": [["c/c++"], ["/resume/"]],
+            "forbiddenTerms": ["you're right", "you are right", "correct, it does not", "not listed"],
+            "required": true
+        },
+        {
+            "id": "resume-bitcomplete",
+            "evidenceTerms": [["bitcomplete"], ["senior service reliability engineer"], ["jun 2026", "june 2026"], ["gpu"], ["argocd"]],
+            "query": "What was Samson's role at Bitcomplete, when did it end, and what GPU work did he do?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/experience-bitcomplete.md"],
+            "answerTerms": [["senior service reliability engineer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
+            "forbiddenTerms": ["currently works", "2026 - present", "ai reliability engineer"],
+            "required": true
+        },
+        {
+            "id": "followup-most-recent-role",
+            "history": [
+                { "role": "user", "content": "What did Samson do last?" },
+                { "role": "assistant", "content": "His latest internship was at Prizm Media in 2016." }
+            ],
+            "query": "Most recently?",
+            "retrievalTerms": [["Samson"], ["most recent", "latest"], ["role", "employment", "job"]],
+            "evidenceTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["senior service reliability engineer"]],
+            "expectedSources": ["content/_context/experience-bitcomplete.md", "content/_context/profile.md", "content/resume/_index.md"],
+            "answerTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["ended", "through"]],
+            "forbiddenTerms": ["currently works at bitcomplete", "present"],
+            "required": true
+        },
+        {
+            "id": "followup-immediately-previous-role",
+            "history": [
+                { "role": "user", "content": "What did he do last" },
+                {
+                    "role": "assistant",
+                    "content": "Samson Gama was a Senior Service Reliability Engineer, GPU Infrastructure at Bitcomplete, ending in June 2026 [Resume](/resume/)."
+                }
+            ],
+            "query": "before that",
+            "retrievalTerms": [["samson"], ["before", "preceding", "prior"], ["bitcomplete"]],
+            "evidenceTerms": [["demonware"], ["aug 2020", "august 2020"], ["jan 2026", "january 2026"]],
+            "expectedSources": ["content/_context/experience-demonware.md", "content/resume/_index.md"],
+            "answerTerms": [["demonware"], ["aug 2020", "august 2020"], ["jan 2026", "january 2026"], ["/resume/"]],
+            "forbiddenTerms": ["mastercard", "june 2022", "june 2025", "medusa"],
+            "required": true
+        },
+        {
+            "id": "followup-site-deployment",
+            "history": [
+                { "role": "user", "content": "What is Samson's website built with?" },
+                { "role": "assistant", "content": "It is a Hugo static site hosted on Cloudflare Pages." }
+            ],
+            "query": "How is it deployed?",
+            "retrievalTerms": [
+                ["website", "site", "portfolio"],
+                ["deploy", "publish"]
+            ],
+            "evidenceTerms": [["github actions"], ["cloudflare pages"]],
+            "expectedSources": ["content/posts/2026-01-26-website-stack/index.md"],
+            "answerTerms": [["github actions"], ["cloudflare pages"]],
+            "forbiddenTerms": [],
+            "required": true
+        },
+        {
+            "id": "followup-topic-change",
+            "history": [
+                { "role": "user", "content": "What did Samson build at Grin Technologies?" },
+                { "role": "assistant", "content": "He built web apps for electric-vehicle telemetry." }
+            ],
+            "query": "What GPU work did he do at Bitcomplete?",
+            "retrievalTerms": [["bitcomplete"], ["gpu"]],
+            "evidenceTerms": [["gpu"], ["argocd"], ["nvidia"]],
+            "expectedSources": ["content/_context/experience-bitcomplete.md", "content/resume/_index.md"],
+            "answerTerms": [["gpu"], ["argocd", "nvidia"], ["bitcomplete"]],
+            "forbiddenTerms": ["electric vehicle", "grin technologies"],
+            "required": true
+        },
+        {
+            "id": "resume-demonware",
+            "evidenceTerms": [["load-testing", "load testing"], ["kubernetes"], ["go"], ["redis"]],
+            "query": "What technologies did Samson use for the distributed load-testing platform at Demonware?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/experience-demonware.md"],
+            "answerTerms": [["kubernetes"], ["go"], ["redis"], ["/resume/"]],
+            "forbiddenTerms": [],
+            "required": true
+        },
+        {
+            "id": "resume-absolute",
+            "evidenceTerms": [["20x"], ["90%"], ["throughput"]],
+            "query": "What measured improvements did Samson achieve at Absolute Software?",
+            "expectedSources": [
+                "content/resume/_index.md",
+                "content/_context/experience-absolute.md",
+                "content/portfolio/2017-06-05-absolute/index.md"
+            ],
+            "answerTerms": [["20"], ["90%"], ["throughput"], ["/resume/"]],
+            "forbiddenTerms": ["2000%", "2000 percent"],
+            "required": true
+        },
+        {
+            "id": "resume-skill-ratings",
+            "evidenceTerms": [["programming", "programming languages"], ["python"], ["go"]],
+            "query": "Does Samson's resume rate Go as intermediate and Python as expert?",
+            "expectedSources": ["content/resume/_index.md", "content/_context/skills.md"],
+            "answerTerms": [["no"], ["rating", "level", "proficiency"], ["/resume/"]],
+            "forbiddenTerms": ["go is intermediate", "python is expert"],
+            "required": true
+        },
+        {
+            "id": "hr-background",
+            "query": "Give me a short introduction to Samson's professional background for an initial screening call.",
+            "expectedSources": ["content/_context/profile.md", "content/resume/_index.md"],
+            "evidenceTerms": [["8+ years"], ["sre"], ["kubernetes"]],
+            "answerTerms": [["sre", "reliability"], ["kubernetes"], ["infrastructure"]],
+            "forbiddenTerms": ["20 years of professional experience"]
+        },
+        {
+            "id": "hr-location",
+            "query": "Where is Samson based?",
+            "expectedSources": ["content/_context/hiring.md", "content/_context/profile.md", "content/resume/_index.md"],
+            "evidenceTerms": [["vancouver"], ["bc"]],
+            "answerTerms": [["vancouver"], ["bc", "british columbia"]],
+            "forbiddenTerms": ["based in toronto"]
+        },
+        {
+            "id": "hr-contact",
+            "query": "How should our recruiting team contact Samson about an opportunity?",
+            "expectedSources": ["content/_context/hiring.md", "content/resume/_index.md"],
+            "evidenceTerms": [["resume@samsongama.com"]],
+            "answerTerms": [["resume@samsongama.com", "/contact/"]],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "hr-education",
+            "query": "What degree did Samson earn, where did he study, and when did he graduate?",
+            "expectedSources": ["content/_context/education-security.md", "content/resume/_index.md"],
+            "evidenceTerms": [["university of british columbia"], ["computer engineering"], ["2017"]],
+            "answerTerms": [["university of british columbia", "ubc"], ["computer engineering"], ["2017"]],
+            "forbiddenTerms": ["phd", "master's degree"]
+        },
+        {
+            "id": "hr-mentorship",
+            "query": "What evidence is there that Samson can mentor engineers and collaborate across teams?",
+            "expectedSources": ["content/_context/leadership.md", "content/_context/experience-demonware.md", "content/resume/_index.md"],
+            "evidenceTerms": [["mentored"], ["code reviews"], ["rfcs"]],
+            "answerTerms": [["mentor"], ["code review", "rfc", "technical design"], ["demonware"]],
+            "forbiddenTerms": ["managed a team of 20"]
+        },
+        {
+            "id": "hr-stakeholders",
+            "query": "Does Samson have experience working with non-engineering stakeholders?",
+            "expectedSources": ["content/_context/leadership.md", "content/resume/_index.md"],
+            "evidenceTerms": [["strata"], ["1,200"], ["stakeholders"]],
+            "answerTerms": [
+                ["strata", "foundation"],
+                ["stakeholder", "governance", "residents"]
+            ],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "hr-working-style",
+            "query": "How does Samson describe his approach to engineering work?",
+            "expectedSources": ["content/_context/reliability-practice.md", "content/about/_index.md"],
+            "evidenceTerms": [["automate"], ["measure"], ["traffic spikes"]],
+            "answerTerms": [["automat"], ["measur"], ["production", "reliability"]],
+            "forbiddenTerms": []
+        },
+        {
+            "id": "hr-start-date",
+            "query": "Can Samson start next Monday, and what is his notice period?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot confirm",
+                    "can't confirm",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["can start next monday", "two-week notice", "two weeks' notice", "available immediately"],
+            "required": true
+        },
+        {
+            "id": "hr-work-authorization",
+            "query": "Is Samson authorized to work in the United States without sponsorship?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot confirm",
+                    "can't confirm",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["he does not require sponsorship", "he is a us citizen", "he is a u.s. citizen", "he is a green card holder"],
+            "required": true
+        },
+        {
+            "id": "hr-relocation",
+            "query": "Will Samson relocate to Seattle for an on-site role?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot confirm",
+                    "can't confirm",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["willing to relocate to seattle", "will relocate to seattle", "will not relocate"],
+            "required": true
+        },
+        {
+            "id": "hr-work-arrangement",
+            "query": "Does Samson only want remote work, or is he open to hybrid and on-site roles?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot confirm",
+                    "can't confirm",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["he only wants remote", "he prefers remote work", "he is open to hybrid and on-site"],
+            "required": true
+        },
+        {
+            "id": "hr-compensation",
+            "query": "What salary range is Samson targeting for his next position?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "not disclosed",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot determine",
+                    "can't determine",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["$150,000", "$200,000", "150k", "200k"],
+            "required": true
+        },
+        {
+            "id": "hr-departure-reason",
+            "query": "Why did Samson leave Bitcomplete after June 2026? Was he laid off?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot confirm",
+                    "can't confirm",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["he was laid off", "he was fired", "left for a better opportunity", "contract ended"],
+            "required": true
+        },
+        {
+            "id": "hr-management-scope",
+            "query": "How many engineers reported directly to Samson?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not specified",
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not specify",
+                    "doesn't specify",
+                    "cannot determine",
+                    "can't determine",
+                    "insufficient"
+                ]
+            ],
+            "forbiddenTerms": ["five direct reports", "ten direct reports", "no direct reports", "zero direct reports"],
+            "required": true
+        },
+        {
+            "id": "hr-references",
+            "query": "Give me the names and contact details of Samson's professional references.",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not provided",
+                    "not available",
+                    "not listed",
+                    "not documented",
+                    "does not include",
+                    "doesn't include",
+                    "cannot provide",
+                    "can't provide",
+                    "contact samson",
+                    "ask samson"
+                ]
+            ],
+            "forbiddenTerms": ["reference: john smith", "reference: jane doe"],
+            "required": true
+        },
+        {
+            "id": "hr-behavioral-story",
+            "query": "Tell me a specific story about a disagreement Samson had with a colleague and how he resolved it.",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "not provided",
+                    "not available",
+                    "not documented",
+                    "does not include",
+                    "doesn't include",
+                    "insufficient",
+                    "no specific",
+                    "don't have",
+                    "do not have"
+                ]
+            ],
+            "forbiddenTerms": ["a colleague wanted to", "his manager insisted", "he convinced the team to"],
+            "required": true
+        },
+        {
+            "id": "unknown-fact",
+            "query": "What is Samson's exact current salary?",
+            "expectedSources": [],
+            "answerTerms": [
+                [
+                    "don't have enough reliable context",
+                    "not available",
+                    "not provided",
+                    "not disclosed",
+                    "cannot determine",
+                    "can't determine",
+                    "do not have",
+                    "don't have"
+                ]
+            ],
+            "forbiddenTerms": ["$100,000"],
+            "required": true
+        }
+    ]
 }

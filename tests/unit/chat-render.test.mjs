@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createMessageRenderer } from '../../assets/js/chat/render.js';
+import { createMessageRenderer } from '../../assets/js/chat/view/markdown-renderer.js';
 
 function element() {
     const link = {};

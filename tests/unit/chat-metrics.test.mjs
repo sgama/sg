@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { formatResponseMetrics } from '../../assets/js/chat/metrics.js';
+import { formatResponseMetrics } from '../../assets/js/chat/model/metrics.js';
 import { AI_CONFIG, getModel, estimateCost } from '../../functions/_lib/application.js';
 import { AiService } from '../../functions/_lib/ai.js';
 import { makeProviderStream } from '../helpers/mocks.mjs';

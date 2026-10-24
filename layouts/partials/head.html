@@ -200,7 +200,8 @@
     {{ $jsResources = $jsResources | append (resources.Get "js/rtl.js") }}
   {{ end }}
   {{ $jsResources = $jsResources | append (resources.Get "js/katex-render.js") }}
-  {{ $jsResources = $jsResources | append (resources.Get "js/menu-a11y.js") }}
+  {{ $menuJS := resources.Get "js/menu-a11y.js" | js.Build (dict "targetPath" "js/menu-a11y.js") }}
+  {{ $jsResources = $jsResources | append $menuJS }}
   {{ $jsResources = $jsResources | append (resources.Get "js/print-support.js") }}
   {{ $jsResources = $jsResources | append (resources.Get "js/email.js") }}
   {{ if $jsResources }}

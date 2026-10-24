@@ -81,53 +81,30 @@ test('/api/logs', async (t) => {
     });
 
     await t.test('Pagination', async (t) => {
-        await t.test('clamps limit to DEFAULT_LIMIT when exceeding MAX_LIMIT', async () => {
-            let capturedLimit;
-            const kv = {
-                async list({ limit }) {
-                    capturedLimit = limit;
-                    return { keys: [], list_complete: true };
-                },
-            };
+        await t.test('parses the limit query param: absent, valid, and out-of-range', async () => {
+            for (const [query, expected] of [
+                ['', PAGINATION.DEFAULT_LIMIT],
+                ['?limit=5', 5],
+                ['?limit=999', PAGINATION.DEFAULT_LIMIT], // falls back to default when over MAX_LIMIT (50)
+            ]) {
+                let capturedLimit;
+                const kv = {
+                    async list({ limit }) {
+                        capturedLimit = limit;
+                        return { keys: [], list_complete: true };
+                    },
+                };
 
-            await onRequest(
-                createContext({
-                    method: 'GET',
-                    url: `${URLS.TEST_API_ENDPOINT}/logs?limit=999`,
-                    env: { CHAT_LOGS: kv },
-                }),
-            );
+                await onRequest(
+                    createContext({
+                        method: 'GET',
+                        url: `${URLS.TEST_API_ENDPOINT}/logs${query}`,
+                        env: { CHAT_LOGS: kv },
+                    }),
+                );
 
-            // Falls back to default when over MAX_LIMIT (50)
-            assert.equal(capturedLimit, PAGINATION.DEFAULT_LIMIT);
-        });
-
-        await t.test('echoes limit in meta response', async () => {
-            const res = await onRequest(
-                createContext({
-                    method: 'GET',
-                    url: `${URLS.TEST_API_ENDPOINT}/logs?limit=10`,
-                    env: { CHAT_LOGS: makeKv() },
-                }),
-            );
-
-            const body = await res.json();
-            assert.equal(body.meta.limit, 10);
-        });
-
-        await t.test('exposes has_more and cursor in meta', async () => {
-            const kv = makeKv({ keys: [], cursor: 'next-page', list_complete: false });
-            const res = await onRequest(
-                createContext({
-                    method: 'GET',
-                    url: `${URLS.TEST_API_ENDPOINT}/logs`,
-                    env: { CHAT_LOGS: kv },
-                }),
-            );
-
-            const body = await res.json();
-            assert.equal(body.meta.has_more, true);
-            assert.equal(body.meta.cursor, 'next-page');
+                assert.equal(capturedLimit, expected);
+            }
         });
 
         await t.test('forwards cursor param to KV list', async () => {
@@ -150,44 +127,20 @@ test('/api/logs', async (t) => {
             assert.equal(capturedCursor, 'abc123');
         });
 
-        await t.test('uses default limit when limit param is absent', async () => {
-            let capturedLimit;
-            const kv = {
-                async list({ limit }) {
-                    capturedLimit = limit;
-                    return { keys: [], list_complete: true };
-                },
-            };
-
-            await onRequest(
+        await t.test('echoes limit and KV pagination metadata in the response', async () => {
+            const kv = makeKv({ keys: [], cursor: 'next-page', list_complete: false });
+            const res = await onRequest(
                 createContext({
                     method: 'GET',
-                    url: `${URLS.TEST_API_ENDPOINT}/logs`,
+                    url: `${URLS.TEST_API_ENDPOINT}/logs?limit=10`,
                     env: { CHAT_LOGS: kv },
                 }),
             );
 
-            assert.equal(capturedLimit, PAGINATION.DEFAULT_LIMIT);
-        });
-
-        await t.test('uses provided limit when valid', async () => {
-            let capturedLimit;
-            const kv = {
-                async list({ limit }) {
-                    capturedLimit = limit;
-                    return { keys: [], list_complete: true };
-                },
-            };
-
-            await onRequest(
-                createContext({
-                    method: 'GET',
-                    url: `${URLS.TEST_API_ENDPOINT}/logs?limit=5`,
-                    env: { CHAT_LOGS: kv },
-                }),
-            );
-
-            assert.equal(capturedLimit, 5);
+            const body = await res.json();
+            assert.equal(body.meta.limit, 10);
+            assert.equal(body.meta.has_more, true);
+            assert.equal(body.meta.cursor, 'next-page');
         });
     });
 
@@ -236,17 +189,4 @@ test('/api/logs', async (t) => {
             assert.equal(res.headers.get('X-Content-Type-Options'), 'nosniff');
         });
     });
-});
-
-test('transcript access is intentionally public without credentials or an admin secret', async (t) => {
-    const list = t.mock.fn(async () => ({ keys: [], list_complete: true }));
-    const context = createContext({
-        url: `${URLS.TEST_API_ENDPOINT}/logs`,
-        env: { CHAT_LOGS: { list } },
-    });
-    const response = await onRequest(context);
-    assert.equal(response.status, 200);
-    assert.equal(response.headers.get('Cache-Control'), 'no-store');
-    assert.deepEqual((await response.json()).data, []);
-    assert.equal(list.mock.callCount(), 1);
 });

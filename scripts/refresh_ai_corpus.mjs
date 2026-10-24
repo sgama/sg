@@ -1,8 +1,8 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import 'dotenv/config';
+import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { createMaintenanceClient, refreshCorpus } from './lib/corpus-deployment.mjs';
+import { runIfMain } from './lib/cli.mjs';
 
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({
@@ -12,8 +12,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
             force: { type: 'boolean', default: false },
         },
     });
-    const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
-    if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
+    const { accountId, apiToken } = requireCloudflareCredentials();
     const result = await refreshCorpus({
         client: createMaintenanceClient(apiToken, fetchImpl),
         accountId,
@@ -26,9 +25,4 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     );
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    main().catch((error) => {
-        console.error(`Corpus refresh failed: ${error.message}`);
-        process.exitCode = 1;
-    });
-}
+runIfMain(import.meta.url, main, 'Corpus refresh failed');

@@ -2,6 +2,13 @@ import Cloudflare from 'cloudflare';
 import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
 import { retrieveEvidence } from '../../functions/_lib/retrieval-pipeline.js';
 
+/** One error message for every CLI that needs Cloudflare credentials. */
+export function requireCloudflareCredentials(env = process.env) {
+    const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = env;
+    if (!accountId || !apiToken) throw new Error('Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN');
+    return { accountId, apiToken };
+}
+
 export async function runEmbedding(client, accountId, model, text, options = {}) {
     // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
     const response = await client.post(`/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`, {

@@ -1,10 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 import { buildCorpus } from './lib/corpus.mjs';
 import { scoreEvidence } from './lib/ai-evaluation.mjs';
+import { runIfMain } from './lib/cli.mjs';
 
 export async function auditRag({ root = process.cwd(), now = new Date() } = {}) {
     const config = JSON.parse(await fs.readFile(path.join(root, 'data/rag_audit.json'), 'utf8'));
@@ -145,9 +145,4 @@ export async function main() {
     if (report.errors.length) throw new Error(report.errors.join('; '));
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-    main().catch((error) => {
-        console.error(`RAG audit failed: ${error.message}`);
-        process.exitCode = 1;
-    });
-}
+runIfMain(import.meta.url, main, 'RAG audit failed');

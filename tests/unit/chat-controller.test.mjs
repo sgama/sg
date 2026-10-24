@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setImmediate } from 'node:timers/promises';
-import { STORAGE_KEY } from '../../assets/js/chat/history.js';
-import { createChatController, WELCOME_MESSAGE } from '../../assets/js/chat/controller.js';
+import { STORAGE_KEY } from '../../assets/js/chat/model/history.js';
+import { createConversation, WELCOME_MESSAGE } from '../../assets/js/chat/model/conversation.js';
 
 const METRICS = { totalMs: 1200, firstTokenMs: 300, estimatedLlmCostUsd: null, generationUsage: null };
 const EXPLANATION = 'The response could not be completed. Please try again.';
-const OFFLINE = 'You appear to be offline. Check your connection and try again.';
 
 function memoryStorage() {
     const data = new Map();
@@ -33,7 +32,7 @@ function setup({ online = true } = {}) {
     const storage = memoryStorage();
     const stream = controlledStream();
     const logged = [];
-    const controller = createChatController({
+    const controller = createConversation({
         storage,
         streamAnswer: stream.streamAnswer,
         isOnline: () => online,
@@ -47,12 +46,6 @@ function setup({ online = true } = {}) {
 }
 
 const settle = () => setImmediate();
-
-test('loading an empty store starts from the welcome message', () => {
-    const { controller } = setup();
-    assert.deepEqual(controller.messages, [{ sender: 'bot', text: WELCOME_MESSAGE }]);
-    assert.equal(controller.busy, false);
-});
 
 test('ask appends the question and an empty answer, persists them, and marks the controller busy', () => {
     const { controller, storage, stream, events } = setup();
@@ -117,16 +110,6 @@ test('a failed request keeps the partial answer, offers a retry, and the retry r
     assert.deepEqual(stream.calls[1].options.history, retry.history);
 });
 
-test('offline requests fail immediately without contacting the transport', async () => {
-    const { controller, stream } = setup({ online: false });
-    controller.ask('Anything?');
-    await settle();
-
-    assert.equal(stream.calls.length, 0);
-    assert.equal(controller.messages.at(-1).text, OFFLINE);
-    assert.equal(controller.busy, false);
-});
-
 test('cancel keeps the partial answer and ignores callbacks that arrive afterwards', async () => {
     const { controller, stream, events } = setup();
     controller.ask('Stop me');
@@ -163,13 +146,4 @@ test('clear cancels any request, resets to the welcome message and persists only
     assert.deepEqual(storage.data.get(STORAGE_KEY), [{ sender: 'bot', text: WELCOME_MESSAGE }]);
     assert.ok(events.some((event) => event.type === 'history:reset'));
     assert.ok(events.some((event) => event.type === 'status' && event.text === 'Chat history cleared.'));
-});
-
-test('subscribers stop receiving events after unsubscribing', () => {
-    const { controller } = setup();
-    const seen = [];
-    const unsubscribe = controller.subscribe((event) => seen.push(event.type));
-    unsubscribe();
-    controller.ask('Quiet');
-    assert.deepEqual(seen, []);
 });

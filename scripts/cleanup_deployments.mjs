@@ -1,12 +1,12 @@
 import 'dotenv/config';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import { AI_CONFIG } from '../functions/_lib/application.js';
 import { createMaintenanceClient, waitForMutation } from './lib/corpus-deployment.mjs';
+import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { VERSIONED_NAMESPACE, planRetention, referencedNamespaces } from './lib/deployment-retention.mjs';
+import { runIfMain } from './lib/cli.mjs';
 
 async function inventory(client, project, accountId) {
     const result = [];
@@ -184,8 +184,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         args,
         options: { 'dry-run': { type: 'boolean', default: false } },
     });
-    const { CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiToken } = process.env;
-    if (!accountId || !apiToken) throw new Error('Missing Cloudflare credentials');
+    const { accountId, apiToken } = requireCloudflareCredentials();
     const result = await cleanupDeployments({
         client: createMaintenanceClient(apiToken, fetchImpl),
         accountId,
@@ -196,9 +195,4 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
     console.log(JSON.stringify(result, null, 2));
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    main().catch((error) => {
-        console.error(`Deployment/corpus cleanup failed: ${error.message}`);
-        process.exitCode = 1;
-    });
-}
+runIfMain(import.meta.url, main, 'Deployment/corpus cleanup failed');

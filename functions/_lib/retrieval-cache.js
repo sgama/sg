@@ -1,6 +1,5 @@
 // Retrieval-result cache. AiService depends only on the store contract below, so
-// the backing store can be swapped (Workers Cache API, in-memory, or another
-// binding) without touching retrieval code.
+// the backing store can be swapped (Workers Cache API or another binding) without touching retrieval code.
 //
 // Contract: get(namespace, query) -> payload | null, put(namespace, query, payload).
 // Both methods must never reject: a failing cache is a miss, not an outage.
@@ -39,29 +38,6 @@ export function workersCacheStore(cache) {
             } catch (err) {
                 console.error('Retrieval cache write failed:', err);
             }
-        },
-    };
-}
-
-/**
- * In-process store for tests and local runs. Values are copied, so callers cannot alias them.
- * Bounded: the oldest entry is evicted once `maxEntries` is reached (Map keeps insertion order).
- */
-export function memoryStore({ maxEntries = 100 } = {}) {
-    const entries = new Map();
-    return {
-        async get(namespace, query) {
-            const value = entries.get(await retrievalCacheKey(namespace, query));
-            return value === undefined ? null : structuredClone(value);
-        },
-        async put(namespace, query, payload) {
-            const key = await retrievalCacheKey(namespace, query);
-            entries.delete(key);
-            entries.set(key, structuredClone(payload));
-            if (entries.size > maxEntries) entries.delete(entries.keys().next().value);
-        },
-        get size() {
-            return entries.size;
         },
     };
 }
