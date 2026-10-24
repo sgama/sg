@@ -246,7 +246,7 @@ test('answer parser separates metadata from answer text, handles split events an
             },
         );
         parser.push(
-            'data: {"progress":"search"}\ndata: {"evidence":[]}\ndata: {"response":"Answer"}\ndata: {"metrics":{"totalMs":123}}\ndata: [DONE]\n',
+            'data: {"progress":"search"}\n\ndata: {"evidence":[]}\n\ndata: {"response":"Answer"}\n\ndata: {"metrics":{"totalMs":123}}\n\ndata: [DONE]\n\n',
         );
         assert.deepEqual(seen, { answers: ['Answer'], metrics: [{ totalMs: 123 }], progress: ['search'], evidence: [[]] });
     }
@@ -254,11 +254,19 @@ test('answer parser separates metadata from answer text, handles split events an
         const deltas = [];
         const parser = createAnswerParser((delta) => deltas.push(delta));
         parser.push('data:{"response":"Hel');
-        parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n');
-        parser.push('data: {"response":"!"}\ndata: [DONE]\ndata: {"response":"ignored"}\n');
+        parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n\n');
+        parser.push('data: {"response":"!"}\n\ndata: [DONE]\n\ndata: {"response":"ignored"}\n\n');
         parser.flush();
         assert.deepEqual(deltas, ['Hello', '!']);
         assert.equal(parser.finished, true);
+    }
+    {
+        const deltas = [];
+        const parser = createAnswerParser((delta) => deltas.push(delta));
+        parser.push('data: {"response":"tail"}');
+        assert.deepEqual(deltas, []);
+        parser.flush();
+        assert.deepEqual(deltas, ['tail'], 'flush delivers a final event that lacks its blank line');
     }
     {
         const malformed = [
@@ -272,7 +280,7 @@ test('answer parser separates metadata from answer text, handles split events an
             'invalid',
         ];
         for (const event of malformed) {
-            assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify(event)}\n`));
+            assert.throws(() => createAnswerParser(() => {}).push(`data: ${JSON.stringify(event)}\n\n`));
         }
     }
 });

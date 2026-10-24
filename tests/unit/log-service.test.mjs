@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { LogService } from '../../functions/_lib/log.js';
+import { fetchChatLogs, saveChatLog } from '../../functions/_lib/log.js';
 import { makeStream, drainStream, createContext } from '../helpers/mocks.mjs';
 import { onRequest } from '../../functions/api/logs.js';
 
@@ -11,7 +11,7 @@ test('KV list failures reject and the logs API reports an explicit 500', async (
             throw error;
         },
     };
-    await assert.rejects(LogService.fetchLogs({ CHAT_LOGS: kv }, 10), (failure) => failure === error);
+    await assert.rejects(fetchChatLogs({ CHAT_LOGS: kv }, 10), (failure) => failure === error);
     const logged = t.mock.method(console, 'error', () => {});
     const response = await onRequest(
         createContext({
@@ -36,7 +36,7 @@ test('KV read failures are skipped instead of failing the whole listing', async 
             throw error;
         },
     };
-    const result = await LogService.fetchLogs({ CHAT_LOGS: kv }, 10);
+    const result = await fetchChatLogs({ CHAT_LOGS: kv }, 10);
     assert.deepEqual(result.data, []);
     assert.equal(result.meta.count, 0);
     assert.ok(logged.mock.calls.some((call) => call.arguments[0] === 'Log record read failed:'));
@@ -45,7 +45,7 @@ test('KV read failures are skipped instead of failing the whole listing', async 
 
 test('missing versioned records log an error and are omitted rather than fabricated', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
-    const result = await LogService.fetchLogs(
+    const result = await fetchChatLogs(
         {
             CHAT_LOGS: {
                 list: async () => ({
@@ -65,7 +65,7 @@ test('missing versioned records log an error and are omitted rather than fabrica
 
 test('stream error events persist partial answers and error identity', async () => {
     let payload;
-    const stream = await LogService.save(
+    const stream = saveChatLog(
         {
             CHAT_LOGS: {
                 put: async (_, value) => {
@@ -74,7 +74,7 @@ test('stream error events persist partial answers and error identity', async () 
             },
         },
         'Question',
-        makeStream('data: {"response":"Partial"}', 'data: {"error":"Provider failed"}'),
+        makeStream('data: {"response":"Partial"}\n', 'data: {"error":"Provider failed"}\n'),
     );
     assert.match(await drainStream(stream), /Provider failed/);
     assert.equal(payload.response, 'Partial');
@@ -86,7 +86,7 @@ test('write failures are logged once without breaking answer delivery or waitUnt
     const logged = t.mock.method(console, 'error', () => {});
     for (const background of [false, true]) {
         const pending = [];
-        const stream = await LogService.save(
+        const stream = saveChatLog(
             {
                 CHAT_LOGS: {
                     put: async () => {
@@ -95,7 +95,7 @@ test('write failures are logged once without breaking answer delivery or waitUnt
                 },
             },
             'Question',
-            makeStream('data: {"response":"Answer"}', 'data: [DONE]'),
+            makeStream('data: {"response":"Answer"}\n', 'data: [DONE]\n'),
             background ? { waitUntil: (promise) => pending.push(promise) } : null,
         );
         assert.match(await drainStream(stream), /Answer/);
@@ -112,14 +112,14 @@ test('client disconnects persist the partial answer and cancel the upstream stre
     const encoder = new TextEncoder();
     const source = new ReadableStream({
         start(controller) {
-            controller.enqueue(encoder.encode('data: {"response":"Partial"}\n'));
+            controller.enqueue(encoder.encode('data: {"response":"Partial"}\n\n'));
             // Deliberately never closes, simulating a still-open upstream connection.
         },
         cancel(reason) {
             upstreamCancelReason = reason;
         },
     });
-    const stream = await LogService.save(
+    const stream = saveChatLog(
         {
             CHAT_LOGS: {
                 put: async (_, value) => {

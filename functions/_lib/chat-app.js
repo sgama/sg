@@ -4,7 +4,7 @@ import { streamSSE } from 'hono/streaming';
 import { AppError, CONFIG } from './application.js';
 import { isPromptInjectionAttempt, ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
 import { createSseMessageStream } from './chat-stream.js';
-import { LogService } from './log.js';
+import { saveChatLog } from './log.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
 
@@ -24,7 +24,7 @@ async function defaultAnswerChat({ aiService, env, executionCtx, query, history,
         await emit({ progress: 'generation' });
         stream = await aiService.generateStream(query, contextText, history);
     }
-    return env.CHAT_LOGS ? LogService.save(env, query, stream, executionCtx) : stream;
+    return env.CHAT_LOGS ? saveChatLog(env, query, stream, executionCtx) : stream;
 }
 
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];

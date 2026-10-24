@@ -1,19 +1,19 @@
+import { createParser } from 'eventsource-parser';
+
+const PROGRESS_STAGES = new Set(['rewrite', 'embedding', 'search', 'generation']);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+/**
+ * Feeds raw SSE text and calls back for each validated event field. Framing (CRLF, split chunks, comments) is
+ * eventsource-parser's job; this validates the widget's event shapes and fails loudly on anything else.
+ */
 export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence } = {}) {
-    let buffer = '';
     let finished = false;
-    const readLine = (line) => {
-        if (finished || !line.startsWith('data:')) return;
-        const data = line.slice(5).trim();
-        if (!data) return;
-        if (data === '[DONE]') {
-            finished = true;
-            return;
-        }
-        const event = JSON.parse(data);
-        if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error('Invalid chat answer event');
+    const handle = (event) => {
+        if (!isObject(event)) throw new Error('Invalid chat answer event');
         if (event.error) throw new Error(String(event.error));
         if (event.progress !== undefined) {
-            if (!['rewrite', 'embedding', 'search', 'generation'].includes(event.progress)) throw new Error('Invalid chat progress event');
+            if (!PROGRESS_STAGES.has(event.progress)) throw new Error('Invalid chat progress event');
             onProgress?.(event.progress);
         }
         if (event.evidence !== undefined) {
@@ -21,7 +21,7 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
             onEvidence?.(event.evidence);
         }
         if (event.metrics !== undefined) {
-            if (!event.metrics || typeof event.metrics !== 'object' || Array.isArray(event.metrics)) throw new Error('Invalid chat metrics event');
+            if (!isObject(event.metrics)) throw new Error('Invalid chat metrics event');
             onMetrics?.(event.metrics);
         }
         if (event.response !== undefined) {
@@ -29,17 +29,17 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
             onDelta(event.response);
         }
     };
+    const parser = createParser({
+        onEvent: ({ data }) => {
+            if (finished || !data) return;
+            if (data === '[DONE]') finished = true;
+            else handle(JSON.parse(data));
+        },
+    });
     return {
-        push(chunk) {
-            buffer += chunk;
-            const lines = buffer.split('\n');
-            buffer = lines.pop();
-            lines.forEach(readLine);
-        },
-        flush() {
-            if (buffer) readLine(buffer);
-            buffer = '';
-        },
+        push: (chunk) => parser.feed(chunk),
+        // Delivers a final event the server did not terminate with a blank line.
+        flush: () => parser.feed('\n\n'),
         get finished() {
             return finished;
         },

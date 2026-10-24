@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { CONFIG } from '../_lib/application.js';
-import { LogService } from '../_lib/log.js';
+import { fetchChatLogs } from '../_lib/log.js';
 import { pagesHandler } from '../_lib/pages-adapter.js';
 
 const app = new Hono();
@@ -26,7 +26,7 @@ app.get('/api/logs', async (c) => {
     const limit =
         Number.isInteger(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT ? limitParam : CONFIG.PAGINATION.DEFAULT_LIMIT;
 
-    const data = await LogService.fetchLogs(env, limit, cursor);
+    const data = await fetchChatLogs(env, limit, cursor);
     return c.json(data);
 });
 
