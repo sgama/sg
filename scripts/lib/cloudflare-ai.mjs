@@ -1,6 +1,6 @@
 import Cloudflare from 'cloudflare';
 import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
-import { parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
+import { retrieveEvidence } from '../../functions/_lib/retrieval-pipeline.js';
 
 export async function runEmbedding(client, accountId, model, text, options = {}) {
     // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
@@ -27,17 +27,17 @@ export function createCloudflareAi({
         maxRetries: 0,
         timeout: timeoutMs,
     });
-    const model = getModel(AI_CONFIG.contextualization.model);
-    const runJson = async (modelId, input) => {
-        const response = await fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${modelId}`, {
+    const contextualizationModel = getModel(AI_CONFIG.contextualization.model);
+    // One place for direct Workers AI REST calls: auth, timeout and HTTP status handling.
+    const post = (modelId, input) =>
+        fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${modelId}`, {
             method: 'POST',
-            headers: {
-                Authorization: `Bearer ${apiToken}`,
-                'Content-Type': 'application/json',
-            },
+            headers: { Authorization: `Bearer ${apiToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(input),
             signal: AbortSignal.timeout(timeoutMs),
         });
+    const runJson = async (modelId, input) => {
+        const response = await post(modelId, input);
         if (!response.ok) {
             await response.body?.cancel();
             throw new Error(`Workers AI ${modelId} returned HTTP ${response.status}`);
@@ -47,55 +47,60 @@ export function createCloudflareAi({
         return payload?.result;
     };
     return {
+        /** Same pipeline as production (retrieval-pipeline.js); only the transports differ. */
         async retrieve(query, history = []) {
             const retrievalQuery = history.length
-                ? contextualizedQueryFromResponse(await runJson(model.id, contextualizationInput(model, query, history)))
+                ? contextualizedQueryFromResponse(
+                      await runJson(contextualizationModel.id, contextualizationInput(contextualizationModel, query, history)),
+                  )
                 : query;
-            const start = performance.now();
-            const result = await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [retrievalQuery]);
-            const vector = result?.data?.[0];
-            if (!Array.isArray(vector) || vector.length !== AI_CONFIG.embedding.dimensions || !vector.every(Number.isFinite))
-                throw new Error('Invalid embedding vector');
-            const embedded = performance.now();
-            const response = await client.vectorize.indexes.query(AI_CONFIG.retrieval.indexName, {
-                account_id: accountId,
-                vector,
-                namespace,
-                topK: AI_CONFIG.retrieval.topK,
-                returnMetadata: 'all',
-            });
-            if (!Array.isArray(response.matches)) throw new Error('Invalid retrieval result');
-            const ids = await parentSectionIds(response.matches, namespace);
-            const sections = ids.length
-                ? await client.vectorize.indexes.getByIDs(AI_CONFIG.retrieval.indexName, {
-                      account_id: accountId,
-                      ids,
-                  })
-                : [];
-            return {
-                matches: expandSectionMatches(response.matches, sections),
-                retrievalQuery,
-                embeddingMs: embedded - start,
-                searchMs: performance.now() - embedded,
+            const timing = { embeddingMs: 0, searchMs: 0 };
+            const timed = async (key, work) => {
+                const started = performance.now();
+                try {
+                    return await work();
+                } finally {
+                    timing[key] += performance.now() - started;
+                }
             };
-        },
-        async run(model, input) {
-            const response = await fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${apiToken}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(input),
-                signal: AbortSignal.timeout(timeoutMs),
+            const { matches } = await retrieveEvidence({
+                retrievalQuery,
+                namespace,
+                embed: (text) =>
+                    timed('embeddingMs', async () => {
+                        const vector = (await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [text]))?.data?.[0];
+                        if (!Array.isArray(vector) || vector.length !== AI_CONFIG.embedding.dimensions || !vector.every(Number.isFinite))
+                            throw new Error('Invalid embedding vector');
+                        return vector;
+                    }),
+                search: (vector) =>
+                    timed(
+                        'searchMs',
+                        async () =>
+                            (
+                                await client.vectorize.indexes.query(AI_CONFIG.retrieval.indexName, {
+                                    account_id: accountId,
+                                    vector,
+                                    namespace,
+                                    topK: AI_CONFIG.retrieval.topK,
+                                    returnMetadata: 'all',
+                                })
+                            ).matches,
+                    ),
+                fetchSections: (ids) =>
+                    timed('searchMs', () => client.vectorize.indexes.getByIDs(AI_CONFIG.retrieval.indexName, { account_id: accountId, ids })),
             });
+            return { matches, retrievalQuery, ...timing };
+        },
+        async run(modelId, input) {
+            const response = await post(modelId, input);
             if (!response.ok || !response.body) {
                 await response.body?.cancel();
-                throw new Error(`Workers AI ${model} returned HTTP ${response.status}`);
+                throw new Error(`Workers AI ${modelId} returned HTTP ${response.status}`);
             }
             if (!response.headers.get('content-type')?.includes('text/event-stream')) {
                 await response.body.cancel();
-                throw new Error(`Workers AI ${model} did not return SSE`);
+                throw new Error(`Workers AI ${modelId} did not return SSE`);
             }
             return response.body;
         },

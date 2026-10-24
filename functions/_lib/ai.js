@@ -9,7 +9,7 @@ import {
     estimateCost,
 } from './application.js';
 import { buildMessages } from './prompts.js';
-import { contextFromMatches, parentSectionIds, expandSectionMatches } from './retrieval.js';
+import { retrieveEvidence } from './retrieval-pipeline.js';
 import { normalizeChatStream } from './chat-stream.js';
 
 export class AiService {
@@ -25,7 +25,6 @@ export class AiService {
         this.rewriteUsage = null;
         this.generationUsage = null;
         this.firstTokenMs = null;
-        this.evidence = [];
         // Optional store (see retrieval-cache.js); null disables retrieval caching.
         this.retrievalStore = retrievalStore;
     }
@@ -59,7 +58,11 @@ export class AiService {
         }
     }
 
-    async retrieveContext(query, history = [], onProgress = async () => {}) {
+    /**
+     * Retrieval for one question: returns the bounded context and the public evidence it came from.
+     * Stateless per call (no evidence kept on the instance); only timings feed the response metrics.
+     */
+    async retrieve(query, history = [], onProgress = async () => {}) {
         if (!this.vectorize) {
             console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
             throw new AppError('Retrieval service unavailable', 503);
@@ -68,58 +71,58 @@ export class AiService {
         if (history.length) await onProgress('rewrite');
         const retrievalQuery = await this.contextualizeQuery(query, history);
 
-        // Retrieval cache: namespace + contextualized query is deterministic.
+        // Deterministic for a given corpus namespace and query, so repeat questions skip paid calls.
         const cached = this.retrievalStore ? await this.retrievalStore.get(this.namespace, retrievalQuery) : null;
         if (cached) {
             this.timings.retrievalMs = 0;
-            this.evidence = Array.isArray(cached.evidence) ? cached.evidence.map((item) => ({ ...item })) : [];
             await onProgress('search');
-            return cached.contextText;
+            return { contextText: cached.contextText, evidence: cached.evidence.map((item) => ({ ...item })) };
         }
 
-        await onProgress('embedding');
-        const embeddingStart = performance.now();
-        const vector = await this.getEmbeddings(retrievalQuery);
-        this.timings.embeddingMs = performance.now() - embeddingStart;
-
-        try {
-            await onProgress('search');
-            const searchStart = performance.now();
-            const results = await this.vectorize.query(vector, {
-                topK: AI_CONFIG.retrieval.topK,
-                returnMetadata: 'all',
-                ...(this.namespace ? { namespace: this.namespace } : {}),
-            });
-            if (!Array.isArray(results.matches)) throw new Error('Invalid Vectorize response');
-            const ids = await parentSectionIds(results.matches, this.namespace);
-            const sections = ids.length ? await this.vectorize.getByIds(ids) : [];
-            this.timings.retrievalMs = performance.now() - searchStart;
-            this.evidence = [];
-            const contextText = contextFromMatches(expandSectionMatches(results.matches, sections), (excerpt) => {
-                if (
-                    typeof excerpt.url === 'string' &&
-                    /^\/(?!\/)/.test(excerpt.url) &&
-                    !/[\\\r\n]/.test(excerpt.url) &&
-                    !/\/_context(?:\/|$)/.test(excerpt.url)
-                ) {
-                    this.evidence.push(excerpt);
-                }
-            });
-
-            // Only cache non-empty contexts; empty results stay fresh. The store never rejects,
-            // so awaiting the write only adds a few milliseconds and keeps later reads consistent.
-            if (this.retrievalStore && contextText.trim().length >= CONFIG.ABSTAIN.MIN_CONTEXT_CHARS) {
-                await this.retrievalStore.put(this.namespace, retrievalQuery, {
-                    contextText,
-                    evidence: this.evidence.map((item) => ({ ...item })),
-                });
+        const timed = async (key, work) => {
+            const started = performance.now();
+            try {
+                return await work();
+            } finally {
+                this.timings[key] += performance.now() - started;
             }
-
-            return contextText;
+        };
+        let result;
+        try {
+            result = await retrieveEvidence({
+                retrievalQuery,
+                namespace: this.namespace,
+                embed: async (text) => {
+                    await onProgress('embedding');
+                    return timed('embeddingMs', () => this.getEmbeddings(text));
+                },
+                search: async (vector) => {
+                    await onProgress('search');
+                    return timed('retrievalMs', async () => {
+                        const results = await this.vectorize.query(vector, {
+                            topK: AI_CONFIG.retrieval.topK,
+                            returnMetadata: 'all',
+                            ...(this.namespace ? { namespace: this.namespace } : {}),
+                        });
+                        return results.matches;
+                    });
+                },
+                fetchSections: (ids) => timed('retrievalMs', () => this.vectorize.getByIds(ids)),
+            });
         } catch (err) {
+            if (err instanceof AppError) throw err;
             console.error('Vector Search Failed:', err);
             throw new AppError('Retrieval service unavailable', 503);
         }
+
+        // Only non-empty contexts are cached. The store never rejects, so the write cannot fail the request.
+        if (this.retrievalStore && result.contextText.trim().length >= CONFIG.ABSTAIN.MIN_CONTEXT_CHARS) {
+            await this.retrievalStore.put(this.namespace, retrievalQuery, {
+                contextText: result.contextText,
+                evidence: result.evidence,
+            });
+        }
+        return { contextText: result.contextText, evidence: result.evidence };
     }
 
     responseMetrics({ abstained = false } = {}) {

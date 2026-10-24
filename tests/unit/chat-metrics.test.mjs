@@ -64,7 +64,7 @@ test('service emits one final metrics event with actual model, aggregate usage a
         },
         VECTORIZE_INDEX: { query: async () => ({ matches: [{ metadata: { recordType: 'chunk', text: 'Evidence' } }] }) },
     });
-    const context = await svc.retrieveContext('Follow-up?', [{ role: 'user', content: 'Earlier question' }]);
+    const context = (await svc.retrieve('Follow-up?', [{ role: 'user', content: 'Earlier question' }])).contextText;
     const output = await new Response(await svc.generateStream('Follow-up?', context)).text();
     const events = output
         .split('\n')

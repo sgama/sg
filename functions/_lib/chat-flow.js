@@ -8,8 +8,8 @@ import { LogService } from './log.js';
  * bound. Events leave through `emit`, so the route owns the transport.
  */
 export async function answerChat({ aiService, env, executionCtx, query, history, emit }) {
-    const contextText = await aiService.retrieveContext(query, history, (stage) => emit({ progress: stage }));
-    await emit({ evidence: aiService.evidence });
+    const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));
+    await emit({ evidence });
 
     let stream;
     if (shouldAbstainForMissingContext(contextText)) {

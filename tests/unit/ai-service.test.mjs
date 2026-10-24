@@ -78,13 +78,13 @@ test('canonical evidence supplements curated facts without exposing internal exc
             },
         },
     });
-    const context = await service.retrieveContext('Architecture?');
+    const { contextText: context, evidence } = await service.retrieve('Architecture?');
     assert.match(context, /Canonical deployment/);
     assert.match(context, /Unique curated architecture/);
     assert.equal(context.match(/Unique curated architecture/g).length, 1);
-    assert.equal(service.evidence.length, 1);
-    assert.equal(service.evidence[0].url, '/canonical-project/');
-    assert.doesNotMatch(service.evidence[0].text, /Unique curated/);
+    assert.equal(evidence.length, 1);
+    assert.equal(evidence[0].url, '/canonical-project/');
+    assert.doesNotMatch(evidence[0].text, /Unique curated/);
     assert.throws(() => expandSectionMatches([curated], []), /Missing or invalid/);
 });
 
@@ -189,7 +189,7 @@ test('AiService', async (t) => {
         });
     });
 
-    await t.test('retrieveContext', async (t) => {
+    await t.test('retrieve', async (t) => {
         await t.test('joins matched text chunks with separator', async () => {
             const svc = new AiService(
                 makeEnv({
@@ -198,7 +198,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            const result = await svc.retrieveContext('query');
+            const result = (await svc.retrieve('query')).contextText;
 
             assert.equal(result, 'chunk one\n---\nchunk two');
         });
@@ -230,7 +230,7 @@ test('AiService', async (t) => {
                 ],
             };
 
-            const result = await new AiService(env).retrieveContext('query');
+            const result = (await new AiService(env).retrieve('query')).contextText;
 
             assert.equal(result, 'Full parent section text');
         });
@@ -251,10 +251,12 @@ test('AiService', async (t) => {
                 }),
             );
 
-            await svc.retrieveContext('Most recently?', [
-                { role: 'user', content: 'What did he do last?' },
-                { role: 'assistant', content: 'He had an internship in 2016.' },
-            ]);
+            (
+                await svc.retrieve('Most recently?', [
+                    { role: 'user', content: 'What did he do last?' },
+                    { role: 'assistant', content: 'He had an internship in 2016.' },
+                ])
+            ).contextText;
 
             assert.deepEqual(JSON.parse(requests[0].messages[1].content), {
                 history: [
@@ -280,7 +282,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            await svc.retrieveContext('Standalone question');
+            (await svc.retrieve('Standalone question')).contextText;
 
             assert.deepEqual(payloads, [{ text: ['Standalone question'] }]);
         });
@@ -296,7 +298,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            await assert.rejects(svc.retrieveContext('Follow-up?', [{ role: 'user', content: 'Earlier question?' }]), {
+            await assert.rejects(svc.retrieve('Follow-up?', [{ role: 'user', content: 'Earlier question?' }]), {
                 status: 503,
                 message: 'Query contextualization service unavailable',
             });
@@ -314,7 +316,7 @@ test('AiService', async (t) => {
                 }),
                 AI_CORPUS_NAMESPACE: 'corpus-test',
             });
-            assert.equal(await svc.retrieveContext('query'), '');
+            assert.equal((await svc.retrieve('query')).contextText, '');
         });
 
         await t.test('rejects malformed embeddings instead of abstaining', async (t) => {
@@ -363,7 +365,7 @@ test('AiService', async (t) => {
                     },
                 },
             });
-            const context = await svc.retrieveContext('How is the project deployed?');
+            const context = (await svc.retrieve('How is the project deployed?')).contextText;
             assert.equal(context.split('Roll back with Cloudflare.').length, 2);
             assert.match(context, /"url":"\/posts\/project"/);
             assert.match(context, /"section":"Deployment"/);
@@ -381,7 +383,7 @@ test('AiService', async (t) => {
                     getByIds: async () => [],
                 },
             });
-            await assert.rejects(svc.retrieveContext('before that'), { status: 503, message: 'Retrieval service unavailable' });
+            await assert.rejects(svc.retrieve('before that'), { status: 503, message: 'Retrieval service unavailable' });
             assert.match(logged.mock.calls[0].arguments[1].message, /Missing or invalid parent section/);
         });
 
@@ -395,7 +397,7 @@ test('AiService', async (t) => {
                         getByIds: async () => assert.fail('Unrelated parent lookup'),
                     },
                 });
-                assert.equal(await svc.retrieveContext('question'), matches.length ? 'Original evidence' : '');
+                assert.equal((await svc.retrieve('question')).contextText, matches.length ? 'Original evidence' : '');
             }
         });
 
@@ -407,7 +409,7 @@ test('AiService', async (t) => {
                     vectorizeQuery: async () => ({ matches: [{ id: 'old', metadata: { text: 'Old evidence' } }] }),
                 }),
             );
-            await assert.rejects(svc.retrieveContext('query'), { status: 503, message: 'Retrieval service unavailable' });
+            await assert.rejects(svc.retrieve('query'), { status: 503, message: 'Retrieval service unavailable' });
             assert.equal(logged.mock.callCount(), 1);
             assert.match(logged.mock.calls[0].arguments[1].message, /Unsupported corpus record type/);
             assert.throws(() => expandSectionMatches([{ metadata: { text: 'Old evidence' } }], []), /Unsupported corpus record type/);
@@ -428,7 +430,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            await assert.rejects(svc.retrieveContext('query'), {
+            await assert.rejects(svc.retrieve('query'), {
                 status: 503,
                 message: 'Embedding service unavailable',
             });
@@ -449,7 +451,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            await assert.rejects(svc.retrieveContext('query'), {
+            await assert.rejects(svc.retrieve('query'), {
                 status: 503,
                 message: 'Retrieval service unavailable',
             });
@@ -463,7 +465,7 @@ test('AiService', async (t) => {
                 AI: { run: async () => buildEmbeddingsResponse([0.1]) },
             });
 
-            await assert.rejects(svc.retrieveContext('query'), {
+            await assert.rejects(svc.retrieve('query'), {
                 status: 503,
                 message: 'Retrieval service unavailable',
             });
@@ -479,7 +481,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            const result = await svc.retrieveContext('query');
+            const result = (await svc.retrieve('query')).contextText;
 
             assert.equal(result, '');
         });
@@ -494,7 +496,7 @@ test('AiService', async (t) => {
                 }),
             );
 
-            const result = await svc.retrieveContext('query');
+            const result = (await svc.retrieve('query')).contextText;
 
             assert.equal(result, 'good chunk');
         });

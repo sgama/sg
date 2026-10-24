@@ -57,8 +57,8 @@ test('a repeat query is served from the store without embedding or Vectorize cal
     });
     const store = memoryStore();
 
-    const first = await new AiService(env, { retrievalStore: store }).retrieveContext('Kubernetes?');
-    const second = await new AiService(env, { retrievalStore: store }).retrieveContext('Kubernetes?');
+    const first = (await new AiService(env, { retrievalStore: store }).retrieve('Kubernetes?')).contextText;
+    const second = (await new AiService(env, { retrievalStore: store }).retrieve('Kubernetes?')).contextText;
 
     assert.equal(first, CONTEXT);
     assert.equal(second, CONTEXT);
@@ -77,8 +77,8 @@ test('empty retrieval results are never cached', async () => {
     });
     const store = memoryStore();
 
-    await new AiService(env, { retrievalStore: store }).retrieveContext('Unknown topic?');
-    await new AiService(env, { retrievalStore: store }).retrieveContext('Unknown topic?');
+    (await new AiService(env, { retrievalStore: store }).retrieve('Unknown topic?')).contextText;
+    (await new AiService(env, { retrievalStore: store }).retrieve('Unknown topic?')).contextText;
 
     assert.equal(searches, 2);
 });
@@ -93,8 +93,8 @@ test('no store configured means every query runs the full retrieval path', async
         },
     });
 
-    await new AiService(env).retrieveContext('Kubernetes?');
-    await new AiService(env).retrieveContext('Kubernetes?');
+    (await new AiService(env).retrieve('Kubernetes?')).contextText;
+    (await new AiService(env).retrieve('Kubernetes?')).contextText;
 
     assert.equal(searches, 2);
 });
