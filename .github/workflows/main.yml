@@ -106,12 +106,27 @@ jobs:
       - run: make csp-headers
 
       # Deploy only on push to develop; PRs stop after validation.
-      - name: Refresh corpus, deploy, and prune
+      # A new deployment (and the corpus refresh before it) is skipped when no file that can change the site
+      # differs from the commit the active deployment was built from; any doubt deploys.
+      - name: Detect deployable changes
+        id: changes
         if: github.event_name == 'push'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: make --no-print-directory deploy-needed >> "${GITHUB_OUTPUT}"
+      - name: Refresh corpus and deploy
+        if: github.event_name == 'push' && steps.changes.outputs.deploy == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           make ai-refresh
           make deploy-built
-          make cleanup-deployments
+      # Always on push: cheap when there is nothing to delete, and it finishes any backlog.
+      - name: Prune old deployments and vectors
+        if: github.event_name == 'push'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: make cleanup-deployments

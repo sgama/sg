@@ -181,7 +181,8 @@ export async function cleanupDeployments({
     project = 'sg',
     branch = 'develop',
     previous = 0,
-    maxDeletes = 25,
+    maxDeletes = 100,
+    concurrency = 5,
     now = Date.now(),
     indexName = AI_CONFIG.retrieval.indexName,
     dryRun = false,
@@ -192,6 +193,7 @@ export async function cleanupDeployments({
     const activeId = await activeDeployment(client, project, accountId);
     const deployments = await inventory(client, project, accountId);
     if (!Number.isInteger(maxDeletes) || maxDeletes < 1) throw new Error('Invalid maximum deletions per run');
+    if (!Number.isInteger(concurrency) || concurrency < 1) throw new Error('Invalid deletion concurrency');
     const plan = planRetention(deployments, activeId, branch, previous, { now });
     // Oldest first, a bounded batch per run: a large backlog is worked off over several deploys, and each deletion
     // re-checks every retained deployment, so the cap bounds how long one run can take.
@@ -237,17 +239,24 @@ export async function cleanupDeployments({
     const remaining = new Set(deployments.map((deployment) => deployment.id));
     await assertStable(remaining);
     if (!dryRun) {
-        for (const deployment of batch) {
+        // The Pages API has no bulk delete, so deletions run a few at a time; the inventory is re-checked before each group.
+        for (let offset = 0; offset < batch.length; offset += concurrency) {
             await assertStable(remaining);
-            await client.pages.projects.deployments.delete(deployment.id, {
-                account_id: accountId,
-                project_name: project,
-                ...(deployment.environment === 'preview' ? { force: true } : {}),
-            });
-            deletedIds.add(deployment.id);
-            remaining.delete(deployment.id);
+            await Promise.all(
+                batch.slice(offset, offset + concurrency).map(async (deployment) => {
+                    await client.pages.projects.deployments.delete(deployment.id, {
+                        account_id: accountId,
+                        project_name: project,
+                        ...(deployment.environment === 'preview' ? { force: true } : {}),
+                    });
+                    deletedIds.add(deployment.id);
+                    remaining.delete(deployment.id);
+                }),
+            );
         }
-        // Never remove vectors until all obsolete deployments have been deleted.
+        // Never remove vectors until all obsolete deployments have been deleted. Batches are the API maximum (100 IDs);
+        // mutations are processed in order, so waiting for the last one covers them all.
+        let lastMutationId;
         for (let offset = 0; offset < vectorsToDelete.length; offset += 100) {
             await assertStable(remaining);
             const result = await client.vectorize.indexes.deleteByIDs(indexName, {
@@ -257,8 +266,9 @@ export async function cleanupDeployments({
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
                 throw new Error('Vector deletion did not return a mutation ID');
             }
-            await wait(client, accountId, result.mutationId, { indexName });
+            lastMutationId = result.mutationId;
         }
+        if (lastMutationId) await wait(client, accountId, lastMutationId, { indexName });
         await assertStable(remaining);
     }
     return {
@@ -278,7 +288,8 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
             'dry-run': { type: 'boolean', default: false },
             verbose: { type: 'boolean', default: false },
             keep: { type: 'string', default: '0' },
-            'max-deletes': { type: 'string', default: '25' },
+            'max-deletes': { type: 'string', default: '100' },
+            concurrency: { type: 'string', default: '5' },
         },
     });
     const { accountId, apiToken } = requireCloudflareCredentials();
@@ -291,6 +302,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         verbose: values.verbose,
         previous: Number(values.keep),
         maxDeletes: Number(values['max-deletes']),
+        concurrency: Number(values.concurrency),
     });
     console.log(JSON.stringify(result, null, 2));
 }

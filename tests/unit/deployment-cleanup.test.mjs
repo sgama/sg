@@ -120,6 +120,42 @@ test('the per-run deletion cap works oldest first and defers vector pruning unti
     assert.ok(data.calls.some(([kind]) => kind === 'vectors'));
 });
 
+test('deployments are deleted concurrently up to the limit and vectors wait once, for the last batch', async () => {
+    const data = fixture();
+    data.setDeployments(Array.from({ length: 12 }, (_, index) => deployment(index + 1)));
+    data.setActive('d12');
+    let inFlight = 0;
+    let peak = 0;
+    const remove = data.client.pages.projects.deployments.delete;
+    data.client.pages.projects.deployments.delete = async (...args) => {
+        peak = Math.max(peak, ++inFlight);
+        await setImmediate();
+        await remove(...args);
+        inFlight--;
+    };
+    const stale = Array.from({ length: 250 }, (_, index) => ({ id: `stale-${index}`, namespace: namespace(99) }));
+    data.client.vectorize.indexes.listVectors = async () => ({ vectors: stale.map(({ id }) => ({ id })), isTruncated: false });
+    data.client.vectorize.indexes.getByIDs = async (_, options) => stale.filter((vector) => options.ids.includes(vector.id));
+    let batches = 0;
+    data.client.vectorize.indexes.deleteByIDs = async (_, options) => {
+        data.calls.push(['vectors', options.ids.length]);
+        return { mutationId: `deleted-${++batches}` };
+    };
+    const result = await cleanupDeployments({ ...data, accountId: 'account', previous: 0, concurrency: 4 });
+    assert.equal(result.removedDeployments.length, 11);
+    assert.equal(peak, 4, 'deletions run in parallel, bounded by the limit');
+    assert.deepEqual(
+        data.calls.filter(([kind]) => kind !== 'deployment'),
+        [
+            ['vectors', 100],
+            ['vectors', 100],
+            ['vectors', 50],
+            ['ready', 'deleted-3'],
+        ],
+    );
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account', concurrency: 0 }), /concurrency/);
+});
+
 test('waits for acknowledged deployment deletions to disappear before pruning vectors', async () => {
     const data = fixture();
     const remove = data.client.pages.projects.deployments.delete;
@@ -271,6 +307,7 @@ function fixture() {
         client,
         calls,
         previous: 5,
+        concurrency: 1,
         wait: async (_, __, id) => calls.push(['ready', id]),
         setDeployments: (value) => {
             deployments = value;
@@ -594,7 +631,7 @@ test('SDK transport covers Pages deletion, Vectorize batches and mutation readin
         ['d99', 'true'],
     ]);
     assert.deepEqual(result.retainedDeployments, ['d8']);
-    assert.equal(snapshots.length, 7);
+    assert.equal(snapshots.length, 6, 'retained snapshots are re-read once per safety check, and the two deletions share one');
     assert.ok(snapshots.every((id) => id === 'd8'));
     assert.equal(result.removedVectors, 110);
     assert.deepEqual(
@@ -610,8 +647,8 @@ test('SDK transport covers Pages deletion, Vectorize batches and mutation readin
         stale.map(({ id }) => id),
     );
     assert.deepEqual(
-        vectorRequests.slice(-4).map(([operation]) => operation),
-        ['/delete_by_ids', '/info', '/delete_by_ids', '/info'],
+        vectorRequests.slice(-3).map(([operation]) => operation),
+        ['/delete_by_ids', '/delete_by_ids', '/info'],
     );
 });
 

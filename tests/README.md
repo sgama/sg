@@ -49,6 +49,7 @@ Keep detailed behavior tests with the module that owns it. Keep cross-module reg
 | `postcss.test.mjs`                                                                          | Production purging preserves theme-owned dark selectors and chat colors                                                               |
 | `menu-a11y.test.mjs`                                                                        | Native menu button wiring, expanded state, Escape, and outside-click dismissal                                                        |
 | `deployment-cleanup.test.mjs`                                                               | Retention and owned-resource teardown safety                                                                                          |
+| `deploy-needed.test.mjs`                                                                    | Skip-deploy decision: only unchanged deployable files skip; every doubt deploys                                                       |
 | `integration/layouts.test.mjs`                                                              | Generated Hugo schema, public LLM index, image preloads, and theme settings                                                           |
 
 This table groups responsibilities rather than serving as an exhaustive file inventory.

@@ -7,7 +7,7 @@ SHELL := /bin/bash
 	deps test test-layouts lint lint-fix format format-check lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
-	deploy-pages deploy-built cleanup-deployments ci ci-check
+	deploy-pages deploy-built deploy-needed cleanup-deployments ci ci-check
 
 ifneq (,$(wildcard .env))
 include .env
@@ -234,6 +234,9 @@ deploy-built: check check-env ## Deploy an already validated production build (n
 		--commit-hash=$$COMMIT_HASH \
 		--commit-dirty=true \
 		--commit-message="$$COMMIT_MESSAGE"
+
+deploy-needed: check-node check-env ## Print deploy=true|false: whether deployable files changed since the active deployment
+	@$(NODE) scripts/deploy_needed.mjs
 
 cleanup-deployments: check-node check-env ## Keep production rollback history; delete previews and unreferenced corpora
 	@$(NODE) scripts/cleanup_deployments.mjs

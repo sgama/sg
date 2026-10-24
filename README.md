@@ -581,10 +581,13 @@ preview deployments are deleted, including in-progress previews. There is no
 rollback history: to roll back, redeploy an earlier commit. Keep a window with
 `--keep N`, which retains N older successful production deployments on `develop`.
 
-Each run deletes at most `--max-deletes` deployments (default 25), oldest first,
-and does not prune vectors until none are left to delete. A large backlog is
-therefore cleared over several deploys instead of one long run, because every
-deletion re-checks all retained deployments.
+Each run deletes at most `--max-deletes` deployments (default 100), oldest first,
+`--concurrency` at a time (default 5; the Pages API has no bulk delete), re-checking
+the inventory before each group. It does not prune vectors until none are left to
+delete. Vector deletion uses the API maximum of 100 IDs per request and waits once,
+for the last mutation, because mutations are processed in order. A backlog beyond the
+cap is cleared over several deploys, since every group re-checks all retained
+deployments.
 
 Cleanup reads each retained deployment's environment snapshot to preserve its
 `AI_CORPUS_NAMESPACE`. It first deletes obsolete deployments, then deletes vectors
@@ -633,7 +636,7 @@ Preview the plan without deletion:
 ```bash
 node scripts/cleanup_deployments.mjs --dry-run             # plan only; GET requests, no deletion
 node scripts/cleanup_deployments.mjs --dry-run --verbose   # also group retained deployments by why they are kept
-node scripts/cleanup_deployments.mjs --keep 3 --max-deletes 10
+node scripts/cleanup_deployments.mjs --keep 3 --max-deletes 10 --concurrency 2
 ```
 
 `--verbose` adds `retainedBreakdown`, counting retained deployments by environment,
@@ -767,6 +770,13 @@ Pull requests targeting `develop` run `make ci-check` without Cloudflare credent
 or paid API calls. Production pushes run the same checks before refreshing the
 corpus, deploying the existing build, and pruning old deployments. Production
 runs remain serialized without cancellation to protect corpus/deployment updates.
+A deployment, and the corpus refresh before it, is skipped when no file that can
+change the site differs from the commit the active production deployment was built
+from (`make deploy-needed`, `scripts/deploy_needed.mjs`). The comparison covers
+content, layouts, assets, static files, data, Functions, the corpus and deploy
+scripts, the Hugo and PostCSS configuration, and the lockfile; tests, docs and CI
+files do not trigger one. Any doubt (no recorded commit, the commit cannot be
+fetched, an API error) deploys, and cleanup always runs.
 CI uses three cache entries with different lifetimes. The first holds actionlint,
 Hugo and `node_modules`, keyed by tool versions and the lockfile. The second holds
 Hugo's cache directory, mostly the Blowfish module (about 365 MB), keyed by `go.mod`

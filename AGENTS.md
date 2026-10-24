@@ -53,11 +53,16 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - Cleanup keeps one production deployment: the active one (`--keep N` retains N
   older successful `develop` deployments). Every other production deployment is
   removed once finished, or once stuck in progress for over 24 hours; fresh
-  builds are kept. Each run deletes at most `--max-deletes` (default 25), oldest
+  builds are kept. Each run deletes at most `--max-deletes` (default 100), five at a time, oldest
   first, so a backlog clears over several deploys.
 - All previews are targeted, including in-progress previews; force deletion is
   preview-only. Vector pruning waits until no deployment is left to delete and
   preserves namespaces referenced by retained deployment snapshots.
+- CI skips the corpus refresh and deployment when no file that can change the site
+  differs from the commit the active deployment was built from
+  (`scripts/deploy_needed.mjs`, `make deploy-needed`); any doubt deploys. Cleanup
+  always runs. Edit its `DEPLOY_INPUTS` list when adding a directory that affects
+  the build.
 - Keep active-ID, fresh inventory, namespace and mutation-readiness checks.
   Serialized CI does not lock out manual cloud writers.
 - Paid embedding requests do not retry. On failure, queued inference is prevented
