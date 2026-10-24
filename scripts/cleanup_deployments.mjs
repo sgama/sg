@@ -11,8 +11,17 @@ import { runIfMain } from './lib/cli.mjs';
 const VERSIONED_NAMESPACE = /^corpus-[a-f0-9]{56}$/;
 const successful = (deployment) =>
     !deployment.is_skipped && deployment.latest_stage?.name === 'deploy' && deployment.latest_stage.status === 'success';
+// 'idle' (queued) and 'active' (building) are the only non-terminal stages.
+const TERMINAL_STAGES = new Set(['success', 'failure', 'canceled', 'skipped']);
+// A build still queued or running after this long is dead, not in progress.
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 
-export function planRetention(deployments, activeId, branch, previous = 5) {
+/**
+ * What to keep: the active production deployment, plus `previous` older successful production deployments on
+ * `branch` (default none: one production deployment). Everything else is removed: every preview, and every other
+ * production deployment of any branch once it has finished or has been stuck in progress past `staleAfterMs`.
+ */
+export function planRetention(deployments, activeId, branch, previous = 0, { now = Date.now(), staleAfterMs = STALE_AFTER_MS } = {}) {
     if (!activeId || !deployments.some((deployment) => deployment.id === activeId)) {
         throw new Error('Active deployment must be present before cleanup');
     }
@@ -20,28 +29,31 @@ export function planRetention(deployments, activeId, branch, previous = 5) {
     if (deployments.some((deployment) => !deployment.id || !Number.isFinite(Date.parse(deployment.created_on)))) {
         throw new Error('Deployment inventory contains invalid IDs or timestamps');
     }
-    const production = deployments.filter(
-        (deployment) => deployment.environment === 'production' && deployment.deployment_trigger?.metadata?.branch === branch,
-    );
     const active = deployments.find((deployment) => deployment.id === activeId);
     if (active.environment !== 'production') {
         throw new Error('Active deployment is not production; refusing cleanup');
     }
-    const predecessors = production
+    const predecessors = deployments
         .filter(
-            (deployment) => deployment.id !== activeId && Date.parse(deployment.created_on) < Date.parse(active.created_on) && successful(deployment),
+            (deployment) =>
+                deployment.environment === 'production' &&
+                deployment.deployment_trigger?.metadata?.branch === branch &&
+                deployment.id !== activeId &&
+                Date.parse(deployment.created_on) < Date.parse(active.created_on) &&
+                successful(deployment),
         )
         .sort((a, b) => Date.parse(b.created_on) - Date.parse(a.created_on))
         .slice(0, previous);
     const keep = new Set([activeId, ...predecessors.map((deployment) => deployment.id)]);
-    // Production builds in progress survive; previews are removed regardless of status.
-    const remove = deployments.filter(
-        (deployment) =>
-            deployment.environment === 'preview' ||
-            (production.some((item) => item.id === deployment.id) &&
-                !keep.has(deployment.id) &&
-                ['success', 'failure', 'canceled'].includes(deployment.latest_stage?.status)),
-    );
+    const finished = (deployment) =>
+        TERMINAL_STAGES.has(deployment.is_skipped ? 'skipped' : deployment.latest_stage?.status) ||
+        now - Date.parse(deployment.created_on) > staleAfterMs;
+    const remove = deployments
+        .filter(
+            (deployment) =>
+                deployment.environment === 'preview' || (deployment.environment === 'production' && !keep.has(deployment.id) && finished(deployment)),
+        )
+        .sort((a, b) => Date.parse(a.created_on) - Date.parse(b.created_on));
     return {
         remove,
         retain: deployments.filter((deployment) => !remove.some((item) => item.id === deployment.id)),
@@ -168,7 +180,9 @@ export async function cleanupDeployments({
     accountId,
     project = 'sg',
     branch = 'develop',
-    previous = 5,
+    previous = 0,
+    maxDeletes = 25,
+    now = Date.now(),
     indexName = AI_CONFIG.retrieval.indexName,
     dryRun = false,
     verbose = false,
@@ -177,7 +191,12 @@ export async function cleanupDeployments({
 }) {
     const activeId = await activeDeployment(client, project, accountId);
     const deployments = await inventory(client, project, accountId);
-    const plan = planRetention(deployments, activeId, branch, previous);
+    if (!Number.isInteger(maxDeletes) || maxDeletes < 1) throw new Error('Invalid maximum deletions per run');
+    const plan = planRetention(deployments, activeId, branch, previous, { now });
+    // Oldest first, a bounded batch per run: a large backlog is worked off over several deploys, and each deletion
+    // re-checks every retained deployment, so the cap bounds how long one run can take.
+    const batch = plan.remove.slice(0, maxDeletes);
+    const deferred = plan.remove.length - batch.length;
     const retainedIds = new Set(plan.retain.map((deployment) => deployment.id));
     const references = async (deployments) => referencedNamespaces(await retainedSnapshots(client, project, accountId, deployments));
     const referenced = await references(plan.retain);
@@ -213,10 +232,12 @@ export async function cleanupDeployments({
             await sleep(1000);
         }
     };
+    // Deployments left over by the cap still exist, so their corpora must not be pruned yet.
+    const vectorsToDelete = deferred ? [] : staleIds;
     const remaining = new Set(deployments.map((deployment) => deployment.id));
     await assertStable(remaining);
     if (!dryRun) {
-        for (const deployment of plan.remove) {
+        for (const deployment of batch) {
             await assertStable(remaining);
             await client.pages.projects.deployments.delete(deployment.id, {
                 account_id: accountId,
@@ -227,11 +248,11 @@ export async function cleanupDeployments({
             remaining.delete(deployment.id);
         }
         // Never remove vectors until all obsolete deployments have been deleted.
-        for (let offset = 0; offset < staleIds.length; offset += 100) {
+        for (let offset = 0; offset < vectorsToDelete.length; offset += 100) {
             await assertStable(remaining);
             const result = await client.vectorize.indexes.deleteByIDs(indexName, {
                 account_id: accountId,
-                ids: staleIds.slice(offset, offset + 100),
+                ids: vectorsToDelete.slice(offset, offset + 100),
             });
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) {
                 throw new Error('Vector deletion did not return a mutation ID');
@@ -243,8 +264,9 @@ export async function cleanupDeployments({
     return {
         dryRun,
         retainedDeployments: plan.retain.map((item) => item.id),
-        removedDeployments: plan.remove.map((item) => item.id),
-        removedVectors: staleIds.length,
+        removedDeployments: batch.map((item) => item.id),
+        removedVectors: vectorsToDelete.length,
+        ...(deferred ? { deferredDeployments: deferred } : {}),
         ...(verbose ? { retainedBreakdown: breakdown(plan.retain) } : {}),
     };
 }
@@ -252,7 +274,12 @@ export async function cleanupDeployments({
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({
         args,
-        options: { 'dry-run': { type: 'boolean', default: false }, verbose: { type: 'boolean', default: false } },
+        options: {
+            'dry-run': { type: 'boolean', default: false },
+            verbose: { type: 'boolean', default: false },
+            keep: { type: 'string', default: '0' },
+            'max-deletes': { type: 'string', default: '25' },
+        },
     });
     const { accountId, apiToken } = requireCloudflareCredentials();
     const result = await cleanupDeployments({
@@ -262,6 +289,8 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         branch: process.env.BRANCH ?? 'develop',
         dryRun: values['dry-run'],
         verbose: values.verbose,
+        previous: Number(values.keep),
+        maxDeletes: Number(values['max-deletes']),
     });
     console.log(JSON.stringify(result, null, 2));
 }

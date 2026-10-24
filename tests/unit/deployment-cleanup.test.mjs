@@ -52,22 +52,72 @@ test('a deployment or active-ID change while listing vectors stops cleanup befor
         assert.deepEqual(data.calls, []);
     }
 });
-
-test('verbose dry run explains why each deployment is retained, including other-branch production', async () => {
+test('verbose dry run explains why each deployment is retained or removed', async () => {
     const data = fixture();
     data.setDeployments([
         ...Array.from({ length: 8 }, (_, index) => deployment(index + 1)),
         deployment(50, { deployment_trigger: { metadata: { branch: 'main' } } }),
         deployment(51, { latest_stage: { name: 'build', status: 'active' } }),
     ]);
-    const quiet = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true });
+    const now = Date.parse(deployment(51).created_on) + 60 * 60 * 1000;
+    const quiet = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true, now });
     assert.equal(quiet.retainedBreakdown, undefined);
-    const { retainedBreakdown } = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true, verbose: true });
-    assert.deepEqual(retainedBreakdown, {
+    const result = await cleanupDeployments({ ...data, accountId: 'account', dryRun: true, verbose: true, now });
+    assert.deepEqual(result.retainedBreakdown, {
         'production / develop / deploy:success': { count: 6, oldest: deployment(3).created_on },
-        'production / main / deploy:success': { count: 1, oldest: deployment(50).created_on },
         'production / develop / build:active': { count: 1, oldest: deployment(51).created_on },
     });
+    assert.ok(result.removedDeployments.includes('d50'), 'other-branch production is removed');
+});
+
+test('by default only the active production deployment is kept; previews, finished and stale ones go, fresh builds stay', () => {
+    const now = Date.UTC(2026, 5, 1);
+    const hour = 60 * 60 * 1000;
+    const at = (hoursAgo, overrides) => ({ ...deployment(1), created_on: new Date(now - hoursAgo * hour).toISOString(), ...overrides });
+    const active = at(10, { id: 'active' });
+    const plan = planRetention(
+        [
+            active,
+            at(20, { id: 'older-success' }),
+            at(30, { id: 'older-failed', latest_stage: { name: 'deploy', status: 'failure' } }),
+            at(5, { id: 'other-branch', deployment_trigger: { metadata: { branch: 'main' } } }),
+            at(1, { id: 'fresh-build', latest_stage: { name: 'build', status: 'active' } }),
+            at(48, { id: 'stuck-build', latest_stage: { name: 'build', status: 'active' } }),
+            at(2, { id: 'skipped', is_skipped: true }),
+            at(3, { id: 'preview', environment: 'preview' }),
+        ],
+        'active',
+        'develop',
+        undefined,
+        { now },
+    );
+    assert.deepEqual(
+        plan.retain.map((item) => item.id),
+        ['active', 'fresh-build'],
+    );
+    assert.deepEqual(
+        plan.remove.map((item) => item.id),
+        ['stuck-build', 'older-failed', 'older-success', 'other-branch', 'preview', 'skipped'].sort(
+            (a, b) => Date.parse(plan.remove.find((x) => x.id === a).created_on) - Date.parse(plan.remove.find((x) => x.id === b).created_on),
+        ),
+    );
+});
+
+test('the per-run deletion cap works oldest first and defers vector pruning until nothing is left to delete', async () => {
+    const data = fixture();
+    await assert.rejects(cleanupDeployments({ ...data, accountId: 'account', previous: 0, maxDeletes: 0 }), /maximum deletions/);
+    const first = await cleanupDeployments({ ...data, accountId: 'account', previous: 0, maxDeletes: 3 });
+    assert.deepEqual(first.removedDeployments, ['d1', 'd2', 'd3']);
+    assert.equal(first.deferredDeployments, 4);
+    assert.equal(first.removedVectors, 0);
+    assert.ok(
+        data.calls.every(([kind]) => kind === 'deployment'),
+        'No vector work while deployments remain to be deleted',
+    );
+    const second = await cleanupDeployments({ ...data, accountId: 'account', previous: 0, maxDeletes: 25 });
+    assert.deepEqual(second.removedDeployments, ['d4', 'd5', 'd6', 'd7']);
+    assert.equal(second.deferredDeployments, undefined);
+    assert.ok(data.calls.some(([kind]) => kind === 'vectors'));
 });
 
 test('waits for acknowledged deployment deletions to disappear before pruning vectors', async () => {
@@ -220,6 +270,7 @@ function fixture() {
     return {
         client,
         calls,
+        previous: 5,
         wait: async (_, __, id) => calls.push(['ready', id]),
         setDeployments: (value) => {
             deployments = value;
@@ -438,12 +489,12 @@ test('retained namespaces are fetched fresh and a changed snapshot prevents dele
     assert.deepEqual(data.calls, []);
 });
 
-test('retains active deployment plus five successful predecessors, including rollback', () => {
+test('with a retention window, keeps the active deployment plus that many successful predecessors, including rollback', () => {
     const deployments = Array.from({ length: 9 }, (_, index) => deployment(index + 1));
     deployments.push(deployment(10, { latest_stage: { name: 'build', status: 'active' } }));
     deployments.push(deployment(11, { latest_stage: { name: 'deploy', status: 'failure' } }));
     deployments.push(deployment(12, { environment: 'preview' }));
-    const plan = planRetention(deployments, 'd7', 'develop');
+    const plan = planRetention(deployments, 'd7', 'develop', 5, { now: Date.UTC(2026, 0, 10, 12) });
     assert.deepEqual(
         plan.remove.map((item) => item.id),
         ['d1', 'd8', 'd9', 'd11', 'd12'],

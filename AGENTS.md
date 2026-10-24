@@ -50,11 +50,14 @@ test patterns. Keep general documentation there rather than duplicating it here.
 ## Production safety
 
 - `develop` is the production branch; there is no separate `main`.
-- Cleanup retains the active deployment plus five successful production
-  predecessors, and preserves other-branch/in-progress production deployments.
+- Cleanup keeps one production deployment: the active one (`--keep N` retains N
+  older successful `develop` deployments). Every other production deployment is
+  removed once finished, or once stuck in progress for over 24 hours; fresh
+  builds are kept. Each run deletes at most `--max-deletes` (default 25), oldest
+  first, so a backlog clears over several deploys.
 - All previews are targeted, including in-progress previews; force deletion is
-  preview-only. Vector pruning follows deployment deletion and preserves
-  namespaces referenced by retained deployment snapshots.
+  preview-only. Vector pruning waits until no deployment is left to delete and
+  preserves namespaces referenced by retained deployment snapshots.
 - Keep active-ID, fresh inventory, namespace and mutation-readiness checks.
   Serialized CI does not lock out manual cloud writers.
 - Paid embedding requests do not retry. On failure, queued inference is prevented

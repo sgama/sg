@@ -567,11 +567,18 @@ make deploy-pages
 
 #### Deployment and corpus retention
 
-After deployment, CI runs `make cleanup-deployments`. Cleanup preserves the
-project's active deployment and five previous successful production deployments
-on `develop`, plus other-branch production and in-progress production deployments.
-All preview deployments are deleted, including in-progress previews. A rollback
-preserves the active deployment and its successful predecessors.
+After deployment, CI runs `make cleanup-deployments`. Cleanup keeps one production
+deployment: the active one. Every other production deployment, of any branch, is
+deleted once it has finished (success, failure, canceled or skipped) or has been
+queued or building for over 24 hours; a fresh build in progress is kept. All
+preview deployments are deleted, including in-progress previews. There is no
+rollback history: to roll back, redeploy an earlier commit. Keep a window with
+`--keep N`, which retains N older successful production deployments on `develop`.
+
+Each run deletes at most `--max-deletes` deployments (default 25), oldest first,
+and does not prune vectors until none are left to delete. A large backlog is
+therefore cleared over several deploys instead of one long run, because every
+deletion re-checks all retained deployments.
 
 Cleanup reads each retained deployment's environment snapshot to preserve its
 `AI_CORPUS_NAMESPACE`. It first deletes obsolete deployments, then deletes vectors
@@ -620,6 +627,7 @@ Preview the plan without deletion:
 ```bash
 node scripts/cleanup_deployments.mjs --dry-run             # plan only; GET requests, no deletion
 node scripts/cleanup_deployments.mjs --dry-run --verbose   # also group retained deployments by why they are kept
+node scripts/cleanup_deployments.mjs --keep 3 --max-deletes 10
 ```
 
 `--verbose` adds `retainedBreakdown`, counting retained deployments by environment,
