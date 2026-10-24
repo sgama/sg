@@ -45,5 +45,5 @@ test('npm scripts delegate to bounded Make commands without cycles', () => {
     assert.ok(commands.every((command) => command.includes('custom-node --test')));
     assert.ok(commands.every((command) => !command.includes('--test-concurrency')));
     assert.match(result.stdout, /command -v custom-hugo/);
-    assert.match(result.stdout, /custom-node node_modules\/c8\/bin\/c8\.js custom-node --test/);
+    assert.match(result.stdout, /custom-node node_modules\/c8\/bin\/c8\.js (--reporter=\S+ )+custom-node --test/);
 });

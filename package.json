@@ -76,12 +76,6 @@
         "exclude": [
             "**/node_modules/**"
         ],
-        "reporter": [
-            "text-summary",
-            "html",
-            "lcov",
-            "json-summary"
-        ],
         "reports-dir": "coverage"
     },
     "allowScripts": {

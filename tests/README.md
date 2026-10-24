@@ -23,7 +23,7 @@ node --test --watch tests/unit/validation.test.mjs
 
 Make supports `NODE`, `HUGO`, and `TEST_REPORTER` overrides for both tests and coverage. Unit tests have a 30-second per-test timeout; Hugo layout tests have a 120-second timeout. CLI subprocess tests separately use bounded spawn timeouts and assert spawn errors so a timeout cannot count as an expected failure.
 
-Coverage uses c8 and includes unexecuted browser, Functions, and script files. It writes `coverage/index.html`, `coverage/lcov.info`, and `coverage/coverage-summary.json`. CI retains reports for 14 days. Coverage is reported, not threshold-gated; mocked browser tests are not substitutes for real-browser rendering or accessibility checks.
+Coverage uses c8 and includes unexecuted browser, Functions, and script files. It writes `coverage/index.html` and `coverage/lcov.info` by default (`COVERAGE_REPORTERS` selects the reporters); CI prints only the text summary and does not upload a report. Coverage is reported, not threshold-gated; mocked browser tests are not substitutes for real-browser rendering or accessibility checks.
 
 ## Test ownership
 

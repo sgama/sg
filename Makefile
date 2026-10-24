@@ -34,6 +34,7 @@ HUGO              ?= hugo
 HUGO_FLAGS        ?= --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?=
 NODE              ?= node
+COVERAGE_REPORTERS ?= text-summary html lcov
 PRETTIER_FILES    := "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 NPM               ?= npm
 NPX               ?= npx --no-install
@@ -160,8 +161,8 @@ install-actionlint: ## Install the pinned actionlint release binary (checksum-ve
 print-%: ## Print a Makefile variable (used by CI to read pinned versions)
 	@echo '$($*)'
 
-coverage: check-node ## Run offline tests with text, HTML and LCOV coverage
-	@$(NODE) node_modules/c8/bin/c8.js $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+coverage: check-node ## Run offline tests with coverage (reports: COVERAGE_REPORTERS, default text-summary html lcov)
+	@$(NODE) node_modules/c8/bin/c8.js $(addprefix --reporter=,$(COVERAGE_REPORTERS)) $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 
 audit-content: check-node ## Validate content front matter coverage (install dependencies first)
 	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs

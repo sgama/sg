@@ -31,7 +31,8 @@ env:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Production runs queue behind each other, so a hung job would block every later deploy.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
@@ -100,14 +101,7 @@ jobs:
       # The offline checks are independent, so they run together (public runners have 4 vCPUs);
       # --output-sync keeps each target's log in one block. Make orders PostCSS before Hugo.
       - name: Lint, test and build
-        run: make -j4 --output-sync=target lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: javascript-coverage
-          path: coverage/
-          if-no-files-found: warn
-          retention-days: 14
+        run: make -j4 --output-sync=target COVERAGE_REPORTERS=text-summary lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts
       # Needs the production build, so it runs after the parallel block.
       - run: make csp-headers
 
