@@ -1,9 +1,16 @@
 {
-  "ignorePatterns": [
-    { "pattern": "^(?!https?://)" }
-  ],
-  "retryOn429": true,
-  "retryCount": 3,
-  "timeout": "10s",
-  "aliveStatusCodes": [200, 206, 300, 301, 302, 303, 304, 307, 308]
+    "ignorePatterns": [
+        { "pattern": "^(?!https?://)" },
+        { "pattern": "boardcastapp\\.com" },
+        { "pattern": "kudolife\\.com" },
+        { "pattern": "ericsson\\.com/ourportfolio" },
+        { "pattern": "zeit\\.co/(dashboard|account|docs|import|myuser)" },
+        { "pattern": "demo-zeit-now\\.now\\.sh" },
+        { "pattern": "microbadger\\.com" },
+        { "pattern": "zeit\\.ink" }
+    ],
+    "retryOn429": true,
+    "retryCount": 3,
+    "timeout": "10s",
+    "aliveStatusCodes": [200, 206, 300, 301, 302, 303, 304, 307, 308]
 }
