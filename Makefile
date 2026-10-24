@@ -40,6 +40,10 @@ WRANGLER          ?= npx wrangler
 TEST_REPORTER     ?= spec
 ACTIONLINT        ?= actionlint
 ACTIONLINT_VERSION := v1.7.7
+ACTIONLINT_NUMBER := $(patsubst v%,%,$(ACTIONLINT_VERSION))
+ACTIONLINT_OS     := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ACTIONLINT_ARCH   := $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
+ACTIONLINT_BIN_DIR ?= $(HOME)/.local/bin
 
 export PROJECT_NAME BRANCH PUBLIC_DIR REPORT_DIR
 export AI_MODELS AI_NAMESPACE AI_REFRESH_FLAGS AI_REPEATS AI_FIXTURE
@@ -127,16 +131,33 @@ format: check-node ## Format JavaScript, source CSS and YAML (no Hugo content/te
 format-check: check-node ## Check formatting without edits
 	@$(NPX) prettier --check "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 
-lint-workflows: ## Validate GitHub Actions with native actionlint
+lint-workflows: ## Validate GitHub Actions with the pinned actionlint release
 	@command -v $(ACTIONLINT) >/dev/null || { \
-		echo "Missing actionlint; install with: go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)"; \
-		echo 'Add $$(go env GOPATH)/bin to PATH or set ACTIONLINT=/path/to/actionlint'; \
+		echo "Missing actionlint; run: make install-actionlint"; \
+		echo "Then add $(ACTIONLINT_BIN_DIR) to PATH or set ACTIONLINT=/path/to/actionlint"; \
 		exit 1; \
 	}
 	@$(ACTIONLINT)
 
-install-actionlint: ## Install the pinned actionlint release using Go
-	@go install github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
+install-actionlint: ## Install the pinned actionlint release binary (checksum-verified; no Go needed)
+	@if [ -x "$(ACTIONLINT_BIN_DIR)/actionlint" ] && [ "$$("$(ACTIONLINT_BIN_DIR)/actionlint" -version | head -1)" = "$(ACTIONLINT_NUMBER)" ]; then \
+		echo "actionlint $(ACTIONLINT_NUMBER) already installed in $(ACTIONLINT_BIN_DIR)"; \
+	else \
+		tmp=$$(mktemp -d) && \
+		base="https://github.com/rhysd/actionlint/releases/download/$(ACTIONLINT_VERSION)" && \
+		file="actionlint_$(ACTIONLINT_NUMBER)_$(ACTIONLINT_OS)_$(ACTIONLINT_ARCH).tar.gz" && \
+		curl --fail --silent --show-error --location -o "$$tmp/$$file" "$$base/$$file" && \
+		curl --fail --silent --show-error --location -o "$$tmp/checksums.txt" "$$base/actionlint_$(ACTIONLINT_NUMBER)_checksums.txt" && \
+		(cd "$$tmp" && grep -F " $$file" checksums.txt | shasum -a 256 -c -) && \
+		tar -xzf "$$tmp/$$file" -C "$$tmp" actionlint && \
+		mkdir -p "$(ACTIONLINT_BIN_DIR)" && \
+		install -m 0755 "$$tmp/actionlint" "$(ACTIONLINT_BIN_DIR)/actionlint" && \
+		rm -rf "$$tmp" && \
+		echo "installed actionlint $(ACTIONLINT_NUMBER) to $(ACTIONLINT_BIN_DIR)"; \
+	fi
+
+print-%: ## Print a Makefile variable (used by CI to read pinned versions)
+	@echo '$($*)'
 
 coverage: check-node ## Run offline tests with text, HTML and LCOV coverage
 	@$(NODE) node_modules/c8/bin/c8.js $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs

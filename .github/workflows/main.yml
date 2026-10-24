@@ -40,10 +40,7 @@ jobs:
 
       - name: Read pinned actionlint version
         id: actionlint-version
-        run: |
-          version=$(awk '$1 == "ACTIONLINT_VERSION" && $2 == ":=" { print $3 }' Makefile)
-          test -n "$version"
-          echo "version=$version" >> "${GITHUB_OUTPUT}"
+        run: echo "version=$(make -s print-ACTIONLINT_VERSION)" >> "${GITHUB_OUTPUT}"
 
       # One cache entry holds every reusable artifact: tool binaries, node_modules and
       # Hugo's build state. Keys hash the inputs that change each artifact, and the
@@ -62,16 +59,10 @@ jobs:
             ${{ runner.os }}-pipeline-${{ env.HUGO_VERSION }}-${{ steps.actionlint-version.outputs.version }}-
 
       # Tools are checked on disk, not by cache-hit, so a partial restore still works.
-      - name: Install missing tools
-        env:
-          ACTIONLINT_VERSION: ${{ steps.actionlint-version.outputs.version }}
+      - name: Install actionlint
+        run: make install-actionlint ACTIONLINT_BIN_DIR="${RUNNER_TEMP}/actionlint"
+      - name: Install Hugo if missing
         run: |
-          if [ ! -x "${RUNNER_TEMP}/actionlint/actionlint" ]; then
-            mkdir -p "${RUNNER_TEMP}/actionlint"
-            curl --fail --silent --show-error --location \
-              "https://github.com/rhysd/actionlint/releases/download/${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION#v}_linux_amd64.tar.gz" \
-              | tar -xz -C "${RUNNER_TEMP}/actionlint"
-          fi
           if [ ! -x "${RUNNER_TEMP}/hugo/hugo" ]; then
             mkdir -p "${RUNNER_TEMP}/hugo"
             curl --fail --silent --show-error --location \
