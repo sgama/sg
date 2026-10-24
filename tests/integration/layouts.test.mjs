@@ -101,6 +101,16 @@ test('generated layouts preserve structured types, public indexes, image selecti
         );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
         assert.doesNotMatch(home, /<label\b[^>]*role=["']?button/);
+        const classicScripts = tags(home, 'script').filter((tag) => tag.src?.startsWith('/js/') && tag.type !== 'module');
+        assert.ok(classicScripts.length > 0, 'The page must load its scripts from /js/');
+        for (const script of classicScripts) {
+            const code = await readFile(path.join(destination, script.src), 'utf8');
+            assert.doesNotMatch(
+                code,
+                /(^|[;}])import[\s{"'*]/,
+                `${script.src} loads as a classic script but contains ES module imports; bundle it with js.Build`,
+            );
+        }
         const menuButtons = tags(home, 'button').filter((tag) => tag['data-menu-toggle']);
         assert.equal(menuButtons.filter((tag) => tag['data-menu-toggle'] === 'mobile-menu-toggle').length, 2);
         assert.ok(menuButtons.every((tag) => tag.type === 'button' && tag['aria-controls'] && tag['aria-expanded'] && !tag.role && !tag.for));
