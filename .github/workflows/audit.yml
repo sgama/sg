@@ -1,0 +1,33 @@
+name: Content and link audit
+
+on:
+  schedule:
+    - cron: '0 8 * * 1' # Mondays 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/cache@v6
+        id: node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
+      # External links are checked here, off the deploy path. Dead historical links are tolerated.
+      - run: make audit-site
+        continue-on-error: true

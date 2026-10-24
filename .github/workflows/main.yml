@@ -3,29 +3,42 @@ name: Build and Deploy to Cloudflare Pages
 on:
   push:
     branches: [develop]
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'tests/README.md'
   pull_request:
     branches: [develop]
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'tests/README.md'
 
 permissions:
   contents: read
 
+# Production pushes queue behind each other; PR pushes replace the older run.
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   HUGO_VERSION: 0.167.0
   HUGO_CACHEDIR: /tmp/hugo_cache
 
 jobs:
-  lint:
+  pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           persist-credentials: false
+
+      # Tooling: each binary is cached on its own key and installed only on a miss.
       - name: Read pinned actionlint version
         id: actionlint-version
         run: |
@@ -36,7 +49,7 @@ jobs:
         id: actionlint-cache
         with:
           path: ${{ runner.temp }}/actionlint
-          key: ${{ runner.os }}-${{ runner.arch }}-actionlint-${{ steps.actionlint-version.outputs.version }}
+          key: ${{ runner.os }}-actionlint-${{ steps.actionlint-version.outputs.version }}
       - uses: actions/setup-go@v7
         if: steps.actionlint-cache.outputs.cache-hit != 'true'
         with:
@@ -46,33 +59,38 @@ jobs:
         if: steps.actionlint-cache.outputs.cache-hit != 'true'
         run: GOBIN="${RUNNER_TEMP}/actionlint" make install-actionlint
       - run: echo "${RUNNER_TEMP}/actionlint" >> "${GITHUB_PATH}"
-      - uses: ./.github/actions/setup
-      - run: make lint-workflows
-      - run: make lint
-      - run: make format-check
-      - run: make audit-site
-        continue-on-error: true
 
-  unit-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        id: hugo-binary-cache
         with:
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: ./.github/actions/setup
+          path: ${{ runner.temp }}/hugo
+          key: ${{ runner.os }}-hugo-bin-${{ env.HUGO_VERSION }}
+      - name: Install Hugo
+        if: steps.hugo-binary-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "${RUNNER_TEMP}/hugo"
+          release="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}"
+          curl --fail --silent --show-error --location \
+            "${release}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" \
+            | tar -xz -C "${RUNNER_TEMP}/hugo"
+      - run: echo "${RUNNER_TEMP}/hugo" >> "${GITHUB_PATH}"
+
+      - uses: actions/setup-node@v7
         with:
-          hugo: 'true'
-      - name: Restore Hugo cache
-        uses: actions/cache/restore@v6
+          node-version: '24'
+      - uses: actions/cache@v6
+        id: node-modules
         with:
-          path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}
-          restore-keys: |
-            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
-      - run: make coverage
-      - uses: actions/upload-artifact@v4
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - name: Install Node dependencies
+        if: steps.node-modules.outputs.cache-hit != 'true'
+        run: make deps
+
+      # Independent checks run concurrently; output is grouped per target.
+      - name: Static checks and unit tests
+        run: make -j4 --output-sync=target lint-workflows lint format-check coverage
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: javascript-coverage
@@ -80,78 +98,41 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          hugo: 'true'
-      - name: Restore Hugo build cache
+      # Build: restore the Hugo cache, then run the build-dependent steps.
+      - uses: actions/cache/restore@v6
         id: cache-restore
-        uses: actions/cache@v6
         with:
           path: ${{ env.HUGO_CACHEDIR }}
           key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
-      - run: make ai-check
-      - run: make ai-build
-      - run: make build-prod
+      - name: Bundle functions and build production site
+        run: make -j2 --output-sync=target ai-build build-prod
       - run: make csp-headers
+      - run: make ai-check
       - run: make test-layouts
-      - name: Save Hugo build cache
+      - uses: actions/cache/save@v6
         if: success()
-        uses: actions/cache/save@v5
         with:
           path: ${{ env.HUGO_CACHEDIR }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-      - name: Upload site build
-        uses: actions/upload-artifact@v4
-        with:
-          name: site-build
-          path: public/
-          retention-days: 1
 
-  deploy:
-    if: github.event_name == 'push'
-    needs: [lint, unit-tests, build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          hugo: 'true'
-      - name: Restore Hugo cache
-        id: cache-restore
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-${{ hashFiles('config.toml', 'layouts/**', 'content/**', 'assets/**') }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-hugo-${{ env.HUGO_VERSION }}-
-      - name: Download site build
-        uses: actions/download-artifact@v4
-        with:
-          name: site-build
-          path: public/
-      - run: make ai-refresh
-      - run: make deploy-built
-      - run: make cleanup-deployments
-      - name: Save Hugo cache
-        if: success()
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ env.HUGO_CACHEDIR }}
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+      # Deploy only on push to develop; PRs stop after validation.
+      - name: Refresh chat corpus
+        if: github.event_name == 'push'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: make ai-refresh
+      - name: Deploy to Cloudflare Pages
+        if: github.event_name == 'push'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: make deploy-built
+      - name: Prune old deployments and corpora
+        if: github.event_name == 'push'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: make cleanup-deployments
