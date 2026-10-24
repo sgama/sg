@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { parentSectionIds, expandSectionMatches } from '../../functions/_lib/application.js';
+import { parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
 import { corpusFixture as fixture } from '../helpers/corpus.mjs';
 
 test('generic curated source linkage expands to a public section regardless of file order', async (t) => {

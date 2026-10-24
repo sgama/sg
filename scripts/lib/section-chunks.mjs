@@ -35,8 +35,6 @@ export async function sectionChunks(identity, sections, config) {
                         section: section.heading,
                         ...(parentIndex !== null ? { parentIndex } : {}),
                         text: segment,
-                        // Full parent section text, truncated to stay under Vectorize's 10KB metadata limit.
-                        sectionText: section.text.slice(0, 4000),
                     },
                 });
             }

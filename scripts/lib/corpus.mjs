@@ -11,7 +11,7 @@ import { AI_CONFIG } from '../../functions/_lib/application.js';
 export { ingestionText, sourceSections } from './content-normalization.mjs';
 export { validateCorpus } from './corpus-contract.mjs';
 
-export const CHUNK_CONFIG = Object.freeze({ chunkSize: 2000, chunkOverlap: 200 });
+const CHUNK_CONFIG = Object.freeze({ chunkSize: 2000, chunkOverlap: 200 });
 
 export function embeddingText(chunk) {
     const labels = [chunk.metadata.title, chunk.metadata.section].filter((label) => label && label !== 'Untitled');

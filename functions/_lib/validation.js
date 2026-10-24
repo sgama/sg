@@ -18,7 +18,7 @@ export function isPromptInjectionAttempt(query) {
     return PROMPT_INJECTION_PATTERNS.some((pattern) => pattern.test(query));
 }
 
-export function shouldAbstainForMissingContext(contextText, minimumChars = 20) {
+export function shouldAbstainForMissingContext(contextText, minimumChars = CONFIG.ABSTAIN.MIN_CONTEXT_CHARS) {
     if (typeof contextText !== 'string') return true;
     return contextText.trim().length < minimumChars;
 }
@@ -32,7 +32,7 @@ const MessageSchema = z
 
 export const ChatRequestSchema = z
     .object({
-        query: z.string().trim().min(1).max(500),
+        query: z.string().trim().min(1).max(CONFIG.QUERY.MAX_LENGTH),
         history: z.array(MessageSchema).max(CONFIG.HISTORY.MAX_TURNS).default([]),
     })
     .strip()

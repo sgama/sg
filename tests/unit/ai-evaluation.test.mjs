@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { AI_CONFIG, contextualizationMessages, getModel, generationInput, buildMessages } from '../../functions/_lib/application.js';
+import { AI_CONFIG, getModel, generationInput } from '../../functions/_lib/application.js';
+import { contextualizationMessages, buildMessages } from '../../functions/_lib/prompts.js';
 import {
     fixtureHash,
     validateFixture,
@@ -17,8 +18,9 @@ import {
     readAnswer,
     retrievalEvidenceRate,
     scoreRetrievalQuery,
+    validateRetrievalReport,
+    validateComparisonReport,
 } from '../../scripts/lib/ai-evaluation.mjs';
-import { validateRetrievalReport, validateComparisonReport } from '../../scripts/ai-eval.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { makeStream } from '../helpers/mocks.mjs';
 

@@ -4,10 +4,9 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { setTimeout as delay } from 'node:timers/promises';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { createMaintenanceClient, refreshCorpus, setCorpusNamespace, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
+import { createMaintenanceClient, refreshCorpus, setCorpusNamespace } from '../../scripts/lib/corpus-deployment.mjs';
 
 const namespace = `corpus-${'a'.repeat(56)}`;
 const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';
@@ -108,61 +107,6 @@ async function refreshFixture(t) {
     return { root, configPath, client, calls, wait, accountId: 'account' };
 }
 
-test('mutation deadline bounds SDK retry backoff and prevents another fetch', async (t) => {
-    let retry;
-    const setTimeout = globalThis.setTimeout;
-    t.mock.method(globalThis, 'setTimeout', (callback, ms, ...args) => {
-        if (ms !== 120000) return setTimeout(callback, ms, ...args);
-        retry = () => callback(...args);
-        return setTimeout(() => {}, 0);
-    });
-    let calls = 0;
-    const client = createMaintenanceClient('test-token', async () => {
-        calls++;
-        return Response.json({ success: false }, { status: 504, headers: { 'retry-after': '120' } });
-    });
-    await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 100 }), /Timed out/), delay(150)]);
-    assert.equal(typeof retry, 'function');
-    retry();
-    await delay(0);
-    assert.equal(calls, 1);
-});
-
-test('mutation deadline interrupts polling sleep instead of waiting for the interval', async () => {
-    let calls = 0;
-    const client = {
-        vectorize: {
-            indexes: {
-                info: async () => {
-                    calls++;
-                    return {
-                        dimensions: AI_CONFIG.embedding.dimensions,
-                        processedUpToMutation: 'pending',
-                    };
-                },
-            },
-        },
-    };
-    await assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20, intervalMs: 60000 }), /Timed out/);
-    assert.equal(calls, 1);
-});
-
-test('mutation deadline rejects a stalled request and aborts its signal', async () => {
-    let signal;
-    const client = {
-        vectorize: {
-            indexes: {
-                info: async (_, __, options) => {
-                    signal = options.signal;
-                    return new Promise(() => {});
-                },
-            },
-        },
-    };
-    await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20 }), /Timed out/), delay(40)]);
-    assert.equal(signal.aborted, true);
-});
-
 test('namespace activation only changes the Wrangler vars section and preserves all bindings', () => {
     const updated = setCorpusNamespace(config, namespace);
     assert.equal(updated, config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\n`));
@@ -246,48 +190,6 @@ test('unchanged corpus skips all embeddings, uploads and readiness waits but set
     assert.equal(reused.skipped, true);
     assert.deepEqual(reused.mutationIds, []);
     assert.ok((await fs.readFile(configPath, 'utf8')).includes(corpus.namespace));
-});
-
-test('waits for processed mutation, rejects wrong dimensions and bounded timeout', async () => {
-    let ticks = 0;
-    let calls = 0;
-    const client = {
-        vectorize: {
-            indexes: {
-                info: async () => ({
-                    dimensions: AI_CONFIG.embedding.dimensions,
-                    processedUpToMutation: ++calls === 2 ? 'ready' : 'pending',
-                }),
-            },
-        },
-    };
-    await waitForMutation(client, 'account', 'ready', {
-        timeoutMs: 10,
-        intervalMs: 1,
-        clock: () => ticks,
-        sleep: async () => {
-            ticks++;
-        },
-    });
-    assert.equal(calls, 2);
-    client.vectorize.indexes.info = async () => ({ dimensions: 2 });
-    await assert.rejects(waitForMutation(client, 'account', 'ready'), /dimensions/);
-    client.vectorize.indexes.info = async () => ({ dimensions: AI_CONFIG.embedding.dimensions });
-    ticks = 0;
-    await assert.rejects(
-        waitForMutation(client, 'account', 'ready', {
-            timeoutMs: 2,
-            clock: () => ticks,
-            sleep: async () => {
-                ticks++;
-            },
-        }),
-        /Timed out/,
-    );
-    client.vectorize.indexes.info = async () => {
-        throw new Error('info unavailable');
-    };
-    await assert.rejects(waitForMutation(client, 'account', 'ready'), /info unavailable/);
 });
 
 test('concurrent configuration edits survive refresh without activation overwrite', async (t) => {

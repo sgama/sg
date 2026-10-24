@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import Cloudflare from 'cloudflare';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { createMaintenanceClient, ingestCorpus } from '../../scripts/lib/corpus-deployment.mjs';
+import { createMaintenanceClient, ingestCorpus, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
 import { corpusFixture as fixture, integrityFixture } from '../helpers/corpus.mjs';
 
 test('embedding and upsert errors and unaccepted mutations are never swallowed', async (t) => {
@@ -189,3 +191,100 @@ function clientStub(dimensions) {
         },
     };
 }
+
+test('mutation deadline bounds SDK retry backoff and prevents another fetch', async (t) => {
+    let retry;
+    const setTimeout = globalThis.setTimeout;
+    t.mock.method(globalThis, 'setTimeout', (callback, ms, ...args) => {
+        if (ms !== 120000) return setTimeout(callback, ms, ...args);
+        retry = () => callback(...args);
+        return setTimeout(() => {}, 0);
+    });
+    let calls = 0;
+    const client = createMaintenanceClient('test-token', async () => {
+        calls++;
+        return Response.json({ success: false }, { status: 504, headers: { 'retry-after': '120' } });
+    });
+    await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 100 }), /Timed out/), delay(150)]);
+    assert.equal(typeof retry, 'function');
+    retry();
+    await delay(0);
+    assert.equal(calls, 1);
+});
+
+test('mutation deadline interrupts polling sleep instead of waiting for the interval', async () => {
+    let calls = 0;
+    const client = {
+        vectorize: {
+            indexes: {
+                info: async () => {
+                    calls++;
+                    return {
+                        dimensions: AI_CONFIG.embedding.dimensions,
+                        processedUpToMutation: 'pending',
+                    };
+                },
+            },
+        },
+    };
+    await assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20, intervalMs: 60000 }), /Timed out/);
+    assert.equal(calls, 1);
+});
+
+test('mutation deadline rejects a stalled request and aborts its signal', async () => {
+    let signal;
+    const client = {
+        vectorize: {
+            indexes: {
+                info: async (_, __, options) => {
+                    signal = options.signal;
+                    return new Promise(() => {});
+                },
+            },
+        },
+    };
+    await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20 }), /Timed out/), delay(40)]);
+    assert.equal(signal.aborted, true);
+});
+
+test('waits for processed mutation, rejects wrong dimensions and bounded timeout', async () => {
+    let ticks = 0;
+    let calls = 0;
+    const client = {
+        vectorize: {
+            indexes: {
+                info: async () => ({
+                    dimensions: AI_CONFIG.embedding.dimensions,
+                    processedUpToMutation: ++calls === 2 ? 'ready' : 'pending',
+                }),
+            },
+        },
+    };
+    await waitForMutation(client, 'account', 'ready', {
+        timeoutMs: 10,
+        intervalMs: 1,
+        clock: () => ticks,
+        sleep: async () => {
+            ticks++;
+        },
+    });
+    assert.equal(calls, 2);
+    client.vectorize.indexes.info = async () => ({ dimensions: 2 });
+    await assert.rejects(waitForMutation(client, 'account', 'ready'), /dimensions/);
+    client.vectorize.indexes.info = async () => ({ dimensions: AI_CONFIG.embedding.dimensions });
+    ticks = 0;
+    await assert.rejects(
+        waitForMutation(client, 'account', 'ready', {
+            timeoutMs: 2,
+            clock: () => ticks,
+            sleep: async () => {
+                ticks++;
+            },
+        }),
+        /Timed out/,
+    );
+    client.vectorize.indexes.info = async () => {
+        throw new Error('info unavailable');
+    };
+    await assert.rejects(waitForMutation(client, 'account', 'ready'), /info unavailable/);
+});

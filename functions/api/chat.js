@@ -2,11 +2,11 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { handle } from 'hono/cloudflare-pages';
-import { AppError } from '../_lib/application.js';
-import { isPromptInjectionAttempt, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext, ChatRequestSchema } from '../_lib/validation.js';
-import { createSseMessageStream } from '../_lib/chat-stream.js';
+import { AppError, CONFIG } from '../_lib/application.js';
+import { isPromptInjectionAttempt, ChatRequestSchema } from '../_lib/validation.js';
 import { AiService } from '../_lib/ai.js';
-import { LogService } from '../_lib/log.js';
+import { workersCacheStore } from '../_lib/retrieval-cache.js';
+import { answerChat } from '../_lib/chat-flow.js';
 
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 
@@ -27,7 +27,7 @@ app.post('/api/chat', async (c) => {
 
     const parsed = ChatRequestSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) {
-        return c.json({ error: 'Invalid query. Must be a string < 500 chars.' }, 400);
+        return c.json({ error: `Invalid query. Must be a string < ${CONFIG.QUERY.MAX_LENGTH} chars.` }, 400);
     }
     const { query, history } = parsed.data;
 
@@ -39,7 +39,7 @@ app.post('/api/chat', async (c) => {
         return c.json({ error: 'Service Unavailable: AI binding missing' }, 503);
     }
 
-    const aiService = new AiService(env, { cache: typeof caches !== 'undefined' ? caches.default : null });
+    const aiService = new AiService(env, { retrievalStore: typeof caches !== 'undefined' ? workersCacheStore(caches.default) : null });
     if (!env.VECTORIZE_INDEX) {
         console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
         throw new AppError('Retrieval service unavailable', 503);
@@ -47,18 +47,14 @@ app.post('/api/chat', async (c) => {
     c.header('X-Content-Type-Options', 'nosniff');
     return streamSSE(c, async (sse) => {
         try {
-            const contextText = await aiService.retrieveContext(query, history, (stage) =>
-                sse.writeSSE({ data: JSON.stringify({ progress: stage }) }),
-            );
-            await sse.writeSSE({ data: JSON.stringify({ evidence: aiService.evidence }) });
-            let stream;
-            if (shouldAbstainForMissingContext(contextText)) {
-                stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
-            } else {
-                await sse.writeSSE({ data: JSON.stringify({ progress: 'generation' }) });
-                stream = await aiService.generateStream(query, contextText, history);
-            }
-            if (env.CHAT_LOGS) stream = await LogService.save(env, query, stream, c.executionCtx);
+            const stream = await answerChat({
+                aiService,
+                env,
+                executionCtx: c.executionCtx,
+                query,
+                history,
+                emit: (payload) => sse.writeSSE({ data: JSON.stringify(payload) }),
+            });
             await sse.pipe(stream);
         } catch (err) {
             console.error('Chat Request Failed:', err);

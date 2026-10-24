@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { AI_CONFIG, corpusRecordId } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { corpusRecordId } from '../../functions/_lib/retrieval.js';
 import { corpusFixture as fixture } from '../helpers/corpus.mjs';
 
 test('generic parent records are bounded, linked, source-specific and updated with content', async (t) => {

@@ -1,4 +1,4 @@
-export function isNearBottom(element, threshold = 48) {
+function isNearBottom(element, threshold = 48) {
     return element.scrollHeight - element.clientHeight - element.scrollTop <= threshold;
 }
 

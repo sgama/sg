@@ -1,5 +1,6 @@
 import { integrityFixture } from '../helpers/corpus.mjs';
 import assert from 'node:assert/strict';
+import { corpusRecordId } from '../../functions/_lib/retrieval.js';
 import { test } from 'node:test';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { validateCorpus, corpusHash, namespaceFor, chunkId } from '../../scripts/lib/corpus-contract.mjs';
@@ -94,5 +95,15 @@ test('tampered metadata, namespaces and chunk IDs fail integrity validation', as
         const changed = structuredClone(corpus);
         mutate(changed);
         assert.throws(() => validateCorpus(changed), /hash or namespace|Invalid chunk ID/);
+    }
+});
+
+test('runtime record IDs match corpus chunk IDs for the same namespace, source and index', async () => {
+    for (const [namespace, source, index] of [
+        ['corpus-' + 'a'.repeat(56), 'content/posts/a/index.md', 0],
+        ['corpus-' + 'a'.repeat(56), 'content/posts/a/index.md', -1],
+        ['corpus-' + 'b'.repeat(56), 'content/portfolio/b/index.md', 3],
+    ]) {
+        assert.equal(await corpusRecordId(namespace, source, index), chunkId(namespace, source, index));
     }
 });

@@ -1,9 +1,9 @@
 export const STORAGE_KEY = 'ai-chat-history';
 export const SESSION_OPEN_KEY = 'ai-chat-open';
 
-const MAX_API_HISTORY_MESSAGES = 4;
-const MAX_API_HISTORY_MESSAGE_LENGTH = 2000;
-const MAX_API_HISTORY_TOTAL_LENGTH = 4000;
+export const MAX_API_HISTORY_MESSAGES = 4;
+export const MAX_API_HISTORY_MESSAGE_LENGTH = 2000;
+export const MAX_API_HISTORY_TOTAL_LENGTH = 4000;
 
 export function apiHistory(messages, welcomeMessage) {
     const selected = [];

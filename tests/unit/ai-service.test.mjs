@@ -6,15 +6,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import {
-    AI_CONFIG,
-    buildMessages,
-    contextualizedQueryFromResponse,
-    contextFromMatches,
-    corpusRecordId,
-    parentSectionIds,
-    expandSectionMatches,
-} from '../../functions/_lib/application.js';
+import { AI_CONFIG, contextualizedQueryFromResponse } from '../../functions/_lib/application.js';
+import { buildMessages } from '../../functions/_lib/prompts.js';
+import { contextFromMatches, corpusRecordId, parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { makeEnv, makeProviderStream } from '../helpers/mocks.mjs';
 
@@ -207,6 +201,38 @@ test('AiService', async (t) => {
             const result = await svc.retrieveContext('query');
 
             assert.equal(result, 'chunk one\n---\nchunk two');
+        });
+
+        await t.test('resolves parent sections through Vectorize even when chunks carry sectionText', async () => {
+            const env = makeEnv({ aiRun: async () => buildEmbeddingsResponse([0.1, 0.2]) });
+            env.AI_CORPUS_NAMESPACE = 'corpus-test';
+            env.VECTORIZE_INDEX = {
+                query: async () =>
+                    buildVectorizeResult([
+                        {
+                            source: 'content/posts/a/index.md',
+                            parentIndex: -1,
+                            text: 'child excerpt',
+                            sectionText: 'Truncated copy of the parent section',
+                        },
+                    ]),
+                getByIds: async () => [
+                    {
+                        id: 'parent',
+                        metadata: {
+                            recordType: 'section',
+                            source: 'content/posts/a/index.md',
+                            sectionIndex: -1,
+                            text: 'Full parent section text',
+                            type: 'content',
+                        },
+                    },
+                ],
+            };
+
+            const result = await new AiService(env).retrieveContext('query');
+
+            assert.equal(result, 'Full parent section text');
         });
 
         await t.test('uses the latest prior user question to retrieve follow-up context', async () => {

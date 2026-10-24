@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
-import { AI_CONFIG, getModel, generationInput, contextFromMatches, buildMessages, estimateCost } from '../../functions/_lib/application.js';
+import { AI_CONFIG, getModel, generationInput, estimateCost } from '../../functions/_lib/application.js';
+import { buildMessages, contextualizationMessages } from '../../functions/_lib/prompts.js';
+import { contextFromMatches } from '../../functions/_lib/retrieval.js';
 export { estimateCost } from '../../functions/_lib/application.js';
 import { normalizeChatStream } from '../../functions/_lib/chat-stream.js';
 import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../functions/_lib/validation.js';
@@ -301,4 +303,112 @@ export async function compareModels({ cases, models, contexts, run, repeats = 1,
         };
     });
     return { results, summaries, maxCompletionTokens: AI_CONFIG.generation.maxCompletionTokens };
+}
+
+export const promptHash = () => fixtureHash(buildMessages('__query__', '__context__'));
+
+export function validateRetrievalReport(report, { namespace, fixture, minHitRate }) {
+    if (
+        report.version !== 2 ||
+        report.kind !== 'retrieval' ||
+        report.namespace !== namespace ||
+        report.fixtureHash !== fixtureHash(fixture) ||
+        !Number.isFinite(report.hitRate) ||
+        report.hitRate < minHitRate ||
+        report.topK !== AI_CONFIG.retrieval.topK ||
+        report.embeddingModel !== AI_CONFIG.embedding.model ||
+        report.maxContextChars !== AI_CONFIG.retrieval.maxContextChars ||
+        report.indexName !== AI_CONFIG.retrieval.indexName ||
+        report.contextualizationModel !== getModel(AI_CONFIG.contextualization.model).id ||
+        report.contextualizationMaxCompletionTokens !== AI_CONFIG.contextualization.maxCompletionTokens ||
+        report.contextualizationMaxQueryChars !== AI_CONFIG.contextualization.maxQueryChars ||
+        report.contextualizationHash !== fixtureHash(contextualizationMessages('__query__', [{ role: 'user', content: '__history__' }])) ||
+        !Array.isArray(report.results)
+    )
+        throw new Error('Retrieval report does not pass this corpus/fixture release gate');
+    const expected = fixture.cases;
+    if (report.results.length !== expected.length) throw new Error('Retrieval report is incomplete');
+    for (const item of expected) {
+        const matches = report.results.filter((result) => result.caseId === item.id);
+        if (matches.length !== 1 || matches[0].error || typeof matches[0].context !== 'string') {
+            throw new Error(`Retrieval report missing successful query ${item.id}`);
+        }
+    }
+    const positives = expected.filter((item) => item.expectedSources.length);
+    const actualHitRate =
+        report.results.filter((result) => {
+            const item = expected.find((entry) => entry.id === result.caseId);
+            return Array.isArray(result.sources) && item.expectedSources.some((source) => result.sources.includes(source));
+        }).length / positives.length;
+    if (!Number.isFinite(actualHitRate) || actualHitRate < minHitRate || actualHitRate !== report.hitRate)
+        throw new Error('Retrieval report source labels do not meet the release gate');
+    const evidenceRate = retrievalEvidenceRate(report.results, fixture.cases);
+    if (evidenceRate !== null && (evidenceRate < minHitRate || report.evidenceRate !== evidenceRate)) {
+        throw new Error('Retrieval report evidence does not meet the release gate');
+    }
+    const hasRewriteLabels = fixture.cases.some((item) => item.retrievalTerms);
+    const rewriteCases = fixture.cases.filter((item) => item.retrievalTerms);
+    const rewriteResults = report.results.filter((result) => rewriteCases.some((item) => item.id === result.caseId));
+    const rewriteRate = rewriteCases.length
+        ? rewriteResults.filter((result) => {
+              const item = rewriteCases.find((candidate) => candidate.id === result.caseId);
+              return typeof result.retrievalQuery === 'string' && scoreRetrievalQuery(result.retrievalQuery, item);
+          }).length / rewriteCases.length
+        : null;
+    if ((hasRewriteLabels && (!Number.isFinite(report.rewriteRate) || report.rewriteRate < minHitRate)) || report.rewriteRate !== rewriteRate) {
+        throw new Error('Retrieval report contextualization does not meet the release gate');
+    }
+    for (const item of fixture.cases.filter((entry) => entry.retrievalTerms)) {
+        const result = report.results.find((entry) => entry.caseId === item.id);
+        if (
+            typeof result.retrievalQuery !== 'string' ||
+            !result.retrievalQuery.trim() ||
+            result.retrievalQueryPassed !== scoreRetrievalQuery(result.retrievalQuery, item)
+        ) {
+            throw new Error(`Retrieval report has an invalid contextualized query for ${item.id}`);
+        }
+    }
+}
+
+export function validateComparisonReport(report, { namespace, fixture, model, minAnswerRate, retrievalReport }) {
+    if (
+        report.kind !== 'comparison' ||
+        report.namespace !== namespace ||
+        report.fixtureHash !== fixtureHash(fixture) ||
+        report.promptHash !== promptHash() ||
+        report.contextMode !== 'retrieved' ||
+        report.maxCompletionTokens !== AI_CONFIG.generation.maxCompletionTokens ||
+        !Array.isArray(report.results) ||
+        JSON.stringify(report.modelConfigurations?.[model.id]) !== JSON.stringify(model)
+    ) {
+        throw new Error('Comparison report does not match the selected model, prompt and retrieved corpus');
+    }
+    if (!retrievalReport || report.retrievalHash !== fixtureHash(retrievalReport)) {
+        throw new Error('Comparison report must use the current validated retrieval report');
+    }
+    const samples = report.results.filter((item) => item.modelId === model.id);
+    const repeats = new Set(samples.map((item) => item.repeat));
+    if (!repeats.size || [...repeats].some((repeat) => !Number.isInteger(repeat) || repeat < 0)) {
+        throw new Error('Comparison report has no valid repetitions for selected model');
+    }
+    for (const repeat of repeats) {
+        for (const item of fixture.cases) {
+            const entries = samples.filter((sample) => sample.caseId === item.id && sample.repeat === repeat);
+            if (entries.length !== 1 || entries[0].status !== 'ok' || typeof entries[0].answer !== 'string') {
+                throw new Error(`Comparison report missing successful answer for ${item.id}`);
+            }
+            if (item.required && !scoreAnswer(entries[0].answer, item)) {
+                throw new Error(`Required answer regression failed for ${item.id} (repeat ${repeat})`);
+            }
+        }
+    }
+    if (samples.length !== repeats.size * fixture.cases.length) throw new Error('Unexpected comparison samples');
+    const rate =
+        samples.filter((sample) =>
+            scoreAnswer(
+                sample.answer,
+                fixture.cases.find((item) => item.id === sample.caseId),
+            ),
+        ).length / samples.length;
+    if (rate < minAnswerRate) throw new Error(`Selected model answer checks ${rate} below ${minAnswerRate}`);
 }

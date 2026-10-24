@@ -2,10 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { buildCorpus, ingestionText } from '../../scripts/lib/corpus.mjs';
-import { corpusRecordId } from '../../functions/_lib/application.js';
+import { corpusRecordId } from '../../functions/_lib/retrieval.js';
+
+// Built once per file: every test here only reads the repository corpus.
+let repoCorpusPromise;
+const repoCorpus = () => (repoCorpusPromise ??= buildCorpus());
 
 test('canonical resume uses the same addressable parent sections as other sources', async () => {
-    const corpus = await buildCorpus();
+    const corpus = await repoCorpus();
     const section = corpus.chunks.find(
         (chunk) =>
             chunk.metadata.source === 'content/resume/_index.md' &&
@@ -39,13 +43,13 @@ test('published resume contains the supplied skills and employment facts', async
 });
 
 test('published resume skills remain available in the indexed corpus', async () => {
-    const corpus = await buildCorpus();
+    const corpus = await repoCorpus();
     const chunks = corpus.chunks.filter((chunk) => chunk.metadata.source === 'content/resume/_index.md');
     assert.ok(chunks.some((chunk) => chunk.text.includes('C/C++')));
 });
 
 test('recruiter context contains sourced facts without authoring placeholders or public URLs', async () => {
-    const corpus = await buildCorpus();
+    const corpus = await repoCorpus();
     const internal = corpus.chunks.filter((chunk) => chunk.metadata.type === 'context');
     assert.ok(internal.length >= 13);
     assert.ok(internal.every((chunk) => !Object.hasOwn(chunk.metadata, 'url')));

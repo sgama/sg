@@ -1,12 +1,6 @@
 import Cloudflare from 'cloudflare';
-import {
-    AI_CONFIG,
-    contextualizationInput,
-    contextualizedQueryFromResponse,
-    getModel,
-    parentSectionIds,
-    expandSectionMatches,
-} from '../../functions/_lib/application.js';
+import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
+import { parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
 
 export async function runEmbedding(client, accountId, model, text, options = {}) {
     // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
