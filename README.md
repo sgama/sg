@@ -919,10 +919,13 @@ static assets only; API responses set their own headers. For a manual deployment
 make deploy
 ```
 
-Moving from Pages needs a one-time manual cutover: after the first Worker deploy,
-attach `samsongama.com` and `www.samsongama.com` to the `sg` Worker as custom
-domains in the Cloudflare dashboard (Workers & Pages, Settings, Domains), then
-delete the old Pages project.
+Moving from Pages needs a one-time cutover. Until the custom domains move, the
+Pages project stays frozen at its last deploy. After the first Worker deploy, run
+`make cutover-domains ZONE=samsongama.com DRY_RUN=1` to preview, then without
+`DRY_RUN`. Per hostname it detaches the domain from Pages, attaches it to the
+Worker, and restores it on Pages if that fails. Afterwards delete the Pages project.
+The token needs Pages edit, Workers Scripts edit and zone access for the domain; the
+same step is available in the dashboard (Workers & Pages, `sg`, Settings, Domains).
 
 This requires `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Use `make deploy-ai`
 for an AI corpus/model activation, following the release procedure above.

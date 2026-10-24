@@ -7,7 +7,7 @@ SHELL := /bin/bash
 	deps test test-layouts lint lint-fix typecheck format format-check lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
-	deploy deploy-built deploy-needed cleanup-vectors ci ci-check
+	deploy deploy-built deploy-needed cleanup-vectors cutover-domains ci ci-check
 
 ifneq (,$(wildcard .env))
 include .env
@@ -241,6 +241,10 @@ deploy-needed: check-node check-env ## Print deploy=true|false: whether deployab
 
 cleanup-vectors: check-node check-env ## Delete the vectors of every corpus except the live one
 	@$(NODE) scripts/cleanup_vectors.mjs
+
+cutover-domains: check-node check-env ## One-time: move the Pages custom domains to the Worker (ZONE=example.com, optional DRY_RUN=1)
+	@test -n "$(ZONE)" || { echo "Set ZONE, for example make cutover-domains ZONE=samsongama.com"; exit 1; }
+	@$(NODE) scripts/cutover_domains.mjs --zone "$(ZONE)" $(if $(DRY_RUN),--dry-run)
 
 csp-headers: check ## Generate public/_headers CSP from a fresh build (run after make build-prod)
 	@$(NODE) scripts/generate_csp.mjs
