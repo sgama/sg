@@ -11,32 +11,6 @@ import { createMaintenanceClient, refreshCorpus, setCorpusNamespace } from '../.
 const namespace = `corpus-${'a'.repeat(56)}`;
 const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';
 
-test('changed corpus requires ingestion', async (t) => {
-    const { root, configPath, client, wait } = await refreshFixture(t);
-    client.pages.projects.get = async () => ({ canonical_deployment: { id: 'active' } });
-    client.pages.projects.deployments = {
-        get: async () => ({
-            id: 'active',
-            environment: 'production',
-            env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: namespace } },
-        }),
-    };
-    client.post = async () => {
-        throw new Error('embedding failed');
-    };
-    await assert.rejects(refreshCorpus({ client, accountId: 'account', root, wait }), /embedding failed/);
-    assert.equal(await fs.readFile(configPath, 'utf8'), config);
-});
-
-test('embedding failures leave configuration untouched', async (t) => {
-    const { root, configPath, client, wait } = await refreshFixture(t);
-    client.post = async () => {
-        throw new Error('embedding failed');
-    };
-    await assert.rejects(refreshCorpus({ client, accountId: 'account', root, wait }), /embedding failed/);
-    assert.equal(await fs.readFile(configPath, 'utf8'), config);
-});
-
 test('force refresh ingests even when Pages lookup is unavailable', async (t) => {
     const { root, client, wait, calls } = await refreshFixture(t);
     client.pages.projects.get = async () => {
@@ -45,36 +19,6 @@ test('force refresh ingests even when Pages lookup is unavailable', async (t) =>
     const forced = await refreshCorpus({ client, accountId: 'account', root, wait, force: true });
     assert.equal(forced.skipped, false);
     assert.deepEqual(calls, ['upsert', 'ready']);
-});
-
-test('indexing failures leave configuration untouched', async (t) => {
-    const { root, configPath, client } = await refreshFixture(t);
-    await assert.rejects(
-        refreshCorpus({
-            client,
-            accountId: 'account',
-            root,
-            wait: async () => {
-                throw new Error('not ready');
-            },
-        }),
-        /not ready/,
-    );
-    assert.equal(await fs.readFile(configPath, 'utf8'), config);
-});
-
-test('invalid active namespace stops refresh without changing configuration', async (t) => {
-    const { root, configPath, client, wait } = await refreshFixture(t);
-    client.pages.projects.get = async () => ({ canonical_deployment: { id: 'active' } });
-    client.pages.projects.deployments = {
-        get: async () => ({
-            id: 'active',
-            environment: 'production',
-            env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value: 'invalid' } },
-        }),
-    };
-    await assert.rejects(refreshCorpus({ client, accountId: 'account', root, wait }), /Invalid active corpus namespace/);
-    assert.equal(await fs.readFile(configPath, 'utf8'), config);
 });
 
 async function refreshFixture(t) {
@@ -107,6 +51,49 @@ async function refreshFixture(t) {
     return { root, configPath, client, calls, wait, accountId: 'account' };
 }
 
+test('a failed refresh step leaves the Wrangler configuration untouched', async (t) => {
+    const active = (value) => async () => ({
+        id: 'active',
+        environment: 'production',
+        env_vars: { AI_CORPUS_NAMESPACE: { type: 'plain_text', value } },
+    });
+    const withActive = (client, value) => {
+        client.pages.projects.get = async () => ({ canonical_deployment: { id: 'active' } });
+        client.pages.projects.deployments = { get: active(value) };
+    };
+    for (const { name, arrange, wait, error } of [
+        {
+            name: 'embedding fails with no active deployment',
+            arrange: (client) => (client.post = async () => Promise.reject(new Error('embedding failed'))),
+            error: /embedding failed/,
+        },
+        {
+            name: 'embedding fails for a changed corpus (a different active namespace requires ingestion)',
+            arrange: (client) => {
+                withActive(client, namespace);
+                client.post = async () => Promise.reject(new Error('embedding failed'));
+            },
+            error: /embedding failed/,
+        },
+        {
+            name: 'indexing never becomes ready',
+            wait: async () => Promise.reject(new Error('not ready')),
+            error: /not ready/,
+        },
+        {
+            name: 'the Pages lookup fails',
+            arrange: (client) => (client.pages.projects.get = async () => Promise.reject(new Error('Pages unavailable'))),
+            error: /Pages unavailable/,
+        },
+        { name: 'the active namespace is invalid', arrange: (client) => withActive(client, 'invalid'), error: /Invalid active corpus namespace/ },
+    ]) {
+        const f = await refreshFixture(t);
+        arrange?.(f.client);
+        await assert.rejects(refreshCorpus({ client: f.client, accountId: 'account', root: f.root, wait: wait ?? f.wait }), error, name);
+        assert.equal(await fs.readFile(f.configPath, 'utf8'), config, name);
+    }
+});
+
 test('namespace activation only changes the Wrangler vars section and preserves all bindings', () => {
     const updated = setCorpusNamespace(config, namespace);
     assert.equal(updated, config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\n`));
@@ -116,15 +103,6 @@ test('namespace activation only changes the Wrangler vars section and preserves 
     assert.throws(() => setCorpusNamespace(config, 'bad'), /Invalid corpus/);
     assert.throws(() => setCorpusNamespace('[ai]\nbinding = "AI"', namespace), /vars/);
     assert.throws(() => setCorpusNamespace(`[vars]\nAI_CORPUS_NAMESPACE = "a"\nAI_CORPUS_NAMESPACE = "b"\n`, namespace), /Duplicate/);
-});
-
-test('Pages lookup failures leave configuration untouched', async (t) => {
-    const { root, configPath, client, wait } = await refreshFixture(t);
-    client.pages.projects.get = async () => {
-        throw new Error('Pages unavailable');
-    };
-    await assert.rejects(refreshCorpus({ client, accountId: 'account', root, wait }), /Pages unavailable/);
-    assert.equal(await fs.readFile(configPath, 'utf8'), config);
 });
 
 test('refresh activates only after successful ingestion and readiness', async (t) => {

@@ -45,7 +45,14 @@ test('missing usage never becomes a zero-cost success or invented token count', 
 test('shared token pricing rejects invalid usage and uses the configured model rates', () => {
     const model = getModel();
     assert.equal(estimateCost({ prompt_tokens: 1000000, completion_tokens: 1000000 }, model), model.inputPerMillion + model.outputPerMillion);
-    for (const usage of [null, {}, { prompt_tokens: -1, completion_tokens: 1 }, { prompt_tokens: 1, completion_tokens: Infinity }]) {
+    for (const usage of [
+        null,
+        {},
+        { prompt_tokens: -1, completion_tokens: 1 },
+        { prompt_tokens: 1, completion_tokens: -2 },
+        { prompt_tokens: 1, completion_tokens: Infinity },
+        { prompt_tokens: 1, completion_tokens: '2' },
+    ]) {
         assert.equal(estimateCost(usage, model), null);
     }
 });

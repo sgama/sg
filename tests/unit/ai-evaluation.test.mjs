@@ -320,17 +320,6 @@ test('fixture validation checks source labels, unique IDs and label shapes; comp
 });
 
 test('missing and invalid usage is unpriced rather than free', async () => {
-    const model = getModel('glm');
-    for (const usage of [
-        null,
-        {},
-        { prompt_tokens: -1, completion_tokens: 2 },
-        { prompt_tokens: 1, completion_tokens: -2 },
-        { prompt_tokens: Infinity, completion_tokens: 2 },
-        { prompt_tokens: 1, completion_tokens: '2' },
-    ]) {
-        assert.equal(estimateCost(usage, model), null);
-    }
     const report = await compareModels({
         cases: [item],
         models: ['glm'],
@@ -397,7 +386,17 @@ test('negative questions retrieve real context and exercise generation rather th
     assert.equal(comparison.results[0].passed, true);
 });
 
-test('negative-only retrieval and retrieval failures do not manufacture source hits', async () => {
+test('retrieval scores expected source hits only: not keywords, unlabeled matches or failures', async () => {
+    const wrong = await evaluateRetrieval({
+        cases: [known],
+        retrieve: async () => ({
+            matches: [{ metadata: { recordType: 'chunk', text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
+            embeddingMs: 5,
+            searchMs: 7,
+        }),
+    });
+    assert.equal(wrong.hitRate, 0);
+    assert.equal(wrong.results[0].embeddingMs, 5);
     const negative = { ...item, expectedSources: [] };
     const report = await evaluateRetrieval({
         cases: [negative],
@@ -594,19 +593,6 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
     } finally {
         await fs.rm(root, { recursive: true, force: true });
     }
-});
-
-test('retrieval measures expected source hits, not keyword presence', async () => {
-    const report = await evaluateRetrieval({
-        cases: [known],
-        retrieve: async () => ({
-            matches: [{ metadata: { recordType: 'chunk', text: 'Hugo Cloudflare', source: 'content/wrong.md' } }],
-            embeddingMs: 5,
-            searchMs: 7,
-        }),
-    });
-    assert.equal(report.hitRate, 0);
-    assert.equal(report.results[0].embeddingMs, 5);
 });
 
 test('source-grounded answer checks reject a contradictory claim', async () => {
