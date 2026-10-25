@@ -15,7 +15,7 @@ function classList() {
 function panelFixture(settings = { disableStars: true, disableBlur: true }) {
     const features = new Map();
     const updates = [];
-    const stars = {};
+    const stars = { addEventListener: (_, handler) => (stars.change = handler) };
     const blur = { addEventListener: (_, handler) => (blur.change = handler) };
     const documentElement = { classList: classList() };
     const document = {
@@ -49,7 +49,7 @@ test('a11y stars registers the feature, initialises controls and propagates chan
     assert.ok(f.classes.has('disable-stars'));
     f.features.get('disableStars').apply(false);
     assert.ok(!f.classes.has('disable-stars'));
-    f.stars.onchange({ target: { checked: false } });
+    f.stars.change({ target: { checked: false } });
     assert.deepEqual(f.updates, [['disableStars', false]]);
 });
 

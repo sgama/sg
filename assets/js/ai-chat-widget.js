@@ -157,10 +157,15 @@ class AiChatWidget extends HTMLElement {
             ],
         });
         this.#chat.load();
-        this.#renderer.load().then(() => {
-            if (signal.aborted || !this.isConnected || !this.#renderer.ready) return;
-            this.#transcript?.refresh();
-        });
+        this.#renderer
+            .load()
+            .then(() => {
+                if (signal.aborted || !this.isConnected || !this.#renderer.ready) return;
+                this.#transcript?.refresh();
+            })
+            .catch((error) => {
+                console.error('Chat markdown unavailable; displaying plain text.', error);
+            });
     }
 
     #applyPendingQuestion() {

@@ -22,7 +22,7 @@
             "parameters": { "chat_template_kwargs": { "enable_thinking": false } }
         },
         "llama": {
-            "id": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+            "id": "@cf/meta/llama-3.3-70b-i, council, paladin, arbiter, hunter, proctor, janitor, documestruct-fp8-fast",
             "inputPerMillion": 0.293,
             "outputPerMillion": 2.253,
             "completionLimitKey": "max_tokens",

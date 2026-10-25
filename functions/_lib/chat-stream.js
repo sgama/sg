@@ -43,6 +43,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
         if (!Array.isArray(payload.choices) && !bindingUsageSummary) throw new Error('Unsupported AI stream event: expected choices');
         const content = payload.choices?.find((item) => item.index === 0)?.delta?.content;
         if (typeof content === 'string' && content) {
+            // Whitespace-only chunks are forwarded but do not count as an answer.
             if (!hasAnswer && content.trim()) onFirstToken?.();
             hasAnswer ||= content.trim().length > 0;
             send(controller, { response: content });

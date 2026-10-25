@@ -6,8 +6,11 @@
  * Features share nothing but the context `{ document, window, log }`, and one failing feature never
  * stops the others.
  */
+const IDLE_TIMEOUT_MS = 2000;
+const IDLE_FALLBACK_DELAY_MS = 250;
+
 const idleScheduler = (window) => (task) =>
-    'requestIdleCallback' in window ? window.requestIdleCallback(task, { timeout: 2000 }) : setTimeout(task, 250);
+    'requestIdleCallback' in window ? window.requestIdleCallback(task, { timeout: IDLE_TIMEOUT_MS }) : setTimeout(task, IDLE_FALLBACK_DELAY_MS);
 
 /**
  * @typedef {{ document: Document, window: Window, log: Pick<Console, 'error'> }} FeatureContext

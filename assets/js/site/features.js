@@ -30,6 +30,20 @@ export const chatTriggers = {
     },
 };
 
+/** Binds a settings toggle to its checkboxes, syncing initial state and change events. */
+function bindToggle(panel, document, suffix, setting, apply) {
+    const initial = Boolean(panel.getSettings()[setting]);
+    apply(initial);
+    for (const checkbox of checkboxes(document, suffix)) {
+        checkbox.checked = initial;
+        checkbox.addEventListener('change', (event) => {
+            const enabled = event.target.checked;
+            apply(enabled);
+            panel.updateSetting(setting, enabled);
+        });
+    }
+}
+
 export const a11yStars = {
     name: 'a11y-stars',
     phase: 'idle',
@@ -40,11 +54,9 @@ export const a11yStars = {
             default: false,
             apply: (enabled) => document.documentElement.classList.toggle('disable-stars', enabled),
         });
-        const initial = Boolean(panel.getSettings().disableStars);
-        for (const checkbox of checkboxes(document, 'disable-stars')) {
-            checkbox.checked = initial;
-            checkbox.onchange = (event) => panel.updateSetting('disableStars', event.target.checked);
-        }
+        bindToggle(panel, document, 'disable-stars', 'disableStars', (enabled) =>
+            document.documentElement.classList.toggle('disable-stars', enabled),
+        );
     },
 };
 
@@ -54,11 +66,7 @@ export const a11yBlur = {
     init({ document, window }) {
         const panel = window.A11yPanel;
         if (!panel) return;
-        const apply = (enabled) => document.documentElement.classList.toggle('disable-blur', enabled);
-        apply(Boolean(panel.getSettings().disableBlur));
-        for (const checkbox of checkboxes(document, 'disable-blur')) {
-            checkbox.addEventListener('change', (event) => apply(event.target.checked));
-        }
+        bindToggle(panel, document, 'disable-blur', 'disableBlur', (enabled) => document.documentElement.classList.toggle('disable-blur', enabled));
     },
 };
 
