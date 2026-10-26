@@ -64,6 +64,26 @@ test('propagates upstream stream failures', async () => {
     await assert.rejects(new Response(normalizeChatStream(upstream)).text(), /upstream disconnected/);
 });
 
+test('cancels provider streams after the first terminal failure and emits only one client error frame', async () => {
+    let cancelled = false;
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"error":{"message":"provider failed"}}\n\n'));
+            queueMicrotask(() => {
+                controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"later"}}]}\n\n'));
+            });
+        },
+        cancel() {
+            cancelled = true;
+        },
+    });
+    const output = await new Response(normalizeChatStream(source)).text();
+    assert.equal(cancelled, true);
+    assert.equal((output.match(/"error":"AI response failed\. Please try again\."/g) ?? []).length, 1);
+    assert.equal(output.split('data: {"error":"AI response failed. Please try again."}\n\n').length - 1, 1);
+    assert.match(output, /data: \[DONE\]\n\n$/);
+});
+
 test('reports reasoning-only, empty, malformed, and provider-error streams explicitly', async (t) => {
     const cases = [
         {

@@ -1,4 +1,4 @@
-import { apiHistory, readHistory, STORAGE_KEY } from './history.js';
+import { apiHistory, MAX_SAVED_MESSAGES, readHistory, STORAGE_KEY } from './history.js';
 import { streamAnswer as fetchAnswer } from './stream.js';
 import { formatResponseMetrics } from './metrics.js';
 
@@ -70,11 +70,7 @@ export function createConversation({
         answer: active.answer,
         elapsedMs: now() - active.started,
     });
-    const persist = () =>
-        storage.set(
-            STORAGE_KEY,
-            messages.filter((message) => message.text.trim()),
-        );
+    const persist = () => storage.set(STORAGE_KEY, messages.filter((message) => message.text.trim()).slice(-MAX_SAVED_MESSAGES));
     const add = (message) => {
         messages.push(message);
         emit({ type: 'message:add', message });

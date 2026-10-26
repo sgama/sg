@@ -210,7 +210,7 @@ test('refresh CLI missing credentials fail explicitly, including the process ent
     });
     assert.ifError(result.error);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Corpus refresh failed: Missing/);
+    assert.match(result.stderr, /Corpus refresh failed: Error: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN/);
     assert.equal(f.requests.length, 0);
 });
 

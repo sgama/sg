@@ -91,10 +91,16 @@ export function saveChatLog(
     });
 }
 
-// Legacy or foreign records (no metadata, or a version other than 2) must never fail the whole page.
+/**
+ * Legacy or foreign records (no metadata, or a version other than 2) must never fail the whole page.
+ *
+ * @param {{ get: Function }} kv
+ * @param {{ name: string, metadata?: { version?: number } }} key
+ * @param {{ cursor?: string }} [options]
+ */
 async function readRecord(kv, key, { cursor } = {}) {
     if (key.metadata?.version !== 2) {
-        console.error('Unsupported log record version:', { key: key.name, cursor });
+        console.error('Unsupported log record version:', key.name);
         return { status: 'skipped', reason: 'unsupported_version', key: key.name };
     }
     try {

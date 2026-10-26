@@ -120,6 +120,21 @@ test('AiService', async (t) => {
             assert.equal(calls[0].payload.stream, true);
             assert.deepEqual(calls[0].payload.chat_template_kwargs, { enable_thinking: false });
         });
+
+        await t.test('forwards abort signal to AI.run', async () => {
+            const controller = new AbortController();
+            const svc = new AiService(
+                makeEnv({
+                    aiRun: async (_model, _payload, options) => {
+                        assert.equal(options.signal, controller.signal);
+                        return makeProviderStream('Answer');
+                    },
+                }),
+            );
+
+            const result = await svc.generateStream(SAMPLE_DATA.SAFE_QUERY, 'context text', FIXTURES.SIMPLE_HISTORY, { signal: controller.signal });
+            assert.match(await new Response(result).text(), /"response":"Answer"/);
+        });
     });
 
     await t.test('retrieve', async (t) => {

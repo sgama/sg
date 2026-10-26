@@ -13,7 +13,7 @@ import { workersCacheStore } from './retrieval-cache.js';
  * generate. Returns the answer stream, wrapped for logging when a log store is
  * bound. Events leave through `emit`, so the route owns the transport.
  */
-async function defaultAnswerChat({ aiService, env, executionCtx, query, history, emit }) {
+async function defaultAnswerChat({ aiService, env, executionCtx, query, history, signal, emit }) {
     const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));
     await emit({ evidence });
 
@@ -22,7 +22,7 @@ async function defaultAnswerChat({ aiService, env, executionCtx, query, history,
         stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
     } else {
         await emit({ progress: 'generation' });
-        stream = await aiService.generateStream(query, contextText, history);
+        stream = await aiService.generateStream(query, contextText, history, { signal });
     }
     return env.CHAT_LOGS ? saveChatLog(env, query, stream, executionCtx) : stream;
 }
@@ -91,6 +91,7 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                     executionCtx: c.executionCtx,
                     query,
                     history,
+                    signal: c.req.raw.signal,
                     emit: (payload) => sse.writeSSE({ data: JSON.stringify(payload) }),
                 });
                 await sse.pipe(stream);

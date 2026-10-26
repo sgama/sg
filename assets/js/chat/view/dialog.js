@@ -13,7 +13,7 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
         beforeOpen?.();
         if (!dialog.open) {
             opener = document.activeElement;
-            dialog.show();
+            dialog.showModal();
             host.classList.add('is-open');
             document.body.classList.add('ai-chat-open');
             toggle.setAttribute('aria-expanded', 'true');
@@ -24,7 +24,8 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
         if (frame !== null) cancelAnimationFrame(frame);
         frame = requestAnimationFrame(() => {
             frame = null;
-            if (dialog.open) input.focus({ preventScroll: true });
+            // Touch keyboards would cover the transcript the user just opened, so only pointer users are focused.
+            if (dialog.open && !globalThis.matchMedia?.('(pointer: coarse)').matches) input.focus({ preventScroll: true });
         });
     }
 

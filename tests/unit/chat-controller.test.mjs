@@ -47,6 +47,20 @@ function setup({ online = true } = {}) {
 
 const settle = () => setImmediate();
 
+test('saved history keeps only the newest 50 messages', () => {
+    const { controller, storage } = setup();
+    storage.set(
+        STORAGE_KEY,
+        Array.from({ length: 60 }, (_, i) => ({ sender: 'user', text: `old ${i}` })),
+    );
+    controller.load();
+    controller.ask('newest');
+    const saved = storage.data.get(STORAGE_KEY);
+    assert.equal(saved.length, 50);
+    assert.deepEqual(saved.at(-1), { text: 'newest', sender: 'user' });
+    assert.equal(saved[0].text, 'old 11');
+});
+
 test('ask appends the question and an empty answer, persists them, and marks the controller busy', () => {
     const { controller, storage, stream, events } = setup();
     const active = controller.ask('  What is deployed?  ');

@@ -32,9 +32,14 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
     let hasAnswer = false;
     let finished = false;
     let errorSent = false;
+    let emitted = false;
 
-    const send = (controller, payload) => controller.enqueue(frame(payload));
+    const send = (controller, payload) => {
+        emitted = true;
+        controller.enqueue(frame(payload));
+    };
     const end = (controller) => {
+        emitted = true;
         controller.enqueue(DONE_FRAME);
         finished = true;
     };
@@ -81,31 +86,33 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
 
     return new ReadableStream({
         async pull(controller) {
-            if (finished) {
-                controller.close();
-                return;
-            }
-            try {
-                const { done, value } = await reader.read();
-                if (done) {
+            // Events that emit nothing (reasoning deltas) must not return early: no further pull is scheduled.
+            emitted = false;
+            while (!emitted) {
+                if (finished) {
+                    controller.close();
+                    return;
+                }
+                let result;
+                try {
+                    result = await reader.read();
+                } catch (error) {
+                    controller.error(error);
+                    return;
+                }
+                if (result.done) {
                     try {
                         complete(controller);
                     } catch (error) {
                         await fail(controller, error, reader);
                     }
-                    controller.close();
-                    return;
+                    continue;
                 }
                 try {
-                    handle(value.data, controller);
+                    handle(result.value.data, controller);
                 } catch (error) {
                     await fail(controller, error, reader);
-                    controller.close();
-                    return;
                 }
-            } catch (error) {
-                await fail(controller, error, reader);
-                controller.close();
             }
         },
         cancel(reason) {

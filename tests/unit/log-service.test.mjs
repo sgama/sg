@@ -23,23 +23,34 @@ test('KV list failures reject and the logs API reports an explicit 500', async (
     assert.deepEqual(await response.json(), { error: 'Internal Server Error' });
     assert.equal(response.headers.get('Cache-Control'), 'no-store');
     assert.equal(logged.mock.callCount(), 1);
-    assert.deepEqual(logged.mock.calls[0].arguments, ['Logs API Error: KV unavailable']);
+    assert.deepEqual(logged.mock.calls[0].arguments[0], 'Logs API Error');
+    assert.equal(logged.mock.calls[0].arguments[1].error.message, 'KV unavailable');
     logged.mock.restore();
 });
 
-test('KV read failures are skipped instead of failing the whole listing', async (t) => {
+test('KV read failures are surfaced as partial pages with diagnostics, while known missing records remain omitted', async (t) => {
     const error = new Error('KV read rejected');
     const logged = t.mock.method(console, 'error', () => {});
     const kv = {
-        list: async () => ({ keys: [{ name: 'record', metadata: { version: 2 } }], list_complete: true }),
-        get: async () => {
-            throw error;
+        list: async () => ({
+            keys: [
+                { name: 'record', metadata: { version: 2 } },
+                { name: 'missing', metadata: { version: 2 } },
+            ],
+            list_complete: true,
+        }),
+        get: async (name) => {
+            if (name === 'record') throw error;
+            return null;
         },
     };
     const result = await fetchChatLogs({ CHAT_LOGS: kv }, 10);
     assert.deepEqual(result.data, []);
     assert.equal(result.meta.count, 0);
+    assert.equal(result.meta.partial, true);
+    assert.equal(result.meta.key, 'record');
     assert.ok(logged.mock.calls.some((call) => call.arguments[0] === 'Log record read failed:'));
+    assert.ok(logged.mock.calls.some((call) => call.arguments[0] === 'Log record missing:'));
     logged.mock.restore();
 });
 
@@ -59,7 +70,7 @@ test('missing versioned records log an error and are omitted rather than fabrica
     );
     assert.deepEqual(result.data, []);
     assert.equal(result.meta.count, 0);
-    assert.deepEqual(logged.mock.calls[0].arguments, ['Log record missing:', 'missing']);
+    assert.deepEqual(logged.mock.calls[0].arguments, ['Log record missing:', { key: 'missing', cursor: undefined }]);
     assert.equal(logged.mock.callCount(), 1);
 });
 

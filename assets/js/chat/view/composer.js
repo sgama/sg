@@ -12,18 +12,20 @@ export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClea
         input.value = String(text).slice(0, input.maxLength);
     };
 
+    // A retry sends its stored query and leaves the user's typed draft alone.
     function submit(retry = null) {
-        const text = input.value.trim();
-        if (!text || isBusy() || !form.reportValidity()) return;
+        const text = retry ? retry.query : input.value.trim();
+        if (!text || isBusy() || (!retry && !form.reportValidity())) return;
         if (!onSubmit(text, retry)) return;
-        input.value = '';
+        if (!retry) input.value = '';
         focus();
     }
 
     listen(input, 'keydown', (event) => {
         if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
         event.preventDefault();
-        if (!isBusy()) form.requestSubmit();
+        if (isBusy()) status.textContent = 'Wait for the answer, or press Stop.';
+        else form.requestSubmit();
     });
     listen(form, 'submit', (event) => {
         event.preventDefault();
@@ -51,7 +53,6 @@ export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClea
         /** Resends a failed exchange with the history it originally used. */
         retry(retry) {
             if (isBusy()) return;
-            input.value = retry.query;
             submit(retry);
         },
         setBusy(busy) {

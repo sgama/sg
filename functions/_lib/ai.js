@@ -112,10 +112,11 @@ export class AiService {
         return this.metrics.snapshot(options);
     }
 
-    async generateStream(query, contextText, history = []) {
+    async generateStream(query, contextText, history = [], options = /** @type {{ signal?: AbortSignal }} */ ({})) {
+        const { signal } = options;
         const messages = buildMessages(query, contextText, history);
         try {
-            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages));
+            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages), { signal });
             return normalizeChatStream(stream, {
                 onFirstToken: () => this.metrics.firstToken(),
                 onUsage: (usage) => this.metrics.generationUsed(usage),

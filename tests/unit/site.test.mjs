@@ -114,14 +114,16 @@ test('feature host waits for DOM readiness before starting features', () => {
     assert.deepEqual(ran, ['ready']);
 });
 
-test('starfield and suggestion chips run when idle and show a bounded set of chips', () => {
+test('starfield and suggestion chips run when idle and show the first four chips in order', () => {
     const f = panelFixture();
     starfield.init(f.context);
     assert.ok(f.classes.has('stars-running'));
-    const buttons = Array.from({ length: 7 }, () => ({}));
+    const buttons = Array.from({ length: 7 }, (_, index) => ({ index }));
     suggestionChips.init({ document: { querySelectorAll: () => [{ querySelectorAll: () => buttons }, { querySelectorAll: () => [] }] } });
-    assert.equal(buttons.filter((button) => !button.hidden).length, 4);
-    assert.equal(buttons.filter((button) => button.hidden).length, 3);
+    assert.deepEqual(
+        buttons.map((button) => button.hidden),
+        [false, false, false, false, true, true, true],
+    );
     assert.deepEqual(
         [starfield, suggestionChips, a11yStars, a11yBlur].map((feature) => feature.phase),
         ['idle', 'idle', 'idle', 'idle'],

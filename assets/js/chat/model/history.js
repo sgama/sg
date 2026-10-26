@@ -1,6 +1,8 @@
 export const STORAGE_KEY = 'ai-chat-history';
 export const SESSION_OPEN_KEY = 'ai-chat-open';
 
+/** Saved history is bounded so localStorage cannot grow without limit; the oldest messages are dropped first. */
+export const MAX_SAVED_MESSAGES = 50;
 export const MAX_API_HISTORY_MESSAGES = 4;
 export const MAX_API_HISTORY_MESSAGE_LENGTH = 2000;
 export const MAX_API_HISTORY_TOTAL_LENGTH = 4000;

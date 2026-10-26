@@ -115,7 +115,7 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
             element(),
         ]),
     );
-    roles.window.show = () => {
+    roles.window.showModal = () => {
         roles.window.open = true;
     };
     roles.window.close = () => {
@@ -385,24 +385,30 @@ test('empty, interrupted, and unsuccessful responses fail explicitly', async () 
 
 test('non-OK responses prefer a safe JSON error payload and keep status-only fallback on plain text', async (t) => {
     const warn = t.mock.method(console, 'warn', () => {});
-    const jsonError = await assert.rejects(
+    await assert.rejects(
         streamAnswer('Question', {
             onUpdate() {},
             fetcher: async () => new Response(JSON.stringify({ error: 'Invalid query.' }), { status: 400 }),
         }),
-        /Invalid query\./,
+        (error) => {
+            assert.equal(error.serverMessage, 'Invalid query.');
+            assert.equal(error.message, 'Invalid query.');
+            return true;
+        },
     );
-    assert.equal(jsonError.serverMessage, 'Invalid query.');
     assert.equal(warn.mock.calls.at(-1).arguments[0], 'Chat request failed (400): Invalid query.');
 
-    const textError = await assert.rejects(
+    await assert.rejects(
         streamAnswer('Question', {
             onUpdate() {},
             fetcher: async () => new Response('Unavailable', { status: 503 }),
         }),
-        /Chat request failed \(503\)/,
+        (error) => {
+            assert.equal(error.serverMessage, null);
+            assert.equal(error.message, 'Chat request failed (503)');
+            return true;
+        },
     );
-    assert.equal(textError.serverMessage, null);
     assert.equal(warn.mock.calls.at(-1).arguments[0], 'Chat request failed (503)');
 });
 
