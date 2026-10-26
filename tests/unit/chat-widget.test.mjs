@@ -115,7 +115,7 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
             element(),
         ]),
     );
-    roles.window.showModal = () => {
+    roles.window.show = () => {
         roles.window.open = true;
     };
     roles.window.close = () => {

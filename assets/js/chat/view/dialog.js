@@ -13,9 +13,9 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
         beforeOpen?.();
         if (!dialog.open) {
             opener = document.activeElement;
-            dialog.showModal();
+            // Non-modal: the page stays scrollable and clickable while the chat is open.
+            dialog.show();
             host.classList.add('is-open');
-            document.body.classList.add('ai-chat-open');
             toggle.setAttribute('aria-expanded', 'true');
             session.set(SESSION_OPEN_KEY, 'true');
             host.dispatchEvent(new CustomEvent('chat-open', { bubbles: true }));
@@ -32,7 +32,6 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
     function settle() {
         if (!host.classList.contains('is-open')) return;
         host.classList.remove('is-open');
-        document.body.classList.remove('ai-chat-open');
         toggle.setAttribute('aria-expanded', 'false');
         session.remove(SESSION_OPEN_KEY);
         afterClose?.();
@@ -82,7 +81,6 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
             toggle.setAttribute('aria-expanded', 'false');
             if (dialog.open) dialog.close();
             host.classList.remove('is-open');
-            document.body.classList.remove('ai-chat-open');
         },
     };
 }
