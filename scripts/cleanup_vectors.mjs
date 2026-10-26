@@ -10,7 +10,7 @@ import { runIfMain } from './lib/cli.mjs';
 /** Vectorize accepts at most 20 IDs per delete and per record lookup (the API rejects 100 with a 400). */
 const ID_BATCH_SIZE = 20;
 
-/** Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of 100. */
+/** Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of ID_BATCH_SIZE. */
 async function vectorInventory(client, accountId, indexName, progress) {
     const vectors = [];
     const seen = new Set();
@@ -66,9 +66,9 @@ async function vectorInventory(client, accountId, indexName, progress) {
 }
 
 /**
- * Deletes the vectors of every versioned corpus namespace except the one the live Worker queries (one live deployment,
- * so older corpora are dead weight). Unversioned and foreign namespaces are never touched. The live namespace is
- * re-read before each deletion, so a deploy that lands mid-run stops the cleanup instead of racing it.
+ * Deletes versioned corpus vectors older than the live Worker and its recorded previous namespace. Unversioned and
+ * foreign namespaces are never touched. The live + previous set is re-read before each deletion, so a deploy that lands
+ * mid-run stops the cleanup instead of racing it.
  */
 export async function cleanupVectors({
     client,
@@ -81,18 +81,25 @@ export async function cleanupVectors({
 }) {
     const started = performance.now();
     const mark = (message) => progress(`[${((performance.now() - started) / 1000).toFixed(1)}s] ${message}`);
-    const live = (await activeWorker(client, accountId, worker))?.namespace;
+    const active = await activeWorker(client, accountId, worker);
+    const live = active?.namespace;
     if (!live) throw new Error('Cannot determine the live corpus namespace; refusing vector cleanup');
+    const previous = active.previousNamespace;
+    const retained = new Set([live]);
+    if (previous) retained.add(previous);
     const vectors = await vectorInventory(client, accountId, indexName, mark);
-    const staleIds = vectors.filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && vector.namespace !== live).map((vector) => vector.id);
-    mark(`live ${live}: ${vectors.length} vectors, ${staleIds.length} stale`);
+    const staleIds = vectors
+        .filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && !retained.has(vector.namespace))
+        .map((vector) => vector.id);
+    mark(`live ${live}${previous ? `, previous ${previous}` : ''}: ${vectors.length} vectors, ${staleIds.length} stale`);
     if (!dryRun) {
         let lastMutationId;
         mark(`deleting ${staleIds.length} vectors`);
         for (let offset = 0; offset < staleIds.length; offset += ID_BATCH_SIZE) {
             const batch = staleIds.slice(offset, offset + ID_BATCH_SIZE);
             mark(`delete ${Math.min(offset + ID_BATCH_SIZE, staleIds.length)}/${staleIds.length}`);
-            if ((await activeWorker(client, accountId, worker))?.namespace !== live) {
+            const current = await activeWorker(client, accountId, worker);
+            if (current?.namespace !== live || current?.previousNamespace !== previous) {
                 throw new Error('Live corpus namespace changed during cleanup; stopping');
             }
             const result = await client.vectorize.indexes.deleteByIDs(indexName, {

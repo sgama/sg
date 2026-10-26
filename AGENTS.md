@@ -58,8 +58,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
   first only for `/api/*`). It has one live version and no deployment history; rollback means
   redeploying an earlier commit. The live version records `AI_CORPUS_NAMESPACE` and `DEPLOY_COMMIT`
   as plain-text variables, which refresh, deploy-skip and cleanup read.
-- `make cleanup-vectors` deletes the vectors of every versioned corpus except the live one. It
-  refuses to run without a live namespace and stops if a deploy changes it mid-run.
+- `make cleanup-vectors` retains the live namespace and one prior namespace, deleting only older
+  versioned corpora. It refuses to run without a live namespace and stops if a deploy changes it mid-run.
 - `make cutover-domains` is a one-time Pages-to-Worker custom domain move; the Pages project is
   frozen until it has run.
 - CI skips the corpus refresh and deployment when no file that can change the site

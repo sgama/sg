@@ -193,7 +193,10 @@ test('refresh CLI activates after indexing, skips unchanged content and honors f
     assert.match(f.output.mock.calls.at(-1).arguments[0], /ingestion skipped/);
     f.requests.length = 0;
     await refresh(['--force', '--config', 'wrangler.toml'], f);
-    assert.ok(!f.requests.some((request) => request.includes('/workers/')), 'a forced refresh does not look up the live Worker');
+    assert.ok(
+        f.requests.some((request) => request.includes('/workers/')),
+        'a forced refresh still reads the live Worker to keep its previous namespace',
+    );
     assert.ok(f.requests.some((request) => request.endsWith('/info')));
 });
 

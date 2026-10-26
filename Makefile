@@ -239,7 +239,7 @@ deploy-built: check check-env ## Deploy an already validated production build (n
 deploy-needed: check-node check-env ## Print deploy=true|false: whether deployable files changed since the live Worker's commit
 	@$(NODE) scripts/deploy_needed.mjs
 
-cleanup-vectors: check-node check-env ## Delete the vectors of every corpus except the live one
+cleanup-vectors: check-node check-env ## Retain the live corpus and the previous one; delete older versioned vectors
 	@$(NODE) scripts/cleanup_vectors.mjs
 
 cutover-domains: check-node check-env ## One-time: move the Pages custom domains to the Worker (ZONE=example.com, optional DRY_RUN=1)

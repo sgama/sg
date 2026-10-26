@@ -21,7 +21,7 @@ permissions:
 
 # Production pushes queue behind each other; PR pushes replace the older run.
 concurrency:
-  group: pages-${{ github.ref }}
+  group: production-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -123,10 +123,10 @@ jobs:
         run: |
           make ai-refresh
           make deploy-built
-      # A skipped deploy means no new corpus was ingested, so no corpus can be stale: only a deploy leaves vectors to
-      # prune. Deletion is idempotent, so a failed cleanup is retried by the next deploy.
+      # Cleanup runs after any deploy attempt: refresh may have selected a new namespace, the deploy may fail, and
+      # deletion is idempotent so a retry remains safe.
       - name: Prune old corpus vectors
-        if: github.event_name == 'push' && steps.changes.outputs.deploy == 'true'
+        if: always() && github.event_name == 'push' && steps.changes.outputs.deploy == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

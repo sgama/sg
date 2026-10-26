@@ -87,17 +87,27 @@ export async function ingestCorpus(
     return { namespace, count: vectors.length, mutationIds };
 }
 
-export function setCorpusNamespace(config, namespace) {
+export function setCorpusNamespace(config, namespace, previousNamespace) {
     if (!/^corpus-[a-f0-9]{56}$/.test(namespace)) throw new Error('Invalid corpus namespace');
     const sections = config.split(/(^\[[^\r\n]+\][ \t]*\r?$)/m);
     const index = sections.findIndex((section) => section === '[vars]');
     if (index === -1 || index + 1 >= sections.length) throw new Error('Wrangler [vars] section is required');
     const entries = sections[index + 1].match(/^AI_CORPUS_NAMESPACE\s*=.*$/gm) ?? [];
     if (entries.length > 1) throw new Error('Duplicate AI_CORPUS_NAMESPACE settings');
+    const prevEntries = sections[index + 1].match(/^AI_PREVIOUS_CORPUS_NAMESPACE\s*=.*$/gm) ?? [];
+    if (prevEntries.length > 1) throw new Error('Duplicate AI_PREVIOUS_CORPUS_NAMESPACE settings');
     const setting = `AI_CORPUS_NAMESPACE = "${namespace}"`;
-    sections[index + 1] = entries.length
-        ? sections[index + 1].replace(/^AI_CORPUS_NAMESPACE\s*=.*$/m, setting)
-        : `\n${setting}${sections[index + 1]}`;
+    let varsSection = sections[index + 1];
+    varsSection = entries.length ? varsSection.replace(/^AI_CORPUS_NAMESPACE\s*=.*$/m, setting) : `\n${setting}${varsSection}`;
+    if (previousNamespace !== undefined) {
+        const previousSetting = `AI_PREVIOUS_CORPUS_NAMESPACE = "${previousNamespace}"`;
+        varsSection = prevEntries.length
+            ? varsSection.replace(/^AI_PREVIOUS_CORPUS_NAMESPACE\s*=.*$/m, previousSetting)
+            : `${varsSection.replace(/^AI_CORPUS_NAMESPACE\s*=.*$/m, `${setting}\n${previousSetting}`)}`;
+    } else if (prevEntries.length) {
+        varsSection = varsSection.replace(/^AI_PREVIOUS_CORPUS_NAMESPACE\s*=.*$/m, '');
+    }
+    sections[index + 1] = varsSection;
     return sections.join('');
 }
 
@@ -152,10 +162,19 @@ export async function refreshCorpus({
 }) {
     const original = await readFile(configPath, 'utf8');
     const corpus = await buildCorpus({ root });
-    const updated = setCorpusNamespace(original, corpus.namespace);
-    let activeNamespace;
-    if (!force) activeNamespace = (await activeWorker(client, accountId, worker))?.namespace;
-    const skipped = activeNamespace === corpus.namespace;
+    // Always read the live Worker so the namespace it serves becomes the new previous one. A forced refresh still
+    // ingests when that lookup fails; it then records no previous namespace.
+    const active = await activeWorker(client, accountId, worker).catch((error) => {
+        if (!force) throw error;
+        return null;
+    });
+    const activeNamespace = active?.namespace;
+    const updated = setCorpusNamespace(
+        original,
+        corpus.namespace,
+        activeNamespace === corpus.namespace ? active?.previousNamespace : activeNamespace,
+    );
+    const skipped = !force && activeNamespace === corpus.namespace;
     // Process one upload batch at a time so no later batch can hide its readiness marker.
     const result = skipped
         ? { namespace: corpus.namespace, count: corpus.chunks.length, mutationIds: [] }

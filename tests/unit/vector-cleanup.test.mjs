@@ -6,19 +6,21 @@ import { createMaintenanceClient } from '../../scripts/lib/corpus-deployment.mjs
 import { activeWorker } from '../../scripts/lib/worker-deployment.mjs';
 
 const ns = (letter) => `corpus-${letter.repeat(56)}`;
-const [LIVE, OLD, OLDER] = [ns('a'), ns('b'), ns('c')];
-const settings = (namespace) => ({
+const [LIVE, OLD, OLDER, PREVIOUS] = [ns('a'), ns('b'), ns('c'), ns('d')];
+const settings = (namespace, previousNamespace) => ({
     bindings: [
         { type: 'kv_namespace', name: 'CHAT_LOGS' },
         ...(namespace ? [{ type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: namespace }] : []),
+        ...(previousNamespace ? [{ type: 'plain_text', name: 'AI_PREVIOUS_CORPUS_NAMESPACE', text: previousNamespace }] : []),
     ],
 });
 
 /** A client with 230 vectors in an old corpus, one in an older one, the live corpus, and two unversioned namespaces. */
-function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
+function fixture({ liveNow = LIVE, liveLater = liveNow, previousNow = PREVIOUS, previousLater = previousNow } = {}) {
     const vectors = [
         ...Array.from({ length: 230 }, (_, index) => ({ id: `old-${index}`, namespace: OLD })),
         { id: 'older', namespace: OLDER },
+        { id: 'previous', namespace: PREVIOUS },
         { id: 'live', namespace: LIVE },
         { id: 'legacy', namespace: '' },
         { id: 'foreign', namespace: 'custom' },
@@ -27,7 +29,18 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
     const deleted = [];
     let reads = 0;
     const client = {
-        workers: { scripts: { scriptAndVersionSettings: { get: async () => settings(++reads === 1 ? liveNow : liveLater) } } },
+        workers: {
+            scripts: {
+                scriptAndVersionSettings: {
+                    get: async () => {
+                        reads += 1;
+                        const live = reads === 1 ? liveNow : liveLater;
+                        const previous = reads === 1 ? previousNow : previousLater;
+                        return settings(live, previous);
+                    },
+                },
+            },
+        },
         vectorize: {
             indexes: {
                 listVectors: async (_, options) =>
@@ -50,13 +63,16 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
     return { client, calls, deleted, accountId: 'account', wait: async (_c, _a, id) => calls.push(['ready', id]) };
 }
 
-test('prunes every versioned corpus except the live one, in delete batches of 20, waiting once for the last', async () => {
+test('prunes every versioned corpus except live and previous, in delete batches of 20, waiting once for the last', async () => {
     const f = fixture();
     const logs = [];
     const result = await cleanupVectors({ ...f, progress: (line) => logs.push(line) });
     assert.deepEqual(result, { dryRun: false, liveNamespace: LIVE, removedVectors: 231 });
     assert.deepEqual(f.calls, [...Array.from({ length: 11 }, () => ['delete', 20]), ['delete', 11], ['ready', 'm12']]);
-    assert.ok(!f.deleted.some((id) => ['live', 'legacy', 'foreign'].includes(id)), 'live, unversioned and foreign vectors are never touched');
+    assert.ok(
+        !f.deleted.some((id) => ['live', 'previous', 'legacy', 'foreign'].includes(id)),
+        'live, previous, unversioned and foreign vectors are never touched',
+    );
     assert.ok(f.deleted.includes('older'));
     assert.ok(
         logs.some((line) => /page 1: 120 vectors/.test(line)),
@@ -112,6 +128,13 @@ test('the live Worker lookup reads plain-text variables, treats a missing Worker
             'account',
         ),
         { namespace: LIVE, commit: 'f'.repeat(40) },
+    );
+    assert.deepEqual(
+        await activeWorker(
+            get(async () => ({ bindings: [...bindings, { type: 'plain_text', name: 'AI_PREVIOUS_CORPUS_NAMESPACE', text: PREVIOUS }] })),
+            'account',
+        ),
+        { namespace: LIVE, previousNamespace: PREVIOUS, commit: 'f'.repeat(40) },
     );
     assert.equal(
         await activeWorker(

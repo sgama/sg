@@ -34,6 +34,30 @@ test('force refresh ingests even when the Worker lookup is unavailable', async (
     assert.ok((await fs.readFile(configPath, 'utf8')).includes(forced.namespace));
 });
 
+test('refresh records the namespace it replaces as previous, and keeps that record when the corpus is unchanged', async (t) => {
+    const { root, configPath, client, wait } = await refreshFixture(t);
+    const older = `corpus-${'d'.repeat(56)}`;
+    const deployed = (namespace, previous) => ({
+        scripts: {
+            scriptAndVersionSettings: {
+                get: async () => ({
+                    bindings: [
+                        { type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: namespace },
+                        { type: 'plain_text', name: 'AI_PREVIOUS_CORPUS_NAMESPACE', text: previous },
+                    ],
+                }),
+            },
+        },
+    });
+    client.workers = deployed(older, `corpus-${'e'.repeat(56)}`);
+    const changed = await refreshCorpus({ client, accountId: 'account', root, wait });
+    assert.ok((await fs.readFile(configPath, 'utf8')).includes(`AI_PREVIOUS_CORPUS_NAMESPACE = "${older}"`));
+    client.workers = deployed(changed.namespace, older);
+    const unchanged = await refreshCorpus({ client, accountId: 'account', root, wait });
+    assert.equal(unchanged.skipped, true);
+    assert.ok((await fs.readFile(configPath, 'utf8')).includes(`AI_PREVIOUS_CORPUS_NAMESPACE = "${older}"`));
+});
+
 async function refreshFixture(t) {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'sg-corpus-refresh-'));
     t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -101,11 +125,13 @@ test('a failed refresh step leaves the Wrangler configuration untouched', async 
 });
 
 test('namespace activation only changes the Wrangler vars section and preserves all bindings', () => {
-    const updated = setCorpusNamespace(config, namespace);
-    assert.equal(updated, config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\n`));
-    assert.equal(setCorpusNamespace(updated, namespace), updated);
-    const next = `corpus-${'b'.repeat(56)}`;
-    assert.ok(setCorpusNamespace(updated, next).includes(next));
+    const previous = `corpus-${'b'.repeat(56)}`;
+    const updated = setCorpusNamespace(config, namespace, previous);
+    assert.equal(updated, config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\nAI_PREVIOUS_CORPUS_NAMESPACE = "${previous}"\n`));
+    assert.equal(setCorpusNamespace(updated, namespace, previous), updated);
+    const next = `corpus-${'c'.repeat(56)}`;
+    assert.ok(setCorpusNamespace(updated, next, previous).includes(next));
+    assert.equal(setCorpusNamespace(config, namespace), config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\n`));
     assert.throws(() => setCorpusNamespace(config, 'bad'), /Invalid corpus/);
     assert.throws(() => setCorpusNamespace('[ai]\nbinding = "AI"', namespace), /vars/);
     assert.throws(() => setCorpusNamespace(`[vars]\nAI_CORPUS_NAMESPACE = "a"\nAI_CORPUS_NAMESPACE = "b"\n`, namespace), /Duplicate/);

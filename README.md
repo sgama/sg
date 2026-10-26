@@ -583,13 +583,13 @@ was built from (`DEPLOY_COMMIT`) as plain-text variables; refresh and deploy-ski
 them with the Workers settings API.
 
 When a deployment happens, CI also runs `make cleanup-vectors`. A skipped deploy
-leaves nothing stale, so cleanup does not run. It deletes the vectors of every
-versioned `corpus-*` namespace except the live one, including undeployed evaluation
-candidates. Unversioned and foreign namespaces are untouched. Deletion uses the API
-maximum of 100 IDs per request and waits once, for the last mutation, because
-mutations are processed in order. The live namespace is re-read before each deletion;
-if a deploy changes it mid-run, cleanup stops. It refuses to run when the live
-namespace cannot be determined.
+leaves nothing stale, so cleanup does not run. It retains the live namespace and
+one prior namespace, deleting only older versioned `corpus-*` namespaces,
+including undeployed evaluation candidates. Unversioned and foreign namespaces are
+untouched. Deletion uses the API maximum of 100 IDs per request and waits once,
+for the last mutation, because mutations are processed in order. The live namespace
+is re-read before each deletion; if a deploy changes it mid-run, cleanup stops.
+It refuses to run when the live namespace cannot be determined.
 
 ```bash
 node scripts/cleanup_vectors.mjs --dry-run   # plan only; reads, no deletion
