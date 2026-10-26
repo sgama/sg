@@ -9,7 +9,8 @@ function fixture({ loading = false, missing = false } = {}) {
         listeners: new Map(),
         attributes: new Map(),
         addEventListener(name, handler) {
-            this.listeners.set(name, handler);
+            const previous = this.listeners.get(name);
+            this.listeners.set(name, previous ? (event) => (previous(event), handler(event)) : handler);
         },
         setAttribute(name, value) {
             this.attributes.set(name, value);
@@ -29,7 +30,7 @@ function fixture({ loading = false, missing = false } = {}) {
     const nested = element({ dataset: { menuToggle: submenu.id } });
     const buttons = [open, close, nested];
     for (const button of buttons) button.closest = () => button;
-    const dialog = { contains: (target) => target === close || target === nested };
+    const dialog = { contains: (target) => target === close || target === nested, querySelector: () => close };
     const errors = [];
     const document = {
         readyState: loading ? 'loading' : 'complete',

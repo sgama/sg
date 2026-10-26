@@ -31,6 +31,7 @@ export function createSseMessageStream(message, metrics) {
 export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } = {}) {
     let hasAnswer = false;
     let finished = false;
+    let errorSent = false;
 
     const send = (controller, payload) => controller.enqueue(frame(payload));
     const end = (controller) => {
@@ -60,25 +61,56 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
             send(controller, { usage: payload.usage });
         }
     };
-    const guarded = (controller, work) => {
+    const fail = async (controller, error, reader) => {
         if (finished) return;
-        try {
-            work();
-        } catch (error) {
-            console.error('Chat Stream Failed:', error);
+        finished = true;
+        console.error('Chat Stream Failed:', error);
+        if (!errorSent) {
             send(controller, { error: 'AI response failed. Please try again.' });
-            end(controller);
+            errorSent = true;
+        }
+        end(controller);
+        try {
+            await reader.cancel(error);
+        } catch (cancelError) {
+            console.error('Chat Stream Cancel Failed:', cancelError);
         }
     };
 
-    return stream
-        .pipeThrough(new TextDecoderStream())
-        .pipeThrough(new EventSourceParserStream())
-        .pipeThrough(
-            new TransformStream({
-                transform: (event, controller) => guarded(controller, () => handle(event.data, controller)),
-                // An upstream that closes without [DONE] still completes, so long as it produced an answer.
-                flush: (controller) => guarded(controller, () => complete(controller)),
-            }),
-        );
+    const reader = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream()).getReader();
+
+    return new ReadableStream({
+        async pull(controller) {
+            if (finished) {
+                controller.close();
+                return;
+            }
+            try {
+                const { done, value } = await reader.read();
+                if (done) {
+                    try {
+                        complete(controller);
+                    } catch (error) {
+                        await fail(controller, error, reader);
+                    }
+                    controller.close();
+                    return;
+                }
+                try {
+                    handle(value.data, controller);
+                } catch (error) {
+                    await fail(controller, error, reader);
+                    controller.close();
+                    return;
+                }
+            } catch (error) {
+                await fail(controller, error, reader);
+                controller.close();
+            }
+        },
+        cancel(reason) {
+            finished = true;
+            return reader.cancel(reason);
+        },
+    });
 }

@@ -92,26 +92,41 @@ export function saveChatLog(
 }
 
 // Legacy or foreign records (no metadata, or a version other than 2) must never fail the whole page.
-async function readRecord(kv, key) {
+async function readRecord(kv, key, { cursor } = {}) {
     if (key.metadata?.version !== 2) {
-        console.error('Unsupported log record version:', key.name);
-        return null;
+        console.error('Unsupported log record version:', { key: key.name, cursor });
+        return { status: 'skipped', reason: 'unsupported_version', key: key.name };
     }
     try {
         const record = await kv.get(key.name, 'json');
-        if (record) return { ...record, id: key.name };
-        console.error('Log record missing:', key.name);
+        if (record) return { status: 'ok', value: { ...record, id: key.name } };
+        console.error('Log record missing:', { key: key.name, cursor });
+        return { status: 'skipped', reason: 'missing', key: key.name };
     } catch (error) {
-        console.error('Log record read failed:', key.name, error);
+        console.error('Log record read failed:', { key: key.name, cursor, cause: error });
+        return { status: 'partial', reason: 'read_failed', key: key.name, cursor, error };
     }
-    return null;
 }
 
 export async function fetchChatLogs(env, limit, cursor) {
     const kv = env?.CHAT_LOGS;
     if (!kv) throw new Error('KV binding missing');
     const listing = await kv.list({ prefix: CONFIG.KV_PREFIX, limit, ...(cursor && { cursor }) });
-    const records = await Promise.all(listing.keys.toReversed().map((key) => readRecord(kv, key)));
-    const data = records.filter(Boolean);
+    const records = await Promise.all(listing.keys.toReversed().map((key) => readRecord(kv, key, { cursor })));
+    const data = records.filter((record) => record.status === 'ok').map((record) => record.value);
+    const partial = records.some((record) => record.status === 'partial');
+    if (partial) {
+        return {
+            data,
+            meta: {
+                count: data.length,
+                limit,
+                cursor: listing.cursor,
+                has_more: !listing.list_complete,
+                partial: true,
+                key: records.find((record) => record.status === 'partial')?.key,
+            },
+        };
+    }
     return { data, meta: { count: data.length, limit, cursor: listing.cursor, has_more: !listing.list_complete } };
 }

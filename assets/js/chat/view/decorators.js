@@ -46,7 +46,7 @@ function createMetricsFooter(metrics, document) {
     };
     const footer = node('div', undefined, 'response-metrics');
     const overview = node('span', `${formatted.summary} · `, 'metrics-summary');
-    overview.title = `🕧 Total latency; 🪙 time to first answer token; 💲 estimated LLM token cost, not a billed amount. Server-side timings. Pricing: ${metrics.pricingDate || 'unknown'}. Excludes embeddings, Vectorize and hosting.`;
+    overview.title = `Total latency; time to first word; estimated AI token cost, not a billed amount. Server-side timings. Pricing: ${metrics.pricingDate || 'unknown'}. Excludes embeddings, Vectorize and hosting.`;
     overview.setAttribute(
         'aria-label',
         `${duration(metrics.totalMs)} total${validDuration(metrics.firstTokenMs) ? `; ${duration(metrics.firstTokenMs)} to first token` : ''}; ${validDuration(metrics.estimatedLlmCostUsd) ? `estimated cost $${metrics.estimatedLlmCostUsd.toFixed(6)}` : 'cost unavailable'}`,
@@ -70,7 +70,7 @@ function createMetricsFooter(metrics, document) {
         timing.append(row);
     }
     const usage = node('div');
-    if (formatted.abstained) usage.append(node('span', 'No answer model call'));
+    if (formatted.abstained) usage.append(node('span', 'No AI model call was needed'));
     if (formatted.usage.length) {
         const table = node('table');
         table.setAttribute('aria-label', 'Model token usage');

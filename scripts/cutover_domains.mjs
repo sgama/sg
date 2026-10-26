@@ -21,8 +21,31 @@ export async function cutoverDomains({ client, accountId, project = 'sg', worker
         try {
             await client.workers.domains.update({ account_id: accountId, hostname, service: worker, zone_name: zone });
         } catch (error) {
-            await client.pages.projects.domains.create(project, { account_id: accountId, name: hostname });
-            throw new Error(`Could not attach ${hostname} to Worker ${worker}; restored it on Pages: ${error.message}`, { cause: error });
+            let restoreError;
+            try {
+                await client.pages.projects.domains.create(project, { account_id: accountId, name: hostname });
+            } catch (pagesError) {
+                restoreError = pagesError;
+            }
+            const attachFailure = new Error(`Could not attach ${hostname} to Worker ${worker} after detaching it from Pages.`);
+            attachFailure.cause = error;
+            if (restoreError) {
+                const restoreFailure = new Error(
+                    `Also failed to restore ${hostname} to Pages after the Worker attach error. Manual recovery: reattach ${hostname} on Pages or inspect the domain state.`,
+                );
+                restoreFailure.cause = restoreError;
+                const rollbackFailure = new AggregateError(
+                    [attachFailure, restoreFailure],
+                    `Could not attach ${hostname} to Worker ${worker}; restore on Pages failed too. Manual recovery: reattach ${hostname} on Pages or inspect the domain state.`,
+                );
+                rollbackFailure.cause = attachFailure;
+                throw rollbackFailure;
+            }
+            const restoredFailure = new Error(
+                `Could not attach ${hostname} to Worker ${worker}; restored it on Pages. Manual recovery: confirm ${hostname} is attached correctly on Pages or the Worker.`,
+            );
+            restoredFailure.cause = attachFailure;
+            throw restoredFailure;
         }
         moved.push(hostname);
     }

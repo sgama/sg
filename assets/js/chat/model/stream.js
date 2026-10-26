@@ -3,6 +3,25 @@ import { createParser } from 'eventsource-parser';
 const PROGRESS_STAGES = new Set(['rewrite', 'embedding', 'search', 'generation']);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
+async function parseErrorResponse(response) {
+    const fallback = `Chat request failed (${response.status})`;
+    if (!response.body || response.bodyUsed) return { message: fallback, serverMessage: null };
+    try {
+        const text = await response.clone().text();
+        if (!text.trim()) return { message: fallback, serverMessage: null };
+        const payload = JSON.parse(text);
+        if (isObject(payload) && typeof payload.error === 'string') {
+            const serverMessage = payload.error.trim();
+            if (serverMessage) {
+                return { message: serverMessage, serverMessage };
+            }
+        }
+    } catch {
+        // Response payload is intentionally opaque when not a safe JSON error object.
+    }
+    return { message: fallback, serverMessage: null };
+}
+
 /**
  * @param {(text: string) => void} onDelta
  * @param {((metrics: object) => void) | undefined} [onMetrics]
@@ -63,7 +82,18 @@ export async function streamAnswer(
         body: JSON.stringify({ query, history }),
         signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
-    if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
+    if (!response.ok) {
+        const { message, serverMessage } = await parseErrorResponse(response);
+        if (response.body && !response.bodyUsed) {
+            response.body.cancel?.().catch(() => {});
+        }
+        const statusLog = serverMessage ? `Chat request failed (${response.status}): ${serverMessage}` : `Chat request failed (${response.status})`;
+        console.warn(statusLog);
+        const error = /** @type {Error & { status?: number, serverMessage?: string | null }} */ (new Error(message));
+        error.status = response.status;
+        error.serverMessage = serverMessage;
+        throw error;
+    }
     if (!response.body) throw new Error('Chat response has no stream');
 
     const reader = response.body.getReader();

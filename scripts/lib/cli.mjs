@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 export function runIfMain(moduleUrl, main, label) {
     if (!process.argv[1] || path.resolve(process.argv[1]) !== fileURLToPath(moduleUrl)) return;
     main().catch((error) => {
-        console.error(`${label}: ${error.message}`);
+        const cause = error instanceof Error ? error : new Error(String(error));
+        console.error(`${label}: ${cause.stack || cause.toString()}`);
         process.exitCode = 1;
     });
 }

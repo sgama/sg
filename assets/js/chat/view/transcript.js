@@ -9,13 +9,14 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     let ticker = null;
     let frame = null;
 
-    function write(element, text, sender) {
+    // Streaming frames skip decorators so open "sources" panels are not rebuilt closed mid-answer.
+    function write(element, text, sender, decorate = true) {
         renderer.write(element, text, sender);
         const message = messageOf.get(element);
-        for (const decorate of decorators) {
+        for (const extra of decorate ? decorators : []) {
             // One failing decorator must not remove the message or the other decorations.
             try {
-                const node = decorate(message, sender);
+                const node = extra(message, sender);
                 if (node) element.append(node);
             } catch (error) {
                 log.error('Chat message decoration failed.', error);
@@ -27,6 +28,7 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     function build(message) {
         const element = document.createElement('div');
         element.classList.add('message', `message--${message.sender}`);
+        element.setAttribute('role', 'group');
         element.setAttribute('aria-label', message.sender === 'user' ? 'You' : 'Assistant');
         elementOf.set(message, element);
         messageOf.set(element, message);
@@ -37,8 +39,14 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     function showElapsed() {
         const active = activeRequest();
         if (!active || active.answer) return;
+        quiet(elementOf.get(active.message));
         elementOf.get(active.message).textContent = `${active.stage} · ${Math.floor(active.elapsedMs / 1000)}s elapsed`;
         scroller.changed();
+    }
+
+    // Ticks and streamed frames stay out of the polite log; the finished answer is announced once.
+    function quiet(element) {
+        element.setAttribute('aria-live', 'off');
     }
 
     function stopTicker() {
@@ -58,7 +66,9 @@ export function createTranscript({ container, renderer, scroller, decorators = [
             scroller.changed();
         },
         update(message) {
-            write(elementOf.get(message), message.text, 'bot');
+            const element = elementOf.get(message);
+            element.removeAttribute('aria-live');
+            write(element, message.text, 'bot');
         },
         /** Redraws assistant messages, for example once the Markdown renderer has finished loading. */
         refresh() {
@@ -86,7 +96,9 @@ export function createTranscript({ container, renderer, scroller, decorators = [
             frame = requestAnimationFrame(() => {
                 frame = null;
                 const current = activeRequest();
-                if (current?.id === request.id) write(elementOf.get(current.message), current.answer, 'bot');
+                if (current?.id !== request.id) return;
+                quiet(elementOf.get(current.message));
+                write(elementOf.get(current.message), current.answer, 'bot', false);
             });
         },
         destroy() {

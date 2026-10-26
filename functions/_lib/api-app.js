@@ -19,7 +19,14 @@ export function createApiApp(logLabel) {
         if (err instanceof AppError) {
             return c.json({ error: err.message }, err.status);
         }
-        console.error(`${logLabel}: ${err instanceof Error ? err.message : String(err)}`);
+        const request = c.req.raw;
+        console.error(logLabel, {
+            error: err,
+            method: request.method,
+            route: request.url,
+            cause: err?.cause,
+            stack: err instanceof Error ? err.stack : undefined,
+        });
         return c.json({ error: 'Internal Server Error' }, 500);
     });
 

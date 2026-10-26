@@ -53,7 +53,21 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
     app.post('/api/chat', async (c) => {
         const env = c.env;
 
-        const parsed = ChatRequestSchema.safeParse(await c.req.json().catch(() => ({})));
+        const contentLength = Number.parseInt(c.req.header('Content-Length') ?? '', 10);
+        const bodyLimit = 64 * 1024;
+        let raw;
+        try {
+            raw = await c.req.text();
+        } catch {
+            return c.json({ error: 'Request body could not be read.' }, 400);
+        }
+        if (contentLength > 0 && contentLength > bodyLimit) {
+            return c.json({ error: 'Request body too large.' }, 413);
+        }
+        if (raw.length > bodyLimit) {
+            return c.json({ error: 'Request body too large.' }, 413);
+        }
+        const parsed = ChatRequestSchema.safeParse(JSON.parse(raw || '{}'));
         if (!parsed.success) {
             return c.json({ error: `Invalid query. Must be a string < ${CONFIG.QUERY.MAX_LENGTH} chars.` }, 400);
         }

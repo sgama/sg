@@ -87,6 +87,9 @@ async function widgetFixture(t, { template = true, incomplete = false, restore =
             setAttribute(key, value) {
                 this.attributes.set(key, value);
             },
+            removeAttribute(key) {
+                this.attributes.delete(key);
+            },
             querySelectorAll(selector) {
                 return selector?.startsWith('.') ? this.children.filter((child) => child.classList.contains(selector.slice(1))) : [];
             },
@@ -378,6 +381,29 @@ test('empty, interrupted, and unsuccessful responses fail explicitly', async () 
         }),
         /503/,
     );
+});
+
+test('non-OK responses prefer a safe JSON error payload and keep status-only fallback on plain text', async (t) => {
+    const warn = t.mock.method(console, 'warn', () => {});
+    const jsonError = await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            fetcher: async () => new Response(JSON.stringify({ error: 'Invalid query.' }), { status: 400 }),
+        }),
+        /Invalid query\./,
+    );
+    assert.equal(jsonError.serverMessage, 'Invalid query.');
+    assert.equal(warn.mock.calls.at(-1).arguments[0], 'Chat request failed (400): Invalid query.');
+
+    const textError = await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            fetcher: async () => new Response('Unavailable', { status: 503 }),
+        }),
+        /Chat request failed \(503\)/,
+    );
+    assert.equal(textError.serverMessage, null);
+    assert.equal(warn.mock.calls.at(-1).arguments[0], 'Chat request failed (503)');
 });
 
 test('history storage round-trips values and discards invalid stored messages', (t) => {
@@ -678,7 +704,7 @@ test('widget displays actual server progress before answer tokens arrive', async
     await f.submit('Question');
     stream.enqueue(new TextEncoder().encode('data: {"progress":"search"}\n\n'));
     await setImmediate();
-    assert.equal(f.roles.status.textContent, '🔎 Finding sources…');
+    assert.equal(f.roles.status.textContent, 'Finding sources…');
     assert.match(f.roles.transcript.children.at(-1).textContent, /^🔎 Finding sources… · \d+s elapsed$/);
     stream.enqueue(new TextEncoder().encode('data: {"response":"Finished"}\n\ndata: [DONE]\n\n'));
     stream.close();
@@ -755,7 +781,7 @@ test('widget sends prior turns with follow-ups, persists answers and restores id
         { sender: 'bot', text: 'Answer' },
     ]);
     assert.equal(f.roles.status.textContent, 'Response complete.');
-    assert.equal(f.roles.transcript.attributes.get('aria-busy'), 'false');
+    assert.equal(f.roles.transcript.attributes.get('aria-busy'), undefined);
     f.roles.close.dispatchEvent(new Event('click'));
     assert.equal(f.roles.window.open, false);
     f.widget.toggle();

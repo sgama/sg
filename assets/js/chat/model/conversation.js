@@ -130,8 +130,10 @@ export function createConversation({
             finish(active, answer, 'Response complete.');
         } catch (error) {
             if (!isCurrent(active)) return;
-            log.error('Chat request failed.', error);
-            const explanation = failureMessage(isOnline());
+            const status = error && typeof error === 'object' && 'status' in error ? error.status : undefined;
+            const serverMessage = error && typeof error === 'object' && 'serverMessage' in error ? error.serverMessage : undefined;
+            log.error('Chat request failed.', { status, serverMessage, cause: error });
+            const explanation = typeof serverMessage === 'string' && serverMessage.trim() ? serverMessage : failureMessage(isOnline());
             retries.set(active.message, { query: active.query, history: active.history });
             finish(active, active.answer ? `${active.answer}\n\n${explanation}` : explanation, explanation);
         }

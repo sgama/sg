@@ -104,7 +104,7 @@ export function createMessageRenderer({ loadModules = null, loadMermaid = null, 
                         warn('Source diagram unavailable; retaining Mermaid code.', error);
                         if (element.contains(code)) {
                             const note = code.ownerDocument.createElement('small');
-                            note.textContent = 'Diagram unavailable. Mermaid source is shown below; open the source page to view it.';
+                            note.textContent = 'Diagram unavailable. The Mermaid source is shown below.';
                             code.parentElement.before(note);
                         }
                     }

@@ -4,7 +4,7 @@
  */
 export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClear, confirm = undefined }) {
     const confirmFn = confirm ?? ((message) => (globalThis.window?.confirm ?? globalThis.confirm)?.(message));
-    const { form, input, send, stop, clear, status, transcript } = roles;
+    const { form, input, send, stop, clear, status } = roles;
     const focus = () => input.focus({ preventScroll: true });
     const listen = (target, event, listener) => target.addEventListener(event, listener, { signal });
     /** Puts text in the input, truncated to its limit, without sending it. */
@@ -58,11 +58,11 @@ export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClea
             send.disabled = busy;
             stop.hidden = !busy;
             send.hidden = busy;
-            transcript.setAttribute('aria-busy', String(busy));
             status.textContent = busy ? 'Assistant is responding.' : '';
         },
         setStatus(text) {
-            status.textContent = text;
+            // Stage labels lead with an emoji; screen readers would speak its name.
+            status.textContent = String(text).replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
         },
     };
 }

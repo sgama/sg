@@ -42,6 +42,10 @@ export const mobileMenuDismissal = {
             toggle.checked = false;
             syncControls(document, toggle);
         };
+        // Opening moves focus into the dialog so Tab does not start behind it.
+        toggle.addEventListener('change', () => {
+            if (toggle.checked) dialog.querySelector('a[href], button, input, [tabindex]:not([tabindex="-1"])')?.focus();
+        });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && toggle.checked) {
                 close();
@@ -72,7 +76,7 @@ export const desktopDropdowns = {
             });
             menu.addEventListener('keydown', (event) => {
                 if (event.key !== 'Escape') return;
-                if (document.activeElement && menu.contains(document.activeElement)) document.activeElement.blur();
+                if (menu.contains(document.activeElement)) trigger.focus();
                 setExpanded(false);
             });
         }
