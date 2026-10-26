@@ -1,6 +1,7 @@
 ---
 title: "Engineering a Portfolio LLM: RAG, Tests, Latency, and Cost"
 date: 2026-10-07
+lastmod: 2026-10-26
 slug: "llm-engineering-portfolio"
 draft: true
 description: "How this repository builds a versioned RAG corpus, streams Workers AI answers, and tests models for retrieval quality, latency, token usage, and cost."
@@ -139,6 +140,24 @@ make ai-compare-rag AI_NAMESPACE=corpus-HASH_FROM_PLAN AI_MODELS=glm,gemma
 These live commands incur charges. Comparisons are serial, interleaved by case/model, and bounded by timeouts and repeat limits. Reports record corpus, fixture, prompt, and model settings so incompatible results cannot pass the local release gate.
 
 Answer checks currently match terms, not factual entailment. An empty-context case tests application abstention; other negative cases test answers against retrieved context. Neither guarantees that the model rejects every unknown fact or misleading excerpt. Human review and a larger, held-out dataset are still necessary.
+
+### Measured baseline: useful signal, failed gate
+
+On 2026-10-07, one developer-run GLM repetition used 13 fixture queries and live Vectorize retrieval. It made no deployments or index mutations and used no visitor transcripts.
+
+| Measure | Result |
+| --- | --- |
+| Successful retrieval requests | 13/13 |
+| Labeled source hit@3 | 10/12 (83.3%; salary excluded) |
+| Retrieval latency p50 / p95 | 143 / 384 ms |
+| Deterministic answer checks | 5/13 (38.5%) |
+| Required regression checks | 1/7 (14.3%) |
+| First visible answer p50 / p95 | 343 / 537 ms |
+| Generation completion p50 / p95 | 1,665 / 4,846 ms |
+| Prompt / completion tokens | 16,388 / 1,240 |
+| Estimated generation-only cost | $0.001487474; usage available 13/13 |
+
+This baseline **failed the default 90% retrieval threshold** and is too small to rank models. The cost is an estimate from dated registry prices, excluding embeddings, storage, failed-call charges and plan allowances. These timings are provider-facing, not browser end-to-end latency. Spot checks found source misses, citation failures, and a false unsupported-absence claim even on one answer that passed the term check; the check rate is not factual accuracy. Full run provenance and per-case failures are in the repository README's [measured GLM baseline](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline).
 
 ## Latency and throughput
 

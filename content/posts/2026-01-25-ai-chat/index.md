@@ -1,7 +1,7 @@
 ---
 title: "Building a Serverless AI Chatbot for My Static Portfolio"
 date: 2026-01-25
-lastmod: 2026-10-25
+lastmod: 2026-10-26
 slug: "ai-chat"
 description: "How this Hugo portfolio answers visitor questions with a Cloudflare Worker, Workers AI and a versioned Vectorize corpus, with source excerpts, abstention and measured latency and cost."
 summary: "A custom portfolio assistant with contextual follow-ups, streamed answers, public source evidence, explicit abstention and measurable latency and token cost."
@@ -156,6 +156,27 @@ Namespaces are derived from a hash of the corpus, and record IDs hash the namesp
 
 Versioned namespaces are what make rollback cheap. The previous namespace is retained after a deploy, so reverting the site does not require re-embedding. Older namespaces are deleted by cleanup after deployment.
 
+## Why build retrieval instead of using Cloudflare AI Search?
+
+Cloudflare AI Search can manage ingestion, chunking, indexing and retrieval—and optionally query rewriting, reranking and answer generation. I built those pieces because this corpus needs more than generic chunks: Hugo supplies canonical public URLs, curated excerpts can expand to validated parent sections, and each deploy activates an evaluated, versioned corpus. The custom pipeline also makes every retrieval step testable, but leaves parsing, chunking, indexing, cleanup and rollback operations to me.
+
+{{< mermaid >}}
+flowchart LR
+    C[Custom: parse and chunk] --> E[Embed and index]
+    E --> V[Versioned Vectorize namespace]
+    V --> R[Custom retrieval and evidence]
+    A[AI Search: ingest and chunk] --> M[Managed index and retrieval]
+    M --> O[Search results or generated answer]
+{{< /mermaid >}}
+
+| | Custom pipeline | Cloudflare AI Search |
+| --- | --- | --- |
+| Control | Custom normalization, parent/canonical evidence, abstention and deployment gates | Managed indexing and retrieval, with configurable chunk size/overlap, metadata, hybrid search and optional reranking |
+| Work | Maintain ingestion, validation, indexing, versioning, cleanup and evaluation | Less search infrastructure; adapt and revalidate corpus ingestion, evidence handling and API integration |
+| Cost today | Workers AI embeddings and Vectorize; this small corpus rebuild is estimated at a fraction of a cent, and Vectorize has included monthly allowances | Open beta currently includes storage, indexing and crawling; Workers AI and AI Gateway remain billable |
+
+**There is no measured savings claim here.** AI Search is currently free during its open beta (up to 20,000 monthly queries on Workers Free; paid plans have unlimited queries), while this small custom index is inexpensive and Vectorize usage may fit plan allowances. A move could reduce code and operations now, but actual savings depend on query volume, plan, model use and post-beta pricing. AI Search says it will give at least 30 days' notice before billing begins. See [AI Search pricing and limits](https://developers.cloudflare.com/ai-search/platform/limits-pricing/), [chunking controls](https://developers.cloudflare.com/ai-search/configuration/indexing/chunking/) and [Vectorize pricing](https://developers.cloudflare.com/vectorize/platform/pricing/).
+
 ## Retrieval and context
 
 Retrieval embeds the search query with the same model used at ingestion and searches the namespace the live Worker is configured to read. The namespace filter is applied in the Vectorize query, so only records from the namespace the live Worker is configured to read are searched.
@@ -196,6 +217,12 @@ make dev-ai     # Local site with the chat API
 ```
 
 The offline tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Bitcomplete and Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
+
+### One measured baseline
+
+A developer-run baseline on 2026-10-07 used 13 fixture questions, one GLM repetition and the live Vectorize corpus. Retrieval succeeded for all 13 requests, but only 10 of 12 labeled answerable questions retrieved an expected source in the top three (83.3%). Deterministic answer checks passed 5 of 13 (38.5%), and required regressions passed 1 of 7 (14.3%). First visible answer latency was 343 ms p50 / 537 ms p95; generation completed in 1,665 ms p50 / 4,846 ms p95. Estimated generation-only cost was $0.001487474.
+
+**This did not pass the default 90% retrieval gate.** It is one diagnostic run, not a model ranking or a factual-accuracy score. The estimate excludes embeddings, Vectorize, storage and failed-call charges; timings are provider-facing, not full browser end-to-end latency. The [engineering notes](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline) include provenance and failure analysis.
 
 The limits are real:
 

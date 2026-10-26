@@ -1,6 +1,7 @@
 ---
 title: "How I Run an Agentic AI Setup with OpenCode"
 date: 2026-10-25
+lastmod: 2026-10-26
 slug: "agentic-ai-config"
 description: "A map of the OpenCode configuration behind my AI coding workflow: one orchestrator, specialist agents, shared rules, tools, plugins, and how it is deployed."
 summary: "The agents, rules, tools, and provisioning that make up my agentic AI coding setup, and how the pieces connect."
@@ -8,11 +9,11 @@ tags: ["ai", "opencode", "agents", "devops", "ansible"]
 showDate: true
 ---
 
-I do not use one chatbot for coding. I run a small team of agents. One orchestrator receives my request, splits the work, and hands pieces to specialists. Shared rules keep each agent small and checkable. The whole setup lives in a Git repository and is deployed with Ansible.
+I do not use one chatbot for coding. I run a small team of agents. One orchestrator receives my request, splits the work, and hands pieces to specialists. Shared rules keep each agent small and checkable. The whole setup lives in a Git repository and is deployed with Ansible. This is a map of the tooling and its failure modes, not a measured productivity claim or an autonomous deployment system.
 
 This post maps the parts, shows how they connect, and lists what I learned the hard way.
 
-## The big picture
+## System design: the big picture
 
 {{< mermaid >}}
 flowchart LR
@@ -31,7 +32,7 @@ flowchart LR
 
 The repo is the source of truth. Ansible copies the tracked config into my home directory, and OpenCode reads it from there.
 
-## Layers
+## Configuration layers
 
 | Layer | What it holds | Where it lives |
 |---|---|---|
@@ -44,7 +45,7 @@ The repo is the source of truth. Ansible copies the tracked config into my home 
 | Commands | `review`, `fix-test`, `commit` (never pushes), `pr` draft, `caveman` style | `opencode.jsonc` (commands) |
 | Deployment | Provisioning and repo command interface | Ansible role, `Makefile` |
 
-## Who does what
+## Orchestration and task decomposition
 
 The orchestrator is the default agent. It plans and delegates. It does not do bulk searching or large edits itself.
 
@@ -76,7 +77,7 @@ The roles:
 - **Council**: three seats (alpha, beta, gamma) on different models. Their answers are synthesized into one view.
 - **Review agents** from the marketplace: documenter, janitor, paladin (security), arbiter (review), chronicler (docs), hunter (error paths), proctor (test sufficiency).
 
-## Rules that shape behavior
+## Shared policy and context
 
 Rules load in a fixed order. Global rules come first, then the repo rules, then the agent's own prompt and permissions.
 
@@ -99,7 +100,7 @@ The main rules are short:
 
 Two style skills sit on top: Ponytail pushes for the smallest change that fully works, and caveman keeps chat replies terse.
 
-## Model routing and failover
+## Model routing and failure modes
 
 Each role has a model preset. Presets pick cheap, mid, or high-cost models per role. If a call fails, the plugin retries twice, then moves to the next model in the chain.
 
@@ -111,7 +112,7 @@ flowchart LR
   M3 --> Err["Report failure"]
 {{< /mermaid >}}
 
-## Permissions and safety
+## Trust boundaries and permissions
 
 - Review and triage agents deny edits. Implementation agents allow them.
 - Atuin history access is denied by permission.
@@ -120,7 +121,7 @@ flowchart LR
 - The OpenRouter key is set up during provisioning, with secret logging suppressed.
 - The npm config keeps `engine-strict` and `prefer-offline` off, so plugin updates do not fail.
 
-## Deployment
+## Provisioning and deployment
 
 {{< mermaid >}}
 flowchart LR
@@ -131,7 +132,7 @@ flowchart LR
 
 Ansible deploys the tracked config. The `Makefile` holds the lint, syntax, and check targets, and the agents are told to verify through them.
 
-## Lessons
+## Operational lessons
 
 - **Two copies drift.** The tracked and installed configs differ, for example in the default model. Deploy from the repo only, and never edit the home copy by hand.
 - **Agent permissions override global ones.** An allow in an agent's config beats a global deny. I removed shell allows from agents for this reason.
@@ -139,6 +140,6 @@ Ansible deploys the tracked config. The `Makefile` holds the lint, syntax, and c
 - **Some plugins are off.** The metrics plugin is commented out because of a TUI compatibility issue.
 - **Model names change.** Keep presets in one file so a swap touches one place.
 
-## What I would keep and cut
+## Trade-offs and next improvements
 
 Keep the orchestrator, the rule files, and the `Makefile` interface. These do most of the work. Cut any plugin or agent that I have not used in a month. Every extra agent is one more thing to route, permission, and debug.
