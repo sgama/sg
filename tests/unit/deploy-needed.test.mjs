@@ -79,4 +79,9 @@ test('the CLI prints deploy=true when it cannot decide, and deploy=false only on
     process.env.CLOUDFLARE_API_TOKEN = 'token';
     await main({ fetchImpl: async () => new Response('rejected', { status: 400 }), exec: git().exec });
     assert.equal(out.mock.calls.at(-1).arguments[0], 'deploy=true');
+    await main({
+        fetchImpl: async () => Response.json({ success: true, result: { bindings: [{ type: 'plain_text', name: 'DEPLOY_COMMIT', text: SHA }] } }),
+        exec: git().exec,
+    });
+    assert.equal(out.mock.calls.at(-1).arguments[0], 'deploy=false');
 });

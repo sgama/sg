@@ -10,36 +10,34 @@ export async function corpusRecordId(namespace, source, index) {
     return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function assertRecordType(match) {
+    if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');
+}
+
+/**
+ * The parent/canonical sections a match points at, nearest first, validated. Both consumers must
+ * accept the same records, so the shape check lives here rather than in each of them.
+ */
+function sectionReferences(match) {
+    assertRecordType(match);
+    return ['canonical', 'parent']
+        .filter((prefix) => match.metadata?.[`${prefix}Index`] !== undefined)
+        .map((prefix) => {
+            const source = match.metadata[`${prefix}Source`] === undefined ? match.metadata.source : match.metadata[`${prefix}Source`];
+            const index = match.metadata[`${prefix}Index`];
+            if (typeof source !== 'string' || !source.trim() || !Number.isInteger(index) || index >= 0) {
+                throw new Error('Invalid parent section reference');
+            }
+            return { prefix, source, index };
+        });
+}
+
 export async function parentSectionIds(matches, namespace) {
-    for (const match of matches) {
-        if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');
-    }
-    const children = matches.flatMap((match) =>
-        ['parent', 'canonical']
-            .filter((prefix) => match.metadata?.[`${prefix}Index`] !== undefined)
-            .map((prefix) => ({
-                source: match.metadata[`${prefix}Source`] === undefined ? match.metadata.source : match.metadata[`${prefix}Source`],
-                index: match.metadata[`${prefix}Index`],
-            })),
-    );
+    // Record-type check first, so an unsupported record reports before any reference lookup.
+    for (const match of matches) assertRecordType(match);
+    const children = matches.flatMap((match) => sectionReferences(match));
     if (children.length && !namespace) throw new Error('Section expansion requires a corpus namespace');
-    return [
-        ...new Set(
-            await Promise.all(
-                children.map((reference) => {
-                    if (
-                        typeof reference.source !== 'string' ||
-                        !reference.source.trim() ||
-                        !Number.isInteger(reference.index) ||
-                        reference.index >= 0
-                    ) {
-                        throw new Error('Invalid parent section reference');
-                    }
-                    return corpusRecordId(namespace, reference.source, reference.index);
-                }),
-            ),
-        ),
-    ];
+    return [...new Set(await Promise.all(children.map(({ source, index }) => corpusRecordId(namespace, source, index))))];
 }
 
 export function expandSectionMatches(matches, sections) {
@@ -53,14 +51,9 @@ export function expandSectionMatches(matches, sections) {
         expanded.push(evidence);
     };
     for (const match of matches) {
-        if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');
         let evidence = match;
-        for (const prefix of ['canonical', 'parent']) {
-            if (match.metadata?.[`${prefix}Index`] === undefined) continue;
-            if (!Number.isInteger(match.metadata[`${prefix}Index`]) || match.metadata[`${prefix}Index`] >= 0) {
-                throw new Error('Invalid parent section reference');
-            }
-            const section = sectionByKey.get(`${match.metadata[`${prefix}Source`] ?? match.metadata.source}\0${match.metadata[`${prefix}Index`]}`);
+        for (const { prefix, source, index } of sectionReferences(match)) {
+            const section = sectionByKey.get(`${source}\0${index}`);
             if (
                 !section ||
                 section.metadata.recordType !== 'section' ||

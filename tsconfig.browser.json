@@ -1,5 +1,5 @@
 {
     "extends": "./tsconfig.json",
-    "compilerOptions": { "lib": ["ES2024", "DOM", "DOM.Iterable"], "types": [] },
+    "compilerOptions": { "lib": ["ES2025", "DOM", "DOM.Iterable"], "types": [] },
     "include": ["assets/js/**/*.js"]
 }

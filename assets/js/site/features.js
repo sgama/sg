@@ -1,9 +1,7 @@
 const VISIBLE_CHIPS = 4;
 
-const checkboxes = (document, suffix) => Array.from(document.querySelectorAll(`[id$="${suffix}"]`));
-
 /** Returns `limit` random items without mutating the input (partial Fisher-Yates). */
-export function sample(items, limit, random = Math.random) {
+function sample(items, limit, random = Math.random) {
     const list = items.slice();
     const count = Math.min(limit, list.length);
     for (let i = 0; i < count; i += 1) {
@@ -30,11 +28,12 @@ export const chatTriggers = {
     },
 };
 
-/** Binds a settings toggle to its checkboxes, syncing initial state and change events. */
-function bindToggle(panel, document, suffix, setting, apply) {
+/** Binds a settings toggle to the `disable-*` class and its checkboxes, syncing initial state and change events. */
+function bindToggle(panel, document, suffix, setting) {
+    const apply = (enabled) => document.documentElement.classList.toggle(suffix, enabled);
     const initial = Boolean(panel.getSettings()[setting]);
     apply(initial);
-    for (const checkbox of checkboxes(document, suffix)) {
+    for (const checkbox of document.querySelectorAll(`[id$="${suffix}"]`)) {
         checkbox.checked = initial;
         checkbox.addEventListener('change', (event) => {
             const enabled = event.target.checked;
@@ -54,9 +53,7 @@ export const a11yStars = {
             default: false,
             apply: (enabled) => document.documentElement.classList.toggle('disable-stars', enabled),
         });
-        bindToggle(panel, document, 'disable-stars', 'disableStars', (enabled) =>
-            document.documentElement.classList.toggle('disable-stars', enabled),
-        );
+        bindToggle(panel, document, 'disable-stars', 'disableStars');
     },
 };
 
@@ -66,7 +63,7 @@ export const a11yBlur = {
     init({ document, window }) {
         const panel = window.A11yPanel;
         if (!panel) return;
-        bindToggle(panel, document, 'disable-blur', 'disableBlur', (enabled) => document.documentElement.classList.toggle('disable-blur', enabled));
+        bindToggle(panel, document, 'disable-blur', 'disableBlur');
     },
 };
 

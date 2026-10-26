@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import Cloudflare from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { createMaintenanceClient, ingestCorpus, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
-import { corpusFixture as fixture, integrityFixture } from '../helpers/corpus.mjs';
+import { corpusFixture as fixture } from '../helpers/corpus.mjs';
 
 test('embedding and upsert errors and unaccepted mutations are never swallowed', async (t) => {
     const corpus = await buildCorpus({ root: await fixture(t) });
@@ -71,7 +69,7 @@ test('first embedding failure aborts in-flight work and prevents queued inferenc
     assert.equal(client.calls.upserts.length, 0);
 });
 
-test('ingestion requires exact namespace and rejects duplicate/tampered IDs before requests', async (t) => {
+test('ingestion validates the namespace, corpus and parameters before any request', async (t) => {
     const corpus = await buildCorpus({ root: await fixture(t) });
     const client = clientStub(corpus.embedding.dimensions);
     await assert.rejects(ingestCorpus(client, 'account', corpus), /namespace/);
@@ -82,6 +80,18 @@ test('ingestion requires exact namespace and rejects duplicate/tampered IDs befo
     const tampered = structuredClone(corpus);
     tampered.chunks[0].text = 'altered';
     await assert.rejects(ingestCorpus(client, 'account', tampered, { namespace: corpus.namespace }), /hash/);
+    for (const [options, expected] of [
+        [{ batchSize: 0 }, /Concurrency/],
+        [{ batchSize: 1001 }, /Concurrency/],
+        [{ concurrency: 0 }, /Concurrency/],
+        [{ concurrency: 6 }, /Concurrency/],
+        [{ indexName: '' }, /Account ID and index name/],
+    ]) {
+        await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace, ...options }), expected);
+    }
+    await assert.rejects(ingestCorpus(client, '', corpus, { namespace: corpus.namespace }), /Account ID/);
+    const empty = await buildCorpus({ root: await fixture(t, { 'content/page.md': '' }) });
+    await assert.rejects(ingestCorpus(client, 'account', empty, { namespace: empty.namespace }), /empty corpus/);
     assert.equal(client.calls.embeddings.length, 0);
     assert.equal(client.calls.upserts.length, 0);
 });
@@ -106,18 +116,6 @@ test('ingestion uploads namespaced NDJSON files deterministically and reports ac
     assert.ok(vectors.every((vector) => vector.namespace === corpus.namespace));
     assert.ok(client.calls.upserts.every((call) => call.params['unparsable-behavior'] === 'error' && call.params.account_id === 'account'));
     assert.ok(client.calls.embeddings.every((call) => call.model === corpus.embedding.model));
-});
-
-test('invalid ingestion parameters and empty corpora never call upstream services', async (t) => {
-    const { root, corpus } = await integrityFixture(t);
-    const client = {};
-    for (const options of [{ concurrency: 0 }, { concurrency: 6 }, { batchSize: 0 }, { batchSize: 1001 }, { indexName: '' }]) {
-        await assert.rejects(ingestCorpus(client, 'account', corpus, { namespace: corpus.namespace, ...options }), /Concurrency|Account ID/);
-    }
-    await assert.rejects(ingestCorpus(client, '', corpus, { namespace: corpus.namespace }), /Account ID/);
-    await writeFile(path.join(root, 'content/page.md'), '');
-    const empty = await buildCorpus({ root });
-    await assert.rejects(ingestCorpus(client, 'account', empty, { namespace: empty.namespace }), /empty corpus/);
 });
 
 test('maintenance retry defaults do not retry paid embedding failures', async (t) => {
@@ -192,59 +190,61 @@ function clientStub(dimensions) {
     };
 }
 
-test('mutation deadline bounds SDK retry backoff and prevents another fetch', async (t) => {
-    let retry;
-    const setTimeout = globalThis.setTimeout;
-    t.mock.method(globalThis, 'setTimeout', (callback, ms, ...args) => {
-        if (ms !== 120000) return setTimeout(callback, ms, ...args);
-        retry = () => callback(...args);
-        return setTimeout(() => {}, 0);
+test('mutation deadline bounds retries, polling and stalled requests', async (t) => {
+    await t.test('bounds SDK retry backoff and prevents another fetch', async (t) => {
+        let retry;
+        const setTimeout = globalThis.setTimeout;
+        t.mock.method(globalThis, 'setTimeout', (callback, ms, ...args) => {
+            if (ms !== 120000) return setTimeout(callback, ms, ...args);
+            retry = () => callback(...args);
+            return setTimeout(() => {}, 0);
+        });
+        let calls = 0;
+        const client = createMaintenanceClient('test-token', async () => {
+            calls++;
+            return Response.json({ success: false }, { status: 504, headers: { 'retry-after': '120' } });
+        });
+        await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 100 }), /Timed out/), delay(150)]);
+        assert.equal(typeof retry, 'function');
+        retry();
+        await delay(0);
+        assert.equal(calls, 1);
     });
-    let calls = 0;
-    const client = createMaintenanceClient('test-token', async () => {
-        calls++;
-        return Response.json({ success: false }, { status: 504, headers: { 'retry-after': '120' } });
-    });
-    await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 100 }), /Timed out/), delay(150)]);
-    assert.equal(typeof retry, 'function');
-    retry();
-    await delay(0);
-    assert.equal(calls, 1);
-});
 
-test('mutation deadline interrupts polling sleep instead of waiting for the interval', async () => {
-    let calls = 0;
-    const client = {
-        vectorize: {
-            indexes: {
-                info: async () => {
-                    calls++;
-                    return {
-                        dimensions: AI_CONFIG.embedding.dimensions,
-                        processedUpToMutation: 'pending',
-                    };
+    await t.test('interrupts polling sleep instead of waiting for the interval', async () => {
+        let calls = 0;
+        const client = {
+            vectorize: {
+                indexes: {
+                    info: async () => {
+                        calls++;
+                        return {
+                            dimensions: AI_CONFIG.embedding.dimensions,
+                            processedUpToMutation: 'pending',
+                        };
+                    },
                 },
             },
-        },
-    };
-    await assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20, intervalMs: 60000 }), /Timed out/);
-    assert.equal(calls, 1);
-});
+        };
+        await assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20, intervalMs: 60000 }), /Timed out/);
+        assert.equal(calls, 1);
+    });
 
-test('mutation deadline rejects a stalled request and aborts its signal', async () => {
-    let signal;
-    const client = {
-        vectorize: {
-            indexes: {
-                info: async (_, __, options) => {
-                    signal = options.signal;
-                    return new Promise(() => {});
+    await t.test('rejects a stalled request and aborts its signal', async () => {
+        let signal;
+        const client = {
+            vectorize: {
+                indexes: {
+                    info: async (_, __, options) => {
+                        signal = options.signal;
+                        return new Promise(() => {});
+                    },
                 },
             },
-        },
-    };
-    await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20 }), /Timed out/), delay(40)]);
-    assert.equal(signal.aborted, true);
+        };
+        await Promise.all([assert.rejects(waitForMutation(client, 'account', 'stalled', { timeoutMs: 20 }), /Timed out/), delay(40)]);
+        assert.equal(signal.aborted, true);
+    });
 });
 
 test('waits for processed mutation, rejects wrong dimensions and bounded timeout', async () => {

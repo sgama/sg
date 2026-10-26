@@ -5,11 +5,13 @@ export default [
     {
         ignores: ['node_modules/**', 'public/**', 'resources/**', 'reports/**', 'coverage/**', '.wrangler/**', '.npm/**'],
     },
+    { linterOptions: { reportUnusedDisableDirectives: 'error' } },
     js.configs.recommended,
     {
         files: ['**/*.{js,mjs}'],
         languageOptions: { ecmaVersion: 'latest', sourceType: 'module' },
         rules: {
+            'no-var': 'error',
             'no-unused-vars': [
                 'error',
                 {

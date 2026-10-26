@@ -464,9 +464,19 @@ test('release reports must match corpus, labels and retrieval configuration', ()
         /missing successful query unknown/,
     );
     assert.throws(() => validateRetrievalReport({ ...report, namespace: 'old' }, options));
-    assert.throws(() => validateRetrievalReport({ ...report, results: [] }, options));
     assert.throws(() => validateRetrievalReport({ ...report, results: [{ ...report.results[0], sources: ['content/wrong.md'] }] }, options));
     assert.throws(() => validateRetrievalReport({ ...report, topK: 99 }, options));
+    for (const [field, value] of [
+        ['contextualizationHash', 'stale'],
+        ['contextualizationMaxQueryChars', 1],
+        ['contextualizationModel', 'other-model'],
+        ['embeddingModel', 'other-model'],
+        ['fixtureHash', 'stale'],
+        ['indexName', 'other-index'],
+        ['maxContextChars', 1],
+    ]) {
+        assert.throws(() => validateRetrievalReport({ ...report, [field]: value }, options), /release gate/, field);
+    }
 });
 
 test('release-check CLI gates actual Wrangler settings and retrieved-context model results offline', async () => {
@@ -538,6 +548,14 @@ test('release-check CLI gates actual Wrangler settings and retrieved-context mod
             retrievalReport: retrieval,
         };
         validateComparisonReport(comparison, options);
+        for (const [field, value] of [
+            ['contextMode', 'provided'],
+            ['fixtureHash', 'stale'],
+            ['maxCompletionTokens', AI_CONFIG.generation.maxCompletionTokens + 1],
+            ['modelConfigurations', {}],
+        ]) {
+            assert.throws(() => validateComparisonReport({ ...comparison, [field]: value }, options), /does not match/, field);
+        }
         assert.throws(() => validateComparisonReport({ ...comparison, promptHash: 'stale' }, options));
         assert.throws(() => validateComparisonReport({ ...comparison, retrievalHash: 'stale' }, options));
         assert.throws(() => validateComparisonReport({ ...comparison, results: [] }, options));

@@ -4,7 +4,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
-import { buildCorpus, validateCorpus, embeddingText } from './corpus.mjs';
+import { buildCorpus, embeddingText } from './corpus.mjs';
+import { validateCorpus } from './corpus-contract.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';
 import { activeWorker } from './worker-deployment.mjs';
 

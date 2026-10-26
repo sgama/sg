@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { buildCorpus, ingestionText } from '../../scripts/lib/corpus.mjs';
+import { buildCorpus } from '../../scripts/lib/corpus.mjs';
+import { ingestionText } from '../../scripts/lib/content-normalization.mjs';
 import { corpusRecordId } from '../../functions/_lib/retrieval.js';
 
 // Built once per file: every test here only reads the repository corpus.

@@ -7,6 +7,10 @@ export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClea
     const { form, input, send, stop, clear, status, transcript } = roles;
     const focus = () => input.focus({ preventScroll: true });
     const listen = (target, event, listener) => target.addEventListener(event, listener, { signal });
+    /** Puts text in the input, truncated to its limit, without sending it. */
+    const prefill = (text) => {
+        input.value = String(text).slice(0, input.maxLength);
+    };
 
     function submit(retry = null) {
         const text = input.value.trim();
@@ -37,14 +41,11 @@ export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClea
 
     return {
         focus,
-        /** Puts text in the input, truncated to its limit, without sending it. */
-        prefill(text) {
-            input.value = String(text).slice(0, input.maxLength);
-        },
+        prefill,
         /** Sends a canned question, as the starter shortcuts do. */
         ask(question) {
             if (isBusy()) return;
-            input.value = question.slice(0, input.maxLength);
+            prefill(question);
             form.requestSubmit();
         },
         /** Resends a failed exchange with the history it originally used. */

@@ -1,15 +1,14 @@
-import { Hono } from 'hono';
+import { createApiApp } from './api-app.js';
 import { CONFIG } from './application.js';
 import { fetchChatLogs } from './log.js';
 
 /** The public transcript API: GET /api/logs with cursor pagination. */
 export function createLogsApp() {
-    const app = /** @type {Hono<{ Bindings: Env }>} */ (new Hono());
+    const app = createApiApp('Logs API Error');
 
     app.use('/api/logs', async (c, next) => {
         await next();
         c.res.headers.set('Cache-Control', 'no-store');
-        c.res.headers.set('X-Content-Type-Options', 'nosniff');
     });
 
     app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/logs', (c) => {
@@ -22,7 +21,7 @@ export function createLogsApp() {
             return c.json({ error: 'Service Unavailable: KV binding missing' }, 503);
         }
 
-        const cursor = typeof c.req.query('cursor') === 'string' ? c.req.query('cursor') : undefined;
+        const cursor = c.req.query('cursor') || undefined;
         const limitParam = Number.parseInt(c.req.query('limit') ?? '', 10);
         const limit =
             Number.isInteger(limitParam) && limitParam > 0 && limitParam <= CONFIG.PAGINATION.MAX_LIMIT
@@ -31,11 +30,6 @@ export function createLogsApp() {
 
         const data = await fetchChatLogs(env, limit, cursor);
         return c.json(data);
-    });
-
-    app.onError((err, c) => {
-        console.error(`Logs API Error: ${err.message}`);
-        return c.json({ error: 'Internal Server Error' }, 500);
     });
 
     return app;

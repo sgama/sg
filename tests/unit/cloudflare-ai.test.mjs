@@ -176,27 +176,28 @@ test('cloud retrieval expands a semantic hit using its namespace-specific parent
         },
     });
 
-    test('cloud retrieval fails when a matched parent cannot be fetched', async () => {
-        const client = createCloudflareAi({
-            ...options,
-            async fetchImpl(url, init) {
-                const request = new Request(url, init);
-                const pathname = new URL(request.url).pathname;
-                if (pathname.includes('/ai/run/')) {
-                    return Response.json({ success: true, result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } });
-                }
-                if (pathname.endsWith('/get_by_ids')) return Response.json({ success: true, result: [] });
-                return Response.json({
-                    success: true,
-                    result: { matches: [{ metadata: { recordType: 'chunk', source: 'content/project.md', parentIndex: -1, text: 'Partial' } }] },
-                });
-            },
-        });
-        await assert.rejects(client.retrieve('question'), /Missing or invalid parent/);
-    });
     const result = await client.retrieve('How is the project deployed?');
     assert.equal(result.matches[0].id, id);
     assert.equal(result.matches[0].score, 0.9);
     assert.match(result.matches[0].metadata.text, /rollback/);
     assert.equal(calls.length, 3);
+});
+
+test('cloud retrieval fails when a matched parent cannot be fetched', async () => {
+    const client = createCloudflareAi({
+        ...options,
+        async fetchImpl(url, init) {
+            const request = new Request(url, init);
+            const pathname = new URL(request.url).pathname;
+            if (pathname.includes('/ai/run/')) {
+                return Response.json({ success: true, result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } });
+            }
+            if (pathname.endsWith('/get_by_ids')) return Response.json({ success: true, result: [] });
+            return Response.json({
+                success: true,
+                result: { matches: [{ metadata: { recordType: 'chunk', source: 'content/project.md', parentIndex: -1, text: 'Partial' } }] },
+            });
+        },
+    });
+    await assert.rejects(client.retrieve('question'), /Missing or invalid parent/);
 });

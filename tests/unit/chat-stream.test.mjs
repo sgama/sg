@@ -51,6 +51,8 @@ test('accepts the current Workers binding usage summary only after content delta
 test('creates the current widget response stream directly', async () => {
     const output = await new Response(createSseMessageStream('Answer')).text();
     assert.equal(output, event({ response: 'Answer' }) + 'data: [DONE]\n\n');
+    const timed = await new Response(createSseMessageStream('Answer', { totalMs: 1 })).text();
+    assert.equal(timed, event({ response: 'Answer' }) + event({ metrics: { totalMs: 1 } }) + 'data: [DONE]\n\n');
 });
 
 test('propagates upstream stream failures', async () => {

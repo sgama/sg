@@ -10,47 +10,65 @@ import { createChatApp } from '../../functions/_lib/chat-app.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, URLS, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { createContext, makeStream, makeProviderStream } from '../helpers/mocks.mjs';
 
+/**
+ * Env for the three-call /api/chat flow: query rewrite, embedding, then generation whose system
+ * prompt must carry the retrieved evidence. Calls are recorded only when the caller passes `calls`.
+ */
+function chatEnv({
+    calls = [],
+    evidence = 'Public evidence',
+    matches,
+    response = 'Standalone query',
+    stream = () => makeProviderStream('Answer'),
+    vector = [0.1],
+}) {
+    return {
+        AI: {
+            async run(model, payload) {
+                calls.push({ model, payload });
+                if (payload.stream === false) return { response };
+                if (payload.text) return buildEmbeddingsResponse(vector);
+                assert.ok(payload.messages[0].content.includes(evidence));
+                return stream();
+            },
+        },
+        VECTORIZE_INDEX: {
+            query: async () => ({ matches }),
+        },
+    };
+}
+
 test('/api/chat', async (t) => {
     await t.test('streams real stage events and only public excerpts actually supplied to generation', async () => {
         const usage = { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 };
+        const env = chatEnv({
+            matches: [
+                {
+                    metadata: {
+                        recordType: 'chunk',
+                        title: 'Resume',
+                        url: '/resume/',
+                        section: 'Experience',
+                        text: 'Public evidence',
+                    },
+                },
+                {
+                    metadata: {
+                        recordType: 'chunk',
+                        title: 'Private corpus label',
+                        source: 'content/_context/profile.md',
+                        text: 'Internal evidence',
+                    },
+                },
+            ],
+            stream: () => makeProviderStream('Answer', usage),
+        });
         const response = await onRequest(
             createContext({
                 method: 'POST',
                 url: `${URLS.TEST_API_ENDPOINT}/chat`,
                 body: { query: 'And then?', history: [{ role: 'user', content: 'Earlier?' }] },
-                env: {
-                    AI: {
-                        async run(_model, payload) {
-                            if (payload.stream === false) return { response: 'Standalone query' };
-                            if (payload.text) return buildEmbeddingsResponse([0.1]);
-                            assert.ok(payload.messages[0].content.includes('Public evidence'));
-                            return makeProviderStream('Answer', usage);
-                        },
-                    },
-                    VECTORIZE_INDEX: {
-                        query: async () => ({
-                            matches: [
-                                {
-                                    metadata: {
-                                        recordType: 'chunk',
-                                        title: 'Resume',
-                                        url: '/resume/',
-                                        section: 'Experience',
-                                        text: 'Public evidence',
-                                    },
-                                },
-                                {
-                                    metadata: {
-                                        recordType: 'chunk',
-                                        title: 'Private corpus label',
-                                        source: 'content/_context/profile.md',
-                                        text: 'Internal evidence',
-                                    },
-                                },
-                            ],
-                        }),
-                    },
-                },
+                env,
             }),
         );
         const text = await response.text();
@@ -151,25 +169,14 @@ test('/api/chat', async (t) => {
 
         await t.test('passes trimmed query and sanitized history into generation', async () => {
             const calls = [];
-            const env = {
-                AI: {
-                    async run(model, payload) {
-                        calls.push({ model, payload });
-                        if (payload?.stream === false) {
-                            return { response: 'What is Samson’s most recent role?' };
-                        }
-                        if (payload?.text) {
-                            return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
-                        }
-                        return makeProviderStream('Supported answer');
-                    },
-                },
-                VECTORIZE_INDEX: {
-                    async query() {
-                        return buildVectorizeResult([SAMPLE_DATA.CONTEXT_TEXT]);
-                    },
-                },
-            };
+            const env = chatEnv({
+                calls,
+                evidence: SAMPLE_DATA.CONTEXT_TEXT,
+                matches: buildVectorizeResult([SAMPLE_DATA.CONTEXT_TEXT]).matches,
+                response: 'What is Samson’s most recent role?',
+                stream: () => makeProviderStream('Supported answer'),
+                vector: [0.1, 0.2, 0.3],
+            });
 
             const response = await onRequest(
                 createContext({
@@ -186,6 +193,7 @@ test('/api/chat', async (t) => {
             assert.equal(response.status, 200);
             assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
             assert.equal(response.headers.get('Cache-Control'), 'no-cache');
+            assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
             assert.match(await response.text(), /"response":"Supported answer"/);
 
             assert.equal(calls.length, 3);
@@ -254,6 +262,7 @@ test('/api/chat rejects invalid requests and unavailable bindings explicitly, be
         const response = await onRequest(createContext({ method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`, body, env }));
         assert.equal(response.status, status, error);
         assert.match(response.headers.get('Content-Type'), /application\/json/);
+        assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff', error);
         assert.deepEqual(await response.json(), { error });
         assert.deepEqual(
             logged.mock.calls.map((call) => call.arguments),

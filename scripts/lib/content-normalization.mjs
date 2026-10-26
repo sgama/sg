@@ -79,11 +79,16 @@ function shortcodeTokens(content, protectedRanges) {
     return tokens;
 }
 
-function shortcodes(content) {
-    const protectedRanges = [];
+/** Offsets of fenced and inline code, where `{{ }}` is literal text rather than a shortcode. */
+function codeRanges(content) {
+    const ranges = [];
     walk(processor.parse(content), (node) => {
-        if (node.type === 'code' || node.type === 'inlineCode') protectedRanges.push([node.position.start.offset, node.position.end.offset]);
+        if (node.type === 'code' || node.type === 'inlineCode') ranges.push([node.position.start.offset, node.position.end.offset]);
     });
+    return ranges;
+}
+
+function shortcodes(content, protectedRanges) {
     const edits = [];
     let mermaid = null;
     for (const token of shortcodeTokens(content, protectedRanges)) {
@@ -125,18 +130,15 @@ function preserveLiteralTags(node) {
 }
 
 export function normalizedDocument(content, { rejectUnclosedComments = false } = {}) {
+    const protectedRanges = codeRanges(content);
     if (rejectUnclosedComments) {
-        const codeRanges = [];
-        walk(processor.parse(content), (node) => {
-            if (node.type === 'code' || node.type === 'inlineCode') codeRanges.push([node.position.start.offset, node.position.end.offset]);
-        });
         for (const match of content.matchAll(/<!--[\s\S]*?(?:-->|$)/g)) {
-            if (!match[0].endsWith('-->') && !codeRanges.some(([start, end]) => match.index >= start && match.index < end)) {
+            if (!match[0].endsWith('-->') && !protectedRanges.some(([start, end]) => match.index >= start && match.index < end)) {
                 throw new Error('Unclosed authoring comment');
             }
         }
     }
-    const prepared = shortcodes(content);
+    const prepared = shortcodes(content, protectedRanges);
     const tree = processor.parse(prepared);
     preserveLiteralTags(tree);
     const html = raw(toHast(tree, { allowDangerousHtml: true }));

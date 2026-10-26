@@ -37,6 +37,10 @@ test('section expansion preserves ranked source order, bounds evidence and rejec
     ]) {
         assert.throws(() => expandSectionMatches([child], sections), /Invalid section|Missing or invalid parent/);
     }
+    assert.throws(
+        () => expandSectionMatches([{ ...child, metadata: { ...child.metadata, canonicalIndex: -1, canonicalSource: 42 } }], []),
+        /Invalid parent section reference/,
+    );
     assert.ok(contextFromMatches(expanded).length <= AI_CONFIG.retrieval.maxContextChars);
 });
 

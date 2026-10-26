@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { corpusRecordId, expandSectionMatches, parentSectionIds } from '../../functions/_lib/retrieval.js';
-import { buildCorpus, chunkId, corpusHash, embeddingText, namespaceFor, validateCorpus } from '../../scripts/lib/corpus.mjs';
+import { buildCorpus, embeddingText } from '../../scripts/lib/corpus.mjs';
+import { chunkId, corpusHash, namespaceFor, validateCorpus } from '../../scripts/lib/corpus-contract.mjs';
 import { corpusFixture as fixture, integrityFixture } from '../helpers/corpus.mjs';
 
 test('authoring comments are excluded from internal chunks and comment-only files are empty', async (t) => {
@@ -89,9 +90,43 @@ test('corpus contracts reject invalid shapes and inconsistent evidence even with
         ],
         [
             (value) => {
+                value.chunks[0].metadata.parentSource = 'content/other.md';
+            },
+            /Invalid parent source/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.canonicalIndex = -1;
+            },
+            /Missing canonical source/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].chunkIndex = -1;
+            },
+            /Invalid child record/,
+        ],
+        [
+            (value) => {
+                const section = structuredClone(value.chunks[0]);
+                section.chunkIndex = -1;
+                section.metadata.recordType = 'section';
+                section.metadata.sectionIndex = -2;
+                value.chunks.push(section);
+            },
+            /Invalid parent section/,
+        ],
+        [
+            (value) => {
                 value.chunks[0].metadata.url = undefined;
             },
             /missing its URL/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].metadata.url = '/a\\b';
+            },
+            /Invalid public evidence URL/,
         ],
         [
             (value) => {
@@ -252,25 +287,28 @@ test('runtime record IDs match corpus chunk IDs for the same namespace, source a
 
 test('tampered metadata, namespaces and chunk IDs fail integrity validation', async (t) => {
     const { corpus } = await integrityFixture(t);
-    for (const mutate of [
-        (value) => {
-            value.chunks[0].metadata.source = 'content/other.md';
-        },
-        (value) => {
-            value.chunks[0].metadata.text = 'Invented evidence';
-        },
-        (value) => {
-            value.chunks[0].chunkIndex = 99;
-        },
-        (value) => {
-            value.namespace = `corpus-${'0'.repeat(56)}`;
-        },
-        (value) => {
-            value.chunks[0].id = 'wrong';
-        },
+    for (const [mutate, expected] of [
+        [
+            (value) => {
+                value.chunks[0].chunkIndex = 99;
+            },
+            /Corpus hash or namespace/,
+        ],
+        [
+            (value) => {
+                value.namespace = `corpus-${'0'.repeat(56)}`;
+            },
+            /Corpus hash or namespace/,
+        ],
+        [
+            (value) => {
+                value.chunks[0].id = 'wrong';
+            },
+            /Invalid chunk ID/,
+        ],
     ]) {
         const changed = structuredClone(corpus);
         mutate(changed);
-        assert.throws(() => validateCorpus(changed), /hash or namespace|Invalid chunk ID/);
+        assert.throws(() => validateCorpus(changed), expected);
     }
 });

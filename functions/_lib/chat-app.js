@@ -1,6 +1,6 @@
-import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
+import { createApiApp } from './api-app.js';
 import { AppError, CONFIG } from './application.js';
 import { isPromptInjectionAttempt, ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
 import { createSseMessageStream } from './chat-stream.js';
@@ -38,7 +38,7 @@ const defaultCreateAiService = (env) =>
  * AI service, cache store, chat flow or origin list without touching the handler.
  */
 export function createChatApp({ createAiService = defaultCreateAiService, answerChat = defaultAnswerChat, allowedOrigins = ALLOWED_ORIGINS } = {}) {
-    const app = /** @type {Hono<{ Bindings: Env }>} */ (new Hono());
+    const app = createApiApp('API Fatal');
 
     app.use(
         '/api/chat',
@@ -72,7 +72,6 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
             console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
             throw new AppError('Retrieval service unavailable', 503);
         }
-        c.header('X-Content-Type-Options', 'nosniff');
         return streamSSE(c, async (sse) => {
             try {
                 const stream = await answerChat({
@@ -94,14 +93,6 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                 }
             }
         });
-    });
-
-    app.onError((err, c) => {
-        if (err instanceof AppError) {
-            return c.json({ error: err.message }, err.status);
-        }
-        console.error(`API Fatal: ${err.message}`);
-        return c.json({ error: 'Internal Server Error' }, 500);
     });
 
     return app;

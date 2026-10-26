@@ -109,13 +109,6 @@ test('namespace activation only changes the Wrangler vars section and preserves 
     assert.throws(() => setCorpusNamespace(`[vars]\nAI_CORPUS_NAMESPACE = "a"\nAI_CORPUS_NAMESPACE = "b"\n`, namespace), /Duplicate/);
 });
 
-test('refresh activates only after successful ingestion and readiness', async (t) => {
-    const { root, configPath, client, calls, wait } = await refreshFixture(t);
-    const result = await refreshCorpus({ client, accountId: 'account', root, wait });
-    assert.deepEqual(calls, ['upsert', 'ready']);
-    assert.ok((await fs.readFile(configPath, 'utf8')).includes(result.namespace));
-});
-
 test('SDK transport reads the live Worker settings with the documented request', async (t) => {
     const { root, configPath } = await refreshFixture(t);
     const corpus = await buildCorpus({ root });

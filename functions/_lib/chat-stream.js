@@ -1,12 +1,17 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 
+const ENCODER = new TextEncoder();
+const DONE = 'data: [DONE]\n\n';
+
+/** One SSE frame. The widget's wire format is defined here only. */
+const frame = (payload) => ENCODER.encode(`data: ${JSON.stringify(payload)}\n\n`);
+
 export function createSseMessageStream(message, metrics) {
-    const encoder = new TextEncoder();
     return new ReadableStream({
         start(controller) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: message })}\n\n`));
-            if (metrics) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ metrics })}\n\n`));
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.enqueue(frame({ response: message }));
+            if (metrics) controller.enqueue(frame({ metrics }));
+            controller.enqueue(ENCODER.encode(DONE));
             controller.close();
         },
     });
@@ -21,13 +26,12 @@ export function createSseMessageStream(message, metrics) {
  * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object }} [options]
  */
 export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } = {}) {
-    const encoder = new TextEncoder();
     let hasAnswer = false;
     let finished = false;
 
-    const send = (controller, payload) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+    const send = (controller, payload) => controller.enqueue(frame(payload));
     const end = (controller) => {
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.enqueue(ENCODER.encode(DONE));
         finished = true;
     };
     const complete = (controller) => {
