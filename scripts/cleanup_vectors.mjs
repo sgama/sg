@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { parseArgs } from 'node:util';
 import pLimit from 'p-limit';
 import { AI_CONFIG } from '../functions/_lib/application.js';
-import { createMaintenanceClient, waitForMutation } from './lib/corpus-deployment.mjs';
+import { createMaintenanceClient } from './lib/corpus-deployment.mjs';
 import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { VERSIONED_NAMESPACE, activeWorker } from './lib/worker-deployment.mjs';
 import { runIfMain } from './lib/cli.mjs';
@@ -76,7 +76,6 @@ export async function cleanupVectors({
     worker = 'sg',
     indexName = AI_CONFIG.retrieval.indexName,
     dryRun = false,
-    wait = waitForMutation,
     progress = /** @type {(message: string) => void} */ (() => {}),
 }) {
     const started = performance.now();
@@ -109,11 +108,9 @@ export async function cleanupVectors({
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) throw new Error('Vector deletion did not return a mutation ID');
             lastMutationId = result.mutationId;
         }
-        // Mutations are processed in order, so waiting for the last one covers them all.
-        if (lastMutationId) {
-            mark(`waiting for mutation ${lastMutationId}`);
-            await wait(client, accountId, lastMutationId, { indexName });
-        }
+        // Not awaited: queries are namespace-scoped, so stale vectors are unreachable while Vectorize processes them, and
+        // a rerun removes any that remain.
+        if (lastMutationId) mark(`deletions submitted; last mutation ${lastMutationId} not awaited`);
         mark('done');
     }
     return { dryRun, liveNamespace: live, removedVectors: staleIds.length };

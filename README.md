@@ -586,8 +586,9 @@ When a deployment happens, CI also runs `make cleanup-vectors`. A skipped deploy
 leaves nothing stale, so cleanup does not run. It retains the live namespace and
 one prior namespace, deleting only older versioned `corpus-*` namespaces,
 including undeployed evaluation candidates. Unversioned and foreign namespaces are
-untouched. Deletion uses the API maximum of 100 IDs per request and waits once,
-for the last mutation, because mutations are processed in order. The live namespace
+untouched. Deletion sends 20 IDs per request (the Vectorize limit) and does not wait for
+Vectorize to process the deletions: the live Worker queries only its own namespace, so
+stale vectors are unreachable meanwhile, and a rerun removes any that remain. The live namespace
 is re-read before each deletion; if a deploy changes it mid-run, cleanup stops.
 It refuses to run when the live namespace cannot be determined.
 

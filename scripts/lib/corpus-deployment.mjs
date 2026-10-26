@@ -125,7 +125,7 @@ export async function waitForMutation(
 ) {
     const signal = AbortSignal.timeout(timeoutMs);
     const start = clock();
-    const timeoutError = () => new Error(`Timed out waiting for Vectorize mutation ${mutationId}; corpus was not activated`);
+    const timeoutError = () => new Error(`Timed out waiting for Vectorize mutation ${mutationId}`);
     let onAbort;
     const deadline = new Promise((_, reject) => {
         onAbort = () => reject(timeoutError());
@@ -180,7 +180,10 @@ export async function refreshCorpus({
         ? { namespace: corpus.namespace, count: corpus.chunks.length, mutationIds: [] }
         : await ingestCorpus(client, accountId, corpus, {
               namespace: corpus.namespace,
-              afterMutation: (mutationId) => wait(client, accountId, mutationId),
+              afterMutation: (mutationId) =>
+                  wait(client, accountId, mutationId).catch((error) => {
+                      throw new Error(`${error.message}; corpus was not activated`, { cause: error });
+                  }),
           });
     if ((await readFile(configPath, 'utf8')) !== original) {
         throw new Error('Wrangler configuration changed during ingestion; refusing to overwrite');

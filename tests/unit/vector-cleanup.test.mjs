@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
 import { cleanupVectors, main } from '../../scripts/cleanup_vectors.mjs';
 import { createMaintenanceClient } from '../../scripts/lib/corpus-deployment.mjs';
 import { activeWorker } from '../../scripts/lib/worker-deployment.mjs';
@@ -60,15 +59,18 @@ function fixture({ liveNow = LIVE, liveLater = liveNow, previousNow = PREVIOUS, 
             },
         },
     };
-    return { client, calls, deleted, accountId: 'account', wait: async (_c, _a, id) => calls.push(['ready', id]) };
+    return { client, calls, deleted, accountId: 'account' };
 }
 
-test('prunes every versioned corpus except live and previous, in delete batches of 20, waiting once for the last', async () => {
+test('prunes every versioned corpus except live and previous, in delete batches of 20, without awaiting Vectorize', async () => {
     const f = fixture();
     const logs = [];
     const result = await cleanupVectors({ ...f, progress: (line) => logs.push(line) });
     assert.deepEqual(result, { dryRun: false, liveNamespace: LIVE, removedVectors: 231 });
-    assert.deepEqual(f.calls, [...Array.from({ length: 11 }, () => ['delete', 20]), ['delete', 11], ['ready', 'm12']]);
+    assert.deepEqual(
+        f.calls,
+        Array.from({ length: 12 }, (_, index) => ['delete', index < 11 ? 20 : 11]),
+    );
     assert.ok(
         !f.deleted.some((id) => ['live', 'previous', 'legacy', 'foreign'].includes(id)),
         'live, previous, unversioned and foreign vectors are never touched',
@@ -79,7 +81,7 @@ test('prunes every versioned corpus except live and previous, in delete batches 
         'the scan reports each page so progress is visible',
     );
     assert.ok(logs.some((line) => /delete 231\/231/.test(line)));
-    assert.ok(logs.some((line) => /waiting for mutation m12/.test(line)));
+    assert.ok(logs.some((line) => /last mutation m12 not awaited/.test(line)));
 });
 
 test('a dry run reports the plan without any write', async () => {
@@ -110,8 +112,7 @@ test('malformed inventories, bad cursors, incomplete records and unacknowledged 
     for (const [change, message] of breakIt) {
         const f = fixture();
         change(f.client);
-        const wait = async () => assert.fail('An unacknowledged deletion must not wait');
-        await assert.rejects(cleanupVectors({ ...f, wait }), message);
+        await assert.rejects(cleanupVectors(f), message);
     }
 });
 
@@ -166,10 +167,7 @@ test('the real SDK reads Worker settings and deletes vectors with the documented
             result = { vectors: vectors.map(({ id }) => ({ id })), isTruncated: false, count: searchParams.get('count') };
         else if (pathname.endsWith(`${index}/get_by_ids`)) result = vectors;
         else if (pathname.endsWith(`${index}/delete_by_ids`)) result = { mutationId: 'deleted' };
-        else {
-            assert.ok(pathname.endsWith(`${index}/info`));
-            result = { dimensions: AI_CONFIG.embedding.dimensions, processedUpToMutation: 'deleted' };
-        }
+        else assert.fail(`Unexpected request ${pathname}`);
         return Response.json({ success: true, result });
     });
     const result = await cleanupVectors({ client, accountId: 'account' });
@@ -182,7 +180,6 @@ test('the real SDK reads Worker settings and deletes vectors with the documented
             'POST /vectorize/v2/indexes/get_by_ids',
             'GET /workers/scripts/sg/settings',
             'POST /vectorize/v2/indexes/delete_by_ids',
-            'GET /vectorize/v2/indexes/info',
         ],
     );
 });

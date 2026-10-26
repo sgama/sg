@@ -60,6 +60,7 @@ test patterns. Keep general documentation there rather than duplicating it here.
   as plain-text variables, which refresh, deploy-skip and cleanup read.
 - `make cleanup-vectors` retains the live namespace and one prior namespace, deleting only older
   versioned corpora. It refuses to run without a live namespace and stops if a deploy changes it mid-run.
+  It does not wait for Vectorize to process deletions: queries are namespace-scoped, and reruns are idempotent.
 - `make cutover-domains` is a one-time Pages-to-Worker custom domain move; the Pages project is
   frozen until it has run.
 - CI skips the corpus refresh and deployment when no file that can change the site
