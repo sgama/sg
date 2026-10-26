@@ -39,7 +39,7 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
                     return vectors.filter((vector) => options.ids.includes(vector.id));
                 },
                 deleteByIDs: async (_, options) => {
-                    assert.ok(options.ids.length <= 100);
+                    assert.ok(options.ids.length > 0 && options.ids.length <= 20, 'Vectorize rejects more than 20 IDs per delete');
                     deleted.push(...options.ids);
                     calls.push(['delete', options.ids.length]);
                     return { mutationId: `m${calls.length}` };
@@ -50,17 +50,12 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
     return { client, calls, deleted, accountId: 'account', wait: async (_c, _a, id) => calls.push(['ready', id]) };
 }
 
-test('prunes every versioned corpus except the live one, in batches of 100, waiting once for the last', async () => {
+test('prunes every versioned corpus except the live one, in delete batches of 20, waiting once for the last', async () => {
     const f = fixture();
     const logs = [];
     const result = await cleanupVectors({ ...f, progress: (line) => logs.push(line) });
     assert.deepEqual(result, { dryRun: false, liveNamespace: LIVE, removedVectors: 231 });
-    assert.deepEqual(f.calls, [
-        ['delete', 100],
-        ['delete', 100],
-        ['delete', 31],
-        ['ready', 'm3'],
-    ]);
+    assert.deepEqual(f.calls, [...Array.from({ length: 11 }, () => ['delete', 20]), ['delete', 11], ['ready', 'm12']]);
     assert.ok(!f.deleted.some((id) => ['live', 'legacy', 'foreign'].includes(id)), 'live, unversioned and foreign vectors are never touched');
     assert.ok(f.deleted.includes('older'));
     assert.ok(
@@ -68,7 +63,7 @@ test('prunes every versioned corpus except the live one, in batches of 100, wait
         'the scan reports each page so progress is visible',
     );
     assert.ok(logs.some((line) => /delete 231\/231/.test(line)));
-    assert.ok(logs.some((line) => /waiting for mutation m3/.test(line)));
+    assert.ok(logs.some((line) => /waiting for mutation m12/.test(line)));
 });
 
 test('a dry run reports the plan without any write', async () => {
