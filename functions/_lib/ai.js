@@ -1,4 +1,13 @@
-import { AI_CONFIG, AppError, CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel, generationInput } from './application.js';
+import {
+    AI_CONFIG,
+    AppError,
+    CONFIG,
+    contextualizationInput,
+    contextualizedQueryFromResponse,
+    getModel,
+    generationInput,
+    requireVectorizeBinding,
+} from './application.js';
 import { buildMessages } from './prompts.js';
 import { retrieveEvidence } from './retrieval.js';
 import { normalizeChatStream } from './chat-stream.js';
@@ -48,10 +57,7 @@ export class AiService {
      * Stateless per call (no evidence kept on the instance); only timings feed the response metrics.
      */
     async retrieve(query, history = [], onProgress = /** @type {(stage: string) => Promise<void>} */ (async () => {})) {
-        if (!this.vectorize) {
-            console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
-            throw new AppError('Retrieval service unavailable', 503);
-        }
+        requireVectorizeBinding(this.vectorize);
 
         if (history.length) await onProgress('rewrite');
         const retrievalQuery = await this.contextualizeQuery(query, history);

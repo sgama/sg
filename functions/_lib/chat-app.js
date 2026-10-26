@@ -1,9 +1,9 @@
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import { createApiApp } from './api-app.js';
-import { AppError, CONFIG } from './application.js';
+import { AppError, CONFIG, requireVectorizeBinding } from './application.js';
 import { isPromptInjectionAttempt, ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
-import { createSseMessageStream } from './chat-stream.js';
+import { createSseMessageStream, DONE_PAYLOAD } from './chat-stream.js';
 import { saveChatLog } from './log.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
@@ -68,10 +68,7 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
         }
 
         const aiService = createAiService(env);
-        if (!env.VECTORIZE_INDEX) {
-            console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
-            throw new AppError('Retrieval service unavailable', 503);
-        }
+        requireVectorizeBinding(env.VECTORIZE_INDEX);
         return streamSSE(c, async (sse) => {
             try {
                 const stream = await answerChat({
@@ -89,7 +86,7 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                     await sse.writeSSE({
                         data: JSON.stringify({ error: err instanceof AppError ? err.message : 'The response could not be completed.' }),
                     });
-                    await sse.writeSSE({ data: '[DONE]' });
+                    await sse.writeSSE({ data: DONE_PAYLOAD });
                 }
             }
         });

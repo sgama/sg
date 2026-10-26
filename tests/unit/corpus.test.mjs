@@ -207,6 +207,8 @@ test('generic curated source linkage expands to a public section regardless of f
     for (const canonicalSource of ['', 42, null]) {
         await assert.rejects(parentSectionIds([{ ...child, metadata: { ...child.metadata, canonicalSource } }], corpus.namespace), /Invalid parent/);
     }
+    // Reference validation runs before the namespace guard: a malformed reference is the real defect.
+    await assert.rejects(parentSectionIds([{ metadata: { recordType: 'chunk', parentIndex: 0 } }]), /Invalid parent section reference/);
     await writeFile(
         path.join(root, 'content/_context/project.md'),
         '---\nretrievalSource: content/missing.md\nretrievalSection: Missing\n---\nFacts',

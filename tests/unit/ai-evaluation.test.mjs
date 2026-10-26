@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { AI_CONFIG, getModel, generationInput } from '../../functions/_lib/application.js';
+import { AI_CONFIG, estimateCost, getModel, generationInput } from '../../functions/_lib/application.js';
 import { contextualizationMessages, buildMessages } from '../../functions/_lib/prompts.js';
 import {
     fixtureHash,
@@ -13,7 +13,6 @@ import {
     scoreAnswer,
     evaluateRetrieval,
     compareModels,
-    estimateCost,
     percentile,
     readAnswer,
     retrievalEvidenceRate,

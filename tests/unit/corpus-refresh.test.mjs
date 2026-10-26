@@ -23,13 +23,15 @@ const live = (value) => ({
 const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';
 
 test('force refresh ingests even when the Worker lookup is unavailable', async (t) => {
-    const { root, client, wait, calls } = await refreshFixture(t);
+    const { root, configPath, client, wait, calls } = await refreshFixture(t);
     client.workers.scripts.scriptAndVersionSettings.get = async () => {
         throw new Error('Worker settings unavailable');
     };
     const forced = await refreshCorpus({ client, accountId: 'account', root, wait, force: true });
     assert.equal(forced.skipped, false);
     assert.deepEqual(calls, ['upsert', 'ready']);
+    // Activation after ingestion is the whole point: the config must name the namespace that was just built.
+    assert.ok((await fs.readFile(configPath, 'utf8')).includes(forced.namespace));
 });
 
 async function refreshFixture(t) {

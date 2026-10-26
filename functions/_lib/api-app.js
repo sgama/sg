@@ -3,7 +3,8 @@ import { AppError } from './application.js';
 
 /**
  * Root app for one JSON API surface: handled responses are non-sniffable, and failures keep the
- * client-visible `{ error }` shape, with `AppError` status and message passed through.
+ * client-visible `{ error }` shape. `AppError` is a deliberate, already-safe client message, so it is
+ * passed through unlogged; anything else is logged once and reported as a generic 500.
  * @param {string} logLabel prefix for unexpected-error logs, so the failing surface is obvious
  */
 export function createApiApp(logLabel) {
@@ -18,7 +19,7 @@ export function createApiApp(logLabel) {
         if (err instanceof AppError) {
             return c.json({ error: err.message }, err.status);
         }
-        console.error(`${logLabel}: ${err.message}`);
+        console.error(`${logLabel}: ${err instanceof Error ? err.message : String(err)}`);
         return c.json({ error: 'Internal Server Error' }, 500);
     });
 

@@ -1,9 +1,12 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 
 const ENCODER = new TextEncoder();
-const DONE = 'data: [DONE]\n\n';
 
-/** One SSE frame. The widget's wire format is defined here only. */
+/** Terminal payload; the framing around it is production detail, the token itself is the wire contract. */
+export const DONE_PAYLOAD = '[DONE]';
+const DONE_FRAME = ENCODER.encode(`data: ${DONE_PAYLOAD}\n\n`);
+
+/** One SSE frame. The widget's wire format is produced here only. */
 const frame = (payload) => ENCODER.encode(`data: ${JSON.stringify(payload)}\n\n`);
 
 export function createSseMessageStream(message, metrics) {
@@ -11,7 +14,7 @@ export function createSseMessageStream(message, metrics) {
         start(controller) {
             controller.enqueue(frame({ response: message }));
             if (metrics) controller.enqueue(frame({ metrics }));
-            controller.enqueue(ENCODER.encode(DONE));
+            controller.enqueue(DONE_FRAME);
             controller.close();
         },
     });
@@ -31,7 +34,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
 
     const send = (controller, payload) => controller.enqueue(frame(payload));
     const end = (controller) => {
-        controller.enqueue(ENCODER.encode(DONE));
+        controller.enqueue(DONE_FRAME);
         finished = true;
     };
     const complete = (controller) => {

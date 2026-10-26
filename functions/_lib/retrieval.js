@@ -15,8 +15,9 @@ function assertRecordType(match) {
 }
 
 /**
- * The parent/canonical sections a match points at, nearest first, validated. Both consumers must
- * accept the same records, so the shape check lives here rather than in each of them.
+ * The parent and canonical sections a match points at, canonical first, validated. Both consumers must
+ * accept the same records, so the shape check lives here rather than in each of them. Order is not
+ * semantic: callers index the result by section key.
  */
 function sectionReferences(match) {
     assertRecordType(match);
