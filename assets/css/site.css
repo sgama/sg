@@ -1181,7 +1181,8 @@
         padding: 0.5rem 0.875rem;
         font-size: 0.875rem;
         border-radius: 9999px;
-        border: none;
+        border: 1px solid #d9b26a;
+        box-shadow: 0 0 12px 1px rgba(217, 178, 106, 0.35);
         cursor: pointer;
         font-weight: 600;
         white-space: nowrap;
@@ -1191,6 +1192,46 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    /* Slow, single glint that crosses the label, then rests; reduced motion keeps plain text. */
+    .chat-cta__btn-text {
+        background-image:
+            linear-gradient(100deg, transparent 30%, #ffe08a 42%, #fff6c8 50%, #ffe08a 58%, transparent 70%),
+            linear-gradient(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.8));
+        background-size:
+            300% 100%,
+            100% 100%;
+        background-repeat: no-repeat;
+        background-position:
+            0% 0,
+            0 0;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: chat-cta-glint 8s var(--ease-out) 2s infinite;
+    }
+
+    @keyframes chat-cta-glint {
+        0% {
+            background-position:
+                0% 0,
+                0 0;
+        }
+        35%,
+        100% {
+            background-position:
+                100% 0,
+                0 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .chat-cta__btn-text {
+            animation: none;
+            background: none;
+            -webkit-text-fill-color: currentColor;
+        }
     }
 
     .chat-cta__btn:focus-visible {
