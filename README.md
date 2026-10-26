@@ -582,7 +582,8 @@ The live Worker records its corpus namespace (`AI_CORPUS_NAMESPACE`) and the com
 was built from (`DEPLOY_COMMIT`) as plain-text variables; refresh and deploy-skip read
 them with the Workers settings API.
 
-After deployment, CI runs `make cleanup-vectors`. It deletes the vectors of every
+When a deployment happens, CI also runs `make cleanup-vectors`. A skipped deploy
+leaves nothing stale, so cleanup does not run. It deletes the vectors of every
 versioned `corpus-*` namespace except the live one, including undeployed evaluation
 candidates. Unversioned and foreign namespaces are untouched. Deletion uses the API
 maximum of 100 IDs per request and waits once, for the last mutation, because

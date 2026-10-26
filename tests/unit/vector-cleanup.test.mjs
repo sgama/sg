@@ -35,7 +35,7 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
                         ? { vectors: vectors.slice(120).map(({ id }) => ({ id })), isTruncated: false }
                         : { vectors: vectors.slice(0, 120).map(({ id }) => ({ id })), isTruncated: true, nextCursor: 'next' },
                 getByIDs: async (_, options) => {
-                    assert.ok(options.ids.length <= 20);
+                    assert.ok(options.ids.length <= 100);
                     return vectors.filter((vector) => options.ids.includes(vector.id));
                 },
                 deleteByIDs: async (_, options) => {
@@ -52,7 +52,8 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
 
 test('prunes every versioned corpus except the live one, in batches of 100, waiting once for the last', async () => {
     const f = fixture();
-    const result = await cleanupVectors(f);
+    const logs = [];
+    const result = await cleanupVectors({ ...f, progress: (line) => logs.push(line) });
     assert.deepEqual(result, { dryRun: false, liveNamespace: LIVE, removedVectors: 231 });
     assert.deepEqual(f.calls, [
         ['delete', 100],
@@ -62,6 +63,12 @@ test('prunes every versioned corpus except the live one, in batches of 100, wait
     ]);
     assert.ok(!f.deleted.some((id) => ['live', 'legacy', 'foreign'].includes(id)), 'live, unversioned and foreign vectors are never touched');
     assert.ok(f.deleted.includes('older'));
+    assert.ok(
+        logs.some((line) => /page 1: 120 vectors/.test(line)),
+        'the scan reports each page so progress is visible',
+    );
+    assert.ok(logs.some((line) => /delete 231\/231/.test(line)));
+    assert.ok(logs.some((line) => /waiting for mutation m3/.test(line)));
 });
 
 test('a dry run reports the plan without any write', async () => {

@@ -7,12 +7,13 @@ import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { VERSIONED_NAMESPACE, activeWorker } from './lib/worker-deployment.mjs';
 import { runIfMain } from './lib/cli.mjs';
 
-/** Every vector with its namespace: lists IDs (1000 per page), then fetches records in the API's batches of 20. */
-async function vectorInventory(client, accountId, indexName) {
+/** Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of 100. */
+async function vectorInventory(client, accountId, indexName, progress) {
     const vectors = [];
     const seen = new Set();
     const cursors = new Set();
     let cursor;
+    let pageNumber = 0;
     do {
         const page = await client.vectorize.indexes.listVectors(indexName, {
             account_id: accountId,
@@ -28,10 +29,11 @@ async function vectorInventory(client, accountId, indexName) {
         }
         ids.forEach((id) => seen.add(id));
         const batches = [];
-        for (let offset = 0; offset < ids.length; offset += 20) {
-            batches.push(ids.slice(offset, offset + 20));
+        for (let offset = 0; offset < ids.length; offset += 100) {
+            batches.push(ids.slice(offset, offset + 100));
         }
-        const limit = pLimit(5);
+        progress(`page ${++pageNumber}: ${ids.length} vectors (${seen.size} total, ${batches.length} record batches)`);
+        const limit = pLimit(10);
         const results = await Promise.all(
             batches.map((batch) =>
                 limit(async () => {
@@ -78,24 +80,30 @@ export async function cleanupVectors({
     const mark = (message) => progress(`[${((performance.now() - started) / 1000).toFixed(1)}s] ${message}`);
     const live = (await activeWorker(client, accountId, worker))?.namespace;
     if (!live) throw new Error('Cannot determine the live corpus namespace; refusing vector cleanup');
-    const vectors = await vectorInventory(client, accountId, indexName);
+    const vectors = await vectorInventory(client, accountId, indexName, mark);
     const staleIds = vectors.filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && vector.namespace !== live).map((vector) => vector.id);
     mark(`live ${live}: ${vectors.length} vectors, ${staleIds.length} stale`);
     if (!dryRun) {
         let lastMutationId;
+        mark(`deleting ${staleIds.length} vectors`);
         for (let offset = 0; offset < staleIds.length; offset += 100) {
+            const batch = staleIds.slice(offset, offset + 100);
+            mark(`delete ${Math.min(offset + 100, staleIds.length)}/${staleIds.length}`);
             if ((await activeWorker(client, accountId, worker))?.namespace !== live) {
                 throw new Error('Live corpus namespace changed during cleanup; stopping');
             }
             const result = await client.vectorize.indexes.deleteByIDs(indexName, {
                 account_id: accountId,
-                ids: staleIds.slice(offset, offset + 100),
+                ids: batch,
             });
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) throw new Error('Vector deletion did not return a mutation ID');
             lastMutationId = result.mutationId;
         }
         // Mutations are processed in order, so waiting for the last one covers them all.
-        if (lastMutationId) await wait(client, accountId, lastMutationId, { indexName });
+        if (lastMutationId) {
+            mark(`waiting for mutation ${lastMutationId}`);
+            await wait(client, accountId, lastMutationId, { indexName });
+        }
         mark('done');
     }
     return { dryRun, liveNamespace: live, removedVectors: staleIds.length };

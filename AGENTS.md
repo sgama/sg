@@ -65,8 +65,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - CI skips the corpus refresh and deployment when no file that can change the site
   differs from the commit the live Worker was built from
   (`scripts/deploy_needed.mjs`, `make deploy-needed`); any doubt deploys. The vector
-  cleanup always runs. Edit its `DEPLOY_INPUTS` list when adding a directory that affects
-  the build.
+  cleanup runs only after a deploy, since a skipped deploy leaves nothing stale.
+  Edit its `DEPLOY_INPUTS` list when adding a directory that affects the build.
 - Keep active-ID, fresh inventory, namespace and mutation-readiness checks.
   Serialized CI does not lock out manual cloud writers.
 - Paid embedding requests do not retry. On failure, queued inference is prevented
