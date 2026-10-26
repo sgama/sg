@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { formatResponseMetrics } from '../../assets/js/chat/model/metrics.js';
 import { AI_CONFIG, getModel, estimateCost } from '../../functions/_lib/application.js';
 import { AiService } from '../../functions/_lib/ai.js';
+import { SAMPLE_DATA } from '../helpers/data.mjs';
 import { makeProviderStream } from '../helpers/mocks.mjs';
 
 test('response footer formats timings, token counts and scoped estimated cost', () => {
@@ -65,7 +66,7 @@ test('service emits one final metrics event with actual model, aggregate usage a
         AI: {
             async run(_model, input) {
                 if (input.stream === false) return { response: 'Standalone question', usage: rewriteUsage };
-                if (input.text) return { data: [[0.1, 0.2]] };
+                if (input.text) return { data: [SAMPLE_DATA.EMBEDDING_VECTOR] };
                 return makeProviderStream('Answer', usage);
             },
         },

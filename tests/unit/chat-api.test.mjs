@@ -20,7 +20,7 @@ function chatEnv({
     matches,
     response = 'Standalone query',
     stream = () => makeProviderStream('Answer'),
-    vector = [0.1],
+    vector = SAMPLE_DATA.EMBEDDING_VECTOR,
 }) {
     return {
         AI: {
@@ -117,7 +117,7 @@ test('/api/chat', async (t) => {
             const env = {
                 AI: {
                     async run(model, payload) {
-                        if (payload.text) return buildEmbeddingsResponse([0.1]);
+                        if (payload.text) return buildEmbeddingsResponse();
                         assert.equal(payload.chat_template_kwargs.enable_thinking, false);
                         return makeStream(
                             'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
@@ -175,7 +175,7 @@ test('/api/chat', async (t) => {
                 matches: buildVectorizeResult([SAMPLE_DATA.CONTEXT_TEXT]).matches,
                 response: 'What is Samson’s most recent role?',
                 stream: () => makeProviderStream('Supported answer'),
-                vector: [0.1, 0.2, 0.3],
+                vector: SAMPLE_DATA.EMBEDDING_VECTOR,
             });
 
             const response = await onRequest(
@@ -212,7 +212,7 @@ test('/api/chat', async (t) => {
                     async run(model, payload) {
                         calls.push({ model, payload });
                         if (payload?.text) {
-                            return buildEmbeddingsResponse([0.1, 0.2, 0.3]);
+                            return buildEmbeddingsResponse();
                         }
                         return makeProviderStream('Should not generate');
                     },

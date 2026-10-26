@@ -2,11 +2,11 @@ import {
     AI_CONFIG,
     AppError,
     CONFIG,
-    contextualizationInput,
-    contextualizedQueryFromResponse,
     getModel,
     generationInput,
+    isValidEmbeddingVector,
     requireVectorizeBinding,
+    rewriteSearchQuery,
 } from './application.js';
 import { buildMessages } from './prompts.js';
 import { retrieveEvidence } from './retrieval.js';
@@ -29,7 +29,7 @@ export class AiService {
         try {
             const { data } = await this.ai.run(AI_CONFIG.embedding.model, { text: [text] });
             const vector = data?.[0];
-            if (!Array.isArray(vector) || !vector.length || !vector.every(Number.isFinite)) {
+            if (!isValidEmbeddingVector(vector, AI_CONFIG.embedding.dimensions)) {
                 throw new Error('Invalid embedding response');
             }
             return vector;
@@ -43,9 +43,11 @@ export class AiService {
         if (!history.length) return query;
         const begun = this.metrics.startRewrite();
         try {
-            const response = await this.ai.run(this.contextualizationModel.id, contextualizationInput(this.contextualizationModel, query, history));
-            this.metrics.rewrite({ begun, usage: response?.usage });
-            return contextualizedQueryFromResponse(response);
+            return await rewriteSearchQuery(query, history, this.contextualizationModel, async (modelId, input) => {
+                const response = await this.ai.run(modelId, input);
+                this.metrics.rewrite({ begun, usage: response?.usage });
+                return response;
+            });
         } catch (err) {
             console.error('Query Contextualization Failed:', err);
             throw new AppError('Query contextualization service unavailable', 503);

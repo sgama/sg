@@ -36,7 +36,7 @@ test('a repeat query is served from the store without embedding or Vectorize cal
     const env = makeEnv({
         aiRun: async () => {
             embeddings++;
-            return buildEmbeddingsResponse([0.1, 0.2]);
+            return buildEmbeddingsResponse();
         },
         vectorizeQuery: async () => {
             searches++;
@@ -57,7 +57,7 @@ test('a repeat query is served from the store without embedding or Vectorize cal
 test('empty retrieval results are never cached', async () => {
     let searches = 0;
     const env = makeEnv({
-        aiRun: async () => buildEmbeddingsResponse([0.1, 0.2]),
+        aiRun: async () => buildEmbeddingsResponse(),
         vectorizeQuery: async () => {
             searches++;
             return buildVectorizeResult([]);
@@ -74,7 +74,7 @@ test('empty retrieval results are never cached', async () => {
 test('no store configured means every query runs the full retrieval path', async () => {
     let searches = 0;
     const env = makeEnv({
-        aiRun: async () => buildEmbeddingsResponse([0.1, 0.2]),
+        aiRun: async () => buildEmbeddingsResponse(),
         vectorizeQuery: async () => {
             searches++;
             return buildVectorizeResult([{ text: CONTEXT }]);

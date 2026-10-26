@@ -10,6 +10,11 @@ export function getModel(name = AI_CONFIG.generation.defaultModel) {
     return model;
 }
 
+/** @param {unknown} vector @param {number} dimensions */
+export function isValidEmbeddingVector(vector, dimensions) {
+    return Array.isArray(vector) && vector.length === dimensions && vector.every(Number.isFinite);
+}
+
 export function estimateCost(usage, model) {
     if (
         !Number.isFinite(model.inputPerMillion) ||
@@ -56,6 +61,10 @@ export function contextualizedQueryFromResponse(response) {
         throw new Error('Invalid contextualized query');
     }
     return query;
+}
+
+export async function rewriteSearchQuery(query, history, model, run) {
+    return contextualizedQueryFromResponse(await run(model.id, contextualizationInput(model, query, history)));
 }
 
 export const CONFIG = {

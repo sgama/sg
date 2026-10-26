@@ -6,11 +6,38 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import { AI_CONFIG, contextualizedQueryFromResponse } from '../../functions/_lib/application.js';
+import {
+    AI_CONFIG,
+    contextualizedQueryFromResponse,
+    getModel,
+    isValidEmbeddingVector,
+    rewriteSearchQuery,
+} from '../../functions/_lib/application.js';
 import { buildMessages } from '../../functions/_lib/prompts.js';
 import { contextFromMatches, corpusRecordId, parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { makeEnv, makeProviderStream } from '../helpers/mocks.mjs';
+
+test('shared query rewrite builds one standalone search query', async () => {
+    const model = getModel(AI_CONFIG.contextualization.model);
+    let call;
+    const query = await rewriteSearchQuery('Most recently?', [{ role: 'user', content: 'What did he do last?' }], model, async (...args) => {
+        call = args;
+        return { response: '  What is Samson Gama’s most recent role?  ' };
+    });
+
+    assert.equal(query, 'What is Samson Gama’s most recent role?');
+    assert.equal(call[0], model.id);
+    assert.equal(call[1].stream, false);
+    assert.match(call[1].messages.at(-1).content, /Most recently\?/);
+});
+
+test('embedding vectors require the configured dimension and finite numbers', () => {
+    assert.equal(isValidEmbeddingVector([0.1, 0.2], 2), true);
+    for (const vector of [null, {}, [], [0.1], [0.1, NaN], [0.1, Infinity]]) {
+        assert.equal(isValidEmbeddingVector(vector, 2), false);
+    }
+});
 
 test('section expansion preserves ranked source order, bounds evidence and rejects invalid references', async () => {
     const source = 'content/project.md';
@@ -72,7 +99,7 @@ test('canonical evidence supplements curated facts without exposing internal exc
         },
     };
     const service = new AiService({
-        AI: { run: async () => ({ data: [[0.1, 0.2]] }) },
+        AI: { run: async () => buildEmbeddingsResponse() },
         AI_CORPUS_NAMESPACE: 'corpus-test',
         VECTORIZE_INDEX: {
             query: async () => ({ matches: [curated, curated] }),
@@ -139,7 +166,7 @@ test('AiService', async (t) => {
 
     await t.test('retrieve', async (t) => {
         await t.test('resolves parent sections through Vectorize even when chunks carry sectionText', async () => {
-            const env = makeEnv({ aiRun: async () => buildEmbeddingsResponse([0.1, 0.2]) });
+            const env = makeEnv({ aiRun: async () => buildEmbeddingsResponse() });
             env.AI_CORPUS_NAMESPACE = 'corpus-test';
             env.VECTORIZE_INDEX = {
                 query: async () =>
@@ -177,10 +204,10 @@ test('AiService', async (t) => {
                     aiRun: async (_model, payload) => {
                         requests.push(payload);
                         if (payload.stream === false) return { response: "What was Samson Gama's most recently listed role?" };
-                        return buildEmbeddingsResponse([0.1, 0.2]);
+                        return buildEmbeddingsResponse();
                     },
                     vectorizeQuery: async (vector) => {
-                        assert.deepEqual(vector, [0.1, 0.2]);
+                        assert.deepEqual(vector, SAMPLE_DATA.EMBEDDING_VECTOR);
                         return buildVectorizeResult([]);
                     },
                 }),
@@ -211,7 +238,7 @@ test('AiService', async (t) => {
                 makeEnv({
                     aiRun: async (_model, payload) => {
                         payloads.push(payload);
-                        return buildEmbeddingsResponse([0.1]);
+                        return buildEmbeddingsResponse();
                     },
                     vectorizeQuery: async () => buildVectorizeResult([]),
                 }),
@@ -230,7 +257,7 @@ test('service failures surface as 503s with the cause logged once', async (t) =>
     const fail = async () => {
         throw failure;
     };
-    const embedded = async () => buildEmbeddingsResponse([0.1]);
+    const embedded = async () => buildEmbeddingsResponse();
     const noMatches = async () => buildVectorizeResult([]);
     const search = t.mock.fn(noMatches);
     const withMatches = (matches, getByIds = async () => []) =>
@@ -252,6 +279,13 @@ test('service failures surface as 503s with the cause logged once', async (t) =>
         },
         {
             service: new AiService(makeEnv({ aiRun: async () => ({ data: [[]] }) })),
+            run: (svc) => svc.getEmbeddings('query'),
+            message: 'Embedding service unavailable',
+            label: 'Embedding Generation Failed:',
+            cause: /Invalid embedding response/,
+        },
+        {
+            service: new AiService(makeEnv({ aiRun: async () => buildEmbeddingsResponse([0.1]) })),
             run: (svc) => svc.getEmbeddings('query'),
             message: 'Embedding service unavailable',
             label: 'Embedding Generation Failed:',
@@ -313,7 +347,7 @@ test('retrieval keeps text-bearing matches, passes the namespace and skips unrel
     ]) {
         const svc = new AiService({
             AI_CORPUS_NAMESPACE: 'corpus-test',
-            AI: { run: async () => buildEmbeddingsResponse([0.1]) },
+            AI: { run: async () => buildEmbeddingsResponse() },
             VECTORIZE_INDEX: {
                 query: async (_, options) => {
                     assert.equal(options.namespace, 'corpus-test');

@@ -335,6 +335,7 @@ test('missing and invalid usage is unpriced rather than free', async () => {
 test('model registry is modular and rejects unknown models', () => {
     assert.equal(getModel('glm').id, getModel('@cf/zai-org/glm-4.7-flash').id);
     assert.throws(() => getModel('typo'), /Unknown AI model/);
+    assert.equal(getModel('llama').id, '@cf/meta/llama-3.3-70b-instruct-fp8-fast');
     const llamaInput = generationInput(getModel('llama'), []);
     assert.equal(llamaInput.max_tokens, AI_CONFIG.generation.maxCompletionTokens);
     assert.equal(llamaInput.max_completion_tokens, undefined);

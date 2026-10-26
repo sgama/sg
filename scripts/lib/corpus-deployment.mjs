@@ -3,7 +3,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG, isValidEmbeddingVector } from '../../functions/_lib/application.js';
 import { buildCorpus, embeddingText } from './corpus.mjs';
 import { validateCorpus } from './corpus-contract.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';
@@ -48,13 +48,7 @@ export async function ingestCorpus(
                     });
                     controller.signal.throwIfAborted();
                     const values = result?.data?.[0];
-                    if (
-                        !Array.isArray(result?.data) ||
-                        result.data.length !== 1 ||
-                        !Array.isArray(values) ||
-                        values.length !== corpus.embedding.dimensions ||
-                        !values.every((value) => typeof value === 'number' && Number.isFinite(value))
-                    ) {
+                    if (!Array.isArray(result?.data) || result.data.length !== 1 || !isValidEmbeddingVector(values, corpus.embedding.dimensions)) {
                         throw new Error(`Invalid embedding dimensions or values for ${chunk.id}`);
                     }
                     return { id: chunk.id, values, namespace, metadata: chunk.metadata };

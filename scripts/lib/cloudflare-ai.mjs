@@ -1,5 +1,5 @@
 import Cloudflare from 'cloudflare';
-import { AI_CONFIG, contextualizationInput, contextualizedQueryFromResponse, getModel } from '../../functions/_lib/application.js';
+import { AI_CONFIG, getModel, isValidEmbeddingVector, rewriteSearchQuery } from '../../functions/_lib/application.js';
 import { retrieveEvidence } from '../../functions/_lib/retrieval.js';
 
 /** One error message for every CLI that needs Cloudflare credentials. */
@@ -60,11 +60,7 @@ export function createCloudflareAi({
     return {
         /** Same pipeline as production (retrieveEvidence in retrieval.js); only the transports differ. */
         async retrieve(query, history = []) {
-            const retrievalQuery = history.length
-                ? contextualizedQueryFromResponse(
-                      await runJson(contextualizationModel.id, contextualizationInput(contextualizationModel, query, history)),
-                  )
-                : query;
+            const retrievalQuery = history.length ? await rewriteSearchQuery(query, history, contextualizationModel, runJson) : query;
             const timing = { embeddingMs: 0, searchMs: 0 };
             const timed = async (key, work) => {
                 const started = performance.now();
@@ -80,8 +76,7 @@ export function createCloudflareAi({
                 embed: (text) =>
                     timed('embeddingMs', async () => {
                         const vector = (await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [text]))?.data?.[0];
-                        if (!Array.isArray(vector) || vector.length !== AI_CONFIG.embedding.dimensions || !vector.every(Number.isFinite))
-                            throw new Error('Invalid embedding vector');
+                        if (!isValidEmbeddingVector(vector, AI_CONFIG.embedding.dimensions)) throw new Error('Invalid embedding vector');
                         return vector;
                     }),
                 search: (vector) =>
