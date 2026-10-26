@@ -35,7 +35,7 @@ function fixture({ liveNow = LIVE, liveLater = liveNow } = {}) {
                         ? { vectors: vectors.slice(120).map(({ id }) => ({ id })), isTruncated: false }
                         : { vectors: vectors.slice(0, 120).map(({ id }) => ({ id })), isTruncated: true, nextCursor: 'next' },
                 getByIDs: async (_, options) => {
-                    assert.ok(options.ids.length <= 100);
+                    assert.ok(options.ids.length > 0 && options.ids.length <= 20, 'Vectorize rejects more than 20 IDs per lookup');
                     return vectors.filter((vector) => options.ids.includes(vector.id));
                 },
                 deleteByIDs: async (_, options) => {

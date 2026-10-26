@@ -7,8 +7,8 @@ import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { VERSIONED_NAMESPACE, activeWorker } from './lib/worker-deployment.mjs';
 import { runIfMain } from './lib/cli.mjs';
 
-/** Vectorize accepts at most 20 IDs per delete request, though record lookups take up to 100. */
-const DELETE_BATCH_SIZE = 20;
+/** Vectorize accepts at most 20 IDs per delete and per record lookup (the API rejects 100 with a 400). */
+const ID_BATCH_SIZE = 20;
 
 /** Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of 100. */
 async function vectorInventory(client, accountId, indexName, progress) {
@@ -32,8 +32,8 @@ async function vectorInventory(client, accountId, indexName, progress) {
         }
         ids.forEach((id) => seen.add(id));
         const batches = [];
-        for (let offset = 0; offset < ids.length; offset += 100) {
-            batches.push(ids.slice(offset, offset + 100));
+        for (let offset = 0; offset < ids.length; offset += ID_BATCH_SIZE) {
+            batches.push(ids.slice(offset, offset + ID_BATCH_SIZE));
         }
         progress(`page ${++pageNumber}: ${ids.length} vectors (${seen.size} total, ${batches.length} record batches)`);
         const limit = pLimit(10);
@@ -89,9 +89,9 @@ export async function cleanupVectors({
     if (!dryRun) {
         let lastMutationId;
         mark(`deleting ${staleIds.length} vectors`);
-        for (let offset = 0; offset < staleIds.length; offset += DELETE_BATCH_SIZE) {
-            const batch = staleIds.slice(offset, offset + DELETE_BATCH_SIZE);
-            mark(`delete ${Math.min(offset + DELETE_BATCH_SIZE, staleIds.length)}/${staleIds.length}`);
+        for (let offset = 0; offset < staleIds.length; offset += ID_BATCH_SIZE) {
+            const batch = staleIds.slice(offset, offset + ID_BATCH_SIZE);
+            mark(`delete ${Math.min(offset + ID_BATCH_SIZE, staleIds.length)}/${staleIds.length}`);
             if ((await activeWorker(client, accountId, worker))?.namespace !== live) {
                 throw new Error('Live corpus namespace changed during cleanup; stopping');
             }
