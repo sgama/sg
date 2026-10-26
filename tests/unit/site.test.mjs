@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createFeatureHost } from '../../assets/js/core/feature-host.js';
-import { a11yBlur, a11yStars, chatTriggers, starfield, suggestionChips } from '../../assets/js/site/features.js';
+import { a11yBlur, a11yStars, avatarSpin, chatTriggers, starfield, suggestionChips } from '../../assets/js/site/features.js';
 
 function classList() {
     const classes = new Set();
@@ -51,6 +51,36 @@ test('a11y stars registers the feature, initialises controls and propagates chan
     assert.ok(!f.classes.has('disable-stars'));
     f.stars.change({ target: { checked: false } });
     assert.deepEqual(f.updates, [['disableStars', false]]);
+});
+
+test('avatar spin restarts on each click and stays still under reduced motion', () => {
+    let click;
+    let animationEnd;
+    const stage = { classes: new Set(['intro__avatar-stage']), offsetWidth: 0 };
+    stage.classList = {
+        remove: (value) => stage.classes.delete(value),
+        add: (value) => stage.classes.add(value),
+    };
+    const target = { closest: (selector) => (selector === '.intro__avatar-stage' ? stage : null) };
+    const reduced = { matches: false };
+    const document = {
+        addEventListener: (type, handler) => (type === 'click' ? (click = handler) : (animationEnd = handler)),
+    };
+    avatarSpin.init({ document, window: { matchMedia: () => reduced } });
+    click({ target });
+    assert.ok(stage.classes.has('is-spinning'));
+    click({ target });
+    assert.ok(stage.classes.has('is-spinning'));
+    animationEnd({ animationName: 'avatarSpin', target });
+    assert.ok(!stage.classes.has('is-spinning'));
+    animationEnd({ animationName: 'avatarSpin', target: { closest: () => null } });
+
+    reduced.matches = true;
+    const quiet = { classes: new Set(['intro__avatar-stage']), offsetWidth: 0 };
+    const quietTarget = { closest: () => quiet };
+    avatarSpin.init({ document: { addEventListener: (type, handler) => (click = handler) }, window: { matchMedia: () => reduced } });
+    click({ target: quietTarget });
+    assert.ok(!quiet.classes.has('is-spinning'));
 });
 
 test('chat triggers ignore unrelated clicks and absent widgets and forward questions', () => {

@@ -39,6 +39,7 @@
     <div class="flex flex-col items-center text-center lg:items-start lg:text-left">
         {{ with $images.avatar.src }}
                 {{ $avatarURL := . }}
+                <div class="intro__avatar-stage">
                 {{ with $images.avatar.sources }}
                     <picture>
                         {{ range . }}<source type="{{ .type }}" srcset="{{ .src }}">{{ end }}
@@ -51,6 +52,7 @@
                         alt="{{ $.Site.Params.Author.name | default `Author` }}" src="{{ $avatarURL }}"
                         loading="eager" decoding="async" fetchpriority="high">
             {{ end }}
+                </div>
         {{ end }}
         <h1 class="mb-2 text-4xl font-extrabold text-neutral-800 dark:text-neutral-200">
             {{ .Site.Params.Author.name | default .Site.Title }}
@@ -59,7 +61,7 @@
             <h2 class="mt-0 mb-0 text-xl text-neutral-800 dark:text-neutral-300">{{ . | markdownify }}</h2>
         {{ end }}
         {{ with .Site.Params.Author.links }}
-            <div class="mt-3 mb-10 flex flex-wrap text-2xl">
+            <div class="intro__links mt-3 mb-10 flex flex-wrap text-2xl">
                 {{ range $links := . }}
                     {{ range $name, $url := $links }}
                         <a class="hover:text-primary-400 text-primary-800 dark:text-primary-200 px-1"

@@ -1,5 +1,27 @@
 const VISIBLE_CHIPS = 4;
 
+/**
+ * A click on the homepage avatar stage replays its spin. The class is removed when the spin ends and
+ * re-added after a reflow, so repeated clicks restart cleanly. Not a link, so no keyboard action.
+ */
+export const avatarSpin = {
+    name: 'avatar-spin',
+    init({ document, window }) {
+        const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        document.addEventListener('click', (event) => {
+            const stage = event.target.closest('.intro__avatar-stage');
+            if (!stage || reduced) return;
+            stage.classList.remove('is-spinning');
+            void stage.offsetWidth;
+            stage.classList.add('is-spinning');
+        });
+        document.addEventListener('animationend', (event) => {
+            if (event.animationName !== 'avatarSpin') return;
+            event.target.closest('.intro__avatar-stage')?.classList.remove('is-spinning');
+        });
+    },
+};
+
 /** Any `.js-chat-trigger` element opens the assistant, optionally prefilled from `data-question`. */
 export const chatTriggers = {
     name: 'chat-triggers',
