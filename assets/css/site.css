@@ -49,22 +49,14 @@
         --accent-1: #ff00ff;
         --accent-2: #00ffff;
         --accent-3: #ff0080;
-        --accent-1-dark: #cc00cc;
-        --accent-3-dark: #cc0066;
         --halo-1: #00d4aa;
         --halo-2: #4caf50;
         --halo-3: #8bc34a;
-        --halo-1-hover: #00e6cc;
-        --halo-2-hover: #66bb6a;
-        --halo-3-hover: #9ccc65;
         --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-        --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.12);
         --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
         --shadow-accent: 0 0 20px rgba(255, 0, 255, 0.3);
-        --shadow-accent-hover: 0 0 30px rgba(255, 0, 255, 0.6), 0 0 60px rgba(0, 255, 255, 0.4);
         --shadow-halo: 0 0 20px rgba(0, 212, 170, 0.3), 0 0 40px rgba(0, 212, 170, 0.1);
         --shadow-halo-hover: 0 0 35px rgba(0, 212, 170, 0.7), 0 0 70px rgba(0, 212, 170, 0.3);
-        --blur-static: blur(10px);
         --motion-fast: 0.2s;
         --motion-base: 0.3s;
         --motion-slow: 0.6s;
@@ -234,7 +226,7 @@
         letter-spacing: 1px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        box-shadow: var(--shadow-accent);
         transition:
             transform var(--motion-fast) var(--ease-out),
             box-shadow var(--motion-fast) var(--ease-out);
@@ -1211,7 +1203,6 @@
         }
 
         .chat-widget .input {
-            field-sizing: content;
             font-size: 16px;
         }
     }
@@ -1221,12 +1212,6 @@
     @keyframes starsMove {
         to {
             transform: translateY(-100px);
-        }
-    }
-
-    @keyframes rotate {
-        to {
-            transform: rotate(360deg);
         }
     }
 

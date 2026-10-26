@@ -41,7 +41,7 @@ b {
 hr {
     border: none;
     height: 1px;
-    background-color: rgb(153, 156, 181);
+    background-color: rgb(var(--color-neutral-300));
 }
 
 @media (prefers-color-scheme: dark) {

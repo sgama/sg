@@ -13,7 +13,6 @@
     <meta http-equiv="content-language" content="{{ . }}">
   {{ end }}
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <meta name="theme-color">
 
   {{/* Title */}}
@@ -160,7 +159,6 @@
   {{ if and .IsPage $shouldIncludeZenMode }}
     {{ $jsZenMode := resources.Get "js/zen-mode.js" | resources.Minify | resources.Fingerprint $alg }}
     <script
-      type="text/javascript"
       src="{{ $jsZenMode.RelPermalink }}"
       integrity="{{ $jsZenMode.Data.Integrity }}"></script>
   {{ end }}
@@ -178,7 +176,6 @@
   {{ if and .IsPage $showReadingProgress }}
     {{ $jsReadingProgress := resources.Get "js/reading-progress.js" | resources.Minify | resources.Fingerprint $alg }}
     <script
-      type="text/javascript"
       src="{{ $jsReadingProgress.RelPermalink }}"
       integrity="{{ $jsReadingProgress.Data.Integrity }}"></script>
   {{ end }}
@@ -208,7 +205,6 @@
     {{ $bundleJS := $jsResources | resources.Concat "js/main.bundle.js" | resources.Minify | resources.Fingerprint $alg }}
     <script
       defer
-      type="text/javascript"
       id="script-bundle"
       src="{{ $bundleJS.RelPermalink }}"
       integrity="{{ $bundleJS.Data.Integrity }}"
