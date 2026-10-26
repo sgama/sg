@@ -91,7 +91,7 @@ Using only the filename would make unrelated `index.md` bundles overwrite one an
 
 Ingestion uses bounded concurrency, validates vector dimensions and finite values, uploads NDJSON, and fails on incomplete work. Upsert acceptance is asynchronous: the refresh script waits for each mutation to finish indexing before updating the deployment namespace.
 
-Every production push to `develop` refreshes the corpus and deploys the matching namespace. An unchanged corpus skips ingestion; a changed corpus is re-embedded. Failed ingestion prevents deployment. The site is one live Worker version, so cleanup deletes the vectors of every versioned corpus except the namespace the live Worker uses, and stops if a deploy changes that namespace mid-run. Reusing individual embeddings across changed corpora remains a future cost improvement.
+A push to `develop` refreshes the corpus and deploys the matching namespace only when a deployable input changed; otherwise the pipeline skips both. An unchanged corpus skips ingestion; a changed corpus is re-embedded. Failed ingestion prevents deployment. The site is one live Worker version, so cleanup keeps the live namespace and the one it replaced (for rollback without re-embedding) and deletes older versioned vectors. It stops if a deploy changes the live namespace mid-run, and does not wait for Vectorize to finish processing the deletions. Reusing individual embeddings across changed corpora remains a future cost improvement.
 
 ## Developing and verifying the integration
 
