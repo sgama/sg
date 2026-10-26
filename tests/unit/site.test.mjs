@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createFeatureHost } from '../../assets/js/core/feature-host.js';
-import { a11yBlur, a11yStars, avatarSpin, chatTriggers, starfield, suggestionChips } from '../../assets/js/site/features.js';
+import { a11yBlur, a11yStars, avatarSpin, chatTriggers, starfield } from '../../assets/js/site/features.js';
 
 function classList() {
     const classes = new Set();
@@ -144,18 +144,12 @@ test('feature host waits for DOM readiness before starting features', () => {
     assert.deepEqual(ran, ['ready']);
 });
 
-test('starfield and suggestion chips run when idle and show the first four chips in order', () => {
+test('starfield runs when idle', () => {
     const f = panelFixture();
     starfield.init(f.context);
     assert.ok(f.classes.has('stars-running'));
-    const buttons = Array.from({ length: 7 }, (_, index) => ({ index }));
-    suggestionChips.init({ document: { querySelectorAll: () => [{ querySelectorAll: () => buttons }, { querySelectorAll: () => [] }] } });
     assert.deepEqual(
-        buttons.map((button) => button.hidden),
-        [false, false, false, false, true, true, true],
-    );
-    assert.deepEqual(
-        [starfield, suggestionChips, a11yStars, a11yBlur].map((feature) => feature.phase),
-        ['idle', 'idle', 'idle', 'idle'],
+        [starfield, a11yStars, a11yBlur].map((feature) => feature.phase),
+        ['idle', 'idle', 'idle'],
     );
 });

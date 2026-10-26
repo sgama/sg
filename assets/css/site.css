@@ -742,12 +742,11 @@
     }
 
     .chat-widget .chat-starters button:focus-visible,
-    .chat-widget .chat-retry:focus-visible {
-        outline: 2px solid var(--chat-accent);
-        outline-offset: 2px;
-    }
-
-    .chat-widget .response-evidence summary:focus-visible {
+    .chat-widget .chat-retry:focus-visible,
+    .chat-widget .response-evidence summary:focus-visible,
+    .chat-widget .header-btn:focus-visible,
+    .chat-widget .input:focus,
+    .chat-widget .send:focus-visible {
         outline: 2px solid var(--chat-accent);
         outline-offset: 2px;
     }
@@ -792,11 +791,6 @@
 
     .chat-widget .header-btn:active {
         transform: scale(0.95);
-    }
-
-    .chat-widget .header-btn:focus-visible {
-        outline: 2px solid var(--chat-accent);
-        outline-offset: 2px;
     }
 
     .chat-widget .messages {
@@ -885,10 +879,6 @@
         animation: messageSlideIn var(--motion-fast) var(--ease-out);
     }
 
-    .chat-widget .message--user {
-        white-space: pre-wrap;
-    }
-
     .chat-widget .message pre {
         max-width: 100%;
         overflow-x: auto;
@@ -915,6 +905,7 @@
         align-self: flex-end;
         margin-inline-start: auto;
         border-end-end-radius: 0.25rem;
+        white-space: pre-wrap;
     }
 
     .chat-widget .message a {
@@ -971,8 +962,6 @@
     }
 
     .chat-widget .input:focus {
-        outline: 2px solid var(--chat-accent);
-        outline-offset: 2px;
         border-color: var(--chat-accent);
     }
 
@@ -992,15 +981,6 @@
 
     .chat-widget .send:hover:not(:disabled) {
         background: var(--chat-accent-hover);
-    }
-
-    .chat-widget .send:active:not(:disabled) {
-        transform: translateY(0);
-    }
-
-    .chat-widget .send:focus-visible {
-        outline: 2px solid var(--chat-accent);
-        outline-offset: 2px;
     }
 
     .chat-widget .send:disabled {
@@ -1299,7 +1279,6 @@
         }
 
         .chat-widget .header {
-            min-height: fit-content;
             padding: 1rem 1.5rem;
             padding-block-start: max(1rem, env(safe-area-inset-top));
             border-radius: 0;

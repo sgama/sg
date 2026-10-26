@@ -1,5 +1,3 @@
-const VISIBLE_CHIPS = 4;
-
 /**
  * A click on the homepage avatar stage replays its spin. The class is removed when the spin ends and
  * re-added after a reflow, so repeated clicks restart cleanly. Not a link, so no keyboard action.
@@ -75,20 +73,6 @@ export const a11yBlur = {
         const panel = window.A11yPanel;
         if (!panel) return;
         bindToggle(panel, document, 'disable-blur', 'disableBlur');
-    },
-};
-
-/** Keeps the first four homepage suggestion chips visible in template order. */
-export const suggestionChips = {
-    name: 'suggestion-chips',
-    phase: 'idle',
-    init({ document }) {
-        for (const container of document.querySelectorAll('.chat-cta__chips')) {
-            const buttons = Array.from(container.querySelectorAll('.chat-cta__chip'));
-            for (let index = 0; index < buttons.length; index += 1) {
-                buttons[index].hidden = index >= VISIBLE_CHIPS;
-            }
-        }
     },
 };
 

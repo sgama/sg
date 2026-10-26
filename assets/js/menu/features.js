@@ -30,32 +30,41 @@ export const menuButtons = {
     },
 };
 
-/** Escape or a click outside closes the mobile menu; Escape also returns focus to its opener. */
+/** The mobile menu is a native modal dialog: showModal makes the page inert, and Escape, cancel and backdrop clicks close it. */
 export const mobileMenuDismissal = {
     name: 'mobile-menu-dismissal',
-    init({ document }) {
+    init({ document, window }) {
         const toggle = document.getElementById('mobile-menu-toggle');
         const dialog = document.getElementById('mobile-menu-dialog');
         if (!toggle || !dialog) return;
         const opener = controlsFor(document, toggle).find((button) => !dialog.contains(button));
-        const close = () => {
+        // Top-layer dialogs lose the header row as containing block, so anchor the dropdown to the row.
+        const placeDropdown = () => {
+            if (!dialog.classList.contains('mobile-menu-style-dropdown')) return;
+            const row = dialog.parentElement.getBoundingClientRect();
+            const rtl = window.getComputedStyle(dialog).direction === 'rtl';
+            dialog.style.top = `calc(${row.bottom + window.scrollY}px + 0.75rem)`;
+            dialog.style.insetInlineEnd = rtl ? `${row.left}px` : `${document.documentElement.clientWidth - row.right}px`;
+        };
+        toggle.addEventListener('change', () => {
+            if (!toggle.checked) return dialog.open && dialog.close();
+            if (dialog.open) return;
+            placeDropdown();
+            dialog.showModal();
+            dialog.querySelector('a[href], button, input, [tabindex]:not([tabindex="-1"])')?.focus();
+        });
+        // Runs for Escape, cancel and programmatic close alike, so the checkbox and aria state never drift.
+        dialog.addEventListener('close', () => {
             toggle.checked = false;
             syncControls(document, toggle);
-        };
-        // Opening moves focus into the dialog so Tab does not start behind it.
-        toggle.addEventListener('change', () => {
-            if (toggle.checked) dialog.querySelector('a[href], button, input, [tabindex]:not([tabindex="-1"])')?.focus();
+            opener?.focus();
         });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && toggle.checked) {
-                close();
-                opener?.focus();
-            }
-        });
-        document.addEventListener('click', (event) => {
-            if (!toggle.checked || event.target === toggle || dialog.contains(event.target)) return;
-            if (event.target.closest(TOGGLE_SELECTOR)) return;
-            close();
+        // The dialog itself is the full-screen or dropdown backdrop; only clicks outside its box count.
+        dialog.addEventListener('click', (event) => {
+            if (event.target !== dialog) return;
+            const box = dialog.getBoundingClientRect();
+            const outside = event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+            if (outside) dialog.close();
         });
     },
 };
