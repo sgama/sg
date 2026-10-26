@@ -2,7 +2,6 @@
 title: "How I Run an Agentic AI Setup with OpenCode"
 date: 2026-10-25
 slug: "agentic-ai-config"
-draft: true
 description: "A map of the OpenCode configuration behind my AI coding workflow: one orchestrator, specialist agents, shared rules, tools, plugins, and how it is deployed."
 summary: "The agents, rules, tools, and provisioning that make up my agentic AI coding setup, and how the pieces connect."
 tags: ["ai", "opencode", "agents", "devops", "ansible"]
