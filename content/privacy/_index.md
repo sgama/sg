@@ -2,7 +2,6 @@
 title: "Privacy"
 description: "How this website uses contact submissions, AI chat, analytics, and hosting services."
 showDate: false
-draft: true
 ---
 
 This page explains what information this website processes and why. This is a plain-language description of the current setup, not legal advice.
@@ -74,5 +73,3 @@ You can choose not to use the contact form or AI assistant. Depending on where y
 ## Changes to this notice
 
 I may update this page when the website or its data practices change. The latest version of this notice will be published here.
-
-<!-- Editor note: Keep this page in draft until public access to chat records is restricted. Verify the notice against current practices and applicable requirements before publishing. -->
