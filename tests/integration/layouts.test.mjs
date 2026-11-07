@@ -155,8 +155,8 @@ test('generated layouts preserve structured types, public indexes, image selecti
             'Footer must link to the supplied build revision',
         );
         assert.ok(
-            !tags(footer, 'a').some((tag) => (tag.textContent || '').trim() === 'Privacy' || tag.href === '/privacy/'),
-            'Draft privacy page must not render a public footer link',
+            tags(footer, 'a').some((tag) => tag.href === '/privacy/' && tag.title === 'Privacy'),
+            `Published privacy page must render a public footer link: ${JSON.stringify(tags(footer, 'a'))}`,
         );
         assert.match(footer, />012345<\/a>/);
         assert.ok(tags(footer, 'nav').some((tag) => tag['aria-label'] === 'Footer menu'));
