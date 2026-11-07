@@ -25,7 +25,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  HUGO_VERSION: 0.167.0
+  HUGO_VERSION: 0.169.0
   HUGO_CACHEDIR: /tmp/hugo_cache
 
 jobs:
