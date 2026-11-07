@@ -21,6 +21,13 @@ During my internship at **Ericsson**, I worked on integrating their telecommunic
 - **Software Defined Networking (SDN)**: Co-developed a plugin for **OpenStack Neutron**, the networking component of OpenStack. This plugin allowed OpenStack to act as a control plane for managing virtualized Ericsson routers.
 - **API Integration**: The plugin translated standard OpenStack API calls into specific configuration commands for the Ericsson routing hardware.
 
+{{< mermaid >}}
+flowchart LR
+    api["OpenStack Neutron API call"] --> plugin["Ericsson SDN plugin"]
+    plugin --> commands["Router configuration commands"]
+    commands --> router["Virtual Ericsson router"]
+{{< /mermaid >}}
+
 ### 2. Testing & Automation
 
 - **Integration Testing**: Enhanced the team's CI/CD pipeline by writing Python scripts to automate scenario-based testing across different environments.

@@ -25,6 +25,16 @@ When looking at it from a passive monitoring perspective using Prometheus, **Ale
 - **SMS**: Critical alerts that need immediate attention (e.g., via Twilio).
 - **Email**: Non-urgent notifications and daily/weekly reports.
 
+{{< mermaid >}}
+flowchart LR
+    alerts["Prometheus alerts"] --> alertmanager["AlertManager"]
+    alertmanager --> slack["Slack"]
+    alertmanager --> pagerduty["PagerDuty"]
+    alertmanager --> sms["SMS"]
+    alertmanager --> email["Email"]
+    trading["Trading bot trigger"] --> slack
+{{< /mermaid >}}
+
 ## Application Performance Monitoring
 
 Other times you may want to know about business-critical events:

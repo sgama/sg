@@ -1,6 +1,6 @@
 ---
-title: "Web Appe: EV Trip Analyzer"
-summary: "Full-stack web application for analyzing telemetry data from Electric Vehicles, visualizing power consumption, speed, and efficiency."
+title: "Web App: EV Trip Analyzer"
+summary: "Browser-based analysis of Cycle Analyst and GPS trip logs, with synchronized route, speed, power, battery-use, and elevation plots."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -16,11 +16,12 @@ During my engineering co-op at **Grin Technologies** (ebikes.ca), I served as th
 
 ## Functionality
 
-The application parses raw telemetry logs (analog and digital) outputted by the **Cycle Analyst** hardware. It transforms this data into interactive insights:
+The Trip Analyzer is designed for post-trip analysis of journeys logged by a **Cycle Analyst**. Since the device does not save trip logs itself, riders first capture its data stream on a computer with a communications cable or a hardware logger such as the **Cycle Analogger**. GPS data can be added for route and elevation analysis.
 
-- **Performance Metrics**: Plots Speed, Power (Watts), Efficiency (Wh/km), and Regenerative Braking data against Time or Distance.
-- **Geospatial Analysis**: Overlays trip data onto a **Google Maps** route, allowing users to correlated energy consumption with elevation changes.
-- **Sharing**: Implemented a trip upload feature that generates permalinks for community sharing.
+- **Synchronized plots and maps**: With GPS data, the route appears above the graph. Hovering over a point in the graph highlights its location and shows readings such as speed, power, battery voltage, and consumed amp-hours; GPS data also enables an elevation profile.
+- **Performance metrics**: Plots speed, power, efficiency (Wh/km), and regenerative-braking data against time or distance.
+- **Local analysis**: Trip files are processed in the browser and are not sent to the server during analysis. Graphs and statistics work offline; displaying a Google Maps route requires an internet connection.
+- **Sharing**: A separate save-and-share option uploads a trip and creates a link for sharing it with others.
 
 ## Technology Stack
 
@@ -29,4 +30,4 @@ The application parses raw telemetry logs (analog and digital) outputted by the 
 - **Visualization**: **DyGraphs** for high-performance time-series plotting.
 - **Mapping**: Google Maps JavaScript API.
 
-Try it out here: [http://www.ebikes.ca/tools/trip-analyzer.html](http://www.ebikes.ca/tools/trip-analyzer.html)
+Try it out here: [Grin Trip Analyzer](https://ebikes.ca/resources/web-tools/trip-analyzer.html)

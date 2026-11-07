@@ -4,7 +4,7 @@ SHELL := /bin/bash
 
 .PHONY: help check check-node check-env check-ns \
 	serve dev-ai build postcss-build build-prod clean \
-	deps test test-layouts lint lint-fix typecheck format format-check lint-workflows install-actionlint coverage \
+	deps test test-layouts lint lint-fix typecheck format format-check typos lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
 	deploy deploy-built deploy-needed cleanup-vectors cutover-domains ci ci-check
@@ -40,6 +40,7 @@ NPX               ?= npx --no-install
 WRANGLER          ?= npx wrangler
 TEST_REPORTER     ?= spec
 ACTIONLINT        ?= actionlint
+TYPOS             ?= typos
 ACTIONLINT_VERSION := v1.7.7
 ACTIONLINT_NUMBER := $(patsubst v%,%,$(ACTIONLINT_VERSION))
 ACTIONLINT_OS     := $(shell uname -s | tr '[:upper:]' '[:lower:]')
@@ -136,6 +137,10 @@ format: check-node ## Format JavaScript, source CSS and YAML (no Hugo content/te
 
 format-check: check-node ## Check formatting without edits
 	@$(NPX) prettier --check $(PRETTIER_FILES)
+
+typos: ## Check spelling across the repository with typos
+	@command -v $(TYPOS) >/dev/null || { echo "Missing typos; install typos-cli or set TYPOS=/path/to/typos"; exit 1; }
+	@$(TYPOS)
 
 lint-workflows: ## Validate GitHub Actions with the pinned actionlint release
 	@command -v $(ACTIONLINT) >/dev/null || { \

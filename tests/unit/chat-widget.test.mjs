@@ -256,11 +256,11 @@ test('answer parser separates metadata from answer text, handles split events an
     {
         const deltas = [];
         const parser = createAnswerParser((delta) => deltas.push(delta));
-        parser.push('data:{"response":"Hel');
-        parser.push('lo"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n\n');
+        parser.push('data:{"response":"Hello ');
+        parser.push('world"}\r\n\r\ndata: {"usage":{"completion_tokens":1}}\n\n');
         parser.push('data: {"response":"!"}\n\ndata: [DONE]\n\ndata: {"response":"ignored"}\n\n');
         parser.flush();
-        assert.deepEqual(deltas, ['Hello', '!']);
+        assert.deepEqual(deltas, ['Hello world', '!']);
         assert.equal(parser.finished, true);
     }
     {

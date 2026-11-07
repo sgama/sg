@@ -1,6 +1,6 @@
 ---
 title: "Elsie Roy iPad Project"
-summary: "Consulting and technical implementation for a 1:1 iPad deployment program at Elsie Roy Elementary (2010-2013)."
+summary: "Technical implementation and deployment support for Elsie Roy Elementary's early iPad initiative in Yaletown (2010-2013)."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -12,7 +12,13 @@ tags: ["infrastructure", "networking", "ios"]
 
 ![Featured image](featured.webp)
 
-I provided technical consultation and deployment support for the Elsie Roy Elementary iPad project (2010–2013), a pioneering initiative to integrate mobile technology into elementary education.
+I helped implement Elsie Roy Elementary's iPad project in Yaletown as a Grade 11 student, then provided technical consultation and deployment support through 2013.
+
+## Early iPad Adoption
+
+[Apple announced the iPad's U.S. availability for April 3, 2010](https://www.apple.com/newsroom/2010/03/05iPad-Available-in-US-on-April-3). By late November, Elsie Roy was using 30 iPads. The [Vancouver Sun's contemporary coverage](https://vancouversun.com/news/staff-blogs/ipads-ipods-and-smart-boards-make-learning-fun-at-one-vancouver-school) called it “a pioneer among Vancouver public schools.” It identifies principal Rosa Fazio and Param Chauhan as project initiators, and names Albert Hynek and me among the Grade 11 volunteers who helped with implementation. Teachers were still experimenting with learning apps; the article reports encouraging classroom observations, not a formal evaluation.
+
+That report documents an initial 30-iPad deployment, but does not establish a 1:1 rollout or claim Elsie Roy was the first school to use iPads. A later [Vancouver School Board account](https://www.vsb.bc.ca/education-minister-george-abbott-meets-with-the-vancouver-board-of-education-and-tours-our-schools.21784) described students using iPads and iPod touch devices to support learning during a visit showcasing personalized learning.
 
 ## Project Scope
 

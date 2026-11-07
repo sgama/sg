@@ -43,6 +43,18 @@ Before implementing automation, my workflow looked something like this:
 
 Once CI/CD is configured properly, a Pull Request can go through the process of integration testing and deployment **automatically**. If anything fails, notifications are sent instantly via Slack, PagerDuty, or your tool of choice.
 
+{{< mermaid >}}
+flowchart LR
+    commit["Code commit / pull request"] --> tests["Automated integration tests"]
+    tests -->|pass| image["Build image on an isolated runner"]
+    image --> registry["Push versioned image"]
+    registry --> deploy["Automated rollout"]
+    tests -. failure .-> notify["Notify the team"]
+    image -. failure .-> notify
+    registry -. failure .-> notify
+    deploy --> notify
+{{< /mermaid >}}
+
 ### A Modern CI/CD Pipeline
 
 1. **Code Commit** → Triggers the pipeline automatically.

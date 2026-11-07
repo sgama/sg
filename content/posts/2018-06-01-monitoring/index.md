@@ -39,6 +39,15 @@ One approach is to check Docker logs or `kubectl get pods` manually, but that's 
 
 **The Better Approach**: Prometheus with AlertManager. It can inform me that my services are unstable (flapping) or not behaving as expected, prompting me to check the logs to debug further.
 
+{{< mermaid >}}
+flowchart LR
+    host["Linux host"] --> exporter["node_exporter"]
+    exporter --> prometheus["Prometheus"]
+    services["Services and scrape targets"] --> prometheus
+    prometheus -->|"flapping, down, or threshold alert"| alertmanager["AlertManager"]
+    alertmanager --> logs["Investigate service logs"]
+{{< /mermaid >}}
+
 ### Key Use Cases
 
 **Performance Monitoring:**

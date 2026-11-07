@@ -1,6 +1,6 @@
 ---
 title: "Web App: Bicycle Spoke Calculator"
-summary: "Visual tool for calculating spoke lengths and visualizing wheel lacing patterns using JSGL."
+summary: "Hubmotor spoke calculator with hub and rim presets, custom measurements, lacing diagrams, and left/right spoke-length estimates."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -12,13 +12,13 @@ tags: ["EV", "frontend"]
 
 ![Featured image](featured.webp)
 
-The **Spoke Calculator** is a precision tool I developed to help mechanics and hobbyists build bicycle wheels. Because wheel building tolerances are extremely tight (±1mm), accurate calculation is critical.
+The **Spoke Calculator** is a tool I developed to help mechanics and hobbyists build hubmotor wheels. It models hub and rim geometry to estimate the correct spoke lengths for each side of the wheel. The calculator reports lengths to 0.1 mm; in practice, spokes within about 1 mm of the optimum generally work, while a 2 mm difference is less ideal.
 
 ## Features
 
-- **Visual Lacing**: Unlike spreadsheet calculators, this tool renders a real-time vector graphic of the wheel using the **JSGL** library.
-- **Dynamic Calculation**: Users inputs rim diameter, hub flange dimensions, and spoke count to get instant length requirements.
-- **Pattern Verification**: It allows users to visualize different cross-patterns (1-cross, 3-cross) to ensure physical compatibility with the hub.
+- **Hub and rim presets**: Select from popular hub motors and GRIN rims, or enter measurements for unlisted parts. Hub dimensions can be measured with calipers; third-party rim data can be entered from its ERD and spoke-hole offsets.
+- **Lacing visualization**: Render the wheel and inspect different cross patterns, including the spoke angle where each spoke enters the rim.
+- **Calculated results**: Compare theoretical left- and right-side spoke lengths, tension ratio, and rim-entry angle. Settings such as paired hub holes and hub shift help represent less-standard wheel layouts.
 
 ## Tech Stack
 
@@ -26,4 +26,4 @@ The **Spoke Calculator** is a precision tool I developed to help mechanics and h
 - **Vector Graphics**: JSGL Library
 - **Backend logic**: PHP (legacy support)
 
-Try it out here: [http://www.ebikes.ca/tools/spoke-calc.html](http://www.ebikes.ca/tools/spoke-calc.html)
+Try it out here: [Grin Spoke Calculator](https://ebikes.ca/resources/web-tools/spoke-calc.html)

@@ -24,6 +24,15 @@ The standout feature of Boardcast is its connectivity versatility.
 - **Local Network Discovery**: Uses DNS-SD (Service Discovery) to find peers on the same Wi-Fi LAN.
 - **Custom Protocol**: Designed a low-latency socket messaging layer to sync drawing paths and state changes across arbitrary numbers of connected devices.
 
+{{< mermaid >}}
+flowchart LR
+    nfc["NFC device bump"] --> wifi["Wi-Fi Direct connection"]
+    lan["Same Wi-Fi LAN"] --> discovery["DNS-SD peer discovery"]
+    wifi --> sockets["Low-latency socket messaging"]
+    discovery --> sockets
+    sockets -->|"drawing paths and state changes"| peers["Connected Boardcast devices"]
+{{< /mermaid >}}
+
 ### 2. High-Performance Drawing
 
 - **Hardware Acceleration**: Implemented a custom OpenGL-backed drawing view that discretizes touch inputs into smooth Bezier curves.
