@@ -1,0 +1,15 @@
+{{/* Chat model settings: AI_MODEL from wrangler.toml, else the chat_ai.json default. Fails the build on unknown models. */}}
+{{- $ai := hugo.Data.chat_ai -}}
+{{- $modelName := $ai.config.generation.defaultModel -}}
+{{- with findRESubmatch `(?m)^AI_MODEL\s*=\s*"([^"]+)"` (readFile "wrangler.toml") -}}
+    {{- $modelName = index (index . 0) 1 -}}
+{{- end -}}
+{{- $model := index $ai.models $modelName -}}
+{{- if not $model -}}
+    {{- range $ai.models }}{{ if eq .id $modelName }}{{ $model = . }}{{ end }}{{ end -}}
+{{- end -}}
+{{- if not $model }}{{ errorf "Unknown chat generation model: %s" $modelName }}{{ end -}}
+{{- $rewriteName := $ai.config.contextualization.model -}}
+{{- $rewrite := index $ai.models $rewriteName -}}
+{{- if not $rewrite }}{{ errorf "Unknown chat contextualization model: %s" $rewriteName }}{{ end -}}
+{{- return (dict "ai" $ai "model" $model "rewrite" $rewrite) -}}

@@ -69,7 +69,7 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
     };
 }
 
-// A stalled stream fails instead of leaving the widget busy forever; the user can still cancel earlier.
+// Total budget for one exchange, not an idle timer: a hung request fails here so the widget never stays busy forever.
 const REQUEST_TIMEOUT_MS = 120_000;
 
 export async function streamAnswer(

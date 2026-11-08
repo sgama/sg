@@ -1,0 +1,80 @@
+{{/* AI chat widget: template markup, custom element and bundles. Model settings come from chat/settings.html. */}}
+{{- $settings := partial "chat/settings.html" . -}}
+{{- $ai := $settings.ai -}}
+{{- $model := $settings.model -}}
+{{- $rewrite := $settings.rewrite -}}
+
+<template id="ai-chat-template">
+    <button class="toggle" data-role="toggle" type="button" aria-label="Ask AI Assistant"
+        aria-expanded="false" aria-controls="ai-chat-window">
+        <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <path d="M12 7v6"></path>
+            <path d="M9 10h6"></path>
+        </svg>
+        <span>Ask AI</span>
+    </button>
+
+    <dialog id="ai-chat-window" class="window" data-role="window" aria-label="Chat with AI assistant">
+        <header class="header">
+            <div class="assistant-heading">
+                <span>Assistant</span>
+                <div class="chat-models" aria-label="AI models configured at build time">
+                    <small title="Answer: {{ $model.id }}; rewrite: {{ $rewrite.id }}">
+                        {{- if eq $model.id $rewrite.id -}}
+                            Answer + rewrite: {{ path.Base $model.id }}
+                        {{- else -}}
+                            Answer: {{ path.Base $model.id }} · Rewrite: {{ path.Base $rewrite.id }}
+                        {{- end -}}
+                    </small>
+                    <small title="Embedding: {{ $ai.config.embedding.model }}">Embed: {{ path.Base $ai.config.embedding.model }} · {{ $ai.config.embedding.dimensions }}d</small>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn header-btn--clear"
+                    data-role="clear" type="button" aria-label="Delete chat history" title="Delete chat history">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+                <button class="header-btn header-btn--close"
+                    data-role="close" type="button" aria-label="Close Chat" title="Close Chat">
+                    <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"
+                        width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round">
+                        <path d="m6 6 12 12M18 6 6 18"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="messages" data-role="messages" tabindex="0" aria-label="Conversation">
+            <div class="transcript" data-role="transcript" role="log"
+                aria-label="Chat messages" aria-live="polite" aria-relevant="additions text"></div>
+        </div>
+        <button class="latest" data-role="latest" type="button" hidden>Jump to latest &darr;</button>
+        <span class="chat-status" data-role="status" role="status" aria-live="polite"></span>
+
+        <form class="input-area" data-role="form">
+            <textarea class="input" data-role="input" placeholder="Ask a question..."
+                aria-label="Question" autocomplete="off" enterkeyhint="send"
+                rows="1" maxlength="500" required></textarea>
+            <button type="submit" class="send" data-role="send">Send</button>
+            <button type="button" class="send stop" data-role="stop" hidden>Stop</button>
+        </form>
+    </dialog>
+</template>
+
+{{/* The Markdown libraries are a separate bundle so the widget stays small; the widget loads them by URL on first
+     open. Mermaid is not bundled: its prebuilt ESM (an entry plus lazily loaded chunks) is mounted as static files
+     by config.toml, so a diagram only downloads the chunks it needs and Hugo never has to bundle 5 MB. Chunk names are
+     content-hashed and the entry file is revalidated, so an upgrade needs no URL change. */}}
+{{ $chat_js := resources.Get "js/ai-chat-widget.js" | js.Build (dict "targetPath" "js/ai-chat-widget.js") | resources.Minify | resources.Fingerprint }}
+{{ $markdown_js := resources.Get "js/chat/markdown-entry.js" | js.Build (dict "targetPath" "js/chat-markdown.js" "format" "esm") | resources.Minify | resources.Fingerprint }}
+<ai-chat-widget id="ai-chat-widget" class="chat-widget"
+    data-markdown-src="{{ $markdown_js.RelPermalink }}" data-mermaid-src="{{ "vendor/mermaid/mermaid.esm.min.mjs" | relURL }}"></ai-chat-widget>
+<script defer src="{{ $chat_js.RelPermalink }}" integrity="{{ $chat_js.Data.Integrity }}"
+    crossorigin="anonymous"></script>

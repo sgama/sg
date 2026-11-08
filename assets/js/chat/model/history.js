@@ -29,30 +29,28 @@ export function apiHistory(messages, welcomeMessage) {
 }
 
 export function createStore(getStorage, { json = false } = {}) {
+    // Blocked or full storage (private modes, quota) must not break the widget; it simply stops persisting.
+    const attempt = (warning, action, fallback) => {
+        try {
+            return action(getStorage());
+        } catch (error) {
+            console.warn(warning, error);
+            return fallback;
+        }
+    };
     return {
-        get(key, fallback) {
-            try {
-                const value = getStorage().getItem(key);
-                return value === null ? fallback : json ? JSON.parse(value) : value;
-            } catch (error) {
-                console.warn('Chat storage could not be read.', error);
-                return fallback;
-            }
-        },
-        set(key, value) {
-            try {
-                getStorage().setItem(key, json ? JSON.stringify(value) : value);
-            } catch (error) {
-                console.warn('Chat history could not be saved on this device.', error);
-            }
-        },
-        remove(key) {
-            try {
-                getStorage().removeItem(key);
-            } catch (error) {
-                console.warn('Chat storage could not be cleared.', error);
-            }
-        },
+        get: (key, fallback) =>
+            attempt(
+                'Chat storage could not be read.',
+                (storage) => {
+                    const value = storage.getItem(key);
+                    return value === null ? fallback : json ? JSON.parse(value) : value;
+                },
+                fallback,
+            ),
+        set: (key, value) =>
+            attempt('Chat history could not be saved on this device.', (storage) => storage.setItem(key, json ? JSON.stringify(value) : value)),
+        remove: (key) => attempt('Chat storage could not be cleared.', (storage) => storage.removeItem(key)),
     };
 }
 

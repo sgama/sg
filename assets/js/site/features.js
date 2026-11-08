@@ -30,8 +30,7 @@ export const chatTriggers = {
             const widget = document.querySelector('ai-chat-widget');
             if (!widget) return;
             event.preventDefault();
-            const question = trigger.dataset.question;
-            if (question && typeof widget.setPendingQuestion === 'function') widget.setPendingQuestion(question);
+            if (trigger.dataset.question) widget.setPendingQuestion?.(trigger.dataset.question);
             widget.open?.();
         });
     },

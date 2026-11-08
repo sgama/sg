@@ -9,9 +9,9 @@ const STATIC_HEADERS = 'static/_headers';
 
 const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://ping.samsongama.com",
     "style-src 'self' 'unsafe-inline'",
-    "connect-src 'self'",
+    "connect-src 'self' https://ping.samsongama.com",
     "img-src 'self' data:",
     "base-uri 'self'",
     "frame-ancestors 'none'",

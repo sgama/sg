@@ -1,73 +1,95 @@
+const MARKDOWN_SANITIZE = {
+    ALLOWED_TAGS: [
+        'p',
+        'br',
+        'strong',
+        'em',
+        'del',
+        'blockquote',
+        'ul',
+        'ol',
+        'li',
+        'pre',
+        'code',
+        'a',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'table',
+        'thead',
+        'tbody',
+        'tr',
+        'th',
+        'td',
+        'hr',
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'class', 'start'],
+    FORBID_ATTR: ['style', 'id'],
+    FORBID_CONTENTS: ['script', 'style', 'svg', 'button', 'form', 'iframe', 'nav', 'header', 'footer', 'template'],
+    ALLOW_DATA_ATTR: false,
+    ALLOW_ARIA_ATTR: false,
+};
+const SVG_SANITIZE = { USE_PROFILES: { svg: true, svgFilters: true }, FORBID_TAGS: ['foreignObject', 'a'] };
+const MERMAID_CONFIG = {
+    startOnLoad: false,
+    securityLevel: 'strict',
+    suppressErrorRendering: true,
+    flowchart: { htmlLabels: false },
+};
+
+/** Runs `task` once; a rejected attempt clears the memo so the next call retries. */
+function memoizeUntilSuccess(task) {
+    let pending = null;
+    return () =>
+        (pending ??= task().catch((error) => {
+            pending = null;
+            throw error;
+        }));
+}
+
 /**
  * Loaders are injected by the host; without them the renderer stays in plain-text mode.
  * @param {{ loadModules?: (() => Promise<[{ marked: any }, { default: any }]>) | null, loadMermaid?: (() => Promise<any>) | null, warn?: (...args: unknown[]) => void }} [options]
  */
 export function createMessageRenderer({ loadModules = null, loadMermaid = null, warn = (...args) => console.warn(...args) } = {}) {
     let markdown = null;
-    let warnedUnavailable = false;
-    let loading = null;
     let purify = null;
-    let diagrams = null;
+    let warnedUnavailable = false;
     let diagramQueue = Promise.resolve();
     let diagramId = 0;
+    let loading = null;
     const rendering = new WeakSet();
+    const loadMarkdown = async () => {
+        const [markedModule, purifyModule] = await loadModules();
+        const marked = markedModule.marked;
+        purify = purifyModule.default;
+        if (typeof marked?.parse !== 'function' || typeof purify?.sanitize !== 'function') {
+            throw new Error('Chat markdown modules are incomplete.');
+        }
+        markdown = (text) => purify.sanitize(marked.parse(text, { gfm: true, breaks: true }), MARKDOWN_SANITIZE);
+    };
+    const loadDiagrams = memoizeUntilSuccess(async () => {
+        if (!loadMermaid) throw new Error('Mermaid is not configured.');
+        const { default: mermaid } = await loadMermaid();
+        mermaid.initialize(MERMAID_CONFIG);
+        return mermaid;
+    });
     return {
         get ready() {
             return markdown !== null;
         },
         load() {
             if (!loadModules) return Promise.resolve();
-            return (loading ??= Promise.resolve()
-                .then(loadModules)
-                .then(([markedModule, purifyModule]) => {
-                    const marked = markedModule.marked;
-                    purify = purifyModule.default;
-                    if (typeof marked?.parse !== 'function' || typeof purify?.sanitize !== 'function') {
-                        throw new Error('Chat markdown modules are incomplete.');
-                    }
-                    markdown = (text) =>
-                        purify.sanitize(marked.parse(text, { gfm: true, breaks: true }), {
-                            ALLOWED_TAGS: [
-                                'p',
-                                'br',
-                                'strong',
-                                'em',
-                                'del',
-                                'blockquote',
-                                'ul',
-                                'ol',
-                                'li',
-                                'pre',
-                                'code',
-                                'a',
-                                'h1',
-                                'h2',
-                                'h3',
-                                'h4',
-                                'h5',
-                                'h6',
-                                'table',
-                                'thead',
-                                'tbody',
-                                'tr',
-                                'th',
-                                'td',
-                                'hr',
-                            ],
-                            ALLOWED_ATTR: ['href', 'title', 'class', 'start'],
-                            FORBID_ATTR: ['style', 'id'],
-                            FORBID_CONTENTS: ['script', 'style', 'svg', 'button', 'form', 'iframe', 'nav', 'header', 'footer', 'template'],
-                            ALLOW_DATA_ATTR: false,
-                            ALLOW_ARIA_ATTR: false,
-                        });
-                })
-                .catch((error) => {
-                    loading = null; // a later load() may retry
-                    if (!warnedUnavailable) {
-                        warnedUnavailable = true;
-                        warn('Chat markdown unavailable; displaying plain text.', error);
-                    }
-                }));
+            return (loading ??= loadMarkdown().catch((error) => {
+                loading = null; // a later load() may retry
+                if (!warnedUnavailable) {
+                    warnedUnavailable = true;
+                    warn('Chat markdown unavailable; displaying plain text.', error);
+                }
+            }));
         },
         renderDiagrams(element) {
             const blocks = [...element.querySelectorAll('pre > code.language-mermaid')].filter((code) => !rendering.has(code));
@@ -75,30 +97,12 @@ export function createMessageRenderer({ loadModules = null, loadMermaid = null, 
                 rendering.add(code);
                 diagramQueue = diagramQueue.then(async () => {
                     try {
-                        const module = await (diagrams ??= Promise.resolve()
-                            .then(() => {
-                                if (!loadMermaid) throw new Error('Mermaid is not configured.');
-                                return loadMermaid();
-                            })
-                            .catch((error) => {
-                                diagrams = null;
-                                throw error;
-                            }));
-                        const mermaid = module.default;
-                        mermaid.initialize({
-                            startOnLoad: false,
-                            securityLevel: 'strict',
-                            suppressErrorRendering: true,
-                            flowchart: { htmlLabels: false },
-                        });
+                        const mermaid = await loadDiagrams();
                         const { svg } = await mermaid.render(`chat-diagram-${++diagramId}`, code.textContent);
                         if (!element.contains(code)) return;
                         const diagram = code.ownerDocument.createElement('div');
                         diagram.classList.add('evidence-diagram');
-                        diagram.innerHTML = purify.sanitize(svg, {
-                            USE_PROFILES: { svg: true, svgFilters: true },
-                            FORBID_TAGS: ['foreignObject', 'a'],
-                        });
+                        diagram.innerHTML = purify.sanitize(svg, SVG_SANITIZE);
                         code.parentElement.replaceWith(diagram);
                     } catch (error) {
                         warn('Source diagram unavailable; retaining Mermaid code.', error);

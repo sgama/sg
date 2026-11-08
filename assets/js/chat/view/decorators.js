@@ -54,21 +54,20 @@ function createMetricsFooter(metrics, document) {
     const details = node('details', undefined, 'metrics-details');
     details.append(node('summary', 'Details'));
     const grid = node('div', undefined, 'metrics-grid');
+    const timingRow = ([label, value]) => {
+        const row = node('div', undefined, 'metrics-timing-row');
+        row.append(node('span', label), node('span', value));
+        return row;
+    };
     const timing = node('div');
     timing.append(node('strong', 'Timing'));
-    for (const [label, value] of [
-        ['Total', duration(metrics.totalMs)],
-        ...(validDuration(metrics.firstTokenMs) ? [['First token', duration(metrics.firstTokenMs)]] : []),
-    ]) {
-        const row = node('div', undefined, 'metrics-timing-row');
-        row.append(node('span', label), node('span', value));
-        timing.append(row);
-    }
-    for (const [label, value] of formatted.timing) {
-        const row = node('div', undefined, 'metrics-timing-row');
-        row.append(node('span', label), node('span', value));
-        timing.append(row);
-    }
+    timing.append(
+        ...[
+            ['Total', duration(metrics.totalMs)],
+            ...(validDuration(metrics.firstTokenMs) ? [['First token', duration(metrics.firstTokenMs)]] : []),
+            ...formatted.timing,
+        ].map(timingRow),
+    );
     const usage = node('div');
     if (formatted.abstained) usage.append(node('span', 'No AI model call was needed'));
     if (formatted.usage.length) {

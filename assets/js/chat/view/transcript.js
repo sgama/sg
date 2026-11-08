@@ -39,8 +39,9 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     function showElapsed() {
         const active = activeRequest();
         if (!active || active.answer) return;
-        quiet(elementOf.get(active.message));
-        elementOf.get(active.message).textContent = `${active.stage} · ${Math.floor(active.elapsedMs / 1000)}s elapsed`;
+        const element = elementOf.get(active.message);
+        quiet(element);
+        element.textContent = `${active.stage} · ${Math.floor(active.elapsedMs / 1000)}s elapsed`;
         scroller.changed();
     }
 
@@ -52,6 +53,12 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     function stopTicker() {
         clearInterval(ticker);
         ticker = null;
+    }
+
+    function stopProgress() {
+        stopTicker();
+        if (frame !== null) cancelAnimationFrame(frame);
+        frame = null;
     }
 
     return {
@@ -83,11 +90,7 @@ export function createTranscript({ container, renderer, scroller, decorators = [
             ticker = setInterval(showElapsed, 1000);
             showElapsed();
         },
-        stopProgress() {
-            stopTicker();
-            if (frame !== null) cancelAnimationFrame(frame);
-            frame = null;
-        },
+        stopProgress,
         stage: showElapsed,
         /** Streamed answers are coalesced to one DOM write per animation frame. */
         answer(request) {
@@ -101,9 +104,7 @@ export function createTranscript({ container, renderer, scroller, decorators = [
                 write(elementOf.get(current.message), current.answer, 'bot', false);
             });
         },
-        destroy() {
-            this.stopProgress();
-        },
+        destroy: stopProgress,
     };
 }
 

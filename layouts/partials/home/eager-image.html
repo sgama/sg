@@ -1,0 +1,16 @@
+{{/* Above-the-fold image, wrapped in <picture> when sources exist.
+    Args (dict): src, sources, id, role, alt, class, style, width, height. */}}
+    {{- $img := . -}}
+    {{- with $img.sources }}
+    <picture>
+        {{- range . }}
+        <source type="{{ .type }}" srcset="{{ .src }}">
+        {{- end }}
+        {{- end }}
+        <img {{- with $img.id }} id="{{ . }}" {{ end }} {{- with $img.role }} role="{{ . }}" {{ end }}
+            src="{{ $img.src }}" {{- with $img.alt }} alt="{{ . }}" {{ end }} class="{{ $img.class }}" {{- with
+            $img.width }} width="{{ . }}" {{ end }} {{- with $img.height }} height="{{ . }}" {{ end }} loading="eager"
+            decoding="async" fetchpriority="high" {{- with $img.style }} style="{{ . }}" {{ end }}>
+        {{- with $img.sources }}
+    </picture>
+    {{- end }}
