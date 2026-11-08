@@ -70,7 +70,8 @@
         const settings = (() => {
             try {
                 return JSON.parse(localStorage.getItem('a11ySettings') || '{}');
-            } catch {
+            } catch (error) {
+                console.warn('Ignoring corrupted a11ySettings; blur stays enabled.', error);
                 return {}; // corrupted persisted settings must not break page init
             }
         })();

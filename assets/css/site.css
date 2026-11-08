@@ -378,9 +378,6 @@
         --chat-border: rgb(var(--color-neutral-600));
         --chat-text: rgb(var(--color-neutral-200));
         --chat-muted: rgb(var(--color-neutral-300));
-        --chat-accent: rgb(var(--color-primary-600));
-        --chat-accent-hover: rgb(var(--color-primary-700));
-        --chat-user-bg: rgba(var(--color-primary-400), 0.15);
         --chat-user-text: rgb(var(--color-primary-200));
         --launcher-bg: rgb(var(--color-neutral-800));
         --launcher-text: rgb(var(--color-primary-200));

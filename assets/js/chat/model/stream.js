@@ -87,8 +87,6 @@ export async function streamAnswer(
         if (response.body && !response.bodyUsed) {
             response.body.cancel?.().catch(() => {});
         }
-        const statusLog = serverMessage ? `Chat request failed (${response.status}): ${serverMessage}` : `Chat request failed (${response.status})`;
-        console.warn(statusLog);
         const error = /** @type {Error & { status?: number, serverMessage?: string | null }} */ (new Error(message));
         error.status = response.status;
         error.serverMessage = serverMessage;

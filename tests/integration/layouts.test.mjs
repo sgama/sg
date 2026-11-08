@@ -110,6 +110,12 @@ test('generated layouts preserve structured types, public indexes, image selecti
             },
         );
         const home = await readFile(path.join(destination, 'index.html'), 'utf8');
+        const hero = tags(home, 'img').find((tag) => tag.id === 'background-image');
+        assert.equal(hero?.loading, 'eager');
+        assert.equal(hero?.fetchpriority, 'high');
+        const chips = tags(home, 'button').filter((tag) => tag.class?.includes('chat-cta__chip'));
+        assert.equal(chips.length, 4);
+        assert.ok(chips.every((tag) => tag['data-question']));
         assert.doesNotMatch(home, /<label\b[^>]*role=["']?button/);
         const classicScripts = tags(home, 'script').filter((tag) => tag.src?.startsWith('/js/') && tag.type !== 'module');
         assert.ok(classicScripts.length > 0, 'The page must load its scripts from /js/');

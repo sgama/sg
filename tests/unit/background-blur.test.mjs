@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const url = new URL('../../assets/js/background-blur.js', import.meta.url);
 const source = await readFile(url, 'utf8');
 
-function fixture({ id = 'background', disabled = false, missing = false, divisor } = {}) {
+function fixture({ id = 'background', disabled = false, missing = false, divisor, storage } = {}) {
     const attributes = new Map();
     const element = {
         style: {},
@@ -17,6 +17,7 @@ function fixture({ id = 'background', disabled = false, missing = false, divisor
     const listeners = new Map();
     const frames = [];
     const errors = [];
+    const warnings = [];
     let observer;
     let sentinel;
     const window = {
@@ -44,8 +45,8 @@ function fixture({ id = 'background', disabled = false, missing = false, divisor
         {
             document,
             window,
-            localStorage: { getItem: () => JSON.stringify({ disableBlur: disabled }) },
-            console: { error: (message) => errors.push(message) },
+            localStorage: { getItem: () => storage ?? JSON.stringify({ disableBlur: disabled }) },
+            console: { error: (message) => errors.push(message), warn: (message) => warnings.push(message) },
             requestAnimationFrame: (fn) => frames.push(fn),
             IntersectionObserver: class {
                 constructor(callback) {
@@ -64,12 +65,19 @@ function fixture({ id = 'background', disabled = false, missing = false, divisor
         listeners,
         frames,
         errors,
+        warnings,
         window,
         document,
         intersect: (value) => observer([{ isIntersecting: value }]),
         flush: () => frames.splice(0).forEach((fn) => fn()),
     };
 }
+
+test('corrupted accessibility settings warn and leave blur enabled', () => {
+    const background = fixture({ storage: '{' });
+    assert.equal(background.element.style.display, '');
+    assert.equal(background.warnings.length, 1);
+});
 
 test('disabled backgrounds hide while disabled menu backgrounds remain visible', () => {
     const background = fixture({ disabled: true });

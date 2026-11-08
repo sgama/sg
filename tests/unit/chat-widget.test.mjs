@@ -383,8 +383,7 @@ test('empty, interrupted, and unsuccessful responses fail explicitly', async () 
     );
 });
 
-test('non-OK responses prefer a safe JSON error payload and keep status-only fallback on plain text', async (t) => {
-    const warn = t.mock.method(console, 'warn', () => {});
+test('non-OK responses prefer a safe JSON error payload and keep status-only fallback on plain text', async () => {
     await assert.rejects(
         streamAnswer('Question', {
             onUpdate() {},
@@ -396,7 +395,6 @@ test('non-OK responses prefer a safe JSON error payload and keep status-only fal
             return true;
         },
     );
-    assert.equal(warn.mock.calls.at(-1).arguments[0], 'Chat request failed (400): Invalid query.');
 
     await assert.rejects(
         streamAnswer('Question', {
@@ -409,7 +407,6 @@ test('non-OK responses prefer a safe JSON error payload and keep status-only fal
             return true;
         },
     );
-    assert.equal(warn.mock.calls.at(-1).arguments[0], 'Chat request failed (503)');
 });
 
 test('history storage round-trips values and discards invalid stored messages', (t) => {
@@ -667,6 +664,17 @@ test('stream reader decodes fragmented UTF-8 and posts the query and history API
     });
     assert.equal(answer, 'Hello 🌍');
     assert.equal(updates.at(-1), answer);
+});
+
+test('stream timeout aborts a hung request and rejects instead of waiting forever', async () => {
+    await assert.rejects(
+        streamAnswer('Question', {
+            onUpdate() {},
+            timeoutMs: 5,
+            fetcher: (_url, { signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+        }),
+        (error) => error.name === 'TimeoutError',
+    );
 });
 
 test('widget defers history reads and transcript rendering until first open', async (t) => {
