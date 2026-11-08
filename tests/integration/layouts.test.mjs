@@ -60,7 +60,8 @@ test('generated layouts preserve structured types, public indexes, image selecti
             summary: 'Summary fallback',
             tags: ['layout-check'],
             showReadingProgress: false,
-        }) + '\n\nRegression article.\n',
+        }) +
+            '\n\n{{< figure src="https://example.com/image.png" alt="Regression image" caption="Rendered figure caption." >}}\n\nRegression article.\n',
     );
     await writeFile(
         path.join(assets, 'layout-test.svg'),
@@ -181,12 +182,28 @@ test('generated layouts preserve structured types, public indexes, image selecti
         }
         const article = await readFile(path.join(destination, 'posts/layout-regression/index.html'), 'utf8');
         assert.equal(schema(article)[0].headline, title);
-        assert.equal(schema(article)[0].wordCount, 2);
+        assert.equal(schema(article)[0].wordCount, 5);
         const llms = await readFile(path.join(destination, 'llms.txt'), 'utf8');
         for (const page of ['about', 'resume', 'contact']) assert.ok(llms.includes(`https://samsongama.com/${page}/`));
         assert.match(llms, /## Technical Blog Posts\n- \[/);
         assert.match(llms, /## Skills \/ Tags Snapshot\n\S/);
+        assert.match(llms, /llms-full\.txt/);
+        assert.match(llms, /sitemap\.xml/);
+        assert.match(llms, /cite the canonical page/i);
+        assert.match(llms, /don't infer/i);
+        assert.doesNotMatch(llms, /\/api\/chat/);
         assert.doesNotMatch(llms, /Internal Knowledge|No context found|\/_context\/|FILL IN|## Recent Posts-/);
+        const llmsFull = await readFile(path.join(destination, 'llms-full.txt'), 'utf8');
+        assert.match(llmsFull, /Rendered figure caption\./);
+        assert.doesNotMatch(llmsFull, /\{\{< figure src="https:\/\/example\.com\/image\.png"/);
+        const robots = await readFile(path.join(destination, 'robots.txt'), 'utf8');
+        const groups = robots.trim().split(/\n\s*\n/);
+        for (const agent of ['GPTBot', 'ClaudeBot', 'Claude-SearchBot', 'PerplexityBot', 'Google-Extended', 'CCBot']) {
+            const group = groups.find((value) => value.split('\n').includes(`User-agent: ${agent}`));
+            assert.match(group ?? '', /Disallow: \/api\//, `${agent} must not crawl API endpoints`);
+        }
+        const wildcardGroup = groups.find((value) => value.split('\n').includes('User-agent: *'));
+        assert.match(wildcardGroup ?? '', /Disallow: \/api\//);
         assert.ok(!(await glob('_context/**/*.html', { cwd: destination })).length);
         assertImagePreloads(home);
         const avatar = tags(home, 'img').find((tag) => tag.class?.includes('intro__avatar'));

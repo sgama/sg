@@ -7,7 +7,7 @@
 -}}
 {{- range $sites -}}
   {{- with site.GetPage . -}}
-    {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .RawContent "" -}}
+    {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .Plain "" -}}
   {{- end -}}
 {{- end -}}
 {{- $publicPages := where site.RegularPages "RelPermalink" "ne" "" -}}
@@ -15,10 +15,10 @@
 {{- $posts := where $publicPages "Section" "posts" -}}
 {{- $lines = $lines | append "## Portfolio Projects" -}}
 {{- range $projects -}}
-  {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .RawContent "" -}}
+  {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .Plain "" -}}
 {{- end -}}
 {{- $lines = $lines | append "## Technical Blog Posts" -}}
 {{- range $posts.ByDate.Reverse -}}
-  {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .RawContent "" -}}
+  {{- $lines = $lines | append (printf "## %s" .Title) (printf "URL: %s" .Permalink) .Plain "" -}}
 {{- end -}}
 {{- printf "%s\n" (delimit $lines "\n") -}}

@@ -2,10 +2,11 @@
     "## Site Description"
     (site.Params.description | default "Personal Portfolio and Technical Blog of Samson Gama." | plainify) ""
     "## How to Use This Site"
-    "- Start with the About and Resume pages for a high-level overview."
-    "- Use Portfolio for project highlights and Posts for technical deep dives."
-    "- For quick info, scan the Skills / Tags Snapshot below."
-    "- Programmatic chat API: POST /api/chat for agent access to the assistant." ""
+    "- Start with About for a high-level overview; use the Resume as the source of truth for career history and skills."
+    "- Use Portfolio pages for project details and Posts for technical implementation details."
+    "- For bulk reading, use /llms-full.txt; use /sitemap.xml to discover canonical public URLs."
+    "- Cite the canonical page supporting each factual claim; don't infer details the site doesn't state."
+    "- The interactive chat API is not for bulk ingestion; prefer these static public pages and files." ""
     "## Key Pages" -}}
 {{- range slice "/about" "/resume" "/contact" -}}
   {{- with site.GetPage . -}}

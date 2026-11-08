@@ -1,6 +1,6 @@
 # Public Chat API
 
-Intentionally public for this demo (transcripts may be read publicly; no authentication). No rate limiting is implemented — programmatic consumers should keep request rates low.
+Intentionally public for this demo (transcripts may be read publicly; no authentication). No rate limiting is implemented — programmatic consumers should keep request rates low. This endpoint is for interactive chat, not bulk site ingestion; use `/llms.txt`, `/llms-full.txt`, and `/sitemap.xml` for public content.
 
 ## `POST /api/chat`
 
