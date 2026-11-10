@@ -10,7 +10,7 @@ slug: "electromagnetic-tetherbot"
 tags: ["hardware"]
 ---
 
-![Featured image](featured.webp)
+![Electromagnetic tetherbot prototype robot on a test course](featured.webp)
 
 {{< vimeo 91260438 >}}
 

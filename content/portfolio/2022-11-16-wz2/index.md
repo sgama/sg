@@ -10,7 +10,7 @@ slug: "call-of-duty-wz2"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Warzone 2.0](featured.webp)
 
 ## Scope
 

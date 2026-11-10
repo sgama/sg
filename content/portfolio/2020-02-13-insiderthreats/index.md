@@ -10,7 +10,7 @@ slug: "insiderthreats"
 tags: ["backend", "cybersecurity", "frontend", "networking"]
 ---
 
-![Featured image](featured.webp)
+![The Insider Threats CTF team running a workshop at Mastercard Vancouver](featured.webp)
 
 To foster a culture of security awareness and technical curiosity, I founded **"Insider Threats"**, a Capture The Flag (CTF) team at the Mastercard Vancouver office.
 

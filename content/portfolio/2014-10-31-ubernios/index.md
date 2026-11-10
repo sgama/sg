@@ -10,7 +10,7 @@ slug: "ubernios"
 tags: ["hardware"]
 ---
 
-![Featured image](featured.webp)
+![UberNios arcade game rendered on an Altera DE2 FPGA board](featured.webp)
 {{< figure src="/portfolio/2014-10-31-ubernios/ubernios-post-0.webp" title="UberNIOS Game Play" >}}
 
 **UberNios** is a custom hardware/software co-design project demonstrating full-stack embedded development—from the logic gate level up to the application layer. We built a functional arcade game console on an Altera DE2 FPGA board.

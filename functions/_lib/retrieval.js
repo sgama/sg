@@ -102,9 +102,12 @@ export async function retrieveEvidence({ retrievalQuery, namespace, embed, searc
     const vector = await embed(retrievalQuery);
     const matches = await search(vector);
     if (!Array.isArray(matches)) throw new Error('Invalid retrieval result');
-    const ids = await parentSectionIds(matches, namespace);
+    // Cosine index: higher is better. A missing or non-numeric score cannot be judged, so it is kept.
+    const minScore = AI_CONFIG.retrieval.minScore;
+    const relevant = matches.filter((match) => typeof minScore !== 'number' || typeof match?.score !== 'number' || match.score >= minScore);
+    const ids = await parentSectionIds(relevant, namespace);
     const sections = ids.length ? await fetchSections(ids) : [];
-    const expanded = expandSectionMatches(matches, sections);
+    const expanded = expandSectionMatches(relevant, sections);
     const evidence = [];
     const contextText = contextFromMatches(expanded, (excerpt) => {
         if (isPublicEvidence(excerpt)) evidence.push(excerpt);

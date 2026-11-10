@@ -10,7 +10,7 @@ slug: "call-of-duty-bo6"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Black Ops 6](featured.webp)
 
 ## Scope
 

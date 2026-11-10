@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 .PHONY: help check check-node check-env check-ns \
-	serve dev-ai build postcss-build build-prod clean \
+	serve dev-ai build build-prod clean \
 	deps test test-layouts lint lint-fix typecheck format format-check typos lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
@@ -89,10 +89,7 @@ dev-ai: check build ## Start local dev server with Cloudflare Workers AI
 build: check ## Build the site (development)
 	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
-postcss-build: check ## Run PostCSS + PurgeCSS (production CSS only)
-	@HUGO_ENV=production NODE_ENV=production $(NPX) postcss assets/css/site.css -o assets/css/site.purged.css
-
-build-prod: check postcss-build ## Build the site for production (with PurgeCSS)
+build-prod: check ## Build the site for production
 	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 clean: ## Remove generated output within the repository's public build tree

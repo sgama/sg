@@ -27,7 +27,6 @@ export const DEPLOY_INPUTS = [
     'go.mod',
     'go.sum',
     'package-lock.json',
-    'postcss.config.js',
     'wrangler.toml',
 ];
 

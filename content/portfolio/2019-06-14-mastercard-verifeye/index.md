@@ -10,7 +10,7 @@ slug: "mastercard-verifeye"
 tags: ["biometrics", "cybersecurity", "machine-learning"]
 ---
 
-![Featured image](featured.webp)
+![Verifeye facial-recognition multi-factor authentication concept wireframe](featured.webp)
 
 **Verifeye** was a Proof of Concept (PoC) developed during Mastercard's Innovation Week. The project aimed to rethink payment authentication by moving beyond static passwords to dynamic biological markers.
 

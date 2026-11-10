@@ -8,7 +8,7 @@ weight: 100
 slug: "mp-ev-project"
 ---
 
-![Featured image](featured.jpg)
+![Electric vehicle chargers installed at a strata complex](featured.jpg)
 
 ## Summary 🧭
 

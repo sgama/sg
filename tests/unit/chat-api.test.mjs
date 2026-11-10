@@ -289,6 +289,14 @@ test('/api/chat rejects malformed JSON with a client error', async (t) => {
     assert.equal(logged.mock.callCount(), 0);
 });
 
+test('/api/chat rejects an oversized body without parsing it', async () => {
+    const response = await onRequest(
+        createContext({ method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`, body: { query: 'x'.repeat(70 * 1024) } }),
+    );
+    assert.equal(response.status, 413);
+    assert.deepEqual(await response.json(), { error: 'Request body too large.' });
+});
+
 test('CORS preflight allows only the configured origins', async () => {
     const preflight = (origin) => onRequest(createContext({ method: 'OPTIONS', url: `${URLS.TEST_API_ENDPOINT}/chat`, origin }));
     // Hono answers 204 either way; a disallowed origin simply gets no ACAO header, so the browser blocks the real request.

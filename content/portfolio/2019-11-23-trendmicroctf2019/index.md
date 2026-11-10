@@ -10,7 +10,7 @@ slug: "trendmicroctf2019"
 tags: ["backend", "cybersecurity", "frontend", "networking"]
 ---
 
-![Featured image](featured.webp)
+![Team Maple Bacon finalists at the Trend Micro CTF finals in Tokyo](featured.webp)
 {{< figure src="/portfolio/2019-11-23-trendmicroctf2019/tmctf_team.webp" title="Team Maple Bacon in Tokyo" >}}
 
 As a key member of the CTF team **Maple Bacon**, I helped secure a spot in the prestigious Trend Micro CTF Finals held in Tokyo, Japan.

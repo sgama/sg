@@ -4,12 +4,12 @@
 // Contract: get(namespace, query) -> payload | null, put(namespace, query, payload).
 // Both methods must never reject: a failing cache is a miss, not an outage.
 
-const CACHE_SCHEME = 'v1';
+const CACHE_SCHEME = 'v2';
 const CACHE_TTL_SECONDS = 86400;
 
-// Keys depend on the corpus namespace and the contextualized query only, so a new corpus
-// (new namespace) can never serve stale evidence. The scheme prefix lets a change to the
-// payload shape invalidate old entries by bumping the version.
+// Keys depend on the corpus namespace and the query the visitor asked, plus the history it was read in
+// (AiService passes both), so a hit skips the query-rewrite call. A new corpus (new namespace) can never
+// serve stale evidence. The scheme prefix lets a change to the payload shape invalidate old entries.
 export async function retrievalCacheKey(namespace, query) {
     const input = `${CACHE_SCHEME}:${namespace ?? ''}:${query}`;
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));

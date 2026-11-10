@@ -10,7 +10,7 @@ slug: "over-controller"
 tags: ["hardware"]
 ---
 
-![Featured image](featured.webp)
+![Reflow oven reflow soldering oven housing with the custom PID controller interface](featured.webp)
 
 I collaborated with a team of six to engineer a precise **reflow soldering oven controller** using the **DE2-8052 microcontroller (FPGA)**. The system aimed to adhere to industry-standard reflow thermal profiles.
 

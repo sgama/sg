@@ -184,6 +184,34 @@ test('the real SDK reads Worker settings and deletes vectors with the documented
     );
 });
 
+test('a rejected delete batch stops cleanup and never deletes outside the stale namespaces', async () => {
+    const f = fixture();
+    let deletes = 0;
+    f.client.vectorize.indexes.deleteByIDs = async (_, options) => {
+        deletes += 1;
+        if (deletes === 2) throw new Error('Vectorize delete failed');
+        f.deleted.push(...options.ids);
+        f.calls.push(['delete', options.ids.length]);
+        return { mutationId: `m${deletes}` };
+    };
+    await assert.rejects(cleanupVectors(f), /Vectorize delete failed/);
+    assert.deepEqual(f.calls, [['delete', 20]], 'cleanup stops after the first failing batch');
+    assert.equal(f.deleted.length, 20);
+    assert.ok(
+        f.deleted.every((id) => id.startsWith('old-')),
+        'live, previous, unversioned and foreign vectors are never touched',
+    );
+});
+
+test('cleanup stops when the retained namespace set changes after a deletion batch', async () => {
+    const f = fixture();
+    let reads = 0;
+    f.client.workers.scripts.scriptAndVersionSettings.get = async () => (++reads < 3 ? settings(LIVE, PREVIOUS) : settings(LIVE, OLDER));
+    await assert.rejects(cleanupVectors(f), /changed during cleanup/);
+    assert.deepEqual(f.calls, [['delete', 20]], 'only the batch before the change is deleted');
+    assert.ok(f.deleted.every((id) => id.startsWith('old-')));
+});
+
 test('the CLI rejects unknown options and missing credentials before any request', async (t) => {
     const env = { ...process.env };
     t.after(() => {

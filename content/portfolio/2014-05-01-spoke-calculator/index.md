@@ -10,7 +10,7 @@ slug: "spoke-calculator"
 tags: ["EV", "frontend"]
 ---
 
-![Featured image](featured.webp)
+![Bicycle spoke calculator web app showing lacing diagrams](featured.webp)
 
 The **Spoke Calculator** is a tool I developed to help mechanics and hobbyists build hubmotor wheels. It models hub and rim geometry to estimate the correct spoke lengths for each side of the wheel. The calculator reports lengths to 0.1 mm; in practice, spokes within about 1 mm of the optimum generally work, while a 2 mm difference is less ideal.
 

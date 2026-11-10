@@ -61,16 +61,17 @@ export class AiService {
     async retrieve(query, history = [], onProgress = /** @type {(stage: string) => Promise<void>} */ (async () => {})) {
         requireVectorizeBinding(this.vectorize);
 
-        if (history.length) await onProgress('rewrite');
-        const retrievalQuery = await this.contextualizeQuery(query, history);
-
-        // Deterministic for a given corpus namespace and query, so repeat questions skip paid calls.
-        const cached = this.retrievalStore ? await this.retrievalStore.get(this.namespace, retrievalQuery) : null;
+        // Keyed by the question as asked plus the history it is read in, so a hit skips the rewrite call too.
+        const cacheQuery = history.length ? `${query}\u0000${JSON.stringify(history)}` : query;
+        const cached = this.retrievalStore ? await this.retrievalStore.get(this.namespace, cacheQuery) : null;
         if (cached) {
             this.metrics.resetTiming('retrievalMs');
             await onProgress('search');
             return { contextText: cached.contextText, evidence: cached.evidence.map((item) => ({ ...item })) };
         }
+
+        if (history.length) await onProgress('rewrite');
+        const retrievalQuery = await this.contextualizeQuery(query, history);
 
         let result;
         try {
@@ -102,7 +103,7 @@ export class AiService {
 
         // Only non-empty contexts are cached. The store never rejects, so the write cannot fail the request.
         if (this.retrievalStore && result.contextText.trim().length >= CONFIG.ABSTAIN.MIN_CONTEXT_CHARS) {
-            await this.retrievalStore.put(this.namespace, retrievalQuery, {
+            await this.retrievalStore.put(this.namespace, cacheQuery, {
                 contextText: result.contextText,
                 evidence: result.evidence,
             });

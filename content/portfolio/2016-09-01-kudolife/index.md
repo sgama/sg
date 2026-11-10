@@ -10,7 +10,7 @@ slug: "kudolife"
 tags: ["backend", "frontend", "mobile", "machine-learning"]
 ---
 
-![Featured image](featured.webp)
+![Kudolife health tracking app screens on a phone](featured.webp)
 
 **Kudolife** is a comprehensive health and wellness tracking application. As a full-stack developer at **Prizm Media**, I was responsible for maintaining and enhancing both the mobile apps and the backend infrastructure.
 

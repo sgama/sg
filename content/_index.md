@@ -13,7 +13,7 @@ description: "DevOps Engineer | OSCP | CEH — SRE-led automation, zero‑trust 
                 <h2 class="chat-cta__title" id="chat-cta-title">Explore my experience</h2>
                 <p class="chat-cta__subtitle">Ask AI about my projects, skills, and background.</p>
             </div>
-            <button class="js-chat-trigger chat-cta__btn" type="button" aria-label="Start chat with AI assistant">
+            <button class="js-chat-trigger chat-cta__btn" type="button" aria-label="Ask AI — chat with the AI assistant">
                 <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>

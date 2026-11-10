@@ -10,7 +10,7 @@ slug: "absolute"
 tags: ["backend", "kubernetes", "cybersecurity","biometrics"]
 ---
 
-![Featured image](featured.webp)
+![Pipeline dashboard for the Absolute data pipeline in Go](featured.webp)
 
 At **Absolute Software**, I served as a Backend Developer focused on modernizing the company's core data ingestion infrastructure.
 

@@ -10,7 +10,7 @@ slug: "endless-sphere"
 tags: ["EV", "backend", "infrastructure"]
 ---
 
-![Featured image](featured.webp)
+![Endless-Sphere forum running on its AWS infrastructure](featured.webp)
 **Endless-Sphere** is the premier online community for DIY electric vehicle enthusiasts, boasting over 25,000 active members and millions of posts. The forum serves as a critical knowledge base for the EV industry.
 
 ## The Challenge

@@ -10,7 +10,7 @@ slug: "ev-trip-analyzer"
 tags: ["EV", "frontend"]
 ---
 
-![Featured image](featured.webp)
+![EV trip analyzer charts plotting route, speed and battery data](featured.webp)
 
 During my engineering co-op at **Grin Technologies** (ebikes.ca), I served as the lead developer for the **EV Trip Analyzer**, a web platform for scrutinizing electric bicycle performance data.
 

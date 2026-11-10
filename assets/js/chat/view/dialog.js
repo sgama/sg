@@ -62,6 +62,15 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
         event.preventDefault();
         close();
     });
+    // Escape closes the widget no matter where focus sits, as long as it is open.
+    // Guarded: the unit fixture's document stub has no event methods (unit: chat-widget.test.mjs).
+    if (typeof document.addEventListener === 'function') {
+        listen(document, 'keydown', (event) => {
+            if (event.key !== 'Escape' || !dialog.open) return;
+            event.preventDefault();
+            close();
+        });
+    }
 
     return {
         open,

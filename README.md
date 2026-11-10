@@ -75,9 +75,8 @@ transcript, so a new one needs no change to existing view code. Hugo bundles the
 local modules into one widget script.
 [`layouts/partials/extend-footer.html`](layouts/partials/extend-footer.html)
 supplies the light-DOM template and loads fingerprinted scripts.
-[`assets/css/site.css`](assets/css/site.css) supplies widget-scoped styles, and
-[`postcss.config.js`](postcss.config.js) preserves dynamically generated message
-classes during production CSS purging.
+[`assets/css/site.css`](assets/css/site.css) supplies widget-scoped styles; Hugo
+concatenates it into the theme bundle, so it must stay plain CSS.
 
 The widget uses light DOM, not Shadow DOM. Settings are script constants, not
 custom-element attributes. Its native dialog opens with non-modal `show()` and
@@ -224,7 +223,7 @@ a 120-column wrapping preference, matching the existing yamllint configuration.
 
 Formatting is separate from ESLint correctness checks (`make lint`). Hugo
 templates, Markdown content, TOML and generated output are outside this
-formatting pass, including `assets/css/site.purged.css`. YAML linting and
+formatting pass. YAML linting and
 TOML tooling remain unchanged; CSS formatting does not add CSS linting.
 No CI formatting gate is added by this rollout.
 
@@ -691,8 +690,8 @@ Use the Makefile for common development tasks:
 | `make deps`           | Install dependencies reproducibly with npm ci                                            |
 | `make serve`          | Start Hugo development server                                                            |
 | `make dev-ai`         | Run the site and Worker API through Wrangler                                             |
-| `make build`          | Build the site without the production CSS purge                                          |
-| `make build-prod`     | Build production assets with PostCSS and PurgeCSS                                        |
+| `make build`          | Build the site without production settings                                               |
+| `make build-prod`     | Build the site for production                                                            |
 | `make test`           | Run the Node.js unit tests                                                               |
 | `make lint`           | Lint browser, Functions, scripts, and test JavaScript                                    |
 | `make typecheck`      | Type-check the JavaScript (JSDoc with `checkJs`) for Functions, scripts and browser code |
@@ -724,7 +723,7 @@ A deployment, and the corpus refresh before it, is skipped when no file that can
 change the site differs from the commit the active production deployment was built
 from (`make deploy-needed`, `scripts/deploy_needed.mjs`). The comparison covers
 content, layouts, assets, static files, data, Functions, the corpus and deploy
-scripts, the Hugo and PostCSS configuration, and the lockfile; tests, docs and CI
+scripts, the Hugo configuration, and the lockfile; tests, docs and CI
 files do not trigger one. Any doubt (no recorded commit, the commit cannot be
 fetched, an API error) deploys, and cleanup always runs.
 CI uses three cache entries with different lifetimes. The first holds actionlint,
@@ -746,8 +745,8 @@ install packages or change the lockfile. `npm run build` delegates to
 
 CI runs the independent offline checks together with
 `make -j4 --output-sync=target lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts`
-(public runners have four vCPUs); `make ci-check` runs the same checks locally. Make prerequisites preserve
-PostCSS-before-Hugo ordering, while target output stays grouped. Corpus refresh,
+(public runners have four vCPUs); `make ci-check` runs the same checks locally. Target output
+stays grouped. Corpus refresh,
 deployment, and cleanup remain sequential. The paid `make ci` entry point also
 bounds its validation phase to two jobs.
 

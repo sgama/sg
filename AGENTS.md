@@ -33,8 +33,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - Prefer `resources.Minify` and `resources.Fingerprint` in new pipeline code.
 - Valid Hugo cache names are `assets`, `getresource`, `images`, `modules`, `misc`;
   do not restore removed `getcsv`/`getjson` entries.
-- PostCSS/PurgeCSS must precede production Hugo builds. Preserve dynamic widget
-  classes in the existing safelist.
+- PostCSS/PurgeCSS are not part of the build: Hugo concatenates
+  `assets/css/site.css` into the theme CSS bundle, so it must stay plain CSS.
 
 ## Content and chat
 

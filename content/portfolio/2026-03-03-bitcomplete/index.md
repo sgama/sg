@@ -10,7 +10,7 @@ slug: "bitcomplete"
 tags: ["backend", "AI", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.png)
+![Bitcomplete cloud AI infrastructure platform operations board](featured.png)
 
 ## Scope
 

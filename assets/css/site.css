@@ -215,7 +215,6 @@
         padding: 0.75rem 1.25rem;
         background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
         background-size: 200% 200%;
-        animation: gradientShift 3s ease-in-out infinite;
         color: white;
         border: none;
         border-radius: 8px;
@@ -230,6 +229,13 @@
         transition:
             transform var(--motion-fast) var(--ease-out),
             box-shadow var(--motion-fast) var(--ease-out);
+    }
+
+    /* The infinite gradient shift only runs on interaction; the page-level
+       prefers-reduced-motion block already clamps it for reduced motion. */
+    .contact__submit:hover,
+    .contact__submit:focus-visible {
+        animation: gradientShift 3s ease-in-out infinite;
     }
 
     .contact__submit:hover {
@@ -562,10 +568,7 @@
 
     .chat-widget .chat-models small {
         display: block;
-        font-size: 0.6rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        font-size: 0.75rem;
     }
 
     .chat-widget .response-metrics {
@@ -574,9 +577,8 @@
         padding-block-start: 0.5rem;
         border-block-start: 1px solid var(--chat-border);
         color: var(--chat-muted);
-        font-size: 0.65rem;
+        font-size: 0.75rem;
         line-height: 1.45;
-        user-select: none;
     }
 
     .chat-widget .metrics-details {

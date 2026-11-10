@@ -55,14 +55,15 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
 
         const contentLength = Number.parseInt(c.req.header('Content-Length') ?? '', 10);
         const bodyLimit = 64 * 1024;
+        // Reject before buffering; the post-read check below still covers chunked bodies without a length.
+        if (contentLength > bodyLimit) {
+            return c.json({ error: 'Request body too large.' }, 413);
+        }
         let raw;
         try {
             raw = await c.req.text();
         } catch {
             return c.json({ error: 'Request body could not be read.' }, 400);
-        }
-        if (contentLength > 0 && contentLength > bodyLimit) {
-            return c.json({ error: 'Request body too large.' }, 413);
         }
         if (raw.length > bodyLimit) {
             return c.json({ error: 'Request body too large.' }, 413);

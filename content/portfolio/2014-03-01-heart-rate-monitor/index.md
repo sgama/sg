@@ -10,7 +10,7 @@ slug: "heart-rate-monitor"
 tags: ["biomedical", "hardware"]
 ---
 
-![Featured image](featured.webp)
+![Photoelectric heart rate monitor circuit measuring a fingertip](featured.webp)
 
 For this module, I executed the full lifecycle design—build, program, and test—of a **photoelectric heart rate monitor**.
 

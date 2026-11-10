@@ -5,6 +5,8 @@
   2. a11y.js and image zoom use `defer`.
   3. The viewport resizes content for the mobile chat keyboard.
   4. AdSense markup is omitted.
+  5. assets/css/site.css is concatenated into the theme bundle instead of
+     loaded as a second stylesheet.
   Based on Blowfish v3.9.0; reconcile against upstream when bumping the theme.
 */}}
 <head>
@@ -138,6 +140,7 @@
   {{ if not .Site.Params.disableImageZoom | default true }}
     {{ $cssResources = $cssResources | append (resources.Get "lib/zoom/style.css") }}
   {{ end }}
+  {{ $cssResources = $cssResources | append (resources.Get "css/site.css") }}
   {{ $bundleCSS := $cssResources | resources.Concat "css/main.bundle.css" | resources.Minify | resources.Fingerprint $alg }}
   <link
     type="text/css"

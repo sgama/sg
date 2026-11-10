@@ -2,7 +2,7 @@ version: 2
 # NOTE: Dependabot covers npm (package.json), gomod (go.mod), and github-actions
 # (workflow action versions). Pinned versions outside package managers are NOT
 # auto-checked and must be updated manually:
-#   - HUGO_VERSION in .github/workflows/main.yml (currently 0.167.0; Blowfish max)
+#   - HUGO_VERSION in .github/workflows/main.yml (currently 0.169.0; Blowfish max)
 #   - node-version in .github/workflows/main.yml (currently 24)
 #   - compatibility_date in wrangler.toml (currently 2026-04-20)
 #   - Blowfish theme version in go.mod (covered by gomod ecosystem above)

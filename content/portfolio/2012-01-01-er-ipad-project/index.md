@@ -10,7 +10,7 @@ slug: "er-ipad-project"
 tags: ["infrastructure", "networking", "ios"]
 ---
 
-![Featured image](featured.webp)
+![iPads used by students in the Elsie Roy iPad Project classroom trial](featured.webp)
 
 I helped implement Elsie Roy Elementary's iPad project in Yaletown as a Grade 11 student, then provided technical consultation and deployment support through 2013.
 

@@ -8,7 +8,7 @@ slug: "call-of-duty-bo5"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Black Ops Cold War](featured.webp)
 
 ## Scope
 

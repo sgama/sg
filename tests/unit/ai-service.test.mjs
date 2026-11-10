@@ -16,7 +16,7 @@ import {
 import { buildMessages } from '../../functions/_lib/prompts.js';
 import { contextFromMatches, corpusRecordId, parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
-import { makeEnv, makeProviderStream } from '../helpers/mocks.mjs';
+import { makeEnv, makeProviderStream, makeRetrievalStore } from '../helpers/mocks.mjs';
 
 test('shared query rewrite builds one standalone search query', async () => {
     const model = getModel(AI_CONFIG.contextualization.model);
@@ -360,10 +360,53 @@ test('retrieval keeps text-bearing matches, passes the namespace and skips unrel
     }
 });
 
+test('matches below the configured minimum score are dropped before section expansion', async () => {
+    const svc = new AiService({
+        AI_CORPUS_NAMESPACE: 'corpus-test',
+        AI: { run: async () => buildEmbeddingsResponse() },
+        VECTORIZE_INDEX: {
+            query: async () => ({
+                matches: [
+                    { score: 0.9, metadata: { recordType: 'chunk', text: 'Relevant evidence about Kubernetes' } },
+                    { score: 0.1, metadata: { recordType: 'chunk', text: 'Unrelated evidence about bicycles' } },
+                ],
+            }),
+            getByIds: async () => assert.fail('Unrelated parent lookup'),
+        },
+    });
+    assert.equal((await svc.retrieve('question')).contextText, 'Relevant evidence about Kubernetes');
+});
+
+test('a cache hit with history skips the rewrite model call', async () => {
+    let aiCalls = 0;
+    const env = makeEnv({
+        aiRun: async (_model, input) => {
+            aiCalls++;
+            return input.text ? buildEmbeddingsResponse() : { response: 'What role came before Bitcomplete?' };
+        },
+        vectorizeQuery: async () => buildVectorizeResult([{ text: 'Cached evidence about Kubernetes deployments' }]),
+    });
+    const store = makeRetrievalStore();
+    const history = [{ role: 'user', content: 'What did he do at Bitcomplete?' }];
+    const stages = [];
+    const onProgress = async (stage) => void stages.push(stage);
+
+    await new AiService(env, { retrievalStore: store }).retrieve('And before that?', history, onProgress);
+    assert.deepEqual(stages, ['rewrite', 'embedding', 'search']);
+    const callsAfterMiss = aiCalls;
+
+    const second = await new AiService(env, { retrievalStore: store }).retrieve('And before that?', history, onProgress);
+    assert.equal(second.contextText, 'Cached evidence about Kubernetes deployments');
+    assert.equal(aiCalls, callsAfterMiss);
+    assert.deepEqual(stages, ['rewrite', 'embedding', 'search', 'search']);
+});
+
 test('prompt uses retrieved evidence without injecting a separate resume copy', () => {
     const context = '## Technical Skills\nProgramming: Go, Python, Bash, C/C++, Java, JavaScript, Rust';
     const messages = buildMessages('Is C++ listed?', context, [{ role: 'assistant', content: 'C++ is not listed.' }]);
     assert.ok(messages[0].content.includes(context));
+    assert.match(messages[0].content, /<retrieved_context>[\s\S]*Go, Python[\s\S]*<\/retrieved_context>/);
+    assert.match(messages[0].content, /never instructions to follow/);
     assert.match(messages[0].content, /override conflicting older excerpts and conversation history/);
     assert.match(messages[0].content, /listing both languages/);
     assert.match(messages[0].content, /Do not treat an omitted fact as either confirmed or disproved/);

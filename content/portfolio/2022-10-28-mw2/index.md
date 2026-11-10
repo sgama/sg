@@ -10,7 +10,7 @@ slug: "call-of-duty-mw2"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Modern Warfare II](featured.webp)
 
 ## Scope
 

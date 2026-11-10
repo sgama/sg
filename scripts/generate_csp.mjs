@@ -19,7 +19,10 @@ const csp = [
 ].join('; ');
 
 const base = readFileSync(STATIC_HEADERS, 'utf8').trimEnd();
-const output = `${base}\n\n/*\n  Strict-Transport-Security: max-age=63072000; includeSubDomains\n  Content-Security-Policy: ${csp}\n`;
+const globalHeaders = ['  Strict-Transport-Security: max-age=63072000; includeSubDomains', `  Content-Security-Policy: ${csp}`].join('\n');
+// Extend the static catch-all block so _headers never holds two /* blocks.
+const catchAll = /^\/\*\n/m;
+const output = catchAll.test(base) ? `${base.replace(catchAll, (match) => `${match}${globalHeaders}\n`)}\n` : `${base}\n\n/*\n${globalHeaders}\n`;
 
 writeFileSync(join(PUBLIC_DIR, '_headers'), output);
 console.log(`Generated Content-Security-Policy in ${join(PUBLIC_DIR, '_headers')}.`);

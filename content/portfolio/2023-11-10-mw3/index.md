@@ -10,7 +10,7 @@ slug: "call-of-duty-mw3"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Modern Warfare III](featured.webp)
 
 ## Scope
 

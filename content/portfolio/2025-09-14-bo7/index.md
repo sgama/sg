@@ -10,7 +10,7 @@ slug: "call-of-duty-bo7"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Black Ops 7](featured.webp)
 
 ## Scope
 

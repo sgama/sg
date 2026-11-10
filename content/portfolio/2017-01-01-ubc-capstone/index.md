@@ -10,7 +10,7 @@ slug: "ubc-capstone"
 tags: ["machine-learning", "nlp", "tensorflow", "backend"]
 ---
 
-![Featured image](featured.webp)
+![Interface of the contextual ad targeting machine-learning platform](featured.webp)
 
 For my UBC Engineering final year project, our team built a **Contextual Inference Engine**. This SaaS platform analyzed unstructured user content (text and images) to extract metadata—Time, Location, and Sentiment—to serve highly relevant advertising parameters.
 

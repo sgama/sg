@@ -10,7 +10,7 @@ slug: "call-of-duty-vanguard"
 tags: ["backend", "gaming", "infrastructure", "SRE"]
 ---
 
-![Featured image](featured.webp)
+![Key art for Call of Duty: Vanguard](featured.webp)
 
 ## Scope
 

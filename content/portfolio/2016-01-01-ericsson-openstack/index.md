@@ -10,7 +10,7 @@ slug: "ericsson-openstack"
 tags: ["backend", "networking", "kubernetes"]
 ---
 
-![Featured image](featured.webp)
+![OpenStack Neutron diagram of the Ericsson virtual router plugin](featured.webp)
 
 During my internship at **Ericsson**, I worked on integrating their telecommunications hardware into the cloud via OpenStack.
 
