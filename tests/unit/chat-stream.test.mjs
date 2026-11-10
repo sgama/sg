@@ -55,13 +55,20 @@ test('creates the current widget response stream directly', async () => {
     assert.equal(timed, event({ response: 'Answer' }) + event({ metrics: { totalMs: 1 } }) + 'data: [DONE]\n\n');
 });
 
-test('propagates upstream stream failures', async () => {
+test('terminates the client stream when the upstream stream fails', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
     const upstream = new ReadableStream({
         start(controller) {
             controller.error(new Error('upstream disconnected'));
         },
     });
-    await assert.rejects(new Response(normalizeChatStream(upstream)).text(), /upstream disconnected/);
+    assert.equal(
+        await new Response(normalizeChatStream(upstream)).text(),
+        event({ error: 'AI response failed. Please try again.' }) + 'data: [DONE]\n\n',
+    );
+    assert.equal(logged.mock.callCount(), 1);
+    assert.equal(logged.mock.calls[0].arguments[0], 'Chat Stream Failed:');
+    assert.match(logged.mock.calls[0].arguments[1].message, /upstream disconnected/);
 });
 
 test('cancels provider streams after the first terminal failure and emits only one client error frame', async () => {

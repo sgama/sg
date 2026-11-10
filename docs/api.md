@@ -22,6 +22,7 @@ RAG chat over public site content, streaming Server-Sent Events.
 ```
 
 - Validation failures return `400 { "error": "Invalid query. Must be a string < 500 chars." }`.
+- A body that is not valid JSON returns `400 { "error": "Invalid JSON body." }`.
 - Prompt-injection guardrails reject qualifying queries with `400 { "error": "Query rejected by guardrails." }`.
 - `503 { "error": "Service Unavailable: AI binding missing" }` when the AI binding is not configured.
 

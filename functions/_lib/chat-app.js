@@ -67,13 +67,19 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
         if (raw.length > bodyLimit) {
             return c.json({ error: 'Request body too large.' }, 413);
         }
-        const parsed = ChatRequestSchema.safeParse(JSON.parse(raw || '{}'));
+        let body;
+        try {
+            body = JSON.parse(raw || '{}');
+        } catch {
+            return c.json({ error: 'Invalid JSON body.' }, 400);
+        }
+        const parsed = ChatRequestSchema.safeParse(body);
         if (!parsed.success) {
             return c.json({ error: `Invalid query. Must be a string < ${CONFIG.QUERY.MAX_LENGTH} chars.` }, 400);
         }
         const { query, history } = parsed.data;
 
-        if (isPromptInjectionAttempt(query)) {
+        if (isPromptInjectionAttempt(query) || history.some((message) => isPromptInjectionAttempt(message.content))) {
             return c.json({ error: 'Query rejected by guardrails.' }, 400);
         }
 

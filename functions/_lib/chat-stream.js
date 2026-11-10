@@ -75,6 +75,8 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
             errorSent = true;
         }
         end(controller);
+        // A reader that already failed cannot be cancelled; cancelling it only rejects.
+        if (!reader) return;
         try {
             await reader.cancel(error);
         } catch (cancelError) {
@@ -97,8 +99,8 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
                 try {
                     result = await reader.read();
                 } catch (error) {
-                    controller.error(error);
-                    return;
+                    await fail(controller, error);
+                    continue;
                 }
                 if (result.done) {
                     try {

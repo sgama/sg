@@ -248,6 +248,11 @@ test('/api/chat rejects invalid requests and unavailable bindings explicitly, be
     const refuseAi = { AI: { run: async () => assert.fail('Generation must not start') } };
     for (const { body, env, status, error, log } of [
         { body: { query: SAMPLE_DATA.INJECTION_QUERY }, status: 400, error: 'Query rejected by guardrails.' },
+        {
+            body: { query: 'hello', history: [{ role: 'user', content: SAMPLE_DATA.INJECTION_QUERY }] },
+            status: 400,
+            error: 'Query rejected by guardrails.',
+        },
         { body: { query: '   ' }, status: 400, error: 'Invalid query. Must be a string < 500 chars.' },
         { body: { query: 'hello' }, status: 503, error: 'Service Unavailable: AI binding missing' },
         {
@@ -269,6 +274,19 @@ test('/api/chat rejects invalid requests and unavailable bindings explicitly, be
             log ? [log] : [],
         );
     }
+});
+
+test('/api/chat rejects malformed JSON with a client error', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const request = new Request(`${URLS.TEST_API_ENDPOINT}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{not json',
+    });
+    const response = await onRequest({ request, env: {} });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), { error: 'Invalid JSON body.' });
+    assert.equal(logged.mock.callCount(), 0);
 });
 
 test('CORS preflight allows only the configured origins', async () => {

@@ -231,10 +231,13 @@ deploy-ai: ## Run offline checks and candidate release gate before deployment
 
 ##@ Deploy
 deploy: build-prod ## Build (prod) and deploy the Worker with its static assets
+	@$(MAKE) --no-print-directory csp-headers
 	@$(MAKE) --no-print-directory deploy-built
 
 deploy-built: check check-env ## Deploy an already validated production build (no rebuild)
 	@test -f "$(PUBLIC_DIR)/index.html" || { echo "Missing site build; run make build-prod first"; exit 1; }
+	@grep -Eq '^AI_CORPUS_NAMESPACE = "corpus-[a-f0-9]{56}"$$' wrangler.toml || \
+		{ echo "Missing AI_CORPUS_NAMESPACE in wrangler.toml; run make ai-refresh first"; exit 1; }
 	@COMMIT_HASH=$$(git rev-parse HEAD); \
 	COMMIT_MESSAGE=$$(printf '%.100s' "$$(git log -1 --pretty=%s)"); \
 	$(WRANGLER) deploy --name "$(WORKER_NAME)" --assets "$(PUBLIC_DIR)" \

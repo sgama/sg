@@ -284,7 +284,7 @@ test('failed streams mark cost incomplete and preserve explicit errors', async (
         assert.equal(report.summaries[0].successRate, 0);
         assert.equal(report.summaries[0].ttftP50Ms, null);
     }
-    assert.equal(logged.mock.callCount(), 2);
+    assert.equal(logged.mock.callCount(), 3);
     assert.ok(logged.mock.calls.every((call) => call.arguments[0] === 'Chat Stream Failed:' && call.arguments[1] instanceof Error));
 });
 

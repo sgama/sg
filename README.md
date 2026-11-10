@@ -921,6 +921,10 @@ static assets only; API responses set their own headers. For a manual deployment
 make deploy
 ```
 
+`make deploy` also regenerates `public/_headers` (CSP and HSTS) and refuses to
+deploy unless `wrangler.toml` carries a corpus namespace, so run `make ai-refresh`
+first when the checkout has never indexed a corpus.
+
 Moving from Pages needs a one-time cutover. Until the custom domains move, the
 Pages project stays frozen at its last deploy. After the first Worker deploy, run
 `make cutover-domains ZONE=samsongama.com DRY_RUN=1` to preview, then without
