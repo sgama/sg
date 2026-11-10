@@ -203,13 +203,36 @@ test('a rejected delete batch stops cleanup and never deletes outside the stale 
     );
 });
 
-test('cleanup stops when the retained namespace set changes after a deletion batch', async () => {
-    const f = fixture();
+test('a namespace change is caught at the next guard interval instead of after every delete batch', async () => {
+    const vectors = Array.from({ length: 600 }, (_, index) => ({ id: `old-${index}`, namespace: OLD }));
+    const deleted = [];
     let reads = 0;
-    f.client.workers.scripts.scriptAndVersionSettings.get = async () => (++reads < 3 ? settings(LIVE, PREVIOUS) : settings(LIVE, OLDER));
-    await assert.rejects(cleanupVectors(f), /changed during cleanup/);
-    assert.deepEqual(f.calls, [['delete', 20]], 'only the batch before the change is deleted');
-    assert.ok(f.deleted.every((id) => id.startsWith('old-')));
+    const client = {
+        workers: {
+            scripts: {
+                scriptAndVersionSettings: {
+                    // Read 1 is the initial lookup, read 2 the first guard, read 3 the guard at batch 25.
+                    get: async () => {
+                        reads += 1;
+                        return settings(LIVE, reads < 3 ? PREVIOUS : OLDER);
+                    },
+                },
+            },
+        },
+        vectorize: {
+            indexes: {
+                listVectors: async () => ({ vectors: vectors.map(({ id }) => ({ id })), isTruncated: false }),
+                getByIDs: async (_, options) => vectors.filter((vector) => options.ids.includes(vector.id)),
+                deleteByIDs: async (_, options) => {
+                    deleted.push(...options.ids);
+                    return { mutationId: `m${deleted.length}` };
+                },
+            },
+        },
+    };
+    await assert.rejects(cleanupVectors({ client, accountId: 'account' }), /changed during cleanup/);
+    assert.equal(reads, 3, 'the live namespace is re-read once per guard interval, not per batch');
+    assert.equal(deleted.length, 500, 'deletion stops at the guard that sees the change');
 });
 
 test('the CLI rejects unknown options and missing credentials before any request', async (t) => {

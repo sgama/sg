@@ -10,6 +10,12 @@ import { runIfMain } from './lib/cli.mjs';
 /** Vectorize accepts at most 20 IDs per delete and per record lookup (the API rejects 100 with a 400). */
 const ID_BATCH_SIZE = 20;
 
+/**
+ * Re-read the live namespace every 25 delete batches (~500 vectors) rather than before every batch. A rollback that
+ * lands mid-run is still caught within a few seconds, at a fraction of the Workers settings API calls.
+ */
+const GUARD_BATCH_INTERVAL = 25;
+
 /** Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of ID_BATCH_SIZE. */
 async function vectorInventory(client, accountId, indexName, progress) {
     const vectors = [];
@@ -94,16 +100,18 @@ export async function cleanupVectors({
     if (!dryRun) {
         let lastMutationId;
         mark(`deleting ${staleIds.length} vectors`);
-        for (let offset = 0; offset < staleIds.length; offset += ID_BATCH_SIZE) {
-            const batch = staleIds.slice(offset, offset + ID_BATCH_SIZE);
+        for (let offset = 0, batch = 0; offset < staleIds.length; offset += ID_BATCH_SIZE, batch += 1) {
+            const ids = staleIds.slice(offset, offset + ID_BATCH_SIZE);
             mark(`delete ${Math.min(offset + ID_BATCH_SIZE, staleIds.length)}/${staleIds.length}`);
-            const current = await activeWorker(client, accountId, worker);
-            if (current?.namespace !== live || current?.previousNamespace !== previous) {
-                throw new Error('Live corpus namespace changed during cleanup; stopping');
+            if (batch % GUARD_BATCH_INTERVAL === 0) {
+                const current = await activeWorker(client, accountId, worker);
+                if (current?.namespace !== live || current?.previousNamespace !== previous) {
+                    throw new Error('Live corpus namespace changed during cleanup; stopping');
+                }
             }
             const result = await client.vectorize.indexes.deleteByIDs(indexName, {
                 account_id: accountId,
-                ids: batch,
+                ids,
             });
             if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) throw new Error('Vector deletion did not return a mutation ID');
             lastMutationId = result.mutationId;

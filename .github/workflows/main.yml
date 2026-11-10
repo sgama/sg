@@ -116,6 +116,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: make --no-print-directory deploy-needed >> "${GITHUB_OUTPUT}"
       - name: Refresh corpus and deploy
+        id: deploy
         if: github.event_name == 'push' && steps.changes.outputs.deploy == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -123,10 +124,10 @@ jobs:
         run: |
           make ai-refresh
           make deploy-built
-      # Cleanup runs after any deploy attempt: refresh may have selected a new namespace, the deploy may fail, and
-      # deletion is idempotent so a retry remains safe.
+      # Only after a successful deploy: a failed deploy leaves the fresh corpus neither live nor previous, and
+      # deleting it would throw away the paid embedding for the next run to buy again.
       - name: Prune old corpus vectors
-        if: always() && github.event_name == 'push' && steps.changes.outputs.deploy == 'true'
+        if: github.event_name == 'push' && steps.changes.outputs.deploy == 'true' && steps.deploy.outcome == 'success'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
