@@ -191,7 +191,7 @@
         outline: none;
         border-color: var(--contact-focus);
         box-shadow: 0 0 0 2px rgba(var(--color-primary-500), 0.25);
-        background-color: rgba(var(--color-neutral-800), 0.7);
+        background-color: var(--contact-surface);
     }
 
     .contact__input:hover {
@@ -431,7 +431,7 @@
         border-radius: inherit;
         pointer-events: none;
         opacity: 0;
-        animation: launcherSignal 2s var(--ease-out) infinite;
+        animation: launcherSignal 2s var(--ease-out) 3;
     }
 
     .chat-widget .toggle::after {
@@ -738,6 +738,7 @@
 
     .chat-widget .chat-retry {
         margin-block-start: 0.5rem;
+        min-height: 2.75rem;
     }
 
     .chat-widget .chat-starters button:focus-visible,

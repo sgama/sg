@@ -101,7 +101,12 @@ export function createTranscript({ container, renderer, scroller, decorators = [
                 const current = activeRequest();
                 if (current?.id !== request.id) return;
                 quiet(elementOf.get(current.message));
-                write(elementOf.get(current.message), current.answer, 'bot', false);
+                // Streamed frames render as plain text; the single markdown render happens on finish().
+                const element = elementOf.get(current.message);
+                element.dataset.rawText = current.answer;
+                element.classList.toggle('message--loading', !current.answer);
+                element.textContent = current.answer || 'Thinking…';
+                scroller.changed();
             });
         },
         destroy: stopProgress,

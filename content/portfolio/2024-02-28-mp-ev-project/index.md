@@ -10,7 +10,7 @@ slug: "mp-ev-project"
 
 ![Electric vehicle chargers installed at a strata complex](featured.jpg)
 
-## Summary 🧭
+## Summary
 
 During my time as Strata Council President at Marina Pointe, I worked on a number of projects, but the EV upgrade is one I'm especially proud of.
 
@@ -26,7 +26,7 @@ We replaced two older unmetered chargers with **18** smart, networked, metered u
 
 ---
 
-## Technical Visualization: Project Timeline & Dependencies 📆
+## Technical Visualization: Project Timeline & Dependencies
 
 The following diagram illustrates the critical phases and the timeline.
 

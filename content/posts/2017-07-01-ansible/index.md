@@ -14,9 +14,9 @@ tags: ["ansible", "ops", "docker", "automation", "devops"]
 
 I've been working with Linux since 2008. Back then, I mostly used a spare machine to run FreeNAS, Apache, MySQL, Python to host a static or Wordpress website.
 
-Then as I got more invested with projects running on Linux, I started to set up VPSes to start hosting online in 2011. Everytime, it was the same process. Login as root, set up new user, disable root, set up PKA, enable firewall... etcetc. Took about 30min-1hour depending on how much of the process I remembered. I continued this process till 2015.
+Then as I got more invested with projects running on Linux, I started to set up VPSes to start hosting online in 2011. Every time, it was the same process. Login as root, set up new user, disable root, set up PKA, enable firewall... etc. Took about 30min-1hour depending on how much of the process I remembered. I continued this process till 2015.
 
-By this point, I was starting VPSes for every small project. Even if I wanted a scratch Linux server to work on a proof of concept to run for a couple of hours. I often needed a VPS to make it accessible by all viewers. After all, what good is a REST API if its only accessible to your internal network. Heroku existed at the time, however I wasn't fond of the CPU/Memory restrictions available on the free tier.
+By this point, I was starting VPSes for every small project. Even if I wanted a scratch Linux server to work on a proof of concept to run for a couple of hours. I often needed a VPS to make it accessible by all viewers. After all, what good is a REST API if it's only accessible to your internal network. Heroku existed at the time, however I wasn't fond of the CPU/Memory restrictions available on the free tier.
 
 ## The Solution: Ansible
 

@@ -50,7 +50,7 @@ I’d love to chat! Just fill out the form, and feel free to share how we met or
     </form>
   </div>
 </div>
-<div id="success-message" class="contact__success hidden">
+<div id="success-message" class="contact__success hidden" role="status" aria-live="polite" tabindex="-1">
   <div class="contact__success-card">
     <div class="flex items-center space-x-3">
       <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,8 +67,10 @@ I’d love to chat! Just fill out the form, and feel free to share how we met or
 document.addEventListener('DOMContentLoaded', function() {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('success') === 'true') {
-    document.getElementById('success-message').classList.remove('hidden');
-    document.getElementById('success-message').scrollIntoView({ behavior: 'smooth' });
+    const success = document.getElementById('success-message');
+    success.classList.remove('hidden');
+    success.scrollIntoView({ behavior: 'smooth' });
+    success.focus();
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 });
