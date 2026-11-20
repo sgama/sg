@@ -15,11 +15,11 @@ summary: "A proposed contract-first workflow for AI-assisted full-stack changes,
 
 This is a **design blueprint**, not a report of a deployed Rust product or measured AI productivity gains. It describes how I would structure a Rust API and static frontend so an AI coding assistant can make small, reviewable changes without guessing at interfaces.
 
-## The problem: make changes local and checkable
+## 🚨 The problem: make changes local and checkable
 
 A request that crosses backend and frontend boundaries is easy to get subtly wrong: route shapes drift, generated clients become stale, and a passing build may still miss behavior. The goal is to give both people and coding agents a contract and a short feedback loop—not to let an agent deploy unreviewed code.
 
-## System design: one API contract
+## 🔌 System design: one API contract
 
 {{< mermaid >}}
 flowchart LR
@@ -38,7 +38,7 @@ flowchart LR
 
 These boundaries help an AI assistant locate the smallest relevant layer. They do not prevent a bad change by themselves.
 
-## Workflow: ask, constrain, verify, review
+## 📌 Workflow: ask, constrain, verify, review
 
 For a cross-stack change, the proposed loop is:
 
@@ -63,7 +63,7 @@ flowchart TD
 
 The agent should report what it changed, what it ran and what remains uncertain. A green test suite is evidence for the tested behavior, not proof of correctness or authorization to deploy.
 
-## Guardrails: contracts are not a substitute for judgment
+## 📌 Guardrails: contracts are not a substitute for judgment
 
 - Keep credentials, production data and deployment permissions out of the coding agent's scope unless a task explicitly requires them.
 - Validate at API boundaries; generated types cannot validate untrusted runtime input by themselves.
@@ -71,13 +71,13 @@ The agent should report what it changed, what it ran and what remains uncertain.
 - Review generated code and dependency changes; generation can propagate a mistaken contract consistently.
 - Treat tests as executable expectations, not as a guarantee that the requirements are complete.
 
-## Cost and scaling: no invented break-even curve
+## 📌 Cost and scaling: no invented break-even curve
 
 Serverless can avoid paying for idle capacity, while long-running or high-volume workloads may favor provisioned infrastructure. The break-even point depends on workload shape, provider pricing, latency targets and operational effort. The illustrative request-cost chart and migration thresholds from the earlier draft were not based on a measured workload, so they are intentionally omitted here.
 
 Likewise, this design has no benchmark showing AI-assisted development is faster. A credible evaluation would compare representative tasks with and without assistance, recording review time, rework, defects and total cost—not just generated lines or first-pass test results.
 
-## What is implemented, and what is proposed
+## 🛠️ What is implemented, and what is proposed
 
 The article presents a **proposed workflow**; I found no evidence in this portfolio repository of the Rust SaaS, OpenAPI generation pipeline or request-to-PR agent described in the earlier version. The repository's real AI application is the [portfolio RAG assistant](/posts/2026-01-25-ai-chat/); the actual coding-agent configuration is documented in [How I Run an Agentic AI Setup with OpenCode](/posts/2026-10-25-agentic-ai-config/).
 

@@ -14,14 +14,14 @@ tags: ["reliability", "operations", "prometheus", "infrastructure"]
 
 Monitoring is a broad topic in DevOps. I generally simplify it into four main categories:
 
-## Types of Monitoring
+## 📈 Types of Monitoring
 
 1. **Passive Infrastructure Monitoring**: Tracking CPU, Memory, Disk usage, Uptime, and Network I/O.
 2. **Log Logging/Aggregation**: Services stream their logs to a central system (ELK, Loki) where you can set alerts on specific patterns (e.g., "Exception").
 3. **Active Monitoring (Synthetics)**: Pinging your servers on a timer for aliveness/health, or performing full verification of API endpoints.
 4. **Application Performance Monitoring (APM)**: Metrics gathered through code injection/instrumentation to view application-level performance (e.g., function execution time, DB query latency).
 
-## Why Passive Monitoring Matters
+## 📈 Why Passive Monitoring Matters
 
 The focus of this post is **passive monitoring**. Unless your career depends on things working 100% of the time, you probably don't want to constantly second-guess yourself or have to manually check if your services or applications are running.
 
@@ -33,7 +33,7 @@ However, repeated restarts are a symptom of a deeper problem. Microservices shou
 
 **The question becomes**: How would I know if services were restarted 50 times last night?
 
-## The Solution: Prometheus + AlertManager
+## ✅ The Solution: Prometheus + AlertManager
 
 One approach is to check Docker logs or `kubectl get pods` manually, but that's not practical—especially from a phone while at dinner.
 
@@ -63,7 +63,7 @@ flowchart LR
 - **Resource Utilization**: catch memory leaks before they crash the server.
 - **Network Connectivity**: Monitor latency and packet loss between services.
 
-## Implementation Benefits
+## ✨ Implementation Benefits
 
 - **Proactive**: Catch issues before they impact users.
 - **Remote**: Monitor from anywhere via mobile alerts (Slack/PagerDuty).

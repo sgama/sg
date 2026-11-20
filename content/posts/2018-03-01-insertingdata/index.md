@@ -12,7 +12,7 @@ tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "fintech"
 
 *Disclaimer: I didn't run synthetic benchmarks in High Availability (HA) mode for Proof of Concepts (POC). This post reflects my practical experience working with massive datasets for my HFT Trading Bot.*
 
-## The Data Challenge
+## 📊 The Data Challenge
 
 High-Frequency Trading (HFT) generates an enormous amount of data, all indexed by time. Here is the structure I needed to persist:
 
@@ -22,14 +22,14 @@ High-Frequency Trading (HFT) generates an enormous amount of data, all indexed b
 
 *Note: I maintained one collection/database per exchange, as data quality and granularity varied between them.*
 
-## Query Patterns
+## 🧩 Query Patterns
 
 The database needed to support specific access patterns efficiently:
 
 1. **Range Queries**: "Give me all trades between time X and Y for Instrument Z" (indexes on Time + Instrument).
 2. **Latest Data**: "Give me the last X candles for Instrument Z" (heavy read load on recent data).
 
-## Retention Policy
+## 📌 Retention Policy
 
 Storing this much data indefinitely is expensive and unnecessary for my algorithm.
 
@@ -38,7 +38,7 @@ Storing this much data indefinitely is expensive and unnecessary for my algorith
 
 ---
 
-## Database Comparison
+## 📊 Database Comparison
 
 ### 1. MongoDB (NoSQL)
 
@@ -91,7 +91,7 @@ Storing this much data indefinitely is expensive and unnecessary for my algorith
 
 **Verdict**: ✅ **The Ideal Choice** for an HFT Trading Bot.
 
-## Key Takeaways
+## 📌 Key Takeaways
 
 - **MongoDB**: Great for general application data but struggled with integrity at this scale.
 - **PostgreSQL**: The gold standard for reliability, but time-series is a specific niche where general SQL engines struggle without tuning (e.g., TimescaleDB).

@@ -18,7 +18,7 @@ Then as I got more invested with projects running on Linux, I started to set up 
 
 By this point, I was starting VPSes for every small project. Even if I wanted a scratch Linux server to work on a proof of concept to run for a couple of hours. I often needed a VPS to make it accessible by all viewers. After all, what good is a REST API if it's only accessible to your internal network. Heroku existed at the time, however I wasn't fond of the CPU/Memory restrictions available on the free tier.
 
-## The Solution: Ansible
+## ✅ The Solution: Ansible
 
 In comes Ansible and Ansible-Playbooks, "the simplest way to automate apps and IT infrastructure".
 
@@ -26,7 +26,7 @@ I'll skip the details for now but with Ansible I was able to write my default se
 
 Now my **1 hour server setup takes 2 minutes** (times may vary based on CPU power of your VM). I no longer cringe at the idea of setting up a new VPS/VM to work on.
 
-## Key Benefits
+## ✨ Key Benefits
 
 - **Time Savings**: Reduced setup time by 97% (60 minutes → 2 minutes)
 - **Consistency**: Every server configured identically

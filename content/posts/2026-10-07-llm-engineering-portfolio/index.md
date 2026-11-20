@@ -15,7 +15,7 @@ An LLM integration is not finished when a prompt returns a plausible answer. It 
 
 This portfolio uses **Hugo, a Cloudflare Worker with static assets, Workers AI, Vectorize, and KV**. The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights.
 
-## How a question becomes an answer
+## 📌 How a question becomes an answer
 
 ```text
 Browser question
@@ -41,7 +41,7 @@ Retrieval selects **top three matches** and limits assembled context to **12,000
 
 Insufficient context triggers an explicit abstention without calling the answer model. Missing service bindings return HTTP errors before streaming begins. Failures after the SSE connection opens produce an error event, not a fabricated answer or an empty successful response.
 
-## What the chat window shows
+## 📌 What the chat window shows
 
 Starter questions offer entry points into experience, projects, scale and the assistant itself. While work happens, the widget reports actual backend stages:
 
@@ -66,7 +66,7 @@ These illustrative values mean server-side total time, time to first answer toke
 
 Conversation history is saved on the device and survives website deployments. **Clear History** removes that saved browser conversation; it does not delete any separately stored server-side logs.
 
-## Building and embedding the corpus
+## 📌 Building and embedding the corpus
 
 The ingestion pipeline reads Markdown and skips drafts, empty bodies and heading-only sections. Structured Markdown and HTML syntax trees remove presentation-only markup and images while preserving nested lists, links and code. A quote-aware tokenizer handles Hugo shortcodes outside Markdown code. For example, a portrait shortcode is not useful evidence, but text inside a button shortcode is retained.
 
@@ -94,7 +94,7 @@ Ingestion uses bounded concurrency, validates vector dimensions and finite value
 
 A push to `develop` refreshes the corpus and deploys the matching namespace only when a deployable input changed; otherwise the pipeline skips both. An unchanged corpus skips ingestion; a changed corpus is re-embedded. Failed ingestion prevents deployment. The site is one live Worker version, so cleanup keeps the live namespace and the one it replaced (for rollback without re-embedding) and deletes older versioned vectors. It stops if a deploy changes the live namespace mid-run, and does not wait for Vectorize to finish processing the deletions. Reusing individual embeddings across changed corpora remains a future cost improvement.
 
-## Developing and verifying the integration
+## 📌 Developing and verifying the integration
 
 The application is built locally before any paid evaluation:
 
@@ -111,7 +111,7 @@ Streaming needs its own contract tests. Some models emit `{"response":"..."}`; o
 
 Passing mocks proves application behavior, **not live provider availability, model quality, or production performance**. Those require separate live checks.
 
-## The evaluation harness
+## 📌 The evaluation harness
 
 A harness is the code that runs fixed inputs, captures outputs, and applies repeatable measurements. This repository uses a small labeled JSON fixture with:
 
@@ -159,7 +159,7 @@ On 2026-10-07, one developer-run GLM repetition used 13 fixture queries and live
 
 This baseline **failed the default 90% retrieval threshold** and is too small to rank models. The cost is an estimate from dated registry prices, excluding embeddings, storage, failed-call charges and plan allowances. These timings are provider-facing, not browser end-to-end latency. Spot checks found source misses, citation failures, and a false unsupported-absence claim even on one answer that passed the term check; the check rate is not factual accuracy. Full run provenance and per-case failures are in the repository README's [measured GLM baseline](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline).
 
-## Latency and throughput
+## 📌 Latency and throughput
 
 | Metric | What it means here |
 | --- | --- |
@@ -178,7 +178,7 @@ The widget's first-token metric differs from the generation-only benchmark: it s
 
 For credible comparisons, hold prompts, contexts, and output limits constant; label warm/cold and cached/uncached runs; use enough samples to make tail percentiles meaningful. This serial harness is **not** a requests-per-second or concurrency load test. Those need controlled arrival rates, concurrent clients, and error/saturation measurements.
 
-## Token usage and cost
+## 📌 Token usage and cost
 
 Input tokens include system instructions, context, the question and bounded history sent by the widget. Follow-ups also incur a separate rewrite call. Output budgets can include reasoning depending on the provider; do not equate visible text length with billable output.
 
@@ -198,7 +198,7 @@ The reports exclude embeddings, Vectorize, KV, failed-call charges, and account 
 
 Shorter useful context and concise answers reduce token work. Caching may avoid work altogether, but exact-answer caching, semantic caching, and provider prefix caching are different mechanisms. None is currently implemented in this chat path.
 
-## Release discipline and developer responsibilities
+## 📌 Release discipline and developer responsibilities
 
 Routine content refresh belongs in production CI. Model selection and quality review belong in a deliberate developer workflow. The local release gate defaults to **90% retrieval hit rate** and **80% answer checks**; these are configured acceptance thresholds, not achieved production metrics.
 

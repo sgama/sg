@@ -450,7 +450,7 @@ root((Infra Lab))
 
 ---
 
-## Performance and accessibility
+## 📈 Performance and accessibility
 
 This lab is infrastructure, not a user-facing app, so performance and accessibility apply indirectly: keep services responsive (health checks, resource limits in Compose) and document recovery steps so an operator can restore service without guesswork. No UI is shipped from this repo.
 

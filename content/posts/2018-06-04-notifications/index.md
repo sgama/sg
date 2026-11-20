@@ -16,7 +16,7 @@ tags: ["notifications", "operations", "alertmanager", "slack", "automation", "re
 
 Without proper alerting, even the best monitoring setup is just a collection of pretty dashboards that nobody looks at until it's too late.
 
-## Passive Monitoring Integration
+## 📈 Passive Monitoring Integration
 
 When looking at it from a passive monitoring perspective using Prometheus, **AlertManager** is a great service to leverage as it can hook into:
 
@@ -35,7 +35,7 @@ flowchart LR
     trading["Trading bot trigger"] --> slack
 {{< /mermaid >}}
 
-## Application Performance Monitoring
+## 📈 Application Performance Monitoring
 
 Other times you may want to know about business-critical events:
 
@@ -60,7 +60,7 @@ In my trading bot implementation, I configured specific triggers:
 - **Immediate Response**: Know about issues as they happen, not hours later.
 - **Context**: Get actionable information (variables, stack traces) directly in the alert, not just "something broke".
 
-## Smart Alerting Strategy
+## 🧭 Smart Alerting Strategy
 
 ### What TO Alert On
 
@@ -75,7 +75,7 @@ In my trading bot implementation, I configured specific triggers:
 - **Non-actionable**: Warnings you can't or won't fix immediately.
 - **Over-alerting**: Sending so many alerts that the team develops "alert fatigue" and ignores them all.
 
-## Implementation Results
+## 📊 Implementation Results
 
 This approach has allowed me to:
 

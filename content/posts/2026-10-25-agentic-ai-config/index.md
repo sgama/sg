@@ -140,7 +140,7 @@ Ansible deploys the tracked config. The `Makefile` holds the lint, syntax, and c
 - **Some plugins are off.** The metrics plugin is commented out because of a TUI compatibility issue.
 - **Model names change.** Keep presets in one file so a swap touches one place.
 
-## Performance and accessibility
+## 📈 Performance and accessibility
 
 This setup is a developer tool, not a user-facing app, so performance and accessibility apply indirectly: keep terminal output short (Make targets use `-s`/`--quiet` or `| tail`), keep agent prompts small, and scope filesystem access to `~/code`. No UI is shipped from this repo; the OpenChamber web UI is a separate dependency.
 
