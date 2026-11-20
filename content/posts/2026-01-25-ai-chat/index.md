@@ -53,7 +53,7 @@ flowchart LR
 
 ## 💬 From question to answer
 
-The browser sends the question and a bounded slice of recent history. A first-turn question goes straight to embedding. A follow-up is rewritten into a standalone search query first. After "Tell me about Bitcomplete", the follow-up "What did he do before that?" becomes "What role did Samson hold before Bitcomplete?" for retrieval. Generation still receives the original question and the history, so the answer reads naturally.
+The browser sends the question and a bounded slice of recent history. A first-turn question goes straight to embedding. A follow-up is rewritten into a standalone search query first. After "Tell me about Demonware", the follow-up "What did he do before that?" becomes "What role did Samson hold before Demonware?" for retrieval. Generation still receives the original question and the history, so the answer reads naturally.
 
 The rewrite is necessary because embedding "before that?" alone retrieves nothing useful. It is also a point of failure: a bad rewrite changes what gets retrieved, so the rewritten query is part of the diagnostics.
 
@@ -241,7 +241,7 @@ make ai-build   # Bundle the Worker (dry run) with Node.js 22+
 make dev-ai     # Local site with the chat API
 ```
 
-The offline tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Bitcomplete and Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
+The offline tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
 
 ### 📉 Baseline (diagnostic, in progress)
 
