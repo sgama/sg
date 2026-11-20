@@ -14,12 +14,13 @@ import { normalizeChatStream } from './chat-stream.js';
 import { createResponseMetrics } from './response-metrics.js';
 
 export class AiService {
-    constructor(env, { retrievalStore = null } = {}) {
+    constructor(env, { retrievalStore = null, signal = undefined } = {}) {
         this.ai = env.AI;
         this.vectorize = env.VECTORIZE_INDEX;
         this.namespace = env.AI_CORPUS_NAMESPACE;
-        // Routes model calls through AI Gateway (analytics, logs, retries) when a gateway id is configured.
-        this.runOptions = env.AI_GATEWAY_ID ? { gateway: { id: env.AI_GATEWAY_ID } } : {};
+        // Options for every model call: AI Gateway routing (analytics, logs, retries) when configured, and the request's
+        // abort signal so a closed tab or deadline stops paid rewrite, embedding and generation calls.
+        this.runOptions = { ...(env.AI_GATEWAY_ID ? { gateway: { id: env.AI_GATEWAY_ID } } : {}), ...(signal ? { signal } : {}) };
         this.model = getModel(env.AI_MODEL);
         this.contextualizationModel = getModel(AI_CONFIG.contextualization.model);
         this.metrics = createResponseMetrics({ model: this.model, rewriteModel: this.contextualizationModel });
@@ -117,11 +118,10 @@ export class AiService {
         return this.metrics.snapshot(options);
     }
 
-    async generateStream(query, contextText, history = [], options = /** @type {{ signal?: AbortSignal }} */ ({})) {
-        const { signal } = options;
+    async generateStream(query, contextText, history = []) {
         const messages = buildMessages(query, contextText, history);
         try {
-            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages), { signal, ...this.runOptions });
+            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages), this.runOptions);
             return normalizeChatStream(stream, {
                 onFirstToken: () => this.metrics.firstToken(),
                 onUsage: (usage) => this.metrics.generationUsed(usage),

@@ -11,7 +11,6 @@ const FixtureCase = z
         id: z.string().min(1),
         query: z.string().refine(present),
         evidenceTerms: groupsOf(label).optional(),
-        required: z.boolean().optional(),
         history: z.array(turn).max(4).optional(),
         retrievalTerms: groupsOf(label).optional(),
         expectedSources: z.array(z.string()),
@@ -27,7 +26,6 @@ const FixtureCase = z
 // Which label problem each field reports; id and query problems share one message.
 const CASE_PROBLEMS = {
     evidenceTerms: 'evidence labels',
-    required: 'required flag',
     history: 'conversation history',
     retrievalTerms: 'retrieval query labels',
     expectedSources: 'labels',

@@ -46,8 +46,7 @@
                 "primarily a help desk",
                 "entry-level developer",
                 "20 years of experience"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "career-progression-chronology",
@@ -89,8 +88,7 @@
             "forbiddenTerms": [
                 "bitcomplete before demonware",
                 "currently employed at bitcomplete"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "recent-role-official-title",
@@ -112,8 +110,7 @@
             "forbiddenTerms": [
                 "senior site reliability engineer",
                 "senior software engineer"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "demonware-official-title",
@@ -134,8 +131,7 @@
             ],
             "forbiddenTerms": [
                 "senior service reliability engineer"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "employment-dates-recent",
@@ -165,8 +161,7 @@
             "forbiddenTerms": [
                 "present",
                 "currently"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "demonware-tenure",
@@ -200,8 +195,7 @@
             "forbiddenTerms": [
                 "june 2025",
                 "june 2022"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "recent-experience-not-internship",
@@ -233,8 +227,7 @@
             "forbiddenTerms": [
                 "most recent internship",
                 "prizm media"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-ownership",
@@ -283,8 +276,7 @@
             ],
             "forbiddenTerms": [
                 "only operated an existing vendor product"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-throughput",
@@ -314,8 +306,7 @@
             "forbiddenTerms": [
                 "10 million requests per second",
                 "100 million requests per minute"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-adoption",
@@ -345,8 +336,7 @@
             "forbiddenTerms": [
                 "one team only",
                 "all teams globally"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-sustained",
@@ -371,8 +361,7 @@
             "forbiddenTerms": [
                 "48 days",
                 "one week"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-rate-limiting",
@@ -407,8 +396,7 @@
             ],
             "forbiddenTerms": [
                 "each generator independently maintained the only global counter"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-fault-injection",
@@ -450,8 +438,7 @@
             ],
             "forbiddenTerms": [
                 "physical disk destruction"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "load-platform-engineering-value",
@@ -489,8 +476,7 @@
             ],
             "forbiddenTerms": [
                 "it only measured frontend rendering"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "call-of-duty-scale",
@@ -524,8 +510,7 @@
             "forbiddenTerms": [
                 "Samson personally served every player",
                 "backend services deployed in every country"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "demonware-service-contributions",
@@ -562,8 +547,7 @@
             ],
             "forbiddenTerms": [
                 "he only worked on Kubernetes"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "commerce-platform-integrations",
@@ -603,8 +587,7 @@
             "forbiddenTerms": [
                 "steam",
                 "nintendo"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "commerce-event-reconciliation",
@@ -643,8 +626,7 @@
             ],
             "forbiddenTerms": [
                 "synchronous payment authorization only"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "vitess-migration-scale",
@@ -681,8 +663,7 @@
             "forbiddenTerms": [
                 "1 pb",
                 "postgresql migration"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "vitess-technical-contribution",
@@ -730,8 +711,7 @@
             ],
             "forbiddenTerms": [
                 "single-handedly migrated every database"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "demonware-game-launches",
@@ -774,8 +754,7 @@
             ],
             "forbiddenTerms": [
                 "70 game launches"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "demonware-conf-d",
@@ -811,8 +790,7 @@
             ],
             "forbiddenTerms": [
                 "a Linux package installation"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "demonware-senior-influence",
@@ -854,8 +832,7 @@
             ],
             "forbiddenTerms": [
                 "managed 20 direct reports"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "bitcomplete-gitops-architecture",
@@ -894,8 +871,7 @@
             ],
             "forbiddenTerms": [
                 "moved all clusters to eks"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "bitcomplete-controller-reduction",
@@ -922,8 +898,7 @@
             ],
             "forbiddenTerms": [
                 "reduced 200 controllers"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "bitcomplete-onboarding",
@@ -957,8 +932,7 @@
             "forbiddenTerms": [
                 "30 minutes",
                 "one week"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "bitcomplete-gpu-platforms",
@@ -1003,8 +977,7 @@
             ],
             "forbiddenTerms": [
                 "amd instinct"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "mastercard-domain",
@@ -1031,8 +1004,7 @@
             ],
             "forbiddenTerms": [
                 "credit card issuing platform"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "mastercard-traffic-mirroring",
@@ -1074,8 +1046,7 @@
             "forbiddenTerms": [
                 "modified live customer responses",
                 "redacted all customer data"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "mastercard-regional-infrastructure",
@@ -1112,8 +1083,7 @@
             "forbiddenTerms": [
                 "20 regions",
                 "800 services"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "mastercard-background-jobs",
@@ -1152,8 +1122,7 @@
             ],
             "forbiddenTerms": [
                 "rewrote the entire payment processing system"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "mastercard-security-sessions",
@@ -1183,8 +1152,7 @@
             ],
             "forbiddenTerms": [
                 "managed the corporate security department"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "absolute-go-rewrite",
@@ -1224,8 +1192,7 @@
             ],
             "forbiddenTerms": [
                 "rewrote it in rust"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "absolute-performance-results",
@@ -1275,8 +1242,7 @@
             "forbiddenTerms": [
                 "20x",
                 "90%"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "absolute-device-simulator",
@@ -1316,8 +1282,7 @@
             ],
             "forbiddenTerms": [
                 "millions of physical devices"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "absolute-mongodb",
@@ -1357,8 +1322,7 @@
             ],
             "forbiddenTerms": [
                 "replaced MongoDB with Cassandra"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-project-overview",
@@ -1399,8 +1363,7 @@
             "forbiddenTerms": [
                 "trained a foundation model from scratch",
                 "autonomous multi-agent production platform"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-ingestion-pipeline",
@@ -1442,8 +1405,7 @@
             ],
             "forbiddenTerms": [
                 "scrapes the entire public internet"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-contextual-rewriting",
@@ -1477,8 +1439,7 @@
             ],
             "forbiddenTerms": [
                 "does not use conversation history"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-retrieval-expansion",
@@ -1518,8 +1479,7 @@
             ],
             "forbiddenTerms": [
                 "retrieves every page without ranking"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-abstention",
@@ -1554,8 +1514,7 @@
             ],
             "forbiddenTerms": [
                 "always guesses an answer"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-versioned-deployments",
@@ -1588,8 +1547,7 @@
             ],
             "forbiddenTerms": [
                 "overwrites the active index without validation"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-evaluation-observability",
@@ -1637,8 +1595,7 @@
             ],
             "forbiddenTerms": [
                 "claims 100% answer accuracy"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "rag-not-agent-claim",
@@ -1672,8 +1629,7 @@
             "forbiddenTerms": [
                 "yes, it autonomously browses",
                 "autonomously executes tasks"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "website-stack",
@@ -1706,8 +1662,7 @@
             "forbiddenTerms": [
                 "wordpress",
                 "squarespace"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "website-analytics",
@@ -1728,8 +1683,7 @@
             ],
             "forbiddenTerms": [
                 "google analytics is used"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "engineering-approach-production",
@@ -1762,8 +1716,7 @@
             ],
             "forbiddenTerms": [
                 "makes changes without measuring"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "engineering-approach-testing",
@@ -1797,8 +1750,7 @@
             ],
             "forbiddenTerms": [
                 "only performs manual happy-path testing"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "observability-experience",
@@ -1839,8 +1791,7 @@
             ],
             "forbiddenTerms": [
                 "claims experience with every observability vendor"
-            ],
-            "required": false
+            ]
         },
         {
             "id": "networking-and-virtualization",
@@ -1876,8 +1827,7 @@
             ],
             "forbiddenTerms": [
                 "designed the entire nutanix flow product"
-            ],
-            "required": false
+            ]
         },
         {
             "id": "security-background",
@@ -1915,8 +1865,7 @@
             ],
             "forbiddenTerms": [
                 "licensed penetration testing company owner"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "oscp-certification",
@@ -1944,8 +1893,7 @@
             "forbiddenTerms": [
                 "cissp",
                 "cisa"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "ctf-achievement",
@@ -1978,8 +1926,7 @@
             ],
             "forbiddenTerms": [
                 "world champion"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "mentoring-and-collaboration",
@@ -2022,8 +1969,7 @@
             ],
             "forbiddenTerms": [
                 "managed a department of 50"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "non-engineering-stakeholders",
@@ -2053,8 +1999,7 @@
                     "governance"
                 ]
             ],
-            "forbiddenTerms": [],
-            "required": false
+            "forbiddenTerms": []
         },
         {
             "id": "skills-backend-stack",
@@ -2098,8 +2043,7 @@
             ],
             "forbiddenTerms": [
                 "only frontend javascript"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "skills-cloud-platform",
@@ -2142,8 +2086,7 @@
                     "argocd"
                 ]
             ],
-            "forbiddenTerms": [],
-            "required": true
+            "forbiddenTerms": []
         },
         {
             "id": "skills-databases",
@@ -2198,8 +2141,7 @@
                     "vitess"
                 ]
             ],
-            "forbiddenTerms": [],
-            "required": true
+            "forbiddenTerms": []
         },
         {
             "id": "education",
@@ -2234,8 +2176,7 @@
             "forbiddenTerms": [
                 "phd",
                 "master's degree"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-work-authorization",
@@ -2255,8 +2196,7 @@
                 "us citizen",
                 "green card holder",
                 "does not require sponsorship"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-relocation",
@@ -2276,8 +2216,7 @@
                 "will relocate",
                 "will not relocate",
                 "willing to relocate"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-work-arrangement",
@@ -2297,8 +2236,7 @@
                 "only wants remote",
                 "open to hybrid and onsite",
                 "refuses onsite"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-compensation",
@@ -2319,8 +2257,7 @@
                 "$200,000",
                 "150k",
                 "200k"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-notice-period",
@@ -2339,8 +2276,7 @@
                 "available immediately",
                 "two weeks' notice",
                 "starts next monday"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-bitcomplete-departure",
@@ -2360,8 +2296,7 @@
                 "he was laid off",
                 "he left for a better opportunity",
                 "contract ended"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-direct-reports",
@@ -2380,8 +2315,7 @@
                 "five direct reports",
                 "ten direct reports",
                 "zero direct reports"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-current-salary",
@@ -2400,8 +2334,7 @@
                 "$100,000",
                 "$150,000",
                 "$200,000"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-references",
@@ -2420,8 +2353,7 @@
             "forbiddenTerms": [
                 "john smith",
                 "jane doe"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "unknown-behavioral-anecdote",
@@ -2440,8 +2372,7 @@
                 "his manager insisted",
                 "a colleague wanted",
                 "he convinced the team"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "followup-load-platform",
@@ -2497,8 +2428,7 @@
             ],
             "forbiddenTerms": [
                 "cloudformation only"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "followup-vitess",
@@ -2559,8 +2489,7 @@
             ],
             "forbiddenTerms": [
                 "personally migrated every database alone"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "followup-rag",
@@ -2616,8 +2545,7 @@
             ],
             "forbiddenTerms": [
                 "it always makes its best guess"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "followup-topic-switch",
@@ -2667,8 +2595,7 @@
             "forbiddenTerms": [
                 "absolute software",
                 "software developer intern"
-            ],
-            "required": true
+            ]
         },
         {
             "id": "followup-previous-employer",
@@ -2722,8 +2649,7 @@
             ],
             "forbiddenTerms": [
                 "mastercard"
-            ],
-            "required": true
+            ]
         }
     ]
 }

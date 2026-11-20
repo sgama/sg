@@ -45,7 +45,6 @@ Keep detailed behavior tests with the module that owns it. Keep cross-module reg
 | `chat-stream.test.mjs`, `chat-metrics.test.mjs`                                             | Provider SSE normalization, usage, costs, and timing                                                                                  |
 | `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior                                                               |
 | `content-audit.test.mjs`, `rag-audit.test.mjs`, `makefile.test.mjs`                         | Content policies, provenance review, and build/test commands                                                                          |
-| `postcss.test.mjs`                                                                          | Production purging preserves theme-owned dark selectors and chat colors                                                               |
 | `menu-a11y.test.mjs`                                                                        | Native dialog open/close, menu button wiring, expanded state, and backdrop dismissal                                                  |
 | `vector-cleanup.test.mjs`                                                                   | Live-Worker lookup and stale-vector pruning safety                                                                                    |
 | `domain-cutover.test.mjs`                                                                   | One-time Pages-to-Worker domain move, with rollback on failure                                                                        |
@@ -96,7 +95,7 @@ Browser suites execute source scripts with isolated DOM/VM fixtures. They cover 
 
 Stream tests cover fragmented UTF-8, current content deltas, rejection of response-only provider answers, reasoning omission, final usage summaries, stage ordering, and explicit errors after streaming starts. The current Workers binding terminal usage summary is accepted only after answer deltas. Local NDJSON is adapted to content deltas and aggregate usage rather than relying on a response-only fallback. Empty or malformed provider responses must not silently succeed. Use native `Response.text()` to test decoding and error propagation.
 
-Use `t.mock.method` for expected logging and assert messages and call counts. Node restores test-scoped mocks. Keep tests that mutate process globals sequential within their file and restore those globals in cleanup. Log API tests currently verify intentionally public access, version-2 value reads, explicit rejection of unsupported records, pagination, method restrictions, and no-store headers; they do not assert an authentication requirement.
+Use `t.mock.method` for expected logging and assert messages and call counts. Node restores test-scoped mocks. Keep tests that mutate process globals sequential within their file and restore those globals in cleanup.
 
 ## Adding and maintaining tests
 

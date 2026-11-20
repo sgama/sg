@@ -191,7 +191,7 @@ Retrieval is semantic only. It does not combine keyword scoring, reranking or me
 
 The answer prompt receives the original question, the bounded history, and the assembled context. It is instructed to answer only from the context, to cite the source excerpts shown to the visitor, and to say when the context does not contain the answer. Generation uses a 512-token budget and streams tokens back through the Worker.
 
-The Worker normalizes the provider's stream into its own server-sent events: progress stages, answer text, metrics and a final end-of-stream marker. The browser therefore depends on one event contract, not on the provider's format. If the client disconnects, the Worker forwards the abort signal to the model call; whether the provider stops billing for the in-flight request is provider-dependent and not asserted here.
+The Worker normalizes the provider's stream into its own server-sent events: progress stages, answer text, metrics and a final end-of-stream marker. The browser therefore depends on one event contract, not on the provider's format. If the client disconnects, the Worker forwards the abort signal to the model calls; whether the provider stops billing for the in-flight request is provider-dependent and not asserted here.
 
 Progress labels describe actual operations: understanding a follow-up, preparing search, finding sources, and writing an answer. An elapsed counter runs until answer text arrives. A failed request offers a manual Retry that reuses the original question and the history from before the request. There are no automatic paid retries.
 
@@ -215,14 +215,14 @@ Each major choice was made to keep a small system inspectable rather than to cha
 - **Semantic retrieval only, no reranking.** Adding keyword scoring or a reranker would raise recall, but it would also hide which stage changed an answer. Retrieval is kept simple until evaluation shows exact-term misses.
 - **Abstention over hallucination.** A wrong answer is worse than "I don't know." The two-layer abstention (deterministic threshold plus prompt instruction) is deliberately conservative.
 - **Versioned namespaces instead of in-place updates.** A deploy that changes the corpus writes to a new namespace and switches only after Vectorize reports the writes processed. Rollback is a config change, not a re-embed.
-- **Client disconnects propagate.** The abort signal is forwarded to the model call so a closed tab stops paying for tokens, even though Workers AI's actual stop behavior is not verified here.
+- **Client disconnects and deadlines propagate.** One abort signal (client disconnect or a 60-second turn deadline) is forwarded to the rewrite, embedding and generation calls, so a closed tab stops paying for tokens, even though Workers AI's actual stop behavior is not verified here.
 
 ## 📈 Operational characteristics
 
 - **Latency:** first visible answer token and total generation are measured separately and reported in the diagnostics footer, so regressions are attributable to retrieval, provider or network.
 - **Cost:** generation-only cost is estimated per request from token counts; embeddings, Vectorize and hosting are excluded because they are small at this scale but not free.
 - **Observability:** stage timings, token counts and abstention outcomes are exposed to the visitor and logged server-side by Workers Logs, with model calls recorded in AI Gateway. There are no automatic paid retries.
-- **Security boundary:** prompt instructions and pattern checks are not a complete security boundary; edge rate limiting for the public chat endpoint is not configured in the repository.
+- **Security boundary:** a prompt instruction is not a security boundary, and there is no input filter; the public chat endpoint has an approximate per-IP rate limit (10 requests a minute per Cloudflare location) but no spend cap in the repository.
 
 ## 🛡️ Security and abuse controls
 
@@ -230,7 +230,7 @@ Each major choice was made to keep a small system inspectable rather than to cha
 - **Prompt boundaries.** The answer prompt restricts the model to the supplied context and instructs it to abstain when context is insufficient. This is an instruction, not a verifier; it reduces but does not eliminate hallucination or injection.
 - **No tool use.** The assistant has no tools, no web access and no model training or fine-tuning, so a successful prompt injection cannot reach external systems or persistent state.
 - **Data minimization.** Conversation history lives in the browser; server-side logs (AI Gateway and Workers Logs) are not publicly readable and follow Cloudflare's retention limits for those products. Visitors are told not to include passwords, financial details or confidential material.
-- **Known gaps.** Edge rate limiting for the public chat endpoint is not configured in the repository; runtime deadlines, human review and concurrency testing are the next steps, not finished work.
+- **Known gaps.** The per-IP rate limit is approximate and limits volume, not spend; human review and concurrency testing are the next steps, not finished work.
 
 ## ✅ Verification and limits
 
@@ -254,10 +254,10 @@ This is one run, one model and one corpus snapshot. It tracks regressions and ex
 
 The limits are real:
 
-- Prompt instructions and pattern checks are not a complete security boundary; see the Security section.
+- A prompt instruction is not a security boundary, and there is no input filter; see the Security section.
 - Semantic search can miss relevant evidence, especially when the visitor uses a term the portfolio never uses.
 - Models can misinterpret dates, and an answer can combine true facts into a false claim.
 - Term-based evaluations can show that expected terms appear. They cannot prove that an answer is entailed by its sources.
-- Runtime deadlines, human review and concurrency testing are the next steps, not finished work.
+- Human review and concurrency testing are the next steps, not finished work.
 
 Static hosting can be inexpensive, but inference and storage have quotas and usage-based costs. The point of this architecture is not "free AI". It is a small, inspectable system in which retrieval, transport, quality and economics can each be measured on their own.

@@ -27,6 +27,12 @@ AI_GATEWAY_ID = "default"
 # CI sets AI_CORPUS_NAMESPACE after `make ai-refresh` finishes indexing the commit's corpus.
 # Local deployments can use ai-refresh or set a previously validated namespace.
 
+# Per-IP throttle for the paid /api/chat route (Workers Rate Limiting binding; limits are per Cloudflare location, approximate).
+[[ratelimits]]
+name = "CHAT_LIMITER"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
 # Vectorize Binding (The "Long Term Memory")
 [[vectorize]]
 binding = "VECTORIZE_INDEX"

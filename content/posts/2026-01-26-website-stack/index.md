@@ -208,5 +208,5 @@ The stack is deliberately small: static delivery, one Worker for the assistant, 
 ## 🚀 What's Next
 
 - **Retrieval quality:** Expand regression questions and human review, especially for ambiguous follow-ups and unsupported claims.
-- **Runtime controls:** Add request deadlines and rate limits, and measure behavior under concurrent traffic.
+- **Runtime controls:** Add a spend cap (per-IP rate limiting and a per-turn deadline are in place), and measure behavior under concurrent traffic.
 - **Ingestion efficiency:** Reuse unchanged document embeddings across corpus versions instead of regenerating the whole changed corpus.

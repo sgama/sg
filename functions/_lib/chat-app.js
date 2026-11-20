@@ -6,7 +6,7 @@ import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { streamSSE } from 'hono/streaming';
 import { AppError, CONFIG, requireVectorizeBinding } from './application.js';
-import { isPromptInjectionAttempt, ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
+import { ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
 import { createSseMessageStream, DONE_PAYLOAD } from './chat-stream.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
@@ -15,7 +15,7 @@ import { workersCacheStore } from './retrieval-cache.js';
  * One chat turn: retrieve context, announce evidence, then either abstain or
  * generate. Returns the answer stream. Events leave through `emit`, so the route owns the transport.
  */
-async function defaultAnswerChat({ aiService, query, history, signal, emit }) {
+async function defaultAnswerChat({ aiService, query, history, emit }) {
     const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));
     await emit({ evidence });
 
@@ -23,15 +23,17 @@ async function defaultAnswerChat({ aiService, query, history, signal, emit }) {
         return createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
     }
     await emit({ progress: 'generation' });
-    return aiService.generateStream(query, contextText, history, { signal });
+    return aiService.generateStream(query, contextText, history);
 }
 
 const BODY_LIMIT_BYTES = 64 * 1024;
+// Upper bound for one chat turn (rewrite, embedding, search and the streamed answer).
+const REQUEST_DEADLINE_MS = 60_000;
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 
 // Uses the Workers Cache API for retrieval results when it exists (it does not in plain Node).
-const defaultCreateAiService = (env) =>
-    new AiService(env, { retrievalStore: typeof caches !== 'undefined' ? workersCacheStore(caches.default) : null });
+const defaultCreateAiService = (env, signal) =>
+    new AiService(env, { retrievalStore: typeof caches !== 'undefined' ? workersCacheStore(caches.default) : null, signal });
 
 /**
  * Builds the /api/chat app. Every collaborator is injectable, so the route can run with another
@@ -62,6 +64,13 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
 
     app.post(
         '/api/chat',
+        async (c, next) => {
+            const key = c.req.header('cf-connecting-ip') ?? 'unknown';
+            if (c.env?.CHAT_LIMITER && !(await c.env.CHAT_LIMITER.limit({ key })).success) {
+                return c.json({ error: 'Too many requests. Please wait a minute and try again.' }, 429);
+            }
+            await next();
+        },
         bodyLimit({ maxSize: BODY_LIMIT_BYTES, onError: (c) => c.json({ error: 'Request body too large.' }, 413) }),
         zValidator('json', ChatRequestSchema, (result, c) => {
             if (!result.success) return c.json({ error: `Invalid query. Must be a string < ${CONFIG.QUERY.MAX_LENGTH} chars.` }, 400);
@@ -71,15 +80,13 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
 
             const { query, history } = c.req.valid('json');
 
-            if (isPromptInjectionAttempt(query) || history.some((message) => isPromptInjectionAttempt(message.content))) {
-                return c.json({ error: 'Query rejected by guardrails.' }, 400);
-            }
-
             if (!env?.AI) {
                 return c.json({ error: 'Service Unavailable: AI binding missing' }, 503);
             }
 
-            const aiService = createAiService(env);
+            // The client disconnecting or the deadline passing aborts every paid model call for this turn.
+            const signal = AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(REQUEST_DEADLINE_MS)]);
+            const aiService = createAiService(env, signal);
             requireVectorizeBinding(env.VECTORIZE_INDEX);
             return streamSSE(c, async (sse) => {
                 try {
@@ -87,7 +94,6 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                         aiService,
                         query,
                         history,
-                        signal: c.req.raw.signal,
                         emit: (payload) => sse.writeSSE({ data: JSON.stringify(payload) }),
                     });
                     await sse.pipe(stream);

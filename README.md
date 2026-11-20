@@ -536,11 +536,14 @@ Cloudflare account; there is no public transcript endpoint. Do not submit
 sensitive information.
 
 The public chat endpoint's CORS policy is not authentication or abuse prevention.
-Regex injection checks are narrow heuristics, not a security boundary. No
-application-level rate limit, calibrated relevance cutoff, or runtime
-embedding/generation deadline is currently implemented. Configure and verify
-Cloudflare edge abuse controls separately; do not infer they exist from this
-repository. The 20-character abstention check detects empty/short context, not
+There is no prompt-injection filter: the answer prompt only restricts the model to
+retrieved context, and the assistant has no tools. No calibrated relevance cutoff is implemented. Each chat turn has a 60-second
+deadline, and a client disconnect or the deadline aborts the rewrite, embedding
+and generation calls (Vectorize queries are not cancellable). `/api/chat` has a per-IP Workers Rate Limiting binding
+(`CHAT_LIMITER`, 10 requests per 60 seconds, per Cloudflare location and
+approximate; 429 when exceeded). It limits request volume, not spend: configure
+AI Gateway spend limits and any WAF rules in Cloudflare, and do not infer they
+exist from this repository. The 20-character abstention check detects empty/short context, not
 whether evidence supports a claim. Quality evaluation remains developer-run,
 not an automatic production release gate.
 Generation accepts content deltas and aggregate usage, including the current Workers binding terminal usage summary after answer deltas. Response-only provider answers are no longer accepted. The widget's normalized response events and manually managed browser history remain unchanged.
@@ -653,14 +656,12 @@ bounds its validation phase to two jobs.
 Build targets honor `PUBLIC_DIR`. Cleanup accepts only the repository's `public`
 directory or descendants, rejects paths resolving outside that tree and tracked
 files, and refuses an empty destination. Custom output elsewhere must be cleaned
-explicitly. Stop foreground development servers with Ctrl+C; the force-kill
-target has been removed.
+explicitly. Stop foreground development servers with Ctrl+C.
 
 Workflow linting uses native actionlint, silent on success with source-located
 diagnostics on failure. CI installs the version pinned in the Makefile.
-Install it locally with `make install-actionlint` (requires Go)
-and add `$(go env GOPATH)/bin` to PATH, or pass
-`ACTIONLINT=/path/to/actionlint` to Make. If ShellCheck is available, actionlint
+Install it locally with `make install-actionlint` (downloads the pinned
+binary), or pass `ACTIONLINT=/path/to/actionlint` to Make. If ShellCheck is available, actionlint
 also checks embedded shell scripts.
 
 ## 📁 Project Structure

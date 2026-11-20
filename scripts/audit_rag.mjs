@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
 import { z } from 'zod';
 import { buildCorpus } from './lib/corpus.mjs';
@@ -43,23 +42,15 @@ function checkReviewed(reviewed, now, { errors, warnings }) {
     }
 }
 
-/** Hashes every canonical source; returns the ones whose content differs from the recorded hash. */
-async function checkSourceHashes(sources, safePath, { errors }) {
+/** Compares every canonical source with the hash the corpus build already computed; returns the ones that changed. */
+function checkSourceHashes(sources, corpus, safePath, { errors }) {
+    const current = new Map(corpus.sources.map((entry) => [entry.source, entry.hash]));
     const changed = new Set();
     for (const [source, hash] of Object.entries(sources)) {
-        const target = safePath(source);
+        safePath(source);
         if (!/^[a-f0-9]{64}$/.test(hash)) errors.push(`Invalid source hash: ${source}`);
-        try {
-            if (
-                createHash('sha256')
-                    .update(await fs.readFile(target))
-                    .digest('hex') !== hash
-            )
-                changed.add(source);
-        } catch (error) {
-            if (error.code !== 'ENOENT') throw error;
-            errors.push(`Missing canonical source: ${source}`);
-        }
+        if (!current.has(source)) errors.push(`Missing canonical source: ${source}`);
+        else if (current.get(source) !== hash) changed.add(source);
     }
     return changed;
 }
@@ -139,8 +130,8 @@ export async function auditRag({ root = process.cwd(), now = new Date() } = {}) 
     const safePath = sourcePathIn(root);
     const findings = { errors: [], warnings: [] };
     checkReviewed(config.reviewed, now, findings);
-    const changed = await checkSourceHashes(config.sources, safePath, findings);
     const corpus = await buildCorpus({ root });
+    const changed = checkSourceHashes(config.sources, corpus, safePath, findings);
     const documents = await checkContextDocuments(config, corpus, changed, safePath, findings);
     checkQuestions(config.questions, prompts.data, corpus, safePath, findings);
     const coverage = coverageOf(prompts.data, config.questions, corpus);

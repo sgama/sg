@@ -20,7 +20,7 @@ This portfolio uses **Hugo, a Cloudflare Worker with static assets, Workers AI (
 ```text
 Browser question
   + bounded recent conversation
-  -> Worker: validate input and check prompt-pattern guardrails
+  -> Worker: validate input
   -> Workers AI: rewrite a follow-up into a standalone search question
   -> Workers AI: embed the search question
   -> Vectorize: retrieve five matches from the deployed corpus namespace
@@ -187,7 +187,7 @@ The work an LLM application developer needs to own is concrete:
 5. **Economics:** token accounting, ingestion costs, cache effectiveness, and cost per successful task.
 6. **Operations:** release manifests, rollback, timeouts, rate limits, telemetry, retention, and incident diagnosis.
 
-This repository implements parts of that foundation, not the entire list. Runtime deadlines/rate limits, durable production stage traces, relevance calibration, claim-by-claim citation verification and concurrency load testing remain work to do. Visible source excerpts and model-generated links do not prove factual correctness. Prompt-pattern checks are not a complete security boundary: retrieved documents must be treated as untrusted, and any future tools need explicit authorization.
+This repository implements parts of that foundation, not the entire list. Spend caps, durable production stage traces, relevance calibration, claim-by-claim citation verification and concurrency load testing remain work to do. Visible source excerpts and model-generated links do not prove factual correctness. There is no input filter, and prompt instructions are not a security boundary: retrieved documents must be treated as untrusted, and any future tools need explicit authorization.
 
 On Workers AI, Cloudflare operates GPU scheduling, batching, and model serving. This application cannot directly tune VRAM, FLOPS, quantization kernels, or KV-cache allocation. Self-hosted inference adds those responsibilities, plus capacity planning and model artifact management.
 

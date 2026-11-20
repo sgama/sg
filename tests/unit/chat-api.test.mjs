@@ -233,12 +233,6 @@ test('/api/chat rejects invalid requests and unavailable bindings explicitly, be
     const logged = t.mock.method(console, 'error', () => {});
     const refuseAi = { AI: { run: async () => assert.fail('Generation must not start') } };
     for (const { body, env, status, error, log } of [
-        { body: { query: SAMPLE_DATA.INJECTION_QUERY }, status: 400, error: 'Query rejected by guardrails.' },
-        {
-            body: { query: 'hello', history: [{ role: 'user', content: SAMPLE_DATA.INJECTION_QUERY }] },
-            status: 400,
-            error: 'Query rejected by guardrails.',
-        },
         { body: { query: '   ' }, status: 400, error: 'Invalid query. Must be a string < 500 chars.' },
         { body: { query: 'hello' }, status: 503, error: 'Service Unavailable: AI binding missing' },
         {
@@ -281,6 +275,15 @@ test('/api/chat rejects an oversized body without parsing it', async () => {
     );
     assert.equal(response.status, 413);
     assert.deepEqual(await response.json(), { error: 'Request body too large.' });
+});
+
+test('/api/chat rejects requests over the rate limit before any work', async () => {
+    const keys = [];
+    const env = { CHAT_LIMITER: { limit: async ({ key }) => (keys.push(key), { success: false }) } };
+    const response = await onRequest(createContext({ method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`, body: { query: 'hello' }, env }));
+    assert.equal(response.status, 429);
+    assert.match((await response.json()).error, /Too many requests/);
+    assert.deepEqual(keys, ['unknown']);
 });
 
 test('CORS preflight allows only the configured origins', async () => {
