@@ -207,6 +207,6 @@ The stack is deliberately small: static delivery, one Worker for the assistant, 
 
 ## 🚀 What's Next
 
-- **Retrieval quality:** Expand regression questions and human review, especially for ambiguous follow-ups and unsupported claims.
+- **Retrieval quality:** The latest evaluation passes 67 of 74 cases (90.5%) and retrieves the right source for 61 of 64 answerable questions, but only 1 of 5 follow-up rewrites keeps the conversation's subject. Expand regression questions and human review, starting with follow-ups and unsupported claims; details in the [AI chat post](/posts/2026-01-25-ai-chat/#-results-905-of-cases-pass-follow-ups-are-the-weak-spot).
 - **Runtime controls:** Add a spend cap (per-IP rate limiting and a per-turn deadline are in place), and measure behavior under concurrent traffic.
 - **Ingestion efficiency:** Reuse unchanged document embeddings across corpus versions instead of regenerating the whole changed corpus.

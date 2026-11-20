@@ -193,7 +193,8 @@ ai-refresh: check check-env ## Index changed corpus and set namespace (force: AI
 
 ai-eval: check check-env check-ns ## Evaluate retrieval and answers with promptfoo (paid; gate: AI_PASS_RATE %)
 	@PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_PASS_RATE_THRESHOLD="$$AI_PASS_RATE" \
-		$(NPX) promptfoo eval -c evals/promptfooconfig.yaml --no-cache --no-share -o "$$REPORT_DIR/ai-eval.json"
+		$(NPX) promptfoo eval -c evals/promptfooconfig.yaml --no-cache --no-share -o "$$REPORT_DIR/ai-eval.json"; \
+	status=$$?; $(NODE) scripts/summarize_ai_eval.mjs "$$REPORT_DIR/ai-eval.json"; exit $$status
 
 ai-audit: ai-embeddings ai-eval ## Ingest candidate namespace then evaluate it (paid)
 

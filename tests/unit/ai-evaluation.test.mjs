@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { summarize } from '../../scripts/summarize_ai_eval.mjs';
 import { validateFixture } from '../../scripts/lib/evaluation/fixtures.mjs';
 import { scoreAnswer, scoreEvidence, scoreRetrievalQuery } from '../../scripts/lib/evaluation/scoring.mjs';
 
@@ -53,4 +54,21 @@ test('conversational labels need history and rewritten queries must carry them',
     assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, retrievalTerms: [['x']] }] }, chunks), /retrieval query labels/);
     assert.equal(scoreRetrievalQuery('Bitcomplete role', conversational), true);
     assert.equal(scoreRetrievalQuery('his role', conversational), false);
+});
+
+test('eval summary counts passing cases and each assertion metric', () => {
+    const part = (metric, pass, weight = 1) => ({ assertion: { metric, weight }, pass });
+    const report = {
+        results: {
+            results: [
+                { success: true, gradingResult: { componentResults: [part('retrieval-hit', true), part('rewrite', true), part('answer', true, 0)] } },
+                { success: false, gradingResult: { componentResults: [part('retrieval-hit', true), part('rewrite', false)] } },
+                { success: false },
+            ],
+        },
+    };
+    assert.deepEqual(summarize(report), {
+        cases: [1, 3],
+        metrics: { 'retrieval-hit': [2, 2], rewrite: [1, 2] },
+    });
 });

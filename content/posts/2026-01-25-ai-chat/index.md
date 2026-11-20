@@ -14,7 +14,7 @@ series: ["Cloudflare Developments"]
 
 Static sites are fast and cheap to host, but a visitor with a specific question still has to hunt through pages. I built a custom assistant for questions such as "What has Samson built at scale?" instead of embedding a generic chatbot iframe. The assistant can only answer from my published portfolio, shows the excerpts it used, and says so when the portfolio does not contain the answer.
 
-This article describes the implementation as it stands in October 2026. The chunking, retrieval, abstention and cost reasoning are covered in depth in [How the RAG chatbot works](/posts/2026-01-26-website-stack/#how-the-rag-chatbot-works).
+This article describes the implementation as it stands in November 2026. The chunking, retrieval, abstention and cost reasoning are covered in depth in [How the RAG chatbot works](/posts/2026-01-26-website-stack/#how-the-rag-chatbot-works).
 
 ## 🎯 What it is, and what it is not
 
@@ -248,7 +248,25 @@ The offline tests cover parsing preservation, section expansion, explicit errors
 
 The live evaluation runs on [promptfoo](https://www.promptfoo.dev/) with a small custom provider that calls the same retrieval and generation code as the Worker. One test per labeled question checks that an expected source was retrieved (hit@5) and, for follow-ups, that the rewritten search query kept the conversation's subject. Those two checks gate the run at a 90% pass rate. Term checks on the retrieved evidence and the final answer are reported but do not gate, because exact-term matching rejects correct paraphrases.
 
-A developer-run evaluation on 2026-11-20 used 74 labeled questions, one GLM repetition and the live Vectorize corpus. 67 of 74 cases passed (90.5%), meeting the 90% gate. Of the 64 labeled answerable questions, 61 retrieved an expected source in the top five (95.3%); the misses were the load-platform sustained-duration and engineering-value questions, whose portfolio pages do not state the 72-hour figure, and the deployment and rollback question. Four of the five follow-up cases failed the query-rewrite check, so rewriting that keeps the conversation's subject is the next target.
+#### 🏁 Results: 90.5% of cases pass, follow-ups are the weak spot
+
+{{< alert "circle-info" >}}
+**67 of 74 cases passed (90.5%), meeting the 90% gate.** Retrieval finds the right source **95.3%** of the time (61 of 64). Follow-up rewriting is the weak spot: **4 of 5 fail**.
+{{< /alert >}}
+
+Developer-run on 2026-11-20 with 74 labeled questions, one GLM repetition and the live Vectorize corpus.
+
+| Check | Result | Gates the run? |
+| --- | --- | --- |
+| Overall cases passed | **67 / 74 (90.5%)** | Yes, 90% threshold: met ✅ |
+| Retrieval hit@5 (expected source in top five) | **61 / 64 (95.3%)** | Yes ✅ |
+| Follow-up rewrite keeps the subject | **1 / 5 (20%)** | Yes ❌ |
+| Evidence and answer term checks | Reported only | No |
+
+What missed, and why:
+
+- **Retrieval (3 misses).** The load-platform sustained-duration and engineering-value questions, whose portfolio pages do not state the 72-hour figure, and the deployment and rollback question. These are corpus coverage gaps, not ranking bugs.
+- **Follow-ups (4 of 5 fail).** The rewrite drops the conversation's subject, so retrieval for "what about before that?" style questions is unreliable. This is the next target.
 
 This is one run, one model and one corpus snapshot. It tracks regressions and exposes the next improvement targets (corpus coverage for load and deployment questions, follow-up rewriting); it does not rank models or score factual accuracy. The [engineering notes](https://github.com/sgama/sg/blob/develop/README.md) describe the evaluation setup.
 

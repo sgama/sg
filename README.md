@@ -192,7 +192,9 @@ run, while `evidence` and `answer` term checks are reported with weight 0 becaus
 they are phrasing-sensitive. `make ai-eval` fails when the pass rate is below
 `AI_PASS_RATE` (default 90%, promptfoo exits 100). Compare models by adding
 provider entries (`config: { model: gemma }`) to the config; browse results with
-`npx promptfoo view`. The raw report is written to `reports/ai-eval.json`.
+`npx promptfoo view`. The raw report is written to `reports/ai-eval.json`, and
+`make ai-eval` ends by printing the pass count per gating check
+(`scripts/summarize_ai_eval.mjs`).
 Labeled queries retry retrieval for up to 30 seconds because Vectorize queries
 can lag a fresh ingest. Model aliases (`glm`, `gemma`, `llama`) and dated token
 prices stay in `functions/_lib/application.js`.
