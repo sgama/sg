@@ -122,19 +122,13 @@ A harness is the code that runs fixed inputs, captures outputs, and applies repe
 
 For example, "Summarize Samson's recent engineering experience" checks for Bitcomplete, Demonware and 2026 evidence. A follow-up regression checks the role before Bitcomplete. Negative cases cover facts the portfolio does not establish, such as availability or compensation, rather than encouraging invented answers.
 
-Retrieval **hit@3** is the fraction of labeled, answerable questions whose top three results include an expected source. It is not precision, complete recall, or proof that the answer is grounded.
+Retrieval **hit@5** is the fraction of labeled, answerable questions whose top five results include an expected source. It is not precision, complete recall, or proof that the answer is grounded.
 
-Model comparisons have two modes:
+The evaluation runs on [promptfoo](https://www.promptfoo.dev/) with a custom provider that calls the real retrieval and generation pipeline. Source hits and rewritten-query checks gate the run; term-based evidence and answer checks are reported without gating. Compare models by adding provider entries to the config:
 
 ```bash
-# Isolate generation: give each model identical labeled-source contexts
-make ai-compare AI_MODELS=glm,gemma,llama AI_REPEATS=3
-
-# Evaluate retrieval once, then reuse its contexts across models
 make ai-plan
-make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
-make ai-retrieval-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
-make ai-compare-rag AI_NAMESPACE=corpus-HASH_FROM_PLAN AI_MODELS=glm,gemma
+make ai-audit AI_NAMESPACE=corpus-HASH_FROM_PLAN  # ingest the candidate, then evaluate it
 ```
 
 These live commands incur charges. Comparisons are serial, interleaved by case/model, and bounded by timeouts and repeat limits. Reports record corpus, fixture, prompt, and model settings so incompatible results cannot pass the local release gate.

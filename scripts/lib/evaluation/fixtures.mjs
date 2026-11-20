@@ -1,12 +1,4 @@
-import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { buildMessages } from '../../../functions/_lib/prompts.js';
-
-export function fixtureHash(fixture) {
-    return createHash('sha256').update(JSON.stringify(fixture)).digest('hex');
-}
-
-export const promptHash = () => fixtureHash(buildMessages('__query__', '__context__'));
 
 const ID_ERROR = 'Evaluation cases need unique IDs and nonempty queries';
 const present = (value) => value.trim().length > 0;

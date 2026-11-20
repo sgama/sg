@@ -168,27 +168,34 @@ and pricing must be verified against your Cloudflare account.
 
 ```bash
 # Offline checks: Hugo required for canonical URLs; no credentials or inference calls
-make ai-models
 make ai-check test ai-plan
 make ai-build
-node scripts/ai-eval.mjs compare --models glm,gemma --repeats 3 --dry-run
 
-# Paid: compare generation using identical labeled-source contexts
-make ai-compare AI_MODELS=glm,gemma,llama AI_REPEATS=3
+# Paid: evaluate the candidate namespace with promptfoo (live Vectorize + Workers AI)
+make ai-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
 
-# Paid: evaluate a previously ingested candidate and then reuse its contexts
-make ai-retrieval-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
-make ai-compare-rag AI_NAMESPACE=corpus-HASH_FROM_PLAN AI_MODELS=glm,gemma AI_REPEATS=3
+# Paid: ingest the candidate (waits for Vectorize to process it), then evaluate
+make ai-audit AI_NAMESPACE=corpus-HASH_FROM_PLAN
 ```
 
-Reports are written to ignored `reports/` files. Override `REPORT_DIR`,
-`AI_FIXTURE`, `AI_TIMEOUT_MS`, `AI_RETRIEVAL_REPORT`, or `AI_COMPARISON_REPORT` as
-needed. Comparisons are serial and interleaved by case/model, with 1-20 repeats,
-no automatic retries, and an explicit per-inference timeout. This bounds cost
-and prevents accidental load tests. Developers run these Make targets locally
-and review the reports before changing models or retrieval settings. Model
-evaluation and quality-release validation are not GitHub Actions jobs. Production
-CI prepares the corpus on each production push, skipping ingestion when its
+Evaluation uses [promptfoo](https://www.promptfoo.dev/). [`evals/promptfooconfig.yaml`](evals/promptfooconfig.yaml)
+runs the real retrieval and generation pipeline through the custom provider
+[`evals/rag-provider.mjs`](evals/rag-provider.mjs) and builds one test per fixture
+case ([`evals/tests.mjs`](evals/tests.mjs)). `evals/checks.mjs` holds the
+deterministic assertions: `retrieval-hit` (a labeled source was retrieved) and
+`rewrite` (the contextualized query kept the conversation's subject) gate the
+run, while `evidence` and `answer` term checks are reported with weight 0 because
+they are phrasing-sensitive. `make ai-eval` fails when the pass rate is below
+`AI_PASS_RATE` (default 90%, promptfoo exits 100). Compare models by adding
+provider entries (`config: { model: gemma }`) to the config; browse results with
+`npx promptfoo view`. The raw report is written to `reports/ai-eval.json`.
+Labeled queries retry retrieval for up to 30 seconds because Vectorize queries
+can lag a fresh ingest. Model aliases (`glm`, `gemma`, `llama`) and dated token
+prices stay in `functions/_lib/application.js`.
+
+Override `REPORT_DIR`, `AI_FIXTURE` or `AI_PASS_RATE` as needed. Developers run
+these targets locally; evaluation is not a GitHub Actions job. Production CI
+prepares the corpus on each production push, skipping ingestion when its
 namespace matches the active deployment.
 
 The labeled fixture in [`tests/fixtures/ai-eval.json`](tests/fixtures/ai-eval.json)
@@ -363,35 +370,28 @@ fingerprints automatically just to suppress warnings. Update question mappings
 when changing UI prompts. The current mappings cover factual introductory
 answers; authoring warnings still identify missing deeper interview stories.
 
-Retrieval fixture cases now define `evidenceTerms`: each group needs at least
+Retrieval fixture cases define `evidenceTerms`: each group needs at least
 one matching term in the actual bounded context supplied to generation.
-Source-header metadata is excluded from this evidence check. Source `hitRate`
-and `evidenceRate` are reported separately; both must meet `AI_MIN_HIT_RATE`
-in cloud and local quality validation. Salary remains an unlabeled negative
-case and is excluded from both retrieval-rate denominators.
-Release validation recomputes evidence from report contexts rather than trusting
-a claimed score. Curated internal excerpts are accepted as relevant sources
-alongside the canonical resume where appropriate.
+Source-header metadata is excluded from this evidence check. Salary remains an
+unlabeled negative case with no retrieval or evidence assertion. Curated
+internal excerpts are accepted as relevant sources alongside the canonical resume
+where appropriate.
 
 These are deterministic regression assertions, not semantic proof, exhaustive
-coverage or factual-accuracy scores. Regenerate retrieval/comparison reports:
-the changed fixture hash invalidates earlier reports. Historical benchmark
-numbers below used the earlier fixture and must not be compared as identical
-tests. Evidence assertions and the audit do not publish or re-index content.
+coverage or factual-accuracy scores. Evidence assertions and the audit do not
+publish or re-index content.
 
 ### Local Docker/GPU validation
 
 Removed: the previous local Docker/GPU RAG validation lane was retired. Use
-`make ai-check`, `make ai-retrieval-eval` and `make ai-compare` (paid API) with
-live Vectorize retrieval. **Local reports cannot satisfy the Cloudflare release
-gate** or establish Cloudflare latency, cost, or factual accuracy.
+`make ai-check` and `make ai-eval` (paid API) with live Vectorize retrieval.
+Local runs cannot establish Cloudflare latency, cost, or factual accuracy.
 
-### Measured GLM baseline
+### Measured GLM baseline (historical)
 
-On 2026-10-07, a developer-run baseline used the current production corpus,
-13 fixture queries and one GLM repetition. All contexts came from live
-Vectorize retrieval, including the salary question. No visitor transcripts,
-index mutations, deployments or local browser checks were used.
+The numbers below come from the earlier custom harness (since replaced by
+promptfoo; see above) and an earlier, smaller fixture. They are kept as a record
+and must not be compared with `make ai-eval` results.
 
 | Metric                              | Result                                  |
 | ----------------------------------- | --------------------------------------- |
@@ -503,16 +503,12 @@ Developer validation workflow:
 ```bash
 make ai-check test ai-plan
 # Paid: ingest the namespace printed above, then evaluate it
-make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
-make ai-retrieval-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
-make ai-compare-rag AI_NAMESPACE=corpus-HASH_FROM_PLAN AI_MODELS=glm AI_REPEATS=3
+make ai-audit AI_NAMESPACE=corpus-HASH_FROM_PLAN
 ```
 
-Review the actual answers, including citations and negations, before deployment.
-Resume regression cases marked `required` must pass every repetition in the local
-release gate, regardless of the aggregate pass-rate threshold. The corpus namespace
-changes when the resume changes, so reports from older corpora cannot pass that gate.
-Term checks are smoke tests, not semantic proof: add real failing questions,
+Review the actual answers, including citations and negations, before deployment
+(`npx promptfoo view`). The corpus namespace changes when the resume changes, so
+evaluate each new candidate. Term checks are smoke tests, not semantic proof: add real failing questions,
 paraphrases, false premises, and contradictory-history tests as failures arise.
 
 This reduces contradictions, but it cannot guarantee arbitrary generated answers.
@@ -533,7 +529,7 @@ rerun retrieval evaluation if necessary before proceeding. Character-based
 chunking remains approximate, not a guaranteed tokenizer limit.
 
 1. Run offline checks and ingest the candidate namespace.
-2. Run `ai-retrieval-eval` and `ai-compare-rag` against it.
+2. Run `make ai-eval` against it.
 3. Review answers and source labels, not only latency or cost.
 4. Set `AI_CORPUS_NAMESPACE` and the chosen `AI_MODEL` in `[vars]` in
    `wrangler.toml`. The namespace must exactly match the plan and reports.
@@ -543,11 +539,9 @@ chunking remains approximate, not a guaranteed tokenizer limit.
     make deploy-ai AI_NAMESPACE=corpus-HASH_FROM_PLAN
     ```
 
-The release gate requires the current corpus/fixture, retrieval configuration,
-prompt, generation settings, selected model and successful retrieved-context
-comparison. Defaults require hit@k >= 90% and answer checks >= 80%; override
-`AI_MIN_HIT_RATE` / `AI_MIN_ANSWER_RATE` only after reviewing the evaluation set.
-No inference is performed during the offline gate.
+The release gate runs `make ai-eval` (retrieval hits and query rewrites must pass
+at least `AI_PASS_RATE`, default 90%) after the offline checks and tests; the
+Wrangler namespace format is verified by `deploy-built`.
 
 ### Automatic content updates in production CI
 

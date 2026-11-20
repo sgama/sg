@@ -1,12 +1,11 @@
 import { corpusFixture } from '../helpers/corpus.mjs';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { main as evaluate } from '../../scripts/ai-eval.mjs';
 import { main as refresh } from '../../scripts/refresh_ai_corpus.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
@@ -85,96 +84,6 @@ async function fixture(t) {
     return { root, corpus, requests, output, fetchImpl };
 }
 
-test('comparison supports oracle and retrieved contexts and persists private reports', async (t) => {
-    const f = await fixture(t);
-    const args = ['--fixture', 'fixture.json', '--models', 'glm'];
-    await evaluate(['retrieval', ...args, '--output', 'retrieval.json'], f);
-    await evaluate(['compare', ...args, '--output', 'oracle.json'], f);
-    await evaluate(['compare', ...args, '--retrieval-report', 'retrieval.json', '--output', 'retrieved.json'], f);
-    for (const [name, mode] of [
-        ['oracle', 'labeled-source'],
-        ['retrieved', 'retrieved'],
-    ]) {
-        const report = JSON.parse(await readFile(`${name}.json`, 'utf8'));
-        assert.equal(report.contextMode, mode);
-        assert.equal(report.results.length, 2);
-        assert.ok(report.results.every((result) => result.status === 'ok'));
-        assert.equal((await stat(`${name}.json`)).mode & 0o777, 0o600);
-    }
-    const retrieved = JSON.parse(await readFile('retrieved.json', 'utf8'));
-    assert.equal(typeof retrieved.retrievalHash, 'string');
-});
-
-test('oracle comparisons use the same supplemental canonical evidence semantics as retrieval', async (t) => {
-    const f = await fixture(t);
-    await mkdir(path.join(f.root, 'content/_context'));
-    await writeFile(path.join(f.root, 'content/page.md'), '---\ntitle: Stack\n---\n## Deployment\n\nCanonical Hugo and Cloudflare architecture.');
-    await writeFile(
-        path.join(f.root, 'content/_context/curated.md'),
-        '---\ntitle: Curated\nretrievalSource: content/page.md\nretrievalSection: Deployment\n---\nUnique curated rollback details.',
-    );
-    await writeFile(
-        path.join(f.root, 'fixture.json'),
-        JSON.stringify({
-            version: 1,
-            cases: [
-                {
-                    id: 'canonical',
-                    query: 'Architecture?',
-                    expectedSources: ['content/_context/curated.md'],
-                    answerTerms: [['hugo']],
-                    forbiddenTerms: [],
-                },
-            ],
-        }),
-    );
-    let calls = 0;
-    await evaluate(['compare', '--fixture', 'fixture.json', '--models', 'glm', '--output', 'canonical.json'], {
-        fetchImpl: async (url, init) => {
-            calls++;
-            const payload = await new Request(url, init).json();
-            assert.match(payload.messages[0].content, /Canonical Hugo and Cloudflare/);
-            assert.match(payload.messages[0].content, /Unique curated rollback/);
-            return new Response('data: {"choices":[{"index":0,"delta":{"content":"Hugo architecture."}}]}\n\ndata: [DONE]\n\n', {
-                headers: { 'content-type': 'text/event-stream' },
-            });
-        },
-    });
-    assert.equal(calls, 1);
-});
-
-test('evaluation rejects invalid options before any network request', async (t) => {
-    const f = await fixture(t);
-    for (const [args, expected] of [
-        [[], /Usage/],
-        [['models', 'extra'], /Usage/],
-        [['models', '--models', 'glm,glm'], /unique/],
-        [['models', '--models', 'invalid'], /Unknown AI model/],
-        [['validate', '--repeats', '21'], /repeats/],
-        [['validate', '--min-hit-rate', '-1'], /min-hit-rate/],
-        [['validate', '--min-answer-rate', '2'], /min-answer-rate/],
-        [['validate', '--timeout-ms', '1'], /timeout-ms/],
-        [['validate', '--fixture', 'fixture.json', '--namespace', 'old'], /Namespace/],
-        [['release-check', '--fixture', 'fixture.json'], /reports? are required|--retrieval-report/],
-    ])
-        await assert.rejects(evaluate(args, f), expected);
-    assert.equal(f.requests.length, 0);
-});
-
-test('model listing and dry-run plans are offline and count every generation case', async (t) => {
-    const f = await fixture(t);
-    await evaluate(['models'], f);
-    assert.ok(JSON.parse(f.output.mock.calls.at(-1).arguments[0]).models.glm);
-    await evaluate(['compare', '--fixture', 'fixture.json', '--models', 'glm,gemma', '--repeats', '2', '--dry-run'], f);
-    const plan = JSON.parse(f.output.mock.calls.at(-1).arguments[0]);
-    assert.equal(plan.maxGenerationCalls, 8);
-    assert.equal(plan.namespace, f.corpus.namespace);
-    assert.equal(plan.dryRun, true);
-    await evaluate(['validate', '--fixture', 'fixture.json'], f);
-    assert.equal(JSON.parse(f.output.mock.calls.at(-1).arguments[0]).maxGenerationCalls, 0);
-    assert.equal(f.requests.length, 0);
-});
-
 test('refresh CLI activates after indexing, skips unchanged content and honors force', async (t) => {
     const f = await fixture(t);
     await refresh([], f);
@@ -215,23 +124,6 @@ test('refresh CLI missing credentials fail explicitly, including the process ent
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Corpus refresh failed: Error: Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN/);
     assert.equal(f.requests.length, 0);
-});
-
-test('retrieval and generation failures write reports before failing the CLI', async (t) => {
-    await fixture(t);
-    const failed = { fetchImpl: async () => Response.json({ success: false }, { status: 400 }) };
-    for (const command of ['retrieval', 'compare']) {
-        await assert.rejects(evaluate([command, '--fixture', 'fixture.json', '--models', 'glm', '--output', `${command}.json`], failed), /failed/);
-        const report = JSON.parse(await readFile(`${command}.json`, 'utf8'));
-        assert.equal(report.results.length, 2);
-        if (command === 'retrieval') {
-            assert.ok(report.results.every((result) => result.error));
-        } else {
-            assert.equal(report.results[0].status, 'error');
-            assert.equal(report.results[1].status, 'ok');
-            assert.equal(report.results[1].abstained, true);
-        }
-    }
 });
 
 test('offline CLI needs no credentials, writes reproducible manifest, and import is side-effect safe', async (t) => {

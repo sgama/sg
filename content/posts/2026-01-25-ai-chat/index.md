@@ -74,7 +74,7 @@ end
 Function-->>Frontend: Progress events
 Function->>AI: Embed search question
 AI-->>Function: Query vector
-Function->>VectorDB: Search deployed namespace, top 3
+Function->>VectorDB: Search deployed namespace, top 5
 VectorDB-->>Function: Matches
 opt Referenced source sections
     Function->>VectorDB: Fetch section records
@@ -91,7 +91,7 @@ Frontend-->>User: Render answer and expandable sources
 Three bounds keep the work predictable:
 
 - **History:** at most four messages, 2,000 characters each and 4,000 characters in total.
-- **Retrieval:** three matches. Referenced sections are capped at 6,000 characters each, and the assembled context at 12,000 characters.
+- **Retrieval:** five matches. Referenced sections are capped at 6,000 characters each, and the assembled context at 12,000 characters.
 - **Generation:** a 512-token completion budget.
 
 These limits control cost and latency. They do not make an answer correct. Correctness depends on whether retrieval found the right evidence and whether the model used it faithfully.
@@ -181,7 +181,7 @@ flowchart LR
 
 Retrieval embeds the search query with the same model used at ingestion and searches the namespace the live Worker is configured to read. The namespace filter is applied in the Vectorize query, so only records from the namespace the live Worker is configured to read are searched.
 
-The retrieval stage returns three matches. Each match is a chunk. If a chunk belongs to a parent section, the parent is fetched so the model sees the surrounding context rather than a fragment. Duplicate sections are removed, canonical links are followed, and the assembled context is trimmed to the 12,000-character budget.
+The retrieval stage returns five matches. Each match is a chunk. If a chunk belongs to a parent section, the parent is fetched so the model sees the surrounding context rather than a fragment. Duplicate sections are removed, canonical links are followed, and the assembled context is trimmed to the 12,000-character budget.
 
 Retrieval results are cached by namespace and query, so a repeated question skips the paid embedding and search calls. The cache key includes the namespace, so a new deploy never serves answers from the previous corpus.
 
@@ -238,16 +238,19 @@ Each major choice was made to keep a small system inspectable rather than to cha
 make ai-check   # Corpus identities, Hugo URL provenance and evaluation labels
 make test       # Offline regressions
 make ai-build   # Bundle the Worker (dry run) with Node.js 22+
+make ai-eval    # Paid: promptfoo evaluation against the live corpus
 make dev-ai     # Local site with the chat API
 ```
 
 The offline tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
 
-### 📉 Baseline (diagnostic, in progress)
+### 📊 Evaluation
 
-A developer-run baseline on 2026-10-07 used 13 fixture questions, one GLM repetition and the live Vectorize corpus. Retrieval succeeded for all 13 requests, and 11 of 12 labeled answerable questions retrieved an expected source in the top three (91.7%). Evidence rate was 83.3%. Deterministic answer checks passed 5 of 13 (38.5%), and required regressions passed 1 of 7 (14.3%). First visible answer latency was 343 ms p50 / 537 ms p95; generation completed in 1,665 ms p50 / 4,846 ms p95. Estimated generation-only cost was $0.001487474.
+The live evaluation runs on [promptfoo](https://www.promptfoo.dev/) with a small custom provider that calls the same retrieval and generation code as the Worker. One test per labeled question checks that an expected source was retrieved (hit@5) and, for follow-ups, that the rewritten search query kept the conversation's subject. Those two checks gate the run at a 90% pass rate. Term checks on the retrieved evidence and the final answer are reported but do not gate, because exact-term matching rejects correct paraphrases.
 
-**This is a diagnostic baseline, not a release gate.** It is one run on one model against one corpus snapshot, intended to expose the next improvement targets (retrieval recall and answer grounding), not to rank models or score factual accuracy. The target gate is 90% retrieval recall; this run is the starting point for iteration. The estimate excludes embeddings, Vectorize, storage and failed-call charges; timings are provider-facing, not full browser end-to-end latency. The [engineering notes](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline) include provenance and failure analysis, and a passing baseline will be published once the retrieval improvements land.
+A developer-run evaluation on 2026-11-20 used 74 labeled questions, one GLM repetition and the live Vectorize corpus. 67 of 74 cases passed (90.5%), meeting the 90% gate. Of the 64 labeled answerable questions, 61 retrieved an expected source in the top five (95.3%); the misses were the load-platform sustained-duration and engineering-value questions, whose portfolio pages do not state the 72-hour figure, and the deployment and rollback question. Four of the five follow-up cases failed the query-rewrite check, so rewriting that keeps the conversation's subject is the next target.
+
+This is one run, one model and one corpus snapshot. It tracks regressions and exposes the next improvement targets (corpus coverage for load and deployment questions, follow-up rewriting); it does not rank models or score factual accuracy. The [engineering notes](https://github.com/sgama/sg/blob/develop/README.md) describe the evaluation setup.
 
 The limits are real:
 

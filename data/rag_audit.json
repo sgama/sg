@@ -1,250 +1,84 @@
 {
-  "version": 1,
-  "reviewed": "2026-11-19",
-  "sources": {
-    "content/resume/_index.md": "8cdbe5ba15de3507b008e38eac412e0034d47c3e975850cbc34e1c6d75ef34c9",
-    "content/about/_index.md": "0cefcd3d888223aee09cbe107d478ee04def70c2c6c142711de45f83482b0ca5",
-    "content/contact/_index.md": "6351a85fffd54b7b47c1668d62dee34fd55ff2c45f81d492ed575b71c63dd749",
-    "content/_context/athletics.md": "0e73bb73b6f81f60725afd0964cf52fa9e981c34f039529dbfaba93426b103ed"
-  },
-  "documents": {
-    "content/_context/profile.md": [
-      "content/resume/_index.md",
-      "content/about/_index.md"
-    ],
-    "content/_context/skills.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/experience-bitcomplete.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/experience-demonware.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/experience-mastercard.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/experience-absolute.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/reliability-practice.md": [
-      "content/resume/_index.md",
-      "content/about/_index.md"
-    ],
-    "content/_context/leadership.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/projects.md": [
-      "content/resume/_index.md",
-      "content/about/_index.md"
-    ],
-    "content/_context/education-security.md": [
-      "content/resume/_index.md",
-      "content/about/_index.md"
-    ],
-    "content/_context/hiring.md": [
-      "content/resume/_index.md",
-      "content/contact/_index.md"
-    ],
-    "content/_context/athletics.md": [
-      "content/_context/athletics.md"
-    ],
-    "content/_context/experience-internships.md": [
-      "content/resume/_index.md"
-    ],
-    "content/_context/early-career.md": [
-      "content/resume/_index.md"
+    "version": 1,
+    "reviewed": "2026-11-19",
+    "sources": {
+        "content/resume/_index.md": "8cdbe5ba15de3507b008e38eac412e0034d47c3e975850cbc34e1c6d75ef34c9",
+        "content/about/_index.md": "0cefcd3d888223aee09cbe107d478ee04def70c2c6c142711de45f83482b0ca5",
+        "content/contact/_index.md": "6351a85fffd54b7b47c1668d62dee34fd55ff2c45f81d492ed575b71c63dd749",
+        "content/_context/athletics.md": "0e73bb73b6f81f60725afd0964cf52fa9e981c34f039529dbfaba93426b103ed"
+    },
+    "documents": {
+        "content/_context/profile.md": ["content/resume/_index.md", "content/about/_index.md"],
+        "content/_context/skills.md": ["content/resume/_index.md"],
+        "content/_context/experience-bitcomplete.md": ["content/resume/_index.md"],
+        "content/_context/experience-demonware.md": ["content/resume/_index.md"],
+        "content/_context/experience-mastercard.md": ["content/resume/_index.md"],
+        "content/_context/experience-absolute.md": ["content/resume/_index.md"],
+        "content/_context/reliability-practice.md": ["content/resume/_index.md", "content/about/_index.md"],
+        "content/_context/leadership.md": ["content/resume/_index.md"],
+        "content/_context/projects.md": ["content/resume/_index.md", "content/about/_index.md"],
+        "content/_context/education-security.md": ["content/resume/_index.md", "content/about/_index.md"],
+        "content/_context/hiring.md": ["content/resume/_index.md", "content/contact/_index.md"],
+        "content/_context/athletics.md": ["content/_context/athletics.md"],
+        "content/_context/experience-internships.md": ["content/resume/_index.md"],
+        "content/_context/early-career.md": ["content/resume/_index.md"],
+        "content/_context/experience-ericsson.md": ["content/resume/_index.md"]
+    },
+    "questions": [
+        {
+            "query": "What is Samson's engineering background?",
+            "sources": ["content/_context/profile.md"],
+            "evidenceTerms": [["8+ years"], ["backend", "distributed systems"], ["kubernetes"]]
+        },
+        {
+            "query": "What measurable impact has Samson delivered?",
+            "sources": ["content/_context/experience-absolute.md"],
+            "evidenceTerms": [["10x"], ["50%"], ["20%"]]
+        },
+        {
+            "query": "What has Samson built with Kubernetes and Go?",
+            "sources": ["content/_context/experience-demonware.md"],
+            "evidenceTerms": [["load-testing"], ["kubernetes"], ["go"], ["redis"]]
+        },
+        {
+            "query": "What production reliability experience does Samson have?",
+            "sources": ["content/_context/reliability-practice.md"],
+            "evidenceTerms": [["incident"], ["load-testing"], ["traffic mirroring"]]
+        },
+        {
+            "query": "What did Samson own at Demonware?",
+            "sources": ["content/_context/experience-demonware.md"],
+            "evidenceTerms": [["architected"], ["load-testing"], ["10 million"]]
+        },
+        {
+            "query": "How has Samson automated infrastructure and deployments?",
+            "sources": ["content/_context/experience-absolute.md", "content/_context/projects.md"],
+            "evidenceTerms": [["terraform"], ["ansible"], ["gitops"]]
+        },
+        {
+            "query": "What experience does Samson have with incident response?",
+            "sources": ["content/_context/reliability-practice.md"],
+            "evidenceTerms": [["incident"], ["demonware"], ["fault injection"]]
+        },
+        {
+            "query": "How has Samson mentored engineers and collaborated across teams?",
+            "sources": ["content/_context/leadership.md"],
+            "evidenceTerms": [["mentored"], ["rfcs"], ["architecture reviews"]]
+        },
+        {
+            "query": "What is Samson's security background?",
+            "sources": ["content/_context/education-security.md"],
+            "evidenceTerms": [["oscp"], ["ctf"], ["offensive-security"]]
+        },
+        {
+            "query": "Which projects demonstrate Samson's technical skills?",
+            "sources": ["content/_context/projects.md"],
+            "evidenceTerms": [["kubernetes"], ["proxmox"], ["terraform"]]
+        },
+        {
+            "query": "How can I contact Samson about a role?",
+            "sources": ["content/_context/hiring.md"],
+            "evidenceTerms": [["resume@samsongama.com"], ["/contact/"]]
+        }
     ]
-  },
-  "questions": [
-    {
-      "query": "What is Samson's engineering background?",
-      "sources": [
-        "content/_context/profile.md"
-      ],
-      "evidenceTerms": [
-        [
-          "8+ years"
-        ],
-        [
-          "backend",
-          "distributed systems"
-        ],
-        [
-          "kubernetes"
-        ]
-      ]
-    },
-    {
-      "query": "What measurable impact has Samson delivered?",
-      "sources": [
-        "content/_context/experience-absolute.md"
-      ],
-      "evidenceTerms": [
-        [
-          "10x"
-        ],
-        [
-          "50%"
-        ],
-        [
-          "20%"
-        ]
-      ]
-    },
-    {
-      "query": "What has Samson built with Kubernetes and Go?",
-      "sources": [
-        "content/_context/experience-demonware.md"
-      ],
-      "evidenceTerms": [
-        [
-          "load-testing"
-        ],
-        [
-          "kubernetes"
-        ],
-        [
-          "go"
-        ],
-        [
-          "redis"
-        ]
-      ]
-    },
-    {
-      "query": "What production reliability experience does Samson have?",
-      "sources": [
-        "content/_context/reliability-practice.md"
-      ],
-      "evidenceTerms": [
-        [
-          "incident"
-        ],
-        [
-          "load-testing"
-        ],
-        [
-          "traffic mirroring"
-        ]
-      ]
-    },
-    {
-      "query": "What did Samson own at Demonware?",
-      "sources": [
-        "content/_context/experience-demonware.md"
-      ],
-      "evidenceTerms": [
-        [
-          "architected"
-        ],
-        [
-          "load-testing"
-        ],
-        [
-          "10 million"
-        ]
-      ]
-    },
-    {
-      "query": "How has Samson automated infrastructure and deployments?",
-      "sources": [
-        "content/_context/experience-absolute.md",
-        "content/_context/projects.md"
-      ],
-      "evidenceTerms": [
-        [
-          "terraform"
-        ],
-        [
-          "ansible"
-        ],
-        [
-          "gitops"
-        ]
-      ]
-    },
-    {
-      "query": "What experience does Samson have with incident response?",
-      "sources": [
-        "content/_context/reliability-practice.md"
-      ],
-      "evidenceTerms": [
-        [
-          "incident"
-        ],
-        [
-          "demonware"
-        ],
-        [
-          "fault injection"
-        ]
-      ]
-    },
-    {
-      "query": "How has Samson mentored engineers and collaborated across teams?",
-      "sources": [
-        "content/_context/leadership.md"
-      ],
-      "evidenceTerms": [
-        [
-          "mentored"
-        ],
-        [
-          "rfcs"
-        ],
-        [
-          "architecture reviews"
-        ]
-      ]
-    },
-    {
-      "query": "What is Samson's security background?",
-      "sources": [
-        "content/_context/education-security.md"
-      ],
-      "evidenceTerms": [
-        [
-          "oscp"
-        ],
-        [
-          "ctf"
-        ],
-        [
-          "offensive-security"
-        ]
-      ]
-    },
-    {
-      "query": "Which projects demonstrate Samson's technical skills?",
-      "sources": [
-        "content/_context/projects.md"
-      ],
-      "evidenceTerms": [
-        [
-          "kubernetes"
-        ],
-        [
-          "proxmox"
-        ],
-        [
-          "terraform"
-        ]
-      ]
-    },
-    {
-      "query": "How can I contact Samson about a role?",
-      "sources": [
-        "content/_context/hiring.md"
-      ],
-      "evidenceTerms": [
-        [
-          "resume@samsongama.com"
-        ],
-        [
-          "/contact/"
-        ]
-      ]
-    }
-  ]
 }

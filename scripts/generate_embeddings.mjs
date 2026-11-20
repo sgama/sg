@@ -3,7 +3,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildCorpus } from './lib/corpus.mjs';
 import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
-import { createMaintenanceClient, ingestCorpus } from './lib/corpus-deployment.mjs';
+import { createMaintenanceClient, ingestCorpus, waitForMutation } from './lib/corpus-deployment.mjs';
 import { runIfMain } from './lib/cli.mjs';
 
 export async function main(args = process.argv.slice(2)) {
@@ -46,10 +46,11 @@ export async function main(args = process.argv.slice(2)) {
     }
     await import('dotenv/config');
     const { accountId, apiToken } = requireCloudflareCredentials();
-    const result = await ingestCorpus(createMaintenanceClient(apiToken), accountId, corpus, {
-        namespace: values.namespace,
-    });
-    console.log(JSON.stringify({ ...result, status: 'accepted (asynchronous; not activated)' }, null, 2));
+    const client = createMaintenanceClient(apiToken);
+    const result = await ingestCorpus(client, accountId, corpus, { namespace: values.namespace });
+    // Mutations apply in order, so the last one processed means the whole namespace is queryable.
+    if (result.mutationIds.length) await waitForMutation(client, accountId, result.mutationIds.at(-1));
+    console.log(JSON.stringify({ ...result, status: 'processed (not activated)' }, null, 2));
     return result;
 }
 

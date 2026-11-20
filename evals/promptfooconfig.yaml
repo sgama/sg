@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# Live RAG evaluation: `make ai-eval` (paid Workers AI + Vectorize). Compare models by adding provider entries.
+description: Portfolio RAG assistant
+prompts:
+  - '{{query}}'
+providers:
+  - id: file://rag-provider.mjs
+    label: glm
+    config: { model: glm }
+tests: file://tests.mjs

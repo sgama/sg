@@ -32,7 +32,7 @@ export default [
         languageOptions: { globals: globals.worker },
     },
     {
-        files: ['scripts/**/*.mjs', 'tests/**/*.mjs', '*.config.js'],
+        files: ['evals/**/*.mjs', 'scripts/**/*.mjs', 'tests/**/*.mjs', '*.config.js'],
         languageOptions: { globals: globals.node },
     },
 ];

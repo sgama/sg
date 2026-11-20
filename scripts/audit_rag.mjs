@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import matter from 'gray-matter';
 import { z } from 'zod';
 import { buildCorpus } from './lib/corpus.mjs';
-import { scoreEvidence } from './lib/ai-evaluation.mjs';
+import { scoreEvidence } from './lib/evaluation/scoring.mjs';
 import { runIfMain } from './lib/cli.mjs';
 
 const nonBlank = z.string().refine((value) => value.trim().length > 0);

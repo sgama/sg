@@ -6,7 +6,7 @@ SHELL := /bin/bash
 	serve dev-ai build build-prod clean \
 	deps test test-layouts lint lint-fix typecheck format format-check typos lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
-	ai-models ai-plan ai-check ai-build ai-embeddings ai-refresh ai-retrieval-eval ai-compare ai-compare-rag ai-release-check deploy-ai \
+	ai-plan ai-check ai-build ai-embeddings ai-refresh ai-eval ai-audit deploy-ai \
 	deploy deploy-built deploy-needed cleanup-vectors cutover-domains ci ci-check
 
 ifneq (,$(wildcard .env))
@@ -19,22 +19,16 @@ WORKER_NAME       ?= sg
 PUBLIC_DIR        ?= public
 DEV_PORT          ?= 8788
 REPORT_DIR        ?= reports
-AI_MODELS         ?= glm,gemma,llama
 AI_NAMESPACE      ?= $(shell $(NODE) scripts/generate_embeddings.mjs --check --manifest $(REPORT_DIR)/ai-corpus.json 2>/dev/null | $(NODE) -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).namespace)}catch{}})')
 AI_REFRESH_FLAGS  ?=
-AI_REPEATS        ?= 1
 AI_FIXTURE        ?= tests/fixtures/ai-eval.json
-AI_MIN_HIT_RATE   ?= 0.9
-AI_MIN_ANSWER_RATE ?= 0.8
-AI_TIMEOUT_MS     ?= 60000
-AI_RETRIEVAL_REPORT ?= $(REPORT_DIR)/ai-retrieval.json
-AI_COMPARISON_REPORT ?= $(REPORT_DIR)/ai-comparison.json
+AI_PASS_RATE      ?= 90
 HUGO              ?= hugo
 HUGO_FLAGS        ?= --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?=
 NODE              ?= node
 COVERAGE_REPORTERS ?= text-summary html lcov
-PRETTIER_FILES    := "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
+PRETTIER_FILES    := "assets/js/**/*.js" "functions/**/*.js" "scripts/**/*.mjs" "evals/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 NPM               ?= npm
 NPX               ?= npx --no-install
 WRANGLER          ?= npx wrangler
@@ -48,9 +42,7 @@ ACTIONLINT_ARCH   := $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/a
 ACTIONLINT_BIN_DIR ?= $(HOME)/.local/bin
 
 export WORKER_NAME PUBLIC_DIR REPORT_DIR
-export AI_MODELS AI_NAMESPACE AI_REFRESH_FLAGS AI_REPEATS AI_FIXTURE
-export AI_MIN_HIT_RATE AI_MIN_ANSWER_RATE AI_TIMEOUT_MS
-export AI_RETRIEVAL_REPORT AI_COMPARISON_REPORT
+export AI_NAMESPACE AI_REFRESH_FLAGS AI_FIXTURE AI_PASS_RATE
 export HUGO NODE
 
 # ── Guards ─────────────────────────────────────────────────────────────────────
@@ -182,15 +174,12 @@ audit-rag: check-node ## Audit RAG prompt coverage, provenance and authoring gap
 	@$(NODE) scripts/audit_rag.mjs
 
 ##@ AI
-ai-models: check-node ## List model aliases, parameters and dated prices (offline)
-	@$(NODE) scripts/ai-eval.mjs models
-
 ai-plan: check ## Validate corpus and write candidate manifest (offline)
 	@$(NODE) scripts/generate_embeddings.mjs --check --manifest "$$REPORT_DIR/ai-corpus.json"
 
-ai-check: check ## Validate corpus IDs, model selection and evaluation labels (offline)
+ai-check: check ## Validate corpus IDs and evaluation labels (offline)
 	@$(NODE) scripts/generate_embeddings.mjs --check
-	@$(NODE) scripts/ai-eval.mjs validate --models "$$AI_MODELS" --fixture "$$AI_FIXTURE"
+	@$(NODE) scripts/validate_ai_fixture.mjs
 
 ai-build: check-node ## Bundle the Worker locally (dry run: no credentials, no deployment)
 	@mkdir -p "$$REPORT_DIR/empty-assets"
@@ -202,27 +191,15 @@ ai-embeddings: check check-env check-ns ## Ingest explicit candidate namespace (
 ai-refresh: check check-env ## Index changed corpus and set namespace (force: AI_REFRESH_FLAGS=--force)
 	@$(NODE) scripts/refresh_ai_corpus.mjs $(AI_REFRESH_FLAGS)
 
-ai-retrieval-eval: check check-env check-ns ## Evaluate live hit@k against labeled sources (paid API)
-	@$(NODE) scripts/ai-eval.mjs retrieval --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
-		--min-hit-rate "$$AI_MIN_HIT_RATE" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_RETRIEVAL_REPORT"
+ai-eval: check check-env check-ns ## Evaluate retrieval and answers with promptfoo (paid; gate: AI_PASS_RATE %)
+	@PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_PASS_RATE_THRESHOLD="$$AI_PASS_RATE" \
+		$(NPX) promptfoo eval -c evals/promptfooconfig.yaml --no-cache --no-share -o "$$REPORT_DIR/ai-eval.json"
 
-ai-compare: check check-env ## Compare models using identical labeled-source contexts (paid API)
-	@$(NODE) scripts/ai-eval.mjs compare --models "$$AI_MODELS" --fixture "$$AI_FIXTURE" \
-		--repeats "$$AI_REPEATS" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_COMPARISON_REPORT"
+ai-audit: ai-embeddings ai-eval ## Ingest candidate namespace then evaluate it (paid)
 
-ai-compare-rag: check check-env check-ns ## Compare models using a validated live retrieval report (paid API)
-	@$(NODE) scripts/ai-eval.mjs compare --namespace "$$AI_NAMESPACE" --models "$$AI_MODELS" \
-		--fixture "$$AI_FIXTURE" --retrieval-report "$$AI_RETRIEVAL_REPORT" --min-hit-rate "$$AI_MIN_HIT_RATE" \
-		--repeats "$$AI_REPEATS" --timeout-ms "$$AI_TIMEOUT_MS" --output "$$AI_COMPARISON_REPORT"
-
-ai-release-check: check check-ns ## Gate activation using retrieval/model reports and Wrangler settings (offline)
-	@$(NODE) scripts/ai-eval.mjs release-check --namespace "$$AI_NAMESPACE" --fixture "$$AI_FIXTURE" \
-		--retrieval-report "$$AI_RETRIEVAL_REPORT" --comparison-report "$$AI_COMPARISON_REPORT" \
-		--min-hit-rate "$$AI_MIN_HIT_RATE" --min-answer-rate "$$AI_MIN_ANSWER_RATE"
-
-deploy-ai: ## Run offline checks and candidate release gate before deployment
+deploy-ai: ## Run offline checks and the live evaluation gate before deployment
 	@$(MAKE) --no-print-directory ai-check test
-	@$(MAKE) --no-print-directory ai-release-check
+	@$(MAKE) --no-print-directory ai-eval
 	@$(MAKE) --no-print-directory ai-build
 	@$(MAKE) --no-print-directory deploy
 
