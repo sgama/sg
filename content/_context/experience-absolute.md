@@ -28,8 +28,3 @@ separate outcomes, not interchangeable measurements.
 
 Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: Baseline and final measurements, workload and hardware,
-measurement period, bottleneck analysis, migration risks and your individual
-ownership. Explain why Go was appropriate and which alternatives you evaluated.
-Keep published numbers consistent with the resume; do not extrapolate savings.
--->

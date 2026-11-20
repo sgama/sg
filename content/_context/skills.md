@@ -33,7 +33,3 @@ ratings such as intermediate Go or expert Python.
 Source: [canonical resume](/resume/), reviewed 2026-11-19. A listed technology
 does not establish a proficiency level or a particular number of years of use.
 
-<!-- FILL IN: For priority skills, add dated examples with employer/project,
-your personal contribution, production versus lab use, recency and constraints.
-Do not invent ratings or years. Update the canonical resume first when changing
-this inventory, then reconcile this excerpt. -->

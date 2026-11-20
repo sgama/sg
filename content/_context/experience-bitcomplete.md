@@ -29,7 +29,3 @@ shorten diagnosis and handoff.
 
 Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: One approved example: the initial operational problem, what you
-personally owned, cluster and workload scale, migration sequence, validation,
-rollback strategy and lessons. Clarify GPU operations versus model-training
-work. Do not expose customer names or private topology. -->

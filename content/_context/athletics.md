@@ -27,6 +27,3 @@ summary: "Dated athletics background and personal interests."
 - Javelin
 - Hurdles
 
-<!-- FILL IN: Confirm current training and goals with an as-of date. Add only
-competition results you want shared publicly. This is personal background,
-not evidence of engineering performance or job suitability. -->

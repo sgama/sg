@@ -43,8 +43,3 @@ reviews and mentoring of junior engineers.
 
 Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: Which services and launch windows the load-testing platform was
-used for, its coordination and failure-handling model, and measured adoption
-outcomes. Add one incident story and one technical trade-off, separating your
-own decisions from team contributions. Use only employer-approved information;
-do not include operational vulnerabilities or confidential player data. -->

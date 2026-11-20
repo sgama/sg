@@ -18,11 +18,3 @@ remote-work preferences or availability to start a new role.
 
 Sources: [resume](/resume/) and [contact](/contact/), reviewed 2026-11-19.
 
-<!-- FILL IN: Preferred role titles and scope; employment versus contract
-preferences; remote/hybrid/on-site preferences; relocation/travel willingness;
-time-zone overlap; start date or notice period; interview scheduling.
-Add a brief public work-authorization statement only if you choose to share it.
-Do not include identity documents or immigration identifiers.
-Compensation expectations are optional; never infer or add current salary.
-Do not claim active job search, availability or a reference's consent without
-confirmation. Route sensitive negotiation and references to direct contact. -->

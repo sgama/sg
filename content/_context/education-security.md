@@ -27,7 +27,3 @@ retrieval-augmented assistant on this site.
 
 Sources: [resume](/resume/) and [about](/about/), reviewed 2026-11-19.
 
-<!-- FILL IN: Certification issue dates and verified status, if you want them
-public. Add a recent learning example with the problem, resources used,
-experiment, result and limits. Avoid equating a CTF result with unrestricted
-authorization to test systems or with every security specialization. -->

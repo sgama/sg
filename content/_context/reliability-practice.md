@@ -33,9 +33,3 @@ changes.
 
 Sources: [resume](/resume/) and [about](/about/), reviewed 2026-11-19.
 
-<!-- FILL IN: One incident in situation/action/result form: detection, impact,
-your role, diagnosis, mitigation, communication, recovery and prevention.
-Add concrete SLI/SLO or error-budget experience only if you have it.
-Explain on-call responsibilities, alert tuning, capacity planning and safe
-rollouts with examples. Include a failed approach and what changed afterward.
-Do not fabricate availability percentages, MTTR or incident counts. -->

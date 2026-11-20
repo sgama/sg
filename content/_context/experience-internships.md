@@ -30,6 +30,3 @@ administered an AWS-hosted community forum serving 5,000+ daily users through
 
 Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: Which projects best demonstrate transferable skills?
-Add a short example of debugging, learning a new domain or shipping software.
-Distinguish historical experience from current proficiency. -->

@@ -29,7 +29,3 @@ not proof of current employment.
 
 Sources: [resume](/resume/) and [about](/about/), reviewed 2026-11-19.
 
-<!-- FILL IN: A two-sentence introduction in your own words; the kinds of
-problems you want to own next; preferred role scope and industries. Separate
-career preferences from proven experience. Add current employment only after
-updating the resume and date this profile when circumstances change. -->

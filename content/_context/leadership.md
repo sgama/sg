@@ -30,7 +30,3 @@ position.
 
 Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: A mentoring outcome, a cross-team disagreement resolved through
-evidence, and a difficult stakeholder communication example. Explain influence
-without authority and how you share ownership. State direct-report experience
-only if accurate; omit private resident, student and colleague information. -->

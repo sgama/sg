@@ -37,8 +37,3 @@ engineering rather than foundation-model training.
 
 Sources: [resume](/resume/) and [about](/about/), reviewed 2026-11-19.
 
-<!-- FILL IN: Two projects with public URLs, purpose, architecture, your
-ownership, current status, tests and measured results. For the AI chat, explain
-retrieval, evaluation, failure handling and known limitations; date
-architecture claims after changes. Do not publish home network addresses,
-credentials or exploitable details. -->

@@ -34,7 +34,3 @@ attack techniques and defensive engineering awareness.
 
 Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: An approved reliability or debugging example: failure mode,
-design alternatives, data-handling safeguards, your contribution, validation
-and measurable result. Add recovery objectives only if documented and
-approved for publication. Never include payment/customer data or secrets. -->
