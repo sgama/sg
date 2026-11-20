@@ -20,7 +20,7 @@ PUBLIC_DIR        ?= public
 DEV_PORT          ?= 8788
 REPORT_DIR        ?= reports
 AI_MODELS         ?= glm,gemma,llama
-AI_NAMESPACE      ?=
+AI_NAMESPACE      ?= $(shell $(NODE) scripts/generate_embeddings.mjs --check --manifest $(REPORT_DIR)/ai-corpus.json 2>/dev/null | $(NODE) -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).namespace)}catch{}})')
 AI_REFRESH_FLAGS  ?=
 AI_REPEATS        ?= 1
 AI_FIXTURE        ?= tests/fixtures/ai-eval.json
