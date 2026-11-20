@@ -112,15 +112,13 @@ GH->>Build: Spin up Runner
 Build->>Build: Install Hugo & Node
 Build->>Build: make ci-check
 
-rect rgb(20, 20, 20)
-    Note over Build, Vec: Refresh changed corpus; skip unchanged corpus
-    Build->>Build: Parse content and compute corpus hash
-    opt Corpus changed
-        Build->>AI: Generate embeddings
-        AI-->>Build: Return vectors
-        Build->>Vec: Upsert versioned records
-        Build->>Vec: Wait for indexing completion
-    end
+Note over Build, Vec: Refresh changed corpus; skip unchanged corpus
+Build->>Build: Parse content and compute corpus hash
+opt Corpus changed
+    Build->>AI: Generate embeddings
+    AI-->>Build: Return vectors
+    Build->>Vec: Upsert versioned records
+    Build->>Vec: Wait for indexing completion
 end
 
 Build->>CF: Deploy assets, Worker and matching namespace
