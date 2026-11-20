@@ -112,7 +112,7 @@ GH->>Build: Spin up Runner
 Build->>Build: Install Hugo & Node
 Build->>Build: make ci-check
 
-Note over Build, Vec: Refresh changed corpus; skip unchanged corpus
+Note over Build, Vec: Refresh changed corpus, skip unchanged corpus
 Build->>Build: Parse content and compute corpus hash
 opt Corpus changed
 Build->>AI: Generate embeddings
