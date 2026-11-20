@@ -84,10 +84,10 @@
         },
         {
             "id": "resume-bitcomplete",
-            "evidenceTerms": [["bitcomplete"], ["senior service reliability engineer"], ["jun 2026", "june 2026"], ["gpu"], ["argocd"]],
+            "evidenceTerms": [["bitcomplete"], ["senior software developer"], ["jun 2026", "june 2026"], ["gpu"], ["argocd"]],
             "query": "What was Samson's role at Bitcomplete, when did it end, and what GPU work did he do?",
             "expectedSources": ["content/resume/_index.md", "content/_context/experience-bitcomplete.md"],
-            "answerTerms": [["senior service reliability engineer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
+            "answerTerms": [["senior software developer"], ["gpu"], ["jun 2026", "june 2026"], ["argocd"], ["/resume/"]],
             "forbiddenTerms": ["currently works", "2026 - present", "ai reliability engineer"],
             "required": true
         },
@@ -99,7 +99,7 @@
             ],
             "query": "Most recently?",
             "retrievalTerms": [["Samson"], ["most recent", "latest"], ["role", "employment", "job"]],
-            "evidenceTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["senior service reliability engineer"]],
+            "evidenceTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["senior software developer"]],
             "expectedSources": ["content/_context/experience-bitcomplete.md", "content/_context/profile.md", "content/resume/_index.md"],
             "answerTerms": [["bitcomplete"], ["jun 2026", "june 2026"], ["ended", "through"]],
             "forbiddenTerms": ["currently works at bitcomplete", "present"],
@@ -111,7 +111,7 @@
                 { "role": "user", "content": "What did he do last" },
                 {
                     "role": "assistant",
-                    "content": "Samson Gama was a Senior Service Reliability Engineer, GPU Infrastructure at Bitcomplete, ending in June 2026 [Resume](/resume/)."
+                    "content": "Samson Gama was a Senior Software Developer at Bitcomplete, ending in June 2026 [Resume](/resume/)."
                 }
             ],
             "query": "before that",
@@ -164,15 +164,15 @@
         },
         {
             "id": "resume-absolute",
-            "evidenceTerms": [["20x"], ["90%"], ["throughput"]],
+            "evidenceTerms": [["10x", "10"], ["50%"], ["throughput"]],
             "query": "What measured improvements did Samson achieve at Absolute Software?",
             "expectedSources": [
                 "content/resume/_index.md",
                 "content/_context/experience-absolute.md",
                 "content/portfolio/2017-06-05-absolute/index.md"
             ],
-            "answerTerms": [["20"], ["90%"], ["throughput"], ["/resume/"]],
-            "forbiddenTerms": ["2000%", "2000 percent"],
+            "answerTerms": [["10"], ["50%"], ["throughput"], ["/resume/"]],
+            "forbiddenTerms": ["2000%", "2000 percent", "20x"],
             "required": true
         },
         {
@@ -188,8 +188,8 @@
             "id": "hr-background",
             "query": "Give me a short introduction to Samson's professional background for an initial screening call.",
             "expectedSources": ["content/_context/profile.md", "content/resume/_index.md"],
-            "evidenceTerms": [["8+ years"], ["sre"], ["kubernetes"]],
-            "answerTerms": [["sre", "reliability"], ["kubernetes"], ["infrastructure"]],
+            "evidenceTerms": [["8+ years"], ["backend", "reliability"], ["kubernetes"]],
+            "answerTerms": [["backend", "software"], ["kubernetes"], ["infrastructure"]],
             "forbiddenTerms": ["20 years of professional experience"]
         },
         {

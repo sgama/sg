@@ -36,8 +36,9 @@ test('homepage ingestion retains introductory prose without recreating presentat
 
 test('published resume contains the supplied skills and employment facts', async () => {
     const resume = await readFile(new URL('../../content/resume/_index.md', import.meta.url), 'utf8');
-    assert.match(resume, /Go, Python, Bash, C\/C\+\+, Java, JavaScript, Rust/);
-    assert.match(resume, /Senior Service Reliability Engineer, GPU Infrastructure/);
+    assert.match(resume, /Go, Python, Bash, C\/C\+\+, Rust, Java, JavaScript, PHP/);
+    assert.match(resume, /Senior Software Developer/);
+    assert.match(resume, /10 million requests per minute/);
     assert.match(resume, /Mar 2026 - Jun 2026/);
     assert.match(resume, /Jun 2017 - Sep 2018/);
     assert.match(resume, /12th of 1,000 teams/);
@@ -56,9 +57,9 @@ test('recruiter context contains sourced facts without authoring placeholders or
     assert.ok(internal.every((chunk) => !Object.hasOwn(chunk.metadata, 'url')));
     assert.ok(internal.every((chunk) => !/<!--|FILL IN:/.test(chunk.text)));
     const skills = internal.filter((chunk) => chunk.metadata.source === 'content/_context/skills.md');
-    assert.ok(skills.some((chunk) => /Go, Python, Bash, C\/C\+\+, Java,/.test(chunk.text)));
+    assert.ok(skills.some((chunk) => /Go, Python, Bash, C\/C\+\+, Rust, Java,/.test(chunk.text)));
     const demonware = internal.filter((chunk) => chunk.metadata.source === 'content/_context/experience-demonware.md');
-    assert.ok(demonware.some((chunk) => /Kubernetes, Go, Redis/.test(chunk.text)));
+    assert.ok(demonware.some((chunk) => /Go, Kubernetes and Redis/.test(chunk.text)));
     const bitcomplete = internal.filter((chunk) => chunk.metadata.source === 'content/_context/experience-bitcomplete.md');
     assert.ok(bitcomplete.some((chunk) => /role ended in June 2026/.test(chunk.text)));
 });

@@ -1,6 +1,6 @@
 ---
 title: "Samson Gama at Mastercard: AWS Reliability and Operational Tooling"
-description: "Nudata Security infrastructure, debugging and security education work."
+description: "Nudata Security infrastructure, traffic mirroring and security education work."
 draft: false
 retrievalSource: "content/resume/_index.md"
 retrievalSection: "Professional Experience"
@@ -8,21 +8,27 @@ retrievalSection: "Professional Experience"
 
 # What did Samson do at Mastercard / Nudata Security
 
-Samson Gama was Senior Software Engineer (DevOps) at Mastercard
-(Nudata Security), Oct 2018 - Jul 2020.
+Samson Gama was Senior Software Engineer at Mastercard (Nudata Security),
+Oct 2018 - Jul 2020.
 
-He designed and developed highly available microservice infrastructure across
-AWS regions using CloudFormation and SaltStack, including backup strategies,
-disaster recovery procedures and operational runbooks.
+He developed PHP backend services for behavioral biometric data collection and
+fraud detection, alongside the AWS infrastructure those services ran on.
 
-He implemented transparent production traffic mirroring to reproduce and debug
-live production issues safely. He enhanced operational tooling, observability,
-logging and notifications for background jobs.
+He architected and deployed an AWS VPC Traffic Mirroring environment using
+CloudFormation, replicating production load-balancer traffic into isolated
+environments while discarding mirrored responses. That enabled realistic
+application testing, production bug reproduction and safer deployments.
 
-He led bi-weekly offensive-security sessions covering practical attack
-techniques and defensive engineering awareness.
+He automated infrastructure provisioning and deployment pipelines with
+CloudFormation and SaltStack across roughly 20 backend services in 8 AWS
+regions. He also improved background-job processing through better logging,
+error handling and notification workflows, increasing failure visibility and
+reducing manual intervention.
 
-Source: [resume](/resume/), reviewed 2026-10-07.
+He led bi-weekly technical sessions on offensive security, covering practical
+attack techniques and defensive engineering awareness.
+
+Source: [resume](/resume/), reviewed 2026-11-19.
 
 <!-- FILL IN: An approved reliability or debugging example: failure mode,
 design alternatives, data-handling safeguards, your contribution, validation

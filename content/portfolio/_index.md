@@ -1,6 +1,6 @@
 ---
 title: "Portfolio"
-description: "Technical projects and achievements spanning infrastructure, robotics, embedded systems, computer vision and cloud-native engineering."
+description: "Backend systems, distributed infrastructure, AI applications, and earlier robotics, embedded systems and computer-vision work."
 ---
 
 All my technical projects and achievements.

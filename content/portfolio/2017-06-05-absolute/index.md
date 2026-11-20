@@ -1,6 +1,6 @@
 ---
 title: "High-Scale Backend: Absolute Data Pipeline"
-summary: "Re-engineered a microservice from Python to Go, achieving 20x throughput and reducing CPU and memory utilization by 90%."
+summary: "Re-engineered a microservice from Python to Go, achieving roughly 10x throughput and reducing CPU and memory utilization by 50%."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -34,8 +34,8 @@ I led the redesign of critical components of the pipeline, shifting from a monol
 
 ## Results
 
-- **Performance**: Achieved **20x throughput** after re-engineering a microservice from Python to Go.
-- **Efficiency**: CPU and memory utilization were reduced by **90%**, while maintaining integration test coverage.
+- **Performance**: Achieved roughly **10x throughput** after re-engineering a microservice from Python to Go.
+- **Efficiency**: CPU and memory utilization were reduced by **50%**, while maintaining integration test coverage.
 - **Reliability**: The system became resilient to bursts of data that previously caused outages.
 
 ## DevOps Contributions

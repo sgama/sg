@@ -1,6 +1,6 @@
 ---
-title: "Samson Gama at Bitcomplete: GPU Infrastructure and GitOps"
-description: "Role, dates and documented GPU infrastructure contributions."
+title: "Samson Gama at Bitcomplete: GPU Infrastructure and Centralized GitOps"
+description: "Role, dates and documented GPU infrastructure and GitOps contributions."
 draft: false
 retrievalSource: "content/resume/_index.md"
 retrievalSection: "Professional Experience"
@@ -8,22 +8,24 @@ retrievalSection: "Professional Experience"
 
 # Samson Gama at Bitcomplete: GPU infrastructure, March-June 2026
 
-Samson Gama was Senior Service Reliability Engineer, GPU Infrastructure at
-Bitcomplete from Mar 2026 - Jun 2026. The role ended in June 2026.
+Samson Gama was Senior Software Developer at Bitcomplete from
+Mar 2026 - Jun 2026. The role ended in June 2026.
 
-He improved operational readiness for GPU infrastructure supporting AI/HPC
-workloads, establishing standardized runbooks, alerting and incident-response
-workflows.
+He architected centralized GitOps management across 20 bare-metal Kubernetes
+clusters, replacing independent ArgoCD deployments with a dedicated management
+cluster and eliminating nearly 20 redundant controllers.
 
-He designed and executed consolidation of fragmented ArgoCD-managed GPU
-environments, eliminating deployment drift and standardizing NVIDIA tooling
-across clusters. The resume reports reduced customer workload downtime but
-does not give a numerical downtime reduction.
+He designed a customer onboarding workflow built on isolated customer
+repositories and a shared platform monorepo, reducing new customer onboarding
+from roughly one day to about 15 minutes and a small number of pull requests.
 
-Source: [resume](/resume/), reviewed 2026-10-07.
+He supported GPU infrastructure across NVIDIA Hopper and Blackwell platforms,
+troubleshooting workloads involving NVLink, InfiniBand, NVIDIA drivers and
+Slurm.
 
-<!-- FILL IN: One approved example: initial operational problem, what you
-personally owned, cluster/workload scale, migration sequence, validation,
-rollback strategy, measurable outcome and lessons. Clarify GPU operations
-versus model-training work. Do not expose customer names or private topology.
-Add a reason for the role ending only if you want it publicly answerable. -->
+Source: [resume](/resume/), reviewed 2026-11-19.
+
+<!-- FILL IN: One approved example: the initial operational problem, what you
+personally owned, cluster and workload scale, migration sequence, validation,
+rollback strategy and lessons. Clarify GPU operations versus model-training
+work. Do not expose customer names or private topology. -->

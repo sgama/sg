@@ -11,21 +11,22 @@ retrievalSection: "Professional Experience"
 Samson Gama was Software Developer at Absolute Software,
 Jun 2017 - Sep 2018.
 
-- Re-engineered a microservice from Python to Go, achieving 20x throughput and
-  a 90% reduction in CPU and memory utilization while maintaining integration
-  test coverage.
-- Developed and executed MongoDB data migrations that improved production
-  performance by 20% while maintaining application compatibility.
-- Built internal testing and simulation tools to replicate hundreds of
-  thousands of devices in development environments.
-- Automated repetitive deployment workflows through Jenkins.
+- Re-engineered a Python telemetry-processing microservice in Go, increasing
+  throughput by roughly 10x and reducing CPU and memory utilization by 50% by
+  replacing sequential message processing with goroutines and channels.
+- Built a device simulation framework that emulated hundreds of thousands of
+  secured devices, generating realistic and malformed telemetry events to
+  load-test ingestion services and downstream behavior.
+- Improved MongoDB production performance by roughly 20% through schema design,
+  index optimization, data migrations and application data-access patterns.
 
-The 20% migration improvement and 20x microservice throughput increase are
+The 20% MongoDB improvement and the roughly 10x throughput increase are
 separate outcomes, not interchangeable measurements.
 
-Source: [resume](/resume/), reviewed 2026-10-07.
+Source: [resume](/resume/), reviewed 2026-11-19.
 
-<!-- FILL IN: Baseline and final measurements, workload/hardware, measurement
-period, bottleneck analysis, migration risks and your individual ownership.
-Explain why Go was appropriate and which alternatives you evaluated. Keep
-published numbers consistent with the resume; do not extrapolate savings. -->
+<!-- FILL IN: Baseline and final measurements, workload and hardware,
+measurement period, bottleneck analysis, migration risks and your individual
+ownership. Explain why Go was appropriate and which alternatives you evaluated.
+Keep published numbers consistent with the resume; do not extrapolate savings.
+-->

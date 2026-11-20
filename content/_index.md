@@ -1,6 +1,6 @@
 ---
 title: "Samson Gama"
-description: "DevOps Engineer | OSCP | CEH — SRE-led automation, zero‑trust security, and serverless AI search at scale"
+description: "Senior software engineer building backend services and distributed systems in Go and Python, Kubernetes platforms, production reliability, and applied RAG work"
 ---
 
 <div class="intro__container not-prose">
