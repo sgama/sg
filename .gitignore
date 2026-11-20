@@ -43,3 +43,5 @@ reports/
 
 # deepwork state (gitignored; searchable via .ignore)
 .slim/deepwork/
+
+.tavily/

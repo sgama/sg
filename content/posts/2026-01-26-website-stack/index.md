@@ -1,7 +1,7 @@
 ---
 title: "How samsongama.com Is Built and Deployed"
 date: 2026-01-26
-lastmod: 2026-10-26
+lastmod: 2026-11-20
 slug: "website-stack"
 description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, a Cloudflare Worker with static assets, Workers AI, Vectorize, and Tunnels."
 summary: "Hugo static site on Cloudflare Workers with a versioned RAG corpus, GitHub Actions CI/CD, and self-hosted analytics via Cloudflare Tunnel."
@@ -144,8 +144,7 @@ Cloudflare proxies all traffic. This means:
 
 The assistant is a RAG feature, not a trained model or general-purpose agent. The implementation (contextual query rewriting, semantic retrieval, parent-section expansion, versioned namespaces, deployment gates, rollback, abstention, evaluation) is documented in detail in [Building a Serverless AI Chatbot for My Static Portfolio](/posts/2026-01-25-ai-chat/). This post covers only how it fits the site's build and deploy pipeline.
 
-The operational distinction that matters for the stack: a release ships a matching static build, Worker and corpus namespace together; ordinary page requests stay static and never invoke the Worker.
-
+The operational distinction that matters for the stack: a release ships a matching static build, Worker and corpus namespace together; ordinary page requests stay static and never invoke the Worker. Model calls go through AI Gateway, and the Worker's request logs go to Workers Logs (`[observability]` in `wrangler.toml`), so there is no separate log store to run.
 
 
 ---

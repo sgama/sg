@@ -1,7 +1,7 @@
 ---
 title: "Building a Serverless AI Chatbot for My Static Portfolio"
 date: 2026-01-25
-lastmod: 2026-10-26
+lastmod: 2026-11-20
 slug: "ai-chat"
 description: "How this Hugo portfolio answers visitor questions with a Cloudflare Worker, Workers AI and a versioned Vectorize corpus, with source excerpts, abstention and measured latency and cost."
 summary: "A custom portfolio assistant with contextual follow-ups, streamed answers, public source evidence, explicit abstention and measurable latency and token cost."
@@ -34,7 +34,7 @@ The design goal is not a clever answer. It is a small system where each stage ca
 ## 🏗️ The architecture
 
 - **Frontend:** Hugo with Blowfish, a native `<dialog>` element and modular JavaScript. The chat code is isolated from the rest of the site.
-- **API:** One Cloudflare Worker using Hono, serving `/api/chat`. Cloudflare serves the static site directly, and the Worker runs first only for `/api/*`, so ordinary page views never invoke it.
+- **API:** One Cloudflare Worker using Hono (body limit, zod validation, secure headers), serving `/api/chat`; model calls go through AI Gateway. Cloudflare serves the static site directly, and the Worker runs first only for `/api/*`, so ordinary page views never invoke it.
 - **Inference:** Workers AI. GLM-4.7-Flash is the default answer and rewrite model.
 - **Search:** Cloudflare Vectorize with BGE-base-en-v1.5 embeddings, 768 dimensions, in one index.
 - **State:** Conversation history lives in the browser. Server-side request logs live in AI Gateway and Workers Logs.
@@ -220,16 +220,16 @@ Each major choice was made to keep a small system inspectable rather than to cha
 ## 📈 Operational characteristics
 
 - **Latency:** first visible answer token and total generation are measured separately and reported in the diagnostics footer, so regressions are attributable to retrieval, provider or network.
-- **Cost:** generation-only cost is estimated per request from token counts; embeddings, Vectorize, KV and hosting are excluded because they are small at this scale but not free.
-- **Observability:** stage timings, token counts and abstention outcomes are exposed to the visitor and logged server-side when enabled. There are no automatic paid retries.
+- **Cost:** generation-only cost is estimated per request from token counts; embeddings, Vectorize and hosting are excluded because they are small at this scale but not free.
+- **Observability:** stage timings, token counts and abstention outcomes are exposed to the visitor and logged server-side by Workers Logs, with model calls recorded in AI Gateway. There are no automatic paid retries.
 - **Security boundary:** prompt instructions and pattern checks are not a complete security boundary; edge rate limiting for the public chat endpoint is not configured in the repository.
 
 ## 🛡️ Security and abuse controls
 
-- **Input validation.** Request bodies are size-capped and refused with 413 before JSON parsing; malformed bodies are rejected with an HTTP error before any streaming starts.
+- **Input validation.** Hono's `bodyLimit` caps request bodies at 64 KB and refuses larger ones with 413; a zod schema (via `@hono/zod-validator`) rejects malformed JSON, over-long queries and bad history with a 400 before any streaming starts. Responses carry Hono's `secureHeaders`.
 - **Prompt boundaries.** The answer prompt restricts the model to the supplied context and instructs it to abstain when context is insufficient. This is an instruction, not a verifier; it reduces but does not eliminate hallucination or injection.
 - **No tool use.** The assistant has no tools, no web access and no model training or fine-tuning, so a successful prompt injection cannot reach external systems or persistent state.
-- **Data minimization.** Conversation history lives in the browser; server-side logs are optional and retained for up to 30 days. Visitors are told not to include passwords, financial details or confidential material.
+- **Data minimization.** Conversation history lives in the browser; server-side logs (AI Gateway and Workers Logs) are not publicly readable and follow Cloudflare's retention limits for those products. Visitors are told not to include passwords, financial details or confidential material.
 - **Known gaps.** Edge rate limiting for the public chat endpoint is not configured in the repository; runtime deadlines, human review and concurrency testing are the next steps, not finished work.
 
 ## ✅ Verification and limits

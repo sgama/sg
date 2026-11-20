@@ -38,7 +38,7 @@ flowchart TD
     F -->|"name, email, subject, message"| Formspree["Formspree<br/>(delivers to me)"]
     A -->|"question and context"| CFAI["Cloudflare AI<br/>(generates response)"]
     CFAI -->|"generated response"| A
-    A -->|"question and response"| Chat[("Cloudflare KV<br/>kept up to 30 days")]
+    A -->|"question and response"| Chat[("AI Gateway and<br/>Workers Logs")]
     Chat -.->|"owner review for<br/>content gaps"| Owner["Me"]
     A -.->|"saved in your browser"| Local[("Browser history<br/>cleared separately")]
     P -->|"aggregate usage"| Umami["Umami<br/>(self-hosted on Cloudflare)"]

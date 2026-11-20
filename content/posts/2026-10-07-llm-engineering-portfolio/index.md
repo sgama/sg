@@ -1,7 +1,7 @@
 ---
 title: "Engineering a Portfolio LLM: RAG, Tests, Latency, and Cost"
 date: 2026-10-07
-lastmod: 2026-10-26
+lastmod: 2026-11-20
 slug: "llm-engineering-portfolio"
 draft: true
 description: "How this repository builds a versioned RAG corpus, streams Workers AI answers, and tests models for retrieval quality, latency, token usage, and cost."
@@ -131,27 +131,9 @@ make ai-plan
 make ai-audit AI_NAMESPACE=corpus-HASH_FROM_PLAN  # ingest the candidate, then evaluate it
 ```
 
-These live commands incur charges. Comparisons are serial, interleaved by case/model, and bounded by timeouts and repeat limits. Reports record corpus, fixture, prompt, and model settings so incompatible results cannot pass the local release gate.
+These live commands incur charges.
 
 Answer checks currently match terms, not factual entailment. An empty-context case tests application abstention; other negative cases test answers against retrieved context. Neither guarantees that the model rejects every unknown fact or misleading excerpt. Human review and a larger, held-out dataset are still necessary.
-
-### Measured baseline: useful signal, failed gate
-
-On 2026-10-07, one developer-run GLM repetition used 13 fixture queries and live Vectorize retrieval. It made no deployments or index mutations and used no visitor transcripts.
-
-| Measure | Result |
-| --- | --- |
-| Successful retrieval requests | 13/13 |
-| Labeled source hit@3 | 10/12 (83.3%; salary excluded) |
-| Retrieval latency p50 / p95 | 143 / 384 ms |
-| Deterministic answer checks | 5/13 (38.5%) |
-| Required regression checks | 1/7 (14.3%) |
-| First visible answer p50 / p95 | 343 / 537 ms |
-| Generation completion p50 / p95 | 1,665 / 4,846 ms |
-| Prompt / completion tokens | 16,388 / 1,240 |
-| Estimated generation-only cost | $0.001487474; usage available 13/13 |
-
-This baseline **failed the default 90% retrieval threshold** and is too small to rank models. The cost is an estimate from dated registry prices, excluding embeddings, storage, failed-call charges and plan allowances. These timings are provider-facing, not browser end-to-end latency. Spot checks found source misses, citation failures, and a false unsupported-absence claim even on one answer that passed the term check; the check rate is not factual accuracy. Full run provenance and per-case failures are in the repository README's [measured GLM baseline](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline).
 
 ## 📌 Latency and throughput
 
@@ -164,11 +146,11 @@ This baseline **failed the default 90% retrieval threshold** and is too small to
 | Inter-chunk gap | Time between visible streamed answer chunks |
 | Completion tokens/second | Provider completion tokens divided by total generation duration |
 
-The harness reports p50/p95 TTFT, p95 completion latency, and inter-chunk timing. **SSE chunks are not tokens**, so inter-chunk latency is not token latency. The tokens/second estimate includes prefill and first-answer delay; it is not isolated GPU decode throughput.
+The widget diagnostics report these per request; no aggregate p50/p95 benchmark exists since the evaluation moved to promptfoo. **SSE chunks are not tokens**, so inter-chunk latency is not token latency. The tokens/second estimate includes prefill and first-answer delay; it is not isolated GPU decode throughput.
 
-Generation benchmarks exclude retrieval and browser rendering. To measure user experience, instrument browser send-to-first-answer and send-to-completion separately. Do not simply add stage p95 values: the p95 of a sum is not generally the sum of p95s.
+The generation timings exclude retrieval and browser rendering. To measure user experience, instrument browser send-to-first-answer and send-to-completion separately. Do not simply add stage p95 values: the p95 of a sum is not generally the sum of p95s.
 
-The widget's first-token metric differs from the generation-only benchmark: it starts when the server creates the AI service, so it includes rewriting, embedding and retrieval. The browser's pending counter includes client waiting, but is not a persisted end-to-end performance measurement.
+The widget's first-token metric differs from the generation-only timing: it starts when the server creates the AI service, so it includes rewriting, embedding and retrieval. The browser's pending counter includes client waiting, but is not a persisted end-to-end performance measurement.
 
 For credible comparisons, hold prompts, contexts, and output limits constant; label warm/cold and cached/uncached runs; use enough samples to make tail percentiles meaningful. This serial harness is **not** a requests-per-second or concurrency load test. Those need controlled arrival rates, concurrent clients, and error/saturation measurements.
 
