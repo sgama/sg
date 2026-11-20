@@ -14,7 +14,7 @@ tags: ["EV", "frontend"]
 
 During my engineering co-op at **Grin Technologies** (ebikes.ca), I served as the lead developer for the **EV Trip Analyzer**, a web platform for scrutinizing electric bicycle performance data.
 
-## Functionality
+## ⚡ Functionality
 
 The Trip Analyzer is designed for post-trip analysis of journeys logged by a **Cycle Analyst**. Since the device does not save trip logs itself, riders first capture its data stream on a computer with a communications cable or a hardware logger such as the **Cycle Analogger**. GPS data can be added for route and elevation analysis.
 
@@ -23,7 +23,7 @@ The Trip Analyzer is designed for post-trip analysis of journeys logged by a **C
 - **Local analysis**: Trip files are processed in the browser and are not sent to the server during analysis. Graphs and statistics work offline; displaying a Google Maps route requires an internet connection.
 - **Sharing**: A separate save-and-share option uploads a trip and creates a link for sharing it with others.
 
-## Technology Stack
+## 🧰 Technology Stack
 
 - **Core**: HTML5, CSS3, PHP, JavaScript (jQuery).
 - **Compression**: **LZ-String** for efficient client-side compression/decompression of large telemetry datasets.

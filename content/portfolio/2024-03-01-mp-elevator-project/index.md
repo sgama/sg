@@ -1,7 +1,7 @@
 ---
 title: "Major Infrastructure Overhaul: The Seven Elevator Modernization Project"
 description: "An exhaustive technical breakdown of the component obsolescence crisis, the mandatory safety-driven modernization, and the critical regulatory challenges for all seven lifts at Marina Pointe."
-tags: ["Strata", "Technical"]
+tags: ["community", "technical"]
 showDate: false
 date: 2024-03-01
 weight: 100
@@ -10,7 +10,7 @@ draft: true
 ---
 
 
-## Executive Summary: System-Wide Risk and Project Scope
+## 📋 Executive Summary: System-Wide Risk and Project Scope
 
 The Strata's **seven elevators**—essential vertical transportation for all towers—are **over 20 years old** and utilize drive systems with components that are reaching **end-of-life status**. The critical failure of the Waterworks Tower #2 elevator was merely the catalyst that validated the high-risk assessment for the entire system.
 
@@ -85,7 +85,7 @@ sequenceDiagram
   Strata->>Strata: Elevator Returned to Full Service
 {{< /mermaid >}}
 
-## Decisions
+## 🧭 Decisions
 
 The strata, LMS 2995 Marina Pointe, chose to award the elevator modernization contract to **Otis**.
 

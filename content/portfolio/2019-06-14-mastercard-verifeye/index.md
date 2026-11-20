@@ -14,7 +14,7 @@ tags: ["biometrics", "cybersecurity", "machine-learning"]
 
 **Verifeye** was a Proof of Concept (PoC) developed during Mastercard's Innovation Week. The project aimed to rethink payment authentication by moving beyond static passwords to dynamic biological markers.
 
-## The Concept
+## 💡 The Concept
 
 We designed a passive authentication layer that works in the background during a transaction.
 

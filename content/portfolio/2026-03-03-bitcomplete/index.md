@@ -7,16 +7,16 @@ weight: 100
 showDate: false
 date: 2026-03-03
 slug: "bitcomplete"
-tags: ["backend", "AI", "infrastructure", "SRE"]
+tags: ["backend", "AI", "infrastructure", "reliability"]
 ---
 
 ![Bitcomplete cloud AI infrastructure platform operations board](featured.png)
 
-## Scope
+## 🎯 Scope
 
 Operated and improved a cloud AI infrastructure platform serving AI-native teams and neo-cloud providers reselling excess GPU capacity. The work covered Kubernetes platform operations across 20 bare-metal clusters, GPU troubleshooting on NVIDIA Hopper and Blackwell, customer onboarding, and production incident response for training and inference workloads.
 
-## What I Owned
+## 🛠️ What I Owned
 
 - **Centralized GitOps across clusters**: Architected management of 20 bare-metal Kubernetes clusters through a single management cluster, replacing independent ArgoCD deployments and eliminating nearly 20 redundant controllers.
 - **Customer onboarding**: Designed a workflow using isolated customer repositories against a shared platform monorepo, reducing new customer onboarding from roughly one day to 15 minutes and a small number of pull requests.
@@ -25,7 +25,7 @@ Operated and improved a cloud AI infrastructure platform serving AI-native teams
 - **Platform operations**: Provisioned, configured, and operated Kubernetes clusters and containerized workloads across heterogeneous infrastructure, automating cluster provisioning and lifecycle work that had been manual.
 - **Incident follow-through**: Investigated customer-facing incidents across networking, storage, scheduling, and system layers, then fed findings into postmortems, runbooks, and prevention work.
 
-## Outcomes
+## 📈 Outcomes
 
 - Removed deployment drift and redundant control-plane work across the GPU fleet.
 - Cut customer onboarding from about a day to 15 minutes.
@@ -35,5 +35,4 @@ Operated and improved a cloud AI infrastructure platform serving AI-native teams
 **Tech Stack:**
 
 - **Platform**: Kubernetes (bare metal), ArgoCD, GitOps
-- **GPU**: NVIDIA Hopper, NVIDIA Blackwell, NVLink, InfiniBand, Slurm
 - **Domain**: AI/HPC training and inference infrastructure

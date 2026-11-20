@@ -7,7 +7,7 @@ invertPagination: true
 showDate: true
 date: 2018-06-08
 slug: "cicd"
-tags: ["cicd", "travis-ci", "jenkins", "docker", "kubernetes", "automation", "devops", "gitlab"]
+tags: ["cicd", "travis-ci", "jenkins", "docker", "kubernetes", "automation", "reliability", "gitlab"]
 ---
 
 ![Featured image](featured.png)

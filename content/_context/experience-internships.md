@@ -3,7 +3,7 @@ title: "Samson Gama: Software Engineering Internships, 2014-2016"
 description: "Internships in mobile development, networking and telemetry systems."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Professional Experience"
+retrievalSection: "💼 Professional Experience"
 ---
 
 # Samson Gama's engineering internships, 2014-2016

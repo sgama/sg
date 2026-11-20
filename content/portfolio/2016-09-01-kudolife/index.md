@@ -14,7 +14,7 @@ tags: ["backend", "frontend", "mobile", "machine-learning"]
 
 **Kudolife** is a comprehensive health and wellness tracking application. As a full-stack developer at **Prizm Media**, I was responsible for maintaining and enhancing both the mobile apps and the backend infrastructure.
 
-## Key Improvements
+## 🚀 Key Improvements
 
 ### 1. Backend Optimization
 

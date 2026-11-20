@@ -7,16 +7,16 @@ weight: 100
 showDate: false
 date: 2025-09-14
 slug: "call-of-duty-bo7"
-tags: ["backend", "gaming", "infrastructure", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "reliability"]
 ---
 
 ![Key art for Call of Duty: Black Ops 7](featured.webp)
 
-## Scope
+## 🎯 Scope
 
 Supported backend services and engineering platforms behind **Call of Duty: Black Ops 7** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
-## What I Owned
+## 🛠️ What I Owned
 
 - **Launch-scale load validation**: Ran distributed load tests with the internal platform in Go, Kubernetes, and Redis to establish capacity for peak traffic.
 - **Fault injection**: Tested services under injected latency, HTTP errors, and TLS failures, including rate-limit and cascading-failure behavior.
@@ -24,7 +24,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 - **Incident response**: Triaged production incidents during live traffic and converted repeat failures into permanent alerting and runbook changes.
 - **Deployment standardization**: Standardized Kubernetes deployments with reusable Helm charts, templates, and conf.d configuration conventions.
 
-## Outcomes
+## 📈 Outcomes
 
 - Established capacity and resilience evidence ahead of the launch window.
 - Reduced operational toil through automated provisioning and consistent deployment patterns.

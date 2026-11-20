@@ -6,7 +6,7 @@ slug: "llm-engineering-portfolio"
 draft: true
 description: "How this repository builds a versioned RAG corpus, streams Workers AI answers, and tests models for retrieval quality, latency, token usage, and cost."
 summary: "A practical walkthrough of the developer work behind this portfolio's AI chat: ingestion, vector search, streaming contracts, evaluation harnesses, and safe deployment."
-tags: ["ai", "rag", "cloudflare", "testing", "observability", "devops"]
+tags: ["AI", "rag", "cloudflare", "testing", "reliability"]
 series: ["Cloudflare Developments"]
 showDate: true
 ---

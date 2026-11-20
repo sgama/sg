@@ -13,7 +13,7 @@ tags: ["EV", "backend", "infrastructure"]
 ![Endless-Sphere forum running on its AWS infrastructure](featured.webp)
 **Endless-Sphere** is the premier online community for DIY electric vehicle enthusiasts, boasting over 25,000 active members and millions of posts. The forum serves as a critical knowledge base for the EV industry.
 
-## The Challenge
+## 🧩 The Challenge
 
 The site was hosted on a legacy Virtual Private Server (VPS) that suffered from:
 
@@ -21,7 +21,7 @@ The site was hosted on a legacy Virtual Private Server (VPS) that suffered from:
 - **High Costs**: Inflexible pricing models meant paying for peak capacity 24/7.
 - **Security Logic**: Lack of automated backups and no SSL/TLS encryption.
 
-## Technical Solution
+## 🛠️ Technical Solution
 
 I led the migration and modernization effort, serving as the lead Systems Administrator.
 
@@ -36,7 +36,7 @@ I led the migration and modernization effort, serving as the lead Systems Admini
 - **Security**: Deployed **Let's Encrypt** certificates for complying with modern HTTPS standards, improving SEO and user trust.
 - **Cost Reduction**: Utilized Reserved Instances and rightsizing to reduce monthly hosting costs while improving uptime availability to 99.9%.
 
-## Outcome
+## 📈 Outcome
 
 The migration stabilized the platform, allowing the community to grow without technical interruptions.
 *(Note: You can find me on the forum under the username **gammaray**)*

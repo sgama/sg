@@ -14,7 +14,7 @@ tags: ["video-production"]
 
 During high school, I specialized in post-production and visual effects computation for student film projects. While my collaborator Albert Hynek focused on cinematography and directing, I handled the digital workflow, specifically **chroma key compositing** (green screen).
 
-## Technical Implementation
+## 🛠️ Technical Implementation
 
 The primary tool for these projects was **Adobe After Effects CS5/CS6**. My responsibilities included:
 

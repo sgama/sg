@@ -7,7 +7,7 @@ invertPagination: true
 showDate: true
 date: 2018-06-04
 slug: "notifications"
-tags: ["notifications", "ops", "alertmanager", "slack", "automation", "monitoring"]
+tags: ["notifications", "operations", "alertmanager", "slack", "automation", "reliability"]
 ---
 
 ![Featured image](featured.webp)

@@ -3,7 +3,7 @@ title: "Samson Gama: Education, Security Background and Learning"
 description: "Documented education and security achievements with bounded claims."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Certifications and Achievements"
+retrievalSection: "🏆 Certifications and Achievements"
 ---
 
 # What education and security background does Samson have

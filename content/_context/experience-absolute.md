@@ -3,7 +3,7 @@ title: "Samson Gama at Absolute Software: Measured Backend Improvements"
 description: "Documented throughput, resource utilization and migration outcomes."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Professional Experience"
+retrievalSection: "💼 Professional Experience"
 ---
 
 # What measured improvements did Samson achieve at Absolute Software

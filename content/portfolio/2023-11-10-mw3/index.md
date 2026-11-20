@@ -7,16 +7,16 @@ weight: 100
 showDate: false
 date: 2023-11-10
 slug: "call-of-duty-mw3"
-tags: ["backend", "gaming", "infrastructure", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "reliability"]
 ---
 
 ![Key art for Call of Duty: Modern Warfare III](featured.webp)
 
-## Scope
+## 🎯 Scope
 
 Supported backend services and engineering platforms behind **Call of Duty: Modern Warfare III** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
-## What I Owned
+## 🛠️ What I Owned
 
 - **Load and capacity validation**: Ran distributed load tests against release-candidate services, including extended runs ahead of peak traffic windows.
 - **Fault injection**: Tested rate-limit behavior, HTTP error handling, and TLS failure paths by injecting failures into loaded services.
@@ -24,7 +24,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Mode
 - **Incident response**: Triaged production incidents under live load and converted repeat failures into runbooks and alerting changes.
 - **Deployment standardization**: Standardized Kubernetes deployments with reusable Helm charts, templates, and shared configuration conventions.
 
-## Outcomes
+## 📈 Outcomes
 
 - Established capacity headroom and known failure modes before the launch window.
 - Reduced configuration drift across services through shared deployment templates.

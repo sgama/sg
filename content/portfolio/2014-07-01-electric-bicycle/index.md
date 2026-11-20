@@ -14,7 +14,7 @@ tags: ["EV", "hardware", "engineering", "technical"]
 
 Leveraging my experience at **Grin Technologies**, I engineered a custom electric bicycle optimized for urban commuting and efficiency testing. The build integrated commercial off-the-shelf components with custom telemetry solutions.
 
-## Component Specifications
+## 🔧 Component Specifications
 
 - **Frame**: Montague Paratrooper (Folding Mountain Bike)
 - **Propulsion**: **Nine Continent 2807** Direct Drive Hub Motor (optimized for regenerative braking).

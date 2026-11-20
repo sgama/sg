@@ -3,7 +3,7 @@ title: "Samson Gama: Mentorship, Collaboration and Leadership"
 description: "Engineering collaboration and community governance experience."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Professional Experience"
+retrievalSection: "💼 Professional Experience"
 ---
 
 # How has Samson demonstrated leadership and collaboration?

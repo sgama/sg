@@ -7,7 +7,7 @@ invertPagination: true
 showDate: true
 date: 2017-07-01
 slug: "ansible"
-tags: ["ansible", "ops", "docker", "automation", "devops"]
+tags: ["ansible", "operations", "docker", "automation", "reliability"]
 ---
 
 ![Featured image](featured.jpg)

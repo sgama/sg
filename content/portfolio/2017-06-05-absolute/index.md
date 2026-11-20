@@ -14,11 +14,11 @@ tags: ["backend", "kubernetes", "cybersecurity","biometrics"]
 
 At **Absolute Software**, I served as a Backend Developer focused on modernizing the company's core data ingestion infrastructure.
 
-## The Problem
+## 🚨 The Problem
 
 The legacy pipeline struggled to process the massive volume of security telemetry data coming from millions of endpoint devices. It was resource-heavy, slow to scale, and difficult to maintain.
 
-## The Solution
+## ✅ The Solution
 
 I led the redesign of critical components of the pipeline, shifting from a monolithic approach to a microservices architecture.
 
@@ -32,13 +32,13 @@ I led the redesign of critical components of the pipeline, shifting from a monol
 - **Orchestration**: Deployed the new services on **Kubernetes**.
 - **Elasticity**: Configured Horizontal Pod Autoscalers (HPA) to automatically spin up new worker pods during traffic spikes and scale down during lulls.
 
-## Results
+## 📈 Results
 
 - **Performance**: Achieved roughly **10x throughput** after re-engineering a microservice from Python to Go.
 - **Efficiency**: CPU and memory utilization were reduced by **50%**, while maintaining integration test coverage.
 - **Reliability**: The system became resilient to bursts of data that previously caused outages.
 
-## DevOps Contributions
+## ⚙️ DevOps Contributions
 
 Beyond the code, I improved the developer experience:
 

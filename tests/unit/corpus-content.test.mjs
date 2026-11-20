@@ -14,7 +14,7 @@ test('canonical resume uses the same addressable parent sections as other source
     const section = corpus.chunks.find(
         (chunk) =>
             chunk.metadata.source === 'content/resume/_index.md' &&
-            chunk.metadata.section === 'Professional Experience' &&
+            chunk.metadata.section === '💼 Professional Experience' &&
             chunk.metadata.recordType === 'section',
     );
     assert.ok(section);

@@ -14,7 +14,7 @@ tags: ["mobile", "networking", "computer-vision"]
 {{< youtube id="CUDMqm04WdI" autoplay="false" >}}
 **Boardcast** is a real-time collaborative whiteboarding tool designed for Android tablets and phones. It allows teams to sketch, diagram, and brainstorm together without needing an internet connection, relying instead on local peer-to-peer mesh networking.
 
-## Core Features
+## ✨ Core Features
 
 ### 1. Peer-to-Peer Mesh Networking
 
@@ -43,7 +43,7 @@ flowchart LR
 - **Whiteboard Capture**: Implemented a multi-threaded edge-detection and perspective correction algorithm (similar to Office Lens).
 - **Digitization**: Users can snap a photo of a physical whiteboard, and Boardcast enhances contrast and flattens the image to be used as a digital canvas background.
 
-## Design & Polish
+## 🎨 Design & Polish
 
 The application was built following Google’s then-new **Material Design** guidelines, featuring custom view transitions, floating action buttons, and intuitive gesture controls. It was released on the Google Play Store and Amazon App Store, maintaining a high crash-free session rate.
 

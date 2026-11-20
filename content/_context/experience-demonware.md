@@ -3,7 +3,7 @@ title: "Samson Gama at Demonware: Load Testing and Production Reliability"
 description: "Demonware role, platform technologies and engineering ownership."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Professional Experience"
+retrievalSection: "💼 Professional Experience"
 ---
 
 # Samson Gama at Demonware: distributed load testing and reliability, 2020-2026

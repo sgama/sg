@@ -14,7 +14,7 @@ tags: ["machine-learning", "nlp", "tensorflow", "backend"]
 
 For my UBC Engineering final year project, our team built a **Contextual Inference Engine**. This SaaS platform analyzed unstructured user content (text and images) to extract metadata—Time, Location, and Sentiment—to serve highly relevant advertising parameters.
 
-## Technical Architecture
+## 🏗️ Technical Architecture
 
 The system was designed as a modern microservices application.
 
@@ -31,7 +31,7 @@ We didn't rely on a single model. Instead, we orchestrated a pipeline of various
 - **Orchestration**: Deployed on a **Kubernetes** cluster to manage scaling and service discovery.
 - **CI/CD**: Configuring **TravisCI** for automated testing and deployment pipelines.
 
-## Outcome
+## 📈 Outcome
 
 We successfully built a working prototype that could take a raw image or text snippet and output structured JSON targeting data (e.g., "User is happy, at a beach, during sunset -> Suggest Sunscreen or Travel Ads").
 

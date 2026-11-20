@@ -7,7 +7,7 @@ weight: 100
 showDate: false
 date: 2018-01-01
 slug: "hft-bot"
-tags: ["fintech", "algorithmic-trading", "machine-learning"]
+tags: ["fintech", "machine-learning"]
 ---
 
 ![Algorithmic crypto trading bot signals on market data charts](featured.webp)
@@ -15,7 +15,7 @@ tags: ["fintech", "algorithmic-trading", "machine-learning"]
 
 This project is a high-frequency trading (HFT) system designed to capitalize on volatility in the cryptocurrency markets. It evolved from a simple Python scraper into a robust distributed system capable of processing market data in nanoseconds.
 
-## System Evolution
+## 🔄 System Evolution
 
 ### 1. Data Engineering Limitations
 
@@ -32,7 +32,7 @@ Accumulating a 40GB+ dataset allowed for rigorous backtesting.
 - **Machine Learning**: Utilized sentiment analysis and risk assessment models to filter trade signals.
 - **Performance**: The bot achieved **0.5% weekly returns** (net of fees) during the testing period.
 
-## Architecture
+## 🏗️ Architecture
 
 The system is composed of nine specialized microservices communicating via a message bus.
 

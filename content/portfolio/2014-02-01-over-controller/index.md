@@ -14,7 +14,7 @@ tags: ["hardware"]
 
 I collaborated with a team of six to engineer a precise **reflow soldering oven controller** using the **DE2-8052 microcontroller (FPGA)**. The system aimed to adhere to industry-standard reflow thermal profiles.
 
-## Technical Architecture
+## 🏗️ Technical Architecture
 
 The project integrated low-level hardware control with high-level software interfaces:
 
@@ -23,6 +23,6 @@ The project integrated low-level hardware control with high-level software inter
 - **Database (SQLite)**: Integrated a local database to store historical reflow profiles and run parameters.
 - **Interface (Android)**: Built a mobile app allowing users to remotely configure reflow parameters (preheat, soak, reflow, cooling) via the Java bridge.
 
-## Outcomes
+## 📈 Outcomes
 
 The solution successfully automated the soldering process, allowing users to monitor temperature curves in real-time on their mobile devices, significantly improving the user experience compared to traditional on-device 7-segment displays.

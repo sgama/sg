@@ -15,7 +15,7 @@ tags: ["hardware"]
 
 **UberNios** is a custom hardware/software co-design project demonstrating full-stack embedded development—from the logic gate level up to the application layer. We built a functional arcade game console on an Altera DE2 FPGA board.
 
-## Technical Architecture
+## 🏗️ Technical Architecture
 
 The system uses a **system-on-chip (SoC)** approach, instantiating a Nios II soft-core processor alongside custom hardware peripherals in the FPGA fabric.
 
@@ -36,7 +36,7 @@ The system uses a **system-on-chip (SoC)** approach, instantiating a Nios II sof
 - **Ethernet Driver**: Wrote a raw packet driver for the DM9000A controller.
 - **Protocol**: Simple custom protocol to synchronize game states between two FPGA boards connected via Ethernet, allowing for head-to-head racing.
 
-## Outcomes
+## 📈 Outcomes
 
 The project successfully demonstrated the power of hardware acceleration for specific tasks (graphics/audio) while keeping game logic flexible in software.
 

@@ -15,7 +15,7 @@ tags: ["backend", "cybersecurity", "frontend", "networking"]
 
 I maintain a dedicated repository of writeups for the CTF challenges I've solved. This serves as both a personal knowledge base and a community resource for up-and-coming security researchers.
 
-## Categories Covered
+## 📂 Categories Covered
 
 - **Binary Exploitation (Pwn)**: Buffer overflows, ROP chains, Heap exploitation.
 - **Reverse Engineering**: Disassembling ELF/PE binaries to understand proprietary logic.

@@ -3,7 +3,7 @@ title: "Samson Gama: Programming Languages and Technical Skills"
 date: 2026-11-19
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Technical Skills"
+retrievalSection: "🛠️ Technical Skills"
 summary: "Resume-backed skills inventory without inferred proficiency ratings."
 ---
 

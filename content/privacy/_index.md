@@ -6,7 +6,7 @@ showDate: false
 
 This page explains what information this website processes and why. This is a plain-language description of the current setup, not legal advice.
 
-## At a glance
+## 👀 At a glance
 
 | Area | Provider | What it touches |
 |------|----------|-----------------|
@@ -17,7 +17,7 @@ This page explains what information this website processes and why. This is a pl
 | Hosting | Cloudflare | Site delivery and AI features |
 | Source and deployment | GitHub | Website source code |
 
-## How the site is delivered
+## 🚀 How the site is delivered
 
 Changes to the website's source code live on GitHub. Deployments are made from that project to Cloudflare, which hosts and delivers the site and its AI features.
 
@@ -28,7 +28,7 @@ flowchart LR
     CF --> Visitor(["Visitor"])
 {{< /mermaid >}}
 
-## Where your data can go
+## 🗺️ Where your data can go
 
 {{< mermaid >}}
 flowchart TD
@@ -44,32 +44,32 @@ flowchart TD
     P -->|"aggregate usage"| Umami["Umami<br/>(self-hosted on Cloudflare)"]
 {{< /mermaid >}}
 
-## Contact form
+## 📬 Contact form
 
 If you contact me through the form, it sends the name, email address, subject, and message you provide to Formspree so the message can be delivered to me. Please avoid sending information you would not want included in an email.
 
-## AI assistant
+## 🤖 AI assistant
 
 When you use the AI assistant, your question and relevant conversation context are processed by Cloudflare's AI services to generate a response. The question and response may be stored in Cloudflare KV for up to 30 days. I may review them to find unanswered questions or gaps in the website's content and AI context, and use those observations to decide what information to publish or improve.
 
 The chat also saves conversation history in your browser so you can return to it later. Clearing that browser history does not remove separately stored chat records. Do not include passwords, financial details, confidential material, or other sensitive information in a chat.
 
-## Analytics
+## 📊 Analytics
 
 This website uses Umami analytics, which I self-host on Cloudflare, to understand how visitors use the site and improve it. Umami is part of this site's infrastructure; I do not use a hosted Umami analytics account.
 
-## Hosting and deployment
+## ☁️ Hosting and deployment
 
 Cloudflare hosts and delivers the website and its AI features. The website's source code is maintained on GitHub, and deployments are made from that project. GitHub is used for the site's development and deployment workflow.
 
-## Service providers
+## 🤝 Service providers
 
 Cloudflare, Formspree, and GitHub provide services used by this website. Those providers may process information as needed to provide their services, subject to their own terms and privacy practices. Their handling and retention periods may differ from the periods described here.
 
-## Your choices and requests
+## 🙋 Your choices and requests
 
 You can choose not to use the contact form or AI assistant. Depending on where you live, applicable privacy laws may give you rights to request access to, correction of, or deletion of personal information. To ask a question or make a request, use the [contact page](/contact/).
 
-## Changes to this notice
+## 🔄 Changes to this notice
 
 I may update this page when the website or its data practices change. The latest version of this notice will be published here.

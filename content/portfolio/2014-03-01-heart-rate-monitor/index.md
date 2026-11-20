@@ -14,7 +14,7 @@ tags: ["biomedical", "hardware"]
 
 For this module, I executed the full lifecycle design—build, program, and test—of a **photoelectric heart rate monitor**.
 
-## Operational Principle
+## ⚙️ Operational Principle
 
 The device functioned as a **photoplethysmogram (PPG)** sensor. It utilized a non-invasive photo transmitter/receiver pair clipped to a finger.
 

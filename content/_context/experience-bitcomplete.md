@@ -3,7 +3,7 @@ title: "Samson Gama at Bitcomplete: GPU Infrastructure and Centralized GitOps"
 description: "Role, dates and documented GPU infrastructure and GitOps contributions."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Professional Experience"
+retrievalSection: "💼 Professional Experience"
 ---
 
 # Samson Gama at Bitcomplete: GPU infrastructure, March-June 2026

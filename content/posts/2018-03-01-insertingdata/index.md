@@ -7,7 +7,7 @@ invertPagination: true
 showDate: true
 date: 2018-03-01
 slug: "insertingdata"
-tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "hft", "timeseries", "sql", "nosql"]
+tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "fintech", "timeseries", "sql", "nosql"]
 ---
 
 *Disclaimer: I didn't run synthetic benchmarks in High Availability (HA) mode for Proof of Concepts (POC). This post reflects my practical experience working with massive datasets for my HFT Trading Bot.*

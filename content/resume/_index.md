@@ -15,7 +15,7 @@ Vancouver, BC | [samsongama.com](https://samsongama.com) | [linkedin.com/in/sams
 
 Senior software engineer with 8+ years building backend services and the platforms they run on. Works in Go and Python, runs Kubernetes in production, and owns systems from design through incident response. Architected centralized GitOps across 20 bare-metal clusters, built a distributed load-testing platform that generated up to 10 million requests per minute for 10+ teams, and wrote the RFCs and migration plans for moving MySQL databases above 1 TB onto Vitess. Recent work spans NVIDIA GPU infrastructure for AI/HPC workloads and a serverless retrieval-augmented assistant on Cloudflare Workers, Workers AI, and Vectorize.
 
-## Professional Experience
+## 💼 Professional Experience
 
 ### Bitcomplete
 
@@ -80,21 +80,21 @@ Software Developer Intern | May 2014 - Aug 2014
 
 - Developed web applications for processing and visualizing electric-vehicle telemetry, and administered an AWS-hosted community forum serving 5,000+ daily users through 2020 - [endless-sphere.com](https://endless-sphere.com)
 
-## Technical Skills
+## 🛠️ Technical Skills
 
 | Category | Skills |
 | --- | --- |
-| Languages | Go, Python, Bash, C/C++, Rust, Java, JavaScript, PHP |
-| Backend & Distributed Systems | Microservices, Concurrency, Distributed Rate Limiting, Load Testing, Fault Injection, Performance Engineering |
-| Databases & Data Processing | MySQL, PostgreSQL, MongoDB, Redis, Cassandra, Kafka, Vitess |
-| Cloud & Infrastructure | AWS, GCP, Azure, Linux, Docker, Kubernetes, Terraform, Ansible, Packer, Helm |
-| Software Delivery | CI/CD, Automated Testing, Git, Jenkins, ArgoCD, GitOps, CloudFormation, SaltStack |
-| Observability | Prometheus, Grafana, OpenTelemetry, Distributed Tracing, Metrics, Logging |
-| AI Engineering | Retrieval-Augmented Generation, Embeddings, Vector Search, Prompt Design, Evaluation |
-| Networking | Cilium, Nginx, HAProxy, OpenResty/Lua, MikroTik, InfiniBand |
-| Security | OSCP, CEH, Linux Hardening, Offensive Security |
+| 💻 Languages | Go, Python, Bash, C/C++, Rust, Java, JavaScript, PHP |
+| ⚙️ Backend & Distributed Systems | Microservices, Concurrency, Distributed Rate Limiting, Load Testing, Fault Injection, Performance Engineering |
+| 🗄️ Databases & Data Processing | MySQL, PostgreSQL, MongoDB, Redis, Cassandra, Kafka, Vitess |
+| ☁️ Cloud & Infrastructure | AWS, GCP, Azure, Linux, Docker, Kubernetes, Terraform, Ansible, Packer, Helm |
+| 🚚 Software Delivery | CI/CD, Automated Testing, Git, Jenkins, ArgoCD, GitOps, CloudFormation, SaltStack |
+| 📊 Observability | Prometheus, Grafana, OpenTelemetry, Distributed Tracing, Metrics, Logging |
+| 🤖 AI Engineering | Retrieval-Augmented Generation, Embeddings, Vector Search, Prompt Design, Evaluation |
+| 🌐 Networking | Cilium, Nginx, HAProxy, OpenResty/Lua, MikroTik, InfiniBand |
+| 🔐 Security | OSCP, CEH, Linux Hardening, Offensive Security |
 
-## Projects
+## 🚀 Projects
 
 ### Personal Website RAG Assistant | 2025 - Present
 
@@ -110,7 +110,7 @@ Software Developer Intern | May 2014 - Aug 2014
 - Engineered MikroTik VLAN and firewall networking, custom OpenResty/Lua load balancing, authentication, and hardened Ubuntu hosts across the environment
 - Implemented disaster recovery and S3 backup/restore testing, and deployed honeypots to validate recovery procedures and detect malicious activity
 
-## Leadership and Community
+## 🤝 Leadership and Community
 
 ### Strata Council President
 
@@ -120,11 +120,11 @@ Software Developer Intern | May 2014 - Aug 2014
 
 - Serve on the board of a charitable foundation providing full scholarships to incoming UBC students, contributing to governance, financial decisions, and long-term planning
 
-## Certifications and Achievements
+## 🏆 Certifications and Achievements
 
 - Offensive Security Certified Professional (OSCP) | Offensive Security | 2020
 - Trend Micro Capture the Flag | Global Finalist | Maple Bacon, UBC CTF | 12th of 1,000 teams | 2019
 
-## Education
+## 🎓 Education
 
 - University of British Columbia, B.A.Sc., Computer Engineering | 2017

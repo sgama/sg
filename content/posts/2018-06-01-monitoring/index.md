@@ -7,7 +7,7 @@ invertPagination: true
 showDate: true
 date: 2018-06-01
 slug: "monitoring"
-tags: ["monitoring", "ops", "prometheus", "devops", "infrastructure", "observability"]
+tags: ["reliability", "operations", "prometheus", "infrastructure"]
 ---
 
 ![Featured image](featured.png)

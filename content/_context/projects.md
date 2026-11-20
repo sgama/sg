@@ -3,7 +3,7 @@ title: "Samson Gama: Homelab, Infrastructure Projects and Applied AI"
 description: "Personal project evidence separated from employer production work."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Projects"
+retrievalSection: "🚀 Projects"
 ---
 
 # What does Samson build outside employment

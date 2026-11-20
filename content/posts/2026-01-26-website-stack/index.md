@@ -5,7 +5,7 @@ lastmod: 2026-10-26
 slug: "website-stack"
 description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, a Cloudflare Worker with static assets, Workers AI, Vectorize, and Tunnels."
 summary: "Why have a simple website when you can have a complex one? A deep dive into the CI/CD pipeline, serverless AI integration, and zero-trust self-hosted analytics stack that powers samsongama.com."
-tags: ["infrastructure", "cloudflare", "github-actions", "devops", "self-hosted", "hugo"]
+tags: ["infrastructure", "cloudflare", "github-actions", "reliability", "self-hosted", "hugo"]
 showDate: true
 series: ["Cloudflare Developments"]
 ---

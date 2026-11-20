@@ -7,16 +7,16 @@ weight: 100
 showDate: false
 date: 2024-10-25
 slug: "call-of-duty-bo6"
-tags: ["backend", "gaming", "infrastructure", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "reliability"]
 ---
 
 ![Key art for Call of Duty: Black Ops 6](featured.webp)
 
-## Scope
+## 🎯 Scope
 
 Supported backend services and engineering platforms behind **Call of Duty: Black Ops 6** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
-## What I Owned
+## 🛠️ What I Owned
 
 - **Distributed load testing**: Validated release-candidate services with the internal load-testing platform in Go, Kubernetes, and Redis, including sustained runs at high request rates.
 - **Fault injection**: Simulated latency, traffic spikes, HTTP errors, and TLS failures to find cascading failures before players did.
@@ -24,7 +24,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 - **Incident response**: Diagnosed production incidents during live traffic and fed the results back into alerting, runbooks, and platform fixes.
 - **Deployment standardization**: Applied reusable Helm charts and templates to reduce drift between services and environments.
 
-## Outcomes
+## 📈 Outcomes
 
 - Gave service teams capacity and failure-mode evidence ahead of launch demand.
 - Reduced repeat operational work by automating provisioning and deployment paths.

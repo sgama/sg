@@ -7,16 +7,16 @@ weight: 100
 showDate: false
 date: 2022-11-16
 slug: "call-of-duty-wz2"
-tags: ["backend", "gaming", "infrastructure", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "reliability"]
 ---
 
 ![Key art for Call of Duty: Warzone 2.0](featured.webp)
 
-## Scope
+## 🎯 Scope
 
 Supported backend services and engineering platforms behind **Call of Duty: Warzone 2.0** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
-## What I Owned
+## 🛠️ What I Owned
 
 - **High-concurrency load validation**: Stress-tested services for sustained concurrent traffic with the internal load-testing platform built in Go, Kubernetes, and Redis.
 - **Failure-mode testing**: Used configurable fault injection for latency, traffic spikes, HTTP errors, and TLS failures to check degraded-service behavior.
@@ -24,7 +24,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Warz
 - **Incident response**: Investigated production incidents during live traffic and turned the causes into runbook and alerting updates.
 - **Deployment standardization**: Applied reusable Helm charts and templates across services to reduce configuration drift.
 
-## Outcomes
+## 📈 Outcomes
 
 - Produced capacity and resilience evidence for services facing sustained concurrent load.
 - Reduced repeat operational toil through automated deployment and provisioning workflows.

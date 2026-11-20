@@ -7,16 +7,16 @@ weight: 100
 showDate: false
 date: 2022-10-28
 slug: "call-of-duty-mw2"
-tags: ["backend", "gaming", "infrastructure", "SRE"]
+tags: ["backend", "gaming", "infrastructure", "reliability"]
 ---
 
 ![Key art for Call of Duty: Modern Warfare II](featured.webp)
 
-## Scope
+## 🎯 Scope
 
 Supported backend services and engineering platforms behind **Call of Duty: Modern Warfare II** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
-## What I Owned
+## 🛠️ What I Owned
 
 - **Distributed load testing**: Ran load tests with the internal platform I built in Go, Kubernetes, and Redis to validate services before peak traffic.
 - **Fault injection**: Simulated latency, HTTP errors, and TLS failures to expose cascading failure paths and check rate-limit behavior.
@@ -24,7 +24,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Mode
 - **Incident response**: Diagnosed production incidents under load and converted the findings into alerting and runbook changes.
 - **Launch readiness**: Helped prepare services and infrastructure for launch-scale demand across the release window.
 
-## Outcomes
+## 📈 Outcomes
 
 - Gave service owners evidence of capacity and failure behavior before launch.
 - Reduced repeat operational work by automating deployment and provisioning paths.

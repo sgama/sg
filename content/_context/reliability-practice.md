@@ -3,7 +3,7 @@ title: "Samson Gama: Reliability Engineering and Incident Response Evidence"
 description: "Documented operational practices and prompts for deeper interview examples."
 draft: false
 retrievalSource: "content/resume/_index.md"
-retrievalSection: "Professional Experience"
+retrievalSection: "💼 Professional Experience"
 ---
 
 # What evidence supports Samson's reliability engineering experience?

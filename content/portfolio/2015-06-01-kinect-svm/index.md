@@ -15,7 +15,7 @@ tags: ["computer-vision", "machine-learning"]
 
 **Kinect SVM** is a computer vision application that allows users to trigger operating system tasks (like launching apps or controlling volume) by drawing specific shapes on a piece of paper in front of a Kinect camera.
 
-## Technical Implementation
+## 🛠️ Technical Implementation
 
 ### 1. Recognition Pipeline
 

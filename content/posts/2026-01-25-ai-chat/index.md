@@ -5,7 +5,7 @@ lastmod: 2026-10-26
 slug: "ai-chat"
 description: "How this Hugo portfolio answers visitor questions with a Cloudflare Worker, Workers AI and a versioned Vectorize corpus, with source excerpts, abstention and measured latency and cost."
 summary: "A custom portfolio assistant with contextual follow-ups, streamed answers, public source evidence, explicit abstention and measurable latency and token cost."
-tags: ["ai", "cloudflare", "hugo", "javascript", "rag"]
+tags: ["AI", "cloudflare", "hugo", "javascript", "rag"]
 showDate: true
 series: ["Cloudflare Developments"]
 ---

@@ -14,7 +14,7 @@ tags: ["backend", "networking", "kubernetes"]
 
 During my internship at **Ericsson**, I worked on integrating their telecommunications hardware into the cloud via OpenStack.
 
-## Key Contributions
+## 🤝 Key Contributions
 
 ### 1. Neutron Plugin Development
 
