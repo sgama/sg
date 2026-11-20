@@ -110,9 +110,7 @@ test('/api/chat', async (t) => {
     });
 
     await t.test('End-to-end flow', async (t) => {
-        await t.test('normalizes GLM output before streaming to the widget and saving to KV', async () => {
-            const saved = [];
-            const pending = [];
+        await t.test('normalizes GLM output before streaming to the widget', async () => {
             const usage = { prompt_tokens: 1195, completion_tokens: 787, total_tokens: 1982 };
             const env = {
                 AI: {
@@ -132,11 +130,6 @@ test('/api/chat', async (t) => {
                         return buildVectorizeResult(['Relevant portfolio context for response.']);
                     },
                 },
-                CHAT_LOGS: {
-                    async put(_key, value) {
-                        saved.push(JSON.parse(value));
-                    },
-                },
             };
             const response = await onRequest(
                 createContext({
@@ -144,19 +137,12 @@ test('/api/chat', async (t) => {
                     url: `${URLS.TEST_API_ENDPOINT}/chat`,
                     body: { query: 'What do you build?' },
                     env,
-                    waitUntil(promise) {
-                        pending.push(promise);
-                    },
                 }),
             );
             const output = await response.text();
-            await Promise.all(pending);
             assert.equal(response.status, 200);
             assert.match(output, /"response":"Visible answer"/);
             assert.doesNotMatch(output, /private|reasoning|choices/);
-            assert.equal(saved.length, 1);
-            assert.equal(saved[0].response, 'Visible answer');
-            assert.deepEqual(saved[0].usage, usage);
             const metrics = output
                 .split('\n')
                 .filter((line) => line.startsWith('data: {'))
@@ -285,7 +271,7 @@ test('/api/chat rejects malformed JSON with a client error', async (t) => {
     });
     const response = await onRequest({ request, env: {} });
     assert.equal(response.status, 400);
-    assert.deepEqual(await response.json(), { error: 'Invalid JSON body.' });
+    assert.deepEqual(await response.json(), { error: 'Malformed JSON in request body' });
     assert.equal(logged.mock.callCount(), 0);
 });
 

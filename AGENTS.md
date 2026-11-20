@@ -48,8 +48,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
   `AI_REFRESH_FLAGS=--force` rebuilds a missing/damaged index.
 - Do not invent benchmark results: mock tests and substring checks do not measure
   provider quality, factual accuracy, production latency or production cost.
-- Visitor transcripts are intentionally public for the current demo. Do not
-  publish them as test fixtures or benchmark examples.
+- Visitor transcripts live in Cloudflare AI Gateway and Workers Logs, not in the
+  repository. Do not publish them as test fixtures or benchmark examples.
 
 ## Production safety
 

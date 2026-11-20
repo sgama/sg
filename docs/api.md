@@ -1,6 +1,6 @@
 # Public Chat API
 
-Intentionally public for this demo (transcripts may be read publicly; no authentication). No rate limiting is implemented — programmatic consumers should keep request rates low. This endpoint is for interactive chat, not bulk site ingestion; use `/llms.txt`, `/llms-full.txt`, and `/sitemap.xml` for public content.
+Intentionally public for this demo (no authentication). Transcripts are not exposed through the API. No rate limiting is implemented — programmatic consumers should keep request rates low. This endpoint is for interactive chat, not bulk site ingestion; use `/llms.txt`, `/llms-full.txt`, and `/sitemap.xml` for public content.
 
 ## `POST /api/chat`
 
@@ -40,30 +40,6 @@ RAG chat over public site content, streaming Server-Sent Events.
 | `[DONE]`   | Sentinel line ending the stream                                                                                      |
 
 Errors after streaming starts keep HTTP 200 and surface as `data: {"error":"..."}` (paid requests are never retried automatically). Validated errors and missing-binding errors return standard HTTP error responses before the stream starts.
-
-## `GET /api/logs`
-
-Public, unauthenticated transcript listing (`Cache-Control: no-store`). No CORS headers (same-origin usage).
-
-### Request
-
-- `limit` — integer 1-50, default `20` (invalid/over-max values fall back to `20`)
-- `cursor` — opaque pagination token from the previous response's `meta.cursor`
-- Non-get methods (`POST`/`PUT`/`DELETE`/`PATCH`) return `405 { "error": "Method not allowed" }`.
-- `503 { "error": "Service Unavailable: KV binding missing" }` when the KV binding is not configured.
-
-### Response
-
-```json
-{
-  "data": [
-    { "id": "chat:2026-10-23T...", "timestamp": "...", "query": "...", "response": "...", "usage": {...}, "error": "optional" }
-  ],
-  "meta": { "count": 20, "limit": 20, "cursor": "opaque", "has_more": true }
-}
-```
-
-Records older than 30 days expire from the store. Log records saved under unsupported versions are skipped and logged server-side rather than failing the listing.
 
 ## Discoverability
 

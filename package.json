@@ -33,6 +33,7 @@
         "undici": "7.30.1"
     },
     "dependencies": {
+        "@hono/zod-validator": "0.9.1",
         "cloudflare": "^7.3.0",
         "csv-parse": "^7.0.3",
         "dompurify": "3.4.17",

@@ -1,6 +1,6 @@
 /**
  * Mock factories for common test objects
- * Provides reusable mock objects for AI bindings, KV stores, vectorize indexes, etc.
+ * Provides reusable mock objects for AI bindings, vectorize indexes, etc.
  */
 
 /**
@@ -45,32 +45,6 @@ export function makeEnv({ aiRun, vectorizeQuery } = {}) {
     return {
         ...makeAiBinding({ aiRun }),
         VECTORIZE_INDEX: makeVectorizeIndex(vectorizeQuery),
-    };
-}
-
-/**
- * Create a mock KV namespace for CHAT_LOGS
- * @param {Object} options
- * @param {Array} options.keys - Array of key objects with metadata
- * @param {string} options.cursor - Pagination cursor
- * @param {boolean} options.list_complete - Whether the list is complete
- * @param {Function} options.put - Explicit write implementation
- * @returns {Object} Mock KV namespace
- */
-export function makeKv({ keys = [], cursor = undefined, list_complete = true, put } = {}) {
-    return {
-        async list() {
-            return { keys: keys.map(({ value: _value, ...key }) => key), cursor, list_complete };
-        },
-        async get(name, type) {
-            if (type !== 'json') throw new Error('Mock KV only supports JSON reads');
-            return keys.find((key) => key.name === name)?.value ?? null;
-        },
-        put:
-            put ??
-            (async () => {
-                throw new Error('KV.put not configured');
-            }),
     };
 }
 

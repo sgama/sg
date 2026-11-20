@@ -488,3 +488,16 @@ test('internal education evidence exposes public citations but not corpus filena
     assert.match(prompt, /Do not introduce answers with "Based on the retrieved context"/);
     assert.match(prompt, /Put the citation directly after the supported fact/);
 });
+
+test('model calls route through AI Gateway only when a gateway id is configured', async () => {
+    const seen = [];
+    const ai = {
+        run: async (_model, _input, options) => {
+            seen.push(options);
+            return buildEmbeddingsResponse();
+        },
+    };
+    await new AiService({ AI: ai, AI_GATEWAY_ID: 'default' }).getEmbeddings('query');
+    await new AiService({ AI: ai }).getEmbeddings('query');
+    assert.deepEqual(seen, [{ gateway: { id: 'default' } }, {}]);
+});

@@ -12,7 +12,7 @@ This page explains what information this website processes and why. This is a pl
 |------|----------|-----------------|
 | Contact form | Formspree | Name, email, subject, message |
 | AI assistant | Cloudflare AI | Question and relevant context for response generation |
-| Chat records | Cloudflare KV | Question and response, kept up to 30 days |
+| Chat records | Cloudflare AI Gateway and Workers Logs | Question and response, in the site owner's Cloudflare account; not publicly readable |
 | Analytics | Umami (self-hosted on Cloudflare) | Aggregate page usage |
 | Hosting | Cloudflare | Site delivery and AI features |
 | Source and deployment | GitHub | Website source code |
@@ -50,7 +50,7 @@ If you contact me through the form, it sends the name, email address, subject, a
 
 ## 🤖 AI assistant
 
-When you use the AI assistant, your question and relevant conversation context are processed by Cloudflare's AI services to generate a response. The question and response may be stored in Cloudflare KV for up to 30 days. I may review them to find unanswered questions or gaps in the website's content and AI context, and use those observations to decide what information to publish or improve.
+When you use the AI assistant, your question and relevant conversation context are processed by Cloudflare's AI services to generate a response. The question and response may be logged by Cloudflare AI Gateway and Workers Logs in the site owner's Cloudflare account, which are not publicly readable. Retention follows Cloudflare's log limits for those products. I may review them to find unanswered questions or gaps in the website's content and AI context, and use those observations to decide what information to publish or improve.
 
 The chat also saves conversation history in your browser so you can return to it later. Clearing that browser history does not remove separately stored chat records. Do not include passwords, financial details, confidential material, or other sensitive information in a chat.
 

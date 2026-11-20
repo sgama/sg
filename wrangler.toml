@@ -10,19 +10,20 @@ directory = "./public"
 not_found_handling = "404-page"
 run_worker_first = ["/api/*"]
 
+# Workers Logs: persists console output and invocation logs, searchable in the dashboard.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
 # Workers AI Binding (The "Brain")
 [ai]
 binding = "AI"
 
-# KV Namespace Binding (Chat Logs - Simple & Fast)
-# Run `npx wrangler kv namespace create chat_logs` to get the ID
-[[kv_namespaces]]
-binding = "CHAT_LOGS"
-id = "2a8435a82e17425d8cff4b2777dbfd98"
-
 # Environment variables for the Worker. `make deploy-built` also sets DEPLOY_COMMIT (the commit being deployed).
 [vars]
 AI_MODEL = "glm"
+# AI Gateway creates the "default" gateway on its first authenticated request; model calls are routed through it.
+AI_GATEWAY_ID = "default"
 # CI sets AI_CORPUS_NAMESPACE after `make ai-refresh` finishes indexing the commit's corpus.
 # Local deployments can use ai-refresh or set a previously validated namespace.
 
@@ -32,4 +33,3 @@ binding = "VECTORIZE_INDEX"
 index_name = "portfolio-index"
 
 # OPENAI_API_KEY = "" # If using OpenAI instead of Cloudflare AI
-# /api/logs is intentionally public for demonstration; transcript authentication is disabled.

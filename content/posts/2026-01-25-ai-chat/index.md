@@ -37,7 +37,7 @@ The design goal is not a clever answer. It is a small system where each stage ca
 - **API:** One Cloudflare Worker using Hono, serving `/api/chat`. Cloudflare serves the static site directly, and the Worker runs first only for `/api/*`, so ordinary page views never invoke it.
 - **Inference:** Workers AI. GLM-4.7-Flash is the default answer and rewrite model.
 - **Search:** Cloudflare Vectorize with BGE-base-en-v1.5 embeddings, 768 dimensions, in one index.
-- **State:** Conversation history lives in the browser. Server-side response logging in KV is optional.
+- **State:** Conversation history lives in the browser. Server-side request logs live in AI Gateway and Workers Logs.
 
 {{< mermaid >}}
 flowchart LR
@@ -203,7 +203,7 @@ The widget is a native `<dialog>` rather than an iframe, so it inherits the them
 
 Markdown renders with restricted markup. Mermaid diagrams load when the panel opens, and invalid or truncated diagrams keep their source with an explanation.
 
-The diagnostics footer shows server-side total latency, time to first answer token, and the estimated answer and rewrite token cost. Details expands stage timings and token counts. When the provider omits usage, the field is shown as unavailable rather than zero, because a missing number is not the same as no cost. The cost estimate excludes embeddings, Vectorize, KV and hosting, which are small at this scale but not free.
+The diagnostics footer shows server-side total latency, time to first answer token, and the estimated answer and rewrite token cost. Details expands stage timings and token counts. When the provider omits usage, the field is shown as unavailable rather than zero, because a missing number is not the same as no cost. The cost estimate excludes embeddings, Vectorize and hosting, which are small at this scale but not free.
 
 Conversation history persists on the device across deployments until it is cleared manually. Clearing history does not delete server-side logs, which are stored separately.
 
@@ -228,7 +228,7 @@ Each major choice was made to keep a small system inspectable rather than to cha
 
 - **Input validation.** Request bodies are size-capped and refused with 413 before JSON parsing; malformed bodies are rejected with an HTTP error before any streaming starts.
 - **Prompt boundaries.** The answer prompt restricts the model to the supplied context and instructs it to abstain when context is insufficient. This is an instruction, not a verifier; it reduces but does not eliminate hallucination or injection.
-- **No tool use.** The assistant has no tools, no web access and no model training or fine-tuning, so a successful prompt injection cannot reach external systems or persistent state beyond the bounded KV log.
+- **No tool use.** The assistant has no tools, no web access and no model training or fine-tuning, so a successful prompt injection cannot reach external systems or persistent state.
 - **Data minimization.** Conversation history lives in the browser; server-side logs are optional and retained for up to 30 days. Visitors are told not to include passwords, financial details or confidential material.
 - **Known gaps.** Edge rate limiting for the public chat endpoint is not configured in the repository; runtime deadlines, human review and concurrency testing are the next steps, not finished work.
 

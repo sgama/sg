@@ -76,15 +76,10 @@ export const CONFIG = {
         // Total character budget across all history messages combined
         MAX_TOTAL_LENGTH: 4000,
     },
-    PAGINATION: {
-        DEFAULT_LIMIT: 20,
-        MAX_LIMIT: 50,
-    },
     // Public query limit (characters, after trimming).
     QUERY: { MAX_LENGTH: 500 },
     // Below this much retrieved context the assistant abstains instead of answering.
     ABSTAIN: { MIN_CONTEXT_CHARS: 20 },
-    KV_PREFIX: 'chat:',
 };
 
 export class AppError extends Error {

@@ -32,7 +32,7 @@ subgraph Cloudflare["☁️ Cloudflare Edge"]
     Functions[Worker /api/*]
     Workers[Cloudflare Workers AI]
     Vectorize[Vectorize]
-    KV[KV Chat Logs]
+    Gateway[AI Gateway]
     Tunnel[Cloudflare Tunnel]
 end
 
@@ -52,9 +52,9 @@ WAF --> CDN
 
 CDN -->|Static Content| Assets
 CDN -->|Dynamic API| Functions
-Functions --> Workers
+Functions --> Gateway
+Gateway --> Workers
 Functions --> Vectorize
-Functions --> KV
 CDN -->|ping.samsongama.com| Tunnel
 
 Tunnel <-->|Secure Connection| Cloudflared

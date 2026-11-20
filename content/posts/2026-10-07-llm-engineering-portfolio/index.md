@@ -13,7 +13,7 @@ showDate: true
 
 An LLM integration is not finished when a prompt returns a plausible answer. It needs a reproducible knowledge pipeline, a stable API contract, measurable quality, and a deployment that cannot silently serve broken data.
 
-This portfolio uses **Hugo, a Cloudflare Worker with static assets, Workers AI, Vectorize, and KV**. The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights.
+This portfolio uses **Hugo, a Cloudflare Worker with static assets, Workers AI (through AI Gateway), and Vectorize**. The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights.
 
 ## 📌 How a question becomes an answer
 
@@ -23,12 +23,12 @@ Browser question
   -> Worker: validate input and check prompt-pattern guardrails
   -> Workers AI: rewrite a follow-up into a standalone search question
   -> Workers AI: embed the search question
-  -> Vectorize: retrieve three matches from the deployed corpus namespace
+  -> Vectorize: retrieve five matches from the deployed corpus namespace
   -> Expand matching excerpts into bounded source sections; deduplicate
   -> Prompt: system instructions + retrieved text + history + original question
   -> Workers AI: generate a streamed answer
   -> Stream adapter: normalize answer events and discard reasoning
-  -> Browser: render text/markdown; KV: save the transcript and usage
+  -> Browser: render text/markdown
 ```
 
 For example, after "Tell me about Bitcomplete," a follow-up such as "What did he do before that?" can be rewritten as "What role did Samson hold before Bitcomplete?" The rewrite guides search; the original question and recent conversation still guide the answer. First-turn questions skip rewriting. History is bounded to four messages, 2,000 characters per message and 4,000 characters total, rather than sending an ever-growing transcript.
@@ -105,7 +105,7 @@ make ai-build   # Bundle the Worker (dry run); requires Node.js 22+
 make dev-ai     # Run Hugo output with Wrangler and the chat API
 ```
 
-Tests use mock AI, Vectorize, and KV services. They verify input validation, explicit failures, namespace selection, ingestion transport, indexing readiness, log persistence, and deployment gates.
+Tests use mock AI and Vectorize services. They verify input validation, explicit failures, namespace selection, ingestion transport, indexing readiness, and deployment gates.
 
 Streaming needs its own contract tests. Some models emit `{"response":"..."}`; others emit `choices[0].delta.content`. The server converts both to the widget's answer format, handles fragmented UTF-8 and completion markers, and excludes reasoning. An empty or malformed answer must produce an error, not an empty successful chat bubble.
 
@@ -176,7 +176,7 @@ For credible comparisons, hold prompts, contexts, and output limits constant; la
 
 Input tokens include system instructions, context, the question and bounded history sent by the widget. Follow-ups also incur a separate rewrite call. Output budgets can include reasoning depending on the provider; do not equate visible text length with billable output.
 
-The adapter preserves aggregate usage rather than summing incremental events and then counting a final summary again. When configured, KV logging stores the question, streamed answer and answer-model usage in values, not size-limited metadata; it is separate from the device's saved conversation.
+The adapter preserves aggregate usage rather than summing incremental events and then counting a final summary again. Server-side request logs (question, answer and usage) live in AI Gateway and Workers Logs and are separate from the device's saved conversation.
 
 ```text
 Estimated generation cost =
@@ -188,7 +188,7 @@ For illustration, at the registry's dated GLM prices of **$0.0605/M input** and 
 
 The response footer adds estimated answer and rewrite token costs. If either required usage record is missing, the combined estimate is unavailable.
 
-The reports exclude embeddings, Vectorize, KV, failed-call charges, and account allowances. Missing usage is `null`, not zero. Evaluate **total spend per successful answer**, including retries and failures, before claiming savings.
+The reports exclude embeddings, Vectorize, failed-call charges, and account allowances. Missing usage is `null`, not zero. Evaluate **total spend per successful answer**, including retries and failures, before claiming savings.
 
 Shorter useful context and concise answers reduce token work. Caching may avoid work altogether, but exact-answer caching, semantic caching, and provider prefix caching are different mechanisms. None is currently implemented in this chat path.
 

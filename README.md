@@ -129,6 +129,10 @@ welcome message is omitted. This bounded request history is sent for conversatio
 context, while the full saved transcript remains local. Before vector retrieval,
 the backend uses the configured contextualization model to rewrite follow-ups
 into standalone queries. Rewriting is skipped when there is no history.
+The API validates requests with Hono `bodyLimit` (64 KB) and `@hono/zod-validator`,
+sets `secureHeaders`, and routes Workers AI calls through AI Gateway
+(`AI_GATEWAY_ID`, default gateway; analytics and logs in the dashboard). Workers
+Logs are enabled in `wrangler.toml`.
 Normalized SSE carries `data: {"response":"..."}`, optional usage, and `[DONE]`;
 reasoning is omitted. Rendering is throttled with animation frames. Empty,
 malformed, interrupted and explicitly failed streams show errors rather than
@@ -337,8 +341,7 @@ collaboration. Preserve the distinction between individual and team ownership,
 production and lab experience, preferences and demonstrated capabilities.
 
 **Headless does not mean confidential.** Indexed prose can be disclosed in
-public chat, files in a public repository are accessible, and transcripts are
-currently public. Even excluded authoring comments remain visible in the
+public chat and files in a public repository are accessible. Even excluded authoring comments remain visible in the
 repository. Do not commit secrets, private customer details, references'
 contact information or sensitive hiring documents.
 
@@ -618,13 +621,9 @@ Runtime retrieval outages return 503 instead of pretending no context was found.
 
 ### Operational protections and remaining limits
 
-`/api/logs` is intentionally public for demonstration; authentication is currently
-disabled. Anyone can read stored visitor questions and answers, including older
-entries, without an admin secret. Do not submit sensitive information.
-Transcript responses use `Cache-Control: no-store`, which is not access control
-and does not prevent viewers from copying transcripts. Chat transcripts are
-stored for 30 days when the KV logging binding is enabled. Restore authentication
-before treating transcripts as private; access does not expire automatically.
+Visitor questions and answers are logged by AI Gateway and Workers Logs in the
+Cloudflare account; there is no public transcript endpoint. Do not submit
+sensitive information.
 
 The public chat endpoint's CORS policy is not authentication or abuse prevention.
 Regex injection checks are narrow heuristics, not a security boundary. No
@@ -634,9 +633,6 @@ Cloudflare edge abuse controls separately; do not infer they exist from this
 repository. The 20-character abstention check detects empty/short context, not
 whether evidence supports a claim. Quality evaluation remains developer-run,
 not an automatic production release gate.
-Chat logs store transcripts in KV values with small versioned metadata and unique
-keys; the logs API requires version-2 records stored in KV values and rejects legacy metadata-only entries with an explicit API error. Existing legacy keys are not migrated or deleted automatically.
-
 Generation accepts content deltas and aggregate usage, including the current Workers binding terminal usage summary after answer deltas. Response-only provider answers are no longer accepted. The widget's normalized response events and manually managed browser history remain unchanged.
 
 ### Local Development

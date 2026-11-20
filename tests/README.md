@@ -44,7 +44,6 @@ Keep detailed behavior tests with the module that owns it. Keep cross-module reg
 | `chat-controller.test.mjs`                                                                  | DOM-free conversation and request controller: lifecycle, retries, cancellation, offline, clearing                                     |
 | `chat-stream.test.mjs`, `chat-metrics.test.mjs`                                             | Provider SSE normalization, usage, costs, and timing                                                                                  |
 | `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior                                                               |
-| `log-service.test.mjs`, `logs-api.test.mjs`                                                 | KV persistence, pagination, public log access, and failures                                                                           |
 | `content-audit.test.mjs`, `rag-audit.test.mjs`, `makefile.test.mjs`                         | Content policies, provenance review, and build/test commands                                                                          |
 | `postcss.test.mjs`                                                                          | Production purging preserves theme-owned dark selectors and chat colors                                                               |
 | `menu-a11y.test.mjs`                                                                        | Native dialog open/close, menu button wiring, expanded state, and backdrop dismissal                                                  |
@@ -59,7 +58,7 @@ This table groups responsibilities rather than serving as an exhaustive file inv
 
 [helpers/corpus.mjs](helpers/corpus.mjs) creates isolated temporary content trees with test-owned cleanup. Use `corpusFixture(t, files)` for synthetic source trees and `integrityFixture(t)` for a small corpus plus Wrangler configuration. It does not modify the repository's real content or indexes.
 
-[helpers/mocks.mjs](helpers/mocks.mjs) provides injected AI, Vectorize, KV, request, and stream boundaries. [helpers/data.mjs](helpers/data.mjs) contains shared constants and builders. KV mocks reject writes unless `put` is explicitly configured; use test-scoped mocks to verify write arguments and counts.
+[helpers/mocks.mjs](helpers/mocks.mjs) provides injected AI, Vectorize, request, and stream boundaries. [helpers/data.mjs](helpers/data.mjs) contains shared constants and builders.
 
 ```javascript
 import { corpusFixture } from '../helpers/corpus.mjs';

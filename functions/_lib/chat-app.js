@@ -1,32 +1,32 @@
+import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
+import { secureHeaders } from 'hono/secure-headers';
 import { streamSSE } from 'hono/streaming';
-import { createApiApp } from './api-app.js';
 import { AppError, CONFIG, requireVectorizeBinding } from './application.js';
 import { isPromptInjectionAttempt, ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
 import { createSseMessageStream, DONE_PAYLOAD } from './chat-stream.js';
-import { saveChatLog } from './log.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
 
 /**
  * One chat turn: retrieve context, announce evidence, then either abstain or
- * generate. Returns the answer stream, wrapped for logging when a log store is
- * bound. Events leave through `emit`, so the route owns the transport.
+ * generate. Returns the answer stream. Events leave through `emit`, so the route owns the transport.
  */
-async function defaultAnswerChat({ aiService, env, executionCtx, query, history, signal, emit }) {
+async function defaultAnswerChat({ aiService, query, history, signal, emit }) {
     const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));
     await emit({ evidence });
 
-    let stream;
     if (shouldAbstainForMissingContext(contextText)) {
-        stream = createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
-    } else {
-        await emit({ progress: 'generation' });
-        stream = await aiService.generateStream(query, contextText, history, { signal });
+        return createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
     }
-    return env.CHAT_LOGS ? saveChatLog(env, query, stream, executionCtx) : stream;
+    await emit({ progress: 'generation' });
+    return aiService.generateStream(query, contextText, history, { signal });
 }
 
+const BODY_LIMIT_BYTES = 64 * 1024;
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 
 // Uses the Workers Cache API for retrieval results when it exists (it does not in plain Node).
@@ -38,7 +38,17 @@ const defaultCreateAiService = (env) =>
  * AI service, cache store, chat flow or origin list without touching the handler.
  */
 export function createChatApp({ createAiService = defaultCreateAiService, answerChat = defaultAnswerChat, allowedOrigins = ALLOWED_ORIGINS } = {}) {
-    const app = createApiApp('API Fatal');
+    const app = /** @type {Hono<{ Bindings: Env }>} */ (new Hono());
+
+    // www and the apex are one site, so same-site (not the same-origin default) keeps CORS-allowed calls readable.
+    app.use('*', secureHeaders({ crossOriginResourcePolicy: 'same-site' }));
+
+    // AppError and HTTPException messages are already client-safe; anything else is logged and reported as a generic 500.
+    app.onError((err, c) => {
+        if (err instanceof AppError || err instanceof HTTPException) return c.json({ error: err.message }, err.status);
+        console.error('API Fatal', { error: err, method: c.req.method, route: c.req.url, cause: err?.cause });
+        return c.json({ error: 'Internal Server Error' }, 500);
+    });
 
     app.use(
         '/api/chat',
@@ -50,69 +60,49 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
         }),
     );
 
-    app.post('/api/chat', async (c) => {
-        const env = c.env;
+    app.post(
+        '/api/chat',
+        bodyLimit({ maxSize: BODY_LIMIT_BYTES, onError: (c) => c.json({ error: 'Request body too large.' }, 413) }),
+        zValidator('json', ChatRequestSchema, (result, c) => {
+            if (!result.success) return c.json({ error: `Invalid query. Must be a string < ${CONFIG.QUERY.MAX_LENGTH} chars.` }, 400);
+        }),
+        async (c) => {
+            const env = c.env;
 
-        const contentLength = Number.parseInt(c.req.header('Content-Length') ?? '', 10);
-        const bodyLimit = 64 * 1024;
-        // Reject before buffering; the post-read check below still covers chunked bodies without a length.
-        if (contentLength > bodyLimit) {
-            return c.json({ error: 'Request body too large.' }, 413);
-        }
-        let raw;
-        try {
-            raw = await c.req.text();
-        } catch {
-            return c.json({ error: 'Request body could not be read.' }, 400);
-        }
-        if (raw.length > bodyLimit) {
-            return c.json({ error: 'Request body too large.' }, 413);
-        }
-        let body;
-        try {
-            body = JSON.parse(raw || '{}');
-        } catch {
-            return c.json({ error: 'Invalid JSON body.' }, 400);
-        }
-        const parsed = ChatRequestSchema.safeParse(body);
-        if (!parsed.success) {
-            return c.json({ error: `Invalid query. Must be a string < ${CONFIG.QUERY.MAX_LENGTH} chars.` }, 400);
-        }
-        const { query, history } = parsed.data;
+            const { query, history } = c.req.valid('json');
 
-        if (isPromptInjectionAttempt(query) || history.some((message) => isPromptInjectionAttempt(message.content))) {
-            return c.json({ error: 'Query rejected by guardrails.' }, 400);
-        }
-
-        if (!env?.AI) {
-            return c.json({ error: 'Service Unavailable: AI binding missing' }, 503);
-        }
-
-        const aiService = createAiService(env);
-        requireVectorizeBinding(env.VECTORIZE_INDEX);
-        return streamSSE(c, async (sse) => {
-            try {
-                const stream = await answerChat({
-                    aiService,
-                    env,
-                    executionCtx: c.executionCtx,
-                    query,
-                    history,
-                    signal: c.req.raw.signal,
-                    emit: (payload) => sse.writeSSE({ data: JSON.stringify(payload) }),
-                });
-                await sse.pipe(stream);
-            } catch (err) {
-                console.error('Chat Request Failed:', err);
-                if (!sse.aborted) {
-                    await sse.writeSSE({
-                        data: JSON.stringify({ error: err instanceof AppError ? err.message : 'The response could not be completed.' }),
-                    });
-                    await sse.writeSSE({ data: DONE_PAYLOAD });
-                }
+            if (isPromptInjectionAttempt(query) || history.some((message) => isPromptInjectionAttempt(message.content))) {
+                return c.json({ error: 'Query rejected by guardrails.' }, 400);
             }
-        });
-    });
+
+            if (!env?.AI) {
+                return c.json({ error: 'Service Unavailable: AI binding missing' }, 503);
+            }
+
+            const aiService = createAiService(env);
+            requireVectorizeBinding(env.VECTORIZE_INDEX);
+            return streamSSE(c, async (sse) => {
+                try {
+                    const stream = await answerChat({
+                        aiService,
+                        query,
+                        history,
+                        signal: c.req.raw.signal,
+                        emit: (payload) => sse.writeSSE({ data: JSON.stringify(payload) }),
+                    });
+                    await sse.pipe(stream);
+                } catch (err) {
+                    console.error('Chat Request Failed:', err);
+                    if (!sse.aborted) {
+                        await sse.writeSSE({
+                            data: JSON.stringify({ error: err instanceof AppError ? err.message : 'The response could not be completed.' }),
+                        });
+                        await sse.writeSSE({ data: DONE_PAYLOAD });
+                    }
+                }
+            });
+        },
+    );
 
     return app;
 }

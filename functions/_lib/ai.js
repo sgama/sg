@@ -18,6 +18,8 @@ export class AiService {
         this.ai = env.AI;
         this.vectorize = env.VECTORIZE_INDEX;
         this.namespace = env.AI_CORPUS_NAMESPACE;
+        // Routes model calls through AI Gateway (analytics, logs, retries) when a gateway id is configured.
+        this.runOptions = env.AI_GATEWAY_ID ? { gateway: { id: env.AI_GATEWAY_ID } } : {};
         this.model = getModel(env.AI_MODEL);
         this.contextualizationModel = getModel(AI_CONFIG.contextualization.model);
         this.metrics = createResponseMetrics({ model: this.model, rewriteModel: this.contextualizationModel });
@@ -27,7 +29,7 @@ export class AiService {
 
     async getEmbeddings(text) {
         try {
-            const { data } = await this.ai.run(AI_CONFIG.embedding.model, { text: [text] });
+            const { data } = await this.ai.run(AI_CONFIG.embedding.model, { text: [text] }, this.runOptions);
             const vector = data?.[0];
             if (!isValidEmbeddingVector(vector, AI_CONFIG.embedding.dimensions)) {
                 throw new Error('Invalid embedding response');
@@ -44,7 +46,7 @@ export class AiService {
         const begun = this.metrics.startRewrite();
         try {
             return await rewriteSearchQuery(query, history, this.contextualizationModel, async (modelId, input) => {
-                const response = await this.ai.run(modelId, input);
+                const response = await this.ai.run(modelId, input, this.runOptions);
                 this.metrics.rewrite({ begun, usage: response?.usage });
                 return response;
             });
@@ -119,7 +121,7 @@ export class AiService {
         const { signal } = options;
         const messages = buildMessages(query, contextText, history);
         try {
-            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages), { signal });
+            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages), { signal, ...this.runOptions });
             return normalizeChatStream(stream, {
                 onFirstToken: () => this.metrics.firstToken(),
                 onUsage: (usage) => this.metrics.generationUsed(usage),
