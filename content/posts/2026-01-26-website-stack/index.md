@@ -115,14 +115,14 @@ Build->>Build: make ci-check
 Note over Build, Vec: Refresh changed corpus; skip unchanged corpus
 Build->>Build: Parse content and compute corpus hash
 opt Corpus changed
-    Build->>AI: Generate embeddings
-    AI-->>Build: Return vectors
-    Build->>Vec: Upsert versioned records
-    Build->>Vec: Wait for indexing completion
+Build->>AI: Generate embeddings
+AI-->>Build: Return vectors
+Build->>Vec: Upsert versioned records
+Build->>Vec: Wait for indexing completion
 end
 
 Build->>CF: Deploy assets, Worker and matching namespace
-CF-->>Dev: Deployment Success 🚀
+CF-->>Dev: Deployment Success
 Build->>Vec: Delete older corpora (keep live and previous)
 {{< /mermaid >}}
 
