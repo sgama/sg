@@ -1,7 +1,7 @@
 ---
 title: "How I Run an Agentic AI Setup with OpenCode"
 date: 2026-10-25
-lastmod: 2026-10-26
+lastmod: 2026-11-20
 slug: "agentic-ai-config"
 description: "A map of the OpenCode configuration behind my AI coding workflow: one orchestrator, specialist agents, shared rules, tools, plugins, and how it is deployed."
 summary: "The agents, rules, tools, and provisioning that make up my agentic AI coding setup, and how the pieces connect."
@@ -9,7 +9,9 @@ tags: ["AI", "opencode", "agents", "reliability", "ansible"]
 showDate: true
 ---
 
-I do not use one chatbot for coding. I run a small team of agents. One orchestrator receives my request, splits the work, and hands pieces to specialists. Shared rules keep each agent small and checkable. The whole setup lives in a Git repository and is deployed with Ansible. This is a map of the tooling and its failure modes, not a measured productivity claim or an autonomous deployment system.
+I wanted coding tasks to move from broad discovery to bounded edits without giving every agent the same role or permissions. I run an orchestrator that delegates to specialist agents, with shared rules keeping each task scoped and checkable. I store the configuration in Git and deploy it with Ansible.
+
+The result is an agent-first coding workflow whose tools and failure modes this post maps. It is not a measured productivity claim or an autonomous deployment system.
 
 This post maps the parts, shows how they connect, and lists what I learned the hard way.
 

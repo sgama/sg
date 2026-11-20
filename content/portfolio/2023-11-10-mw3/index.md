@@ -18,19 +18,19 @@ Supported backend services and engineering platforms behind **Call of Duty: Mode
 
 ## 🛠️ What I Owned
 
-- **Load and capacity validation**: Ran distributed load tests against release-candidate services, including extended runs ahead of peak traffic windows.
-- **Fault injection**: Tested rate-limit behavior, HTTP error handling, and TLS failure paths by injecting failures into loaded services.
-- **Backend service changes**: Developed and reviewed Python microservice changes behind online features.
+- **Validated load and capacity**: Ran distributed load tests against release-candidate services, including extended runs ahead of peak traffic windows to gather evidence of capacity under tested conditions.
+- **Exercised failure modes**: Injected faults to test rate-limit behavior, HTTP error handling, and TLS failure paths under steady load.
+- **Improved backend services**: Developed and reviewed Python microservice changes behind online features, with safe rollout through the platform team’s deployment path.
 - **Incident response**: Triaged production incidents under live load and converted repeat failures into runbooks and alerting changes.
-- **Deployment standardization**: Standardized Kubernetes deployments with reusable Helm charts, templates, and shared configuration conventions.
+- **Standardized platform deployment**: Reused Helm charts, templates, and shared configuration conventions to reduce Kubernetes drift across services.
 
 ## 📈 Outcomes
 
-- Established capacity headroom and known failure modes before the launch window.
+- Gathered evidence of capacity under tested conditions and documented known failure modes before the launch window.
 - Reduced configuration drift across services through shared deployment templates.
 - Improved incident readiness by closing the gaps production incidents exposed.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

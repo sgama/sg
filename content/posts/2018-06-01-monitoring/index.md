@@ -12,7 +12,9 @@ tags: ["reliability", "operations", "prometheus", "infrastructure"]
 
 ![Featured image](featured.png)
 
-Monitoring is a broad topic in DevOps. I generally simplify it into four main categories:
+While running my [trading bot](/portfolio/2017-11-01-hft-bot/), I found that some services crashed silently. Docker Compose or Kubernetes could restart them, but repeated restarts still signaled a deeper problem. I wanted to know when a service was flapping or down without checking it manually.
+
+This post focuses on using Prometheus and AlertManager to surface those signals and point me to the logs for diagnosis. Monitoring is a broad topic in DevOps; I group it into four categories:
 
 ## 📈 Types of Monitoring
 
@@ -27,17 +29,13 @@ The focus of this post is **passive monitoring**. Unless your career depends on 
 
 ### Real-World Example: Trading Bot reliability
 
-While working on my [trading bot](/portfolio/2017-11-01-hft-bot/), I often found that some microservices would crash silently. This isn't a huge issue with orchestrators like Docker Compose or Kubernetes, as the service will simply be restarted automatically.
-
-However, repeated restarts are a symptom of a deeper problem. Microservices shouldn't just "turn off and on again" constantly.
-
-**The question becomes**: How would I know if services were restarted 50 times last night?
+Repeated restarts are a symptom, not a diagnosis. An orchestrator can restart a service, but it does not explain why it keeps failing.
 
 ## ✅ The Solution: Prometheus + AlertManager
 
-One approach is to check Docker logs or `kubectl get pods` manually, but that's not practical—especially from a phone while at dinner.
+I could check Docker logs or `kubectl get pods` manually, but that would make me poll the system to discover a failure.
 
-**The Better Approach**: Prometheus with AlertManager. It can inform me that my services are unstable (flapping) or not behaving as expected, prompting me to check the logs to debug further.
+**My approach**: Prometheus with AlertManager can notify me when services flap, targets go down, or a threshold is crossed. I still need to inspect logs to find the cause; the alert makes the problem visible, not self-diagnosing.
 
 {{< mermaid >}}
 flowchart LR
@@ -65,9 +63,9 @@ flowchart LR
 
 ## ✨ Implementation Benefits
 
-- **Proactive**: Catch issues before they impact users.
+- **Earlier signal**: Surface configured symptoms before I notice them manually.
 - **Remote**: Monitor from anywhere via mobile alerts (Slack/PagerDuty).
-- **Automated**: No manual checking required; the system watches itself.
+- **Less polling**: Alert on configured conditions instead of repeatedly checking dashboards.
 - **Scalable**: Works across multiple services and environments without extra effort.
 
 **Bottom line**: If you don't have passive monitoring yet, you're flying blind and wasting time on manual checks that could be automated.

@@ -12,26 +12,24 @@ tags: ["ansible", "operations", "docker", "automation", "reliability"]
 
 ![Featured image](featured.jpg)
 
-I've been working with Linux since 2008. Back then, I mostly used a spare machine to run FreeNAS, Apache, MySQL, Python to host a static or Wordpress website.
+By 2015, I was starting VPSes for small projects and even short-lived proofs of concept. Each server meant repeating the same bootstrap by hand: create a user, disable root login, configure SSH keys and the firewall. That took 30 minutes to an hour, depending on what I remembered.
 
-Then as I got more invested with projects running on Linux, I started to set up VPSes to start hosting online in 2011. Every time, it was the same process. Login as root, set up new user, disable root, set up PKA, enable firewall... etc. Took about 30min-1hour depending on how much of the process I remembered. I continued this process till 2015.
-
-By this point, I was starting VPSes for every small project. Even if I wanted a scratch Linux server to work on a proof of concept to run for a couple of hours. I often needed a VPS to make it accessible by all viewers. After all, what good is a REST API if it's only accessible to your internal network. Heroku existed at the time, however I wasn't fond of the CPU/Memory restrictions available on the free tier.
+I had been working with Linux since 2008, but manual setup had become friction every time I wanted a public server. Heroku existed, but its free-tier CPU and memory limits did not suit what I wanted to run.
 
 ## ✅ The Solution: Ansible
 
-In comes Ansible and Ansible-Playbooks, "the simplest way to automate apps and IT infrastructure".
+I chose Ansible and Ansible Playbooks to replace that repeated setup with configuration files.
 
-I'll skip the details for now but with Ansible I was able to write my default setup as config files. Include my SSH Keys, and b64-ed passwords. Run the playbook and it takes care of the rest.
+I put my default setup and SSH keys in a playbook, then ran it to configure each new VM. (I also stored passwords as base64-encoded values; base64 is encoding, not encryption.)
 
-Now my **1 hour server setup takes 2 minutes** (times may vary based on CPU power of your VM). I no longer cringe at the idea of setting up a new VPS/VM to work on.
+My setup went from as long as an hour to about **2 minutes** (VM performance can affect the run). That made spinning up a VPS for a short project practical without repeating each step manually.
 
 ## ✨ Key Benefits
 
-- **Time Savings**: Reduced setup time by 97% (60 minutes → 2 minutes)
+- **Time Savings**: A setup that could take up to 60 minutes took about 2 minutes
 - **Consistency**: Every server configured identically
 - **Reproducibility**: Playbooks serve as infrastructure documentation
-- **Error Reduction**: Eliminates manual configuration mistakes
+- **Error Reduction**: Replaces repeated manual steps with a defined playbook
 
 I wish I knew about this sooner as I could have potentially saved **days of my life**.
 

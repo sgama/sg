@@ -2,6 +2,7 @@
 title: "Building a Reproducible Infra Lab with Packer, Terraform, Ansible, and Docker Compose"
 date: 2021-06-06
 slug: "homelab"
+description: "A guide to structuring a reproducible infrastructure lab with image baking, provisioning, configuration management, and service orchestration."
 summary: "A deep-dive on structuring a reproducible infrastructure lab using image baking, provisioning, configuration management, and service orchestration."
 tags: ["packer", "terraform", "ansible", "docker", "reliability", "infrastructure"]
 categories: ["Infrastructure", "Automation"]
@@ -11,14 +12,14 @@ categories: ["Infrastructure", "Automation"]
 
 ## 📋 Overview
 
-A reliable infrastructure lab is built on **repeatable, auditable, and layered automation**. The most effective way to achieve this is to separate concerns into four distinct layers:
+The hard part of rebuilding an infrastructure lab is keeping base images, provisioned hosts, OS configuration, and application services consistent without coupling every change together. This guide separates those concerns into four layers so each stage has a defined input and output and can be rerun independently:
 
 1. **Image Baking** (Packer) — produce a minimal, consistent base image.
 2. **Infrastructure Provisioning** (Terraform) — create compute, storage, and network resources.
 3. **Configuration Management** (Ansible) — apply OS hardening and tool installation.
 4. **Service Orchestration** (Docker Compose) — run application stacks with minimal drift.
 
-This guide walks through an end-to-end architecture you can build and expand over time. The flow is straightforward and safe to extend.
+This is a generic architecture you can build and extend, not a report of measured production scale.
 
 ---
 

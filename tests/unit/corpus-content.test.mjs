@@ -30,7 +30,7 @@ test('canonical resume uses the same addressable parent sections as other source
 
 test('homepage ingestion retains introductory prose without recreating presentation controls', async () => {
     const homepage = ingestionText((await readFile(new URL('../../content/_index.md', import.meta.url), 'utf8')).split('---').slice(2).join('---'));
-    assert.match(homepage, /I build scalable/);
+    assert.match(homepage, /My experience includes backend services/);
     assert.doesNotMatch(homepage, /<section|<div|<svg|Ask AI\n/);
 });
 

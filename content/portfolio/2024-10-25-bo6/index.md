@@ -18,11 +18,11 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 
 ## 🛠️ What I Owned
 
-- **Distributed load testing**: Validated release-candidate services with the internal load-testing platform in Go, Kubernetes, and Redis, including sustained runs at high request rates.
-- **Fault injection**: Simulated latency, traffic spikes, HTTP errors, and TLS failures to find cascading failures before players did.
-- **Backend service changes**: Contributed Python microservice changes behind online features, with code review and staged rollout.
+- **Validated launch capacity**: Ran distributed load tests with the internal Go, Kubernetes, and Redis platform, including sustained runs at high request rates to prove service headroom.
+- **Exercised failure modes**: Simulated latency, traffic spikes, HTTP errors, and TLS failures to find cascading failures before players did.
+- **Improved backend services**: Contributed Python microservice changes behind online features, with code review and staged rollout.
 - **Incident response**: Diagnosed production incidents during live traffic and fed the results back into alerting, runbooks, and platform fixes.
-- **Deployment standardization**: Applied reusable Helm charts and templates to reduce drift between services and environments.
+- **Standardized platform deployment**: Applied reusable Helm charts and templates to reduce drift between services and environments.
 
 ## 📈 Outcomes
 
@@ -30,7 +30,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 - Reduced repeat operational work by automating provisioning and deployment paths.
 - Strengthened production signal quality on the critical service paths.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

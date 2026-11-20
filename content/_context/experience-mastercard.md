@@ -1,5 +1,5 @@
 ---
-title: "Samson Gama at Mastercard: AWS Reliability and Operational Tooling"
+title: "Samson Gama at Mastercard: AWS Reliability and Fraud Detection Infrastructure"
 description: "Nudata Security infrastructure, traffic mirroring and security education work."
 draft: false
 retrievalSource: "content/resume/_index.md"
@@ -19,7 +19,7 @@ regions with CloudFormation and SaltStack, including backup strategies,
 disaster recovery procedures and operational runbooks.
 
 He architected and deployed an AWS VPC Traffic Mirroring environment using
-CloudFormation, replicating production load-balancer traffic into isolated
+CloudFormation to replicate production load-balancer traffic into isolated
 environments while discarding mirrored responses. That enabled realistic
 application testing, production bug reproduction and safer deployments.
 
@@ -33,4 +33,3 @@ He led bi-weekly technical sessions on offensive security, covering practical
 attack techniques and defensive engineering awareness.
 
 Source: [resume](/resume/), reviewed 2026-11-19.
-

@@ -1,6 +1,6 @@
 ---
 title: "FinTech: Algorithmic Trading Bot"
-summary: "High-frequency crypto trading system achieving consistent returns via ML-driven pattern matching, built on a Go/InfluxDB microservices architecture."
+summary: "Built a Go-based crypto trading stack that processed live market data and surfaced signals through a nine-service pipeline."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -13,32 +13,29 @@ tags: ["fintech", "machine-learning"]
 ![Algorithmic crypto trading bot signals on market data charts](featured.webp)
 {{< figure src="/portfolio/2017-11-01-hft-bot/hft_btc_grafana.webp" title="Real-time Monitoring Dashboard" >}}
 
-This project is a high-frequency trading (HFT) system designed to capitalize on volatility in the cryptocurrency markets. It evolved from a simple Python scraper into a robust distributed system capable of processing market data in nanoseconds.
+I built this high-frequency trading (HFT) system to capture volatility in cryptocurrency markets while keeping latency and operational risk under control. It grew from a simple Python scraper into a distributed system that processed live market data and backtested strategies at scale.
 
 ## 🔄 System Evolution
 
 ### 1. Data Engineering Limitations
 
-I initially started with Python and PostgreSQL, but the sheer volume of tick data (Level 2 order books) created a bottleneck.
+I started with Python and PostgreSQL, but the volume of tick data from Level 2 order books created a clear bottleneck.
 
-- **The Pivot**: Migrated to **Golang** for its raw performance and concurrency primitives.
-- **Storage**: Switched to **InfluxDB** (Time Series Database) to handle millions of data points effectively without the write-lock overhead of relational databases.
+- **The Pivot**: Moved the core system to **Golang** to take advantage of its performance and concurrency primitives.
+- **Storage**: Switched to **InfluxDB** to handle millions of data points without the write-lock overhead of relational databases.
 
 ### 2. Strategy & Analysis
 
-Accumulating a 40GB+ dataset allowed for rigorous backtesting.
-
-- **Pattern Matching**: Implemented algorithms to detect arbitrage opportunities and specific "market maker" patterns.
-- **Machine Learning**: Utilized sentiment analysis and risk assessment models to filter trade signals.
-- **Performance**: The bot achieved **0.5% weekly returns** (net of fees) during the testing period.
+- **Pattern Matching**: Implemented algorithms to detect arbitrage opportunities and market-maker patterns.
+- **Machine Learning**: Used sentiment analysis and risk-assessment models to filter trade signals.
 
 ## 🏗️ Architecture
 
-The system is composed of nine specialized microservices communicating via a message bus.
+The platform used nine specialized microservices communicating over a message bus.
 
 - **Ingestion**: Co-located VPS instances near exchange servers to minimize network latency.
-- **Monitoring**: Full observability stack using **Grafana** to track "Tick-to-Trade" latency and system health.
-- **ChatOps**: Integrated with **Slack** to broadcast trade decisions and predictive signals in real-time.
+- **Monitoring**: Built an observability stack with **Grafana** to track tick-to-trade latency and system health.
+- **ChatOps**: Integrated **Slack** to broadcast trade decisions and predictive signals in real time.
 
 **Tech Stack:**
 

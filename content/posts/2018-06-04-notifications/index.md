@@ -12,9 +12,7 @@ tags: ["notifications", "operations", "alertmanager", "slack", "automation", "re
 
 ![Featured image](featured.webp)
 
-**Notifications make monitoring useful.**
-
-Without proper alerting, even the best monitoring setup is just a collection of pretty dashboards that nobody looks at until it's too late.
+When my trading bot bought or sold, triggered a stop-loss, or hit an error state, I wanted the event and its context without sitting in front of a dashboard. I sent those events to Slack. For infrastructure monitoring, this post shows how AlertManager can route alerts to notification services. The result is a timely, actionable message; it does not remove the need to investigate or respond.
 
 ## 📈 Passive Monitoring Integration
 
@@ -45,7 +43,7 @@ Other times you may want to know about business-critical events:
 
 ### Real-World Example: Trading Bot Alerts
 
-In my trading bot implementation, I configured specific triggers:
+For my trading bot, I configured specific triggers:
 
 **Trade Execution Alerts:**
 
@@ -77,7 +75,7 @@ In my trading bot implementation, I configured specific triggers:
 
 ## 📊 Implementation Results
 
-This approach has allowed me to:
+These notifications let me:
 
 - **Avoid SSH sessions** while out and about.
 - **Skip opening Grafana/Kibana** constantly to check health.

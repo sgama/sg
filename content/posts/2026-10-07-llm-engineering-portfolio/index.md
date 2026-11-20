@@ -11,9 +11,9 @@ series: ["Cloudflare Developments"]
 showDate: true
 ---
 
-An LLM integration is not finished when a prompt returns a plausible answer. It needs a reproducible knowledge pipeline, a stable API contract, measurable quality, and a deployment that cannot silently serve broken data.
+The problem I had to solve was not getting a plausible answer from a prompt; it was making the portfolio chat retrieve relevant repository evidence, stream a stable response, and avoid serving a mismatched corpus after deployment. I built a versioned retrieval pipeline around **Hugo, a Cloudflare Worker with static assets, Workers AI (through AI Gateway), and Vectorize**.
 
-This portfolio uses **Hugo, a Cloudflare Worker with static assets, Workers AI (through AI Gateway), and Vectorize**. The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights.
+The repository builds the application and its retrieval corpus; it does **not** train an LLM or build model weights. The sections below describe the implementation and its limits, not a claim that the system guarantees factual answers.
 
 ## 📌 How a question becomes an answer
 
@@ -23,7 +23,7 @@ Browser question
   -> Worker: validate input
   -> Workers AI: rewrite a follow-up into a standalone search question
   -> Workers AI: embed the search question
-  -> Vectorize: retrieve five matches from the deployed corpus namespace
+  -> Vectorize: retrieve the configured top five matches from the deployed corpus namespace
   -> Expand matching excerpts into bounded source sections; deduplicate
   -> Prompt: system instructions + retrieved text + history + original question
   -> Workers AI: generate a streamed answer
@@ -37,7 +37,7 @@ The embedding model is `@cf/baai/bge-base-en-v1.5`, producing **768-dimensional 
 
 The shared registry supports GLM, Gemma, and Llama aliases. GLM is the default; GLM and Gemma have thinking disabled. Generation has a **512-token completion budget**, using each provider's supported parameter name.
 
-Retrieval selects **top three matches** and limits assembled context to **12,000 characters**, with expanded sections capped at **6,000 characters** each. Character limits are not token limits. The current implementation has no reranker, hybrid lexical search, or calibrated similarity threshold.
+Retrieval selects the configured **top five matches** and limits assembled context to **12,000 characters**, with expanded sections capped at **6,000 characters** each. Character limits are not token limits. The current implementation has no reranker, hybrid lexical search, or calibrated similarity threshold.
 
 Insufficient context triggers an explicit abstention without calling the answer model. Missing service bindings return HTTP errors before streaming begins. Failures after the SSE connection opens produce an error event, not a fabricated answer or an empty successful response.
 

@@ -12,9 +12,9 @@ tags: ["cicd", "travis-ci", "jenkins", "docker", "kubernetes", "automation", "re
 
 ![Featured image](featured.png)
 
-Every time a developer changes code, they commit it and push it upstream to a repository. From there, they typically create a Pull Request (PR) for other developers to review. After the PR is approved, the code is merged into the `develop` or `main` branches.
+Before CI/CD, my deployment workflow required me to SSH into production, pull the code, build Docker images on the server, and run `docker-compose up -d`. That put repetitive manual work and image builds on the live host, so I would deploy less often to avoid the hassle.
 
-**Without continuous integration and deployment**, that new code involves a manual verification process for integration and a manual deployment step. This is generally a tedious, repetitive, and error-prone task.
+This guide shows the alternative I recommend: run checks and build versioned images on an isolated CI runner, then automate the rollout and report failures. That removes image-building work from production and makes each deployment repeatable; it does not by itself guarantee a safe rollback or zero downtime.
 
 ## 🚀 The Problem: Manual Deployment Hell
 
@@ -41,7 +41,7 @@ Before implementing automation, my workflow looked something like this:
 
 ## ✅ The Solution: Automated CI/CD
 
-Once CI/CD is configured properly, a Pull Request can go through the process of integration testing and deployment **automatically**. If anything fails, notifications are sent instantly via Slack, PagerDuty, or your tool of choice.
+With CI/CD, a Pull Request can trigger integration tests and an image build automatically. A pipeline can then deploy the versioned artifact and notify the team if a step fails; production still needs an appropriate rollout and recovery strategy.
 
 {{< mermaid >}}
 flowchart LR

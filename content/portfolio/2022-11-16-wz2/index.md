@@ -18,11 +18,11 @@ Supported backend services and engineering platforms behind **Call of Duty: Warz
 
 ## 🛠️ What I Owned
 
-- **High-concurrency load validation**: Stress-tested services for sustained concurrent traffic with the internal load-testing platform built in Go, Kubernetes, and Redis.
-- **Failure-mode testing**: Used configurable fault injection for latency, traffic spikes, HTTP errors, and TLS failures to check degraded-service behavior.
-- **Backend service changes**: Contributed to Python microservices behind online features, with review and safe rollout through standardized deployments.
-- **Incident response**: Investigated production incidents during live traffic and turned the causes into runbook and alerting updates.
-- **Deployment standardization**: Applied reusable Helm charts and templates across services to reduce configuration drift.
+- **Stress-tested high-concurrency traffic**: Ran sustained load validation with the internal Go, Kubernetes, and Redis platform to size capacity and expose bottlenecks before peak demand.
+- **Exercised failure modes**: Used configurable fault injection for latency, traffic spikes, HTTP errors, and TLS failures to verify degraded-service behavior under load.
+- **Improved backend services**: Contributed Python microservice changes behind online features, with review and safe rollout through standardized deployments.
+- **Incident response**: Investigated production incidents during live traffic and turned recurring failures into runbook and alerting updates.
+- **Standardized platform deployment**: Applied reusable Helm charts and templates across services to reduce configuration drift.
 
 ## 📈 Outcomes
 
@@ -30,7 +30,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Warz
 - Reduced repeat operational toil through automated deployment and provisioning workflows.
 - Improved production signal quality for the services the release depended on.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

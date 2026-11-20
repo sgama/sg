@@ -10,7 +10,9 @@ slug: "insertingdata"
 tags: ["database", "influxdb", "mongodb", "postgresql", "performance", "fintech", "timeseries", "sql", "nosql"]
 ---
 
-*Disclaimer: I didn't run synthetic benchmarks in High Availability (HA) mode for Proof of Concepts (POC). This post reflects my practical experience working with massive datasets for my HFT Trading Bot.*
+My trading bot needed to store time-indexed candles, trades, and orders, then prune old records without losing data or slowing the workload. I compared MongoDB, PostgreSQL, and InfluxDB against that practical workload and chose InfluxDB for its time-series retention and observed ingest behavior.
+
+*Disclaimer: These were practical proof-of-concept comparisons, not synthetic benchmarks in High Availability (HA) mode.*
 
 ## 📊 The Data Challenge
 
@@ -61,7 +63,7 @@ Storing this much data indefinitely is expensive and unnecessary for my algorith
 
 **Pros:**
 
-- **Reliability**: ACID compliance meant zero data loss.
+- **Reliability**: ACID transactions provided the consistency guarantees I wanted.
 - **Simplicity**: Standard SQL for inserting, querying, and deleting was easy to implement.
 - **Tools**: Excellent ecosystem and client libraries.
 

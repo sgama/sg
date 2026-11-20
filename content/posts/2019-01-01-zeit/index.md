@@ -12,14 +12,9 @@ tags: ["reliability", "lambda", "serverless", "faas", "zeit", "vercel"]
 
 > **Update 2020:** Zeit has rebranded to [Vercel](https://vercel.com). The `now` command and `zeit.co` URLs referenced below correspond to the platform's state in 2019.
 
-Let me introduce you to this amazing service called [zeit.co AKA ZEIT NOW](https://zeit.co).
+When a Docker base image such as `alpine` changed, I wanted to trigger rebuilds of my personal projects that depended on it and see the changelists. I connected [MicroBadger](https://microbadger.com/) to a function on [ZEIT NOW](https://zeit.co): MicroBadger sends a POST request, and the function starts the builds and sends the changelists to Slack.
 
-I currently use it with another free online service called [MicroBadger](https://microbadger.com/), a service I use to trigger custom Docker builds after a base image such as `alpine` has been updated.
-This allows all my personal projects to be on the latest base image, potentially improving performance and security.
-
-The Microservice sends a POST request to a function hosted on ZEIT NOW, and that function runs a bunch of tasks: invoking new builds of personal projects that depend on that image, grabbing changelists, and sending all that information to Slack.
-
-I won't show you how to do that, but I'll show you how to get started with a full CI/CD pipeline.
+I chose ZEIT NOW for this glue because I could start using its serverless functions without entering credit card information. This post shows how to deploy a sample function and connect it to a CI/CD workflow; the platform and command names below reflect the 2019 service.
 
 ---
 

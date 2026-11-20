@@ -1,6 +1,6 @@
 ---
 title: "Capstone: Contextual Ad Targeting Engine"
-summary: "Machine Learning SaaS platform capable of inferring context (time, location, sentiment) from text/images to optimize ad targeting."
+summary: "Built a contextual ad-targeting engine that inferred time, location, and sentiment from text and image content."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -12,28 +12,28 @@ tags: ["machine-learning", "nlp", "tensorflow", "backend"]
 
 ![Interface of the contextual ad targeting machine-learning platform](featured.webp)
 
-For my UBC Engineering final year project, our team built a **Contextual Inference Engine**. This SaaS platform analyzed unstructured user content (text and images) to extract metadata—Time, Location, and Sentiment—to serve highly relevant advertising parameters.
+For my UBC Engineering final year project, my team built a **Contextual Inference Engine**. This SaaS platform analyzed unstructured user content to extract metadata—time, location, and sentiment—and turned it into actionable ad-targeting signals.
 
 ## 🏗️ Technical Architecture
 
-The system was designed as a modern microservices application.
+We designed the system as a modern microservices application.
 
 ### 1. Model Ensemble
 
-We didn't rely on a single model. Instead, we orchestrated a pipeline of various AI services and custom models:
+We did not rely on a single model. Instead, we orchestrated a pipeline of AI services and custom models:
 
-- **Third-Party APIs**: Integrated **Microsoft Azure Cognitive Services**, **Amazon Rekognition**, and **IBM Watson** for robust baseline analysis.
-- **Custom Models**: Built specialized models using **Google TensorFlow** and **SyntaxNet** (for dependency parsing) to refine sentiment analysis and entity extraction.
+- **Third-Party APIs**: Integrated **Microsoft Azure Cognitive Services**, **Amazon Rekognition**, and **IBM Watson** for baseline analysis.
+- **Custom Models**: Built specialized models using **Google TensorFlow** and **SyntaxNet** to refine sentiment analysis and entity extraction.
 
 ### 2. Cloud Native Deployment
 
-- **Containerization**: All services were Dockerized for consistency across development and production.
-- **Orchestration**: Deployed on a **Kubernetes** cluster to manage scaling and service discovery.
-- **CI/CD**: Configuring **TravisCI** for automated testing and deployment pipelines.
+- **Containerization**: Dockerized all services to keep development and production behavior consistent.
+- **Orchestration**: Deployed the stack on a **Kubernetes** cluster to automate scaling and service discovery.
+- **CI/CD**: Configured **TravisCI** for automated testing and deployment pipelines.
 
 ## 📈 Outcome
 
-We successfully built a working prototype that could take a raw image or text snippet and output structured JSON targeting data (e.g., "User is happy, at a beach, during sunset -> Suggest Sunscreen or Travel Ads").
+We built a working prototype that could take a raw image or text snippet and output structured JSON targeting data, such as a beach-side sunset signal driving sunscreen or travel ads.
 
 **Tech Stack:**
 

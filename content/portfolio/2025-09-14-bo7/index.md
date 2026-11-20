@@ -18,11 +18,11 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 
 ## 🛠️ What I Owned
 
-- **Launch-scale load validation**: Ran distributed load tests with the internal platform in Go, Kubernetes, and Redis to establish capacity for peak traffic.
-- **Fault injection**: Tested services under injected latency, HTTP errors, and TLS failures, including rate-limit and cascading-failure behavior.
-- **Backend service changes**: Developed and reviewed Python microservice changes behind online features.
-- **Incident response**: Triaged production incidents during live traffic and converted repeat failures into permanent alerting and runbook changes.
-- **Deployment standardization**: Standardized Kubernetes deployments with reusable Helm charts, templates, and conf.d configuration conventions.
+- **Validated launch-scale capacity**: Ran distributed load tests with the internal Go, Kubernetes, and Redis platform to establish capacity for peak traffic and live-event surges.
+- **Exercised failure modes**: Tested services under injected latency, HTTP errors, and TLS failures, including rate-limit and cascading-failure behavior.
+- **Improved backend services**: Developed and reviewed Python microservice changes behind online features, with safe rollout through standardized deployment paths.
+- **Incident response**: Triaged production incidents during live traffic and converted repeat failures into alerting and runbook changes.
+- **Standardized platform deployment**: Reused Helm charts, templates, and conf.d configuration conventions to reduce drift across backend services.
 
 ## 📈 Outcomes
 
@@ -30,7 +30,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 - Reduced operational toil through automated provisioning and consistent deployment patterns.
 - Improved incident follow-through by closing the failure modes production exposed.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

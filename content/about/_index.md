@@ -1,6 +1,6 @@
 ---
 title: "About"
-summary: "Senior software engineer working on backend services, distributed systems, Kubernetes platforms, and production reliability"
+summary: "Senior software engineer building backend services, distributed systems, Kubernetes platforms, and applied RAG systems"
 showDate: false
 ---
 
@@ -8,19 +8,22 @@ showDate: false
 
 ## Hi, I'm Samson 👋
 
-I'm a software engineer with 8+ years building backend services and the platforms they run on: distributed systems, Kubernetes, cloud infrastructure, and the reliability work that keeps them up. I write Go and Python, but I care less about the language than about whether the system holds under load, fails in understood ways, and stays maintainable after the launch window.
+I'm a senior software engineer with 8+ years building production software and the platforms behind it. My career has moved from fraud systems at Mastercard, through the live-service platform powering Call of Duty at Demonware, to NVIDIA GPU infrastructure for AI/HPC workloads at Bitcomplete (Mar–Jun 2026). I have built backend services, distributed systems, and Kubernetes platforms, and supported their operation and incident response.
 
-Right now I'm also building AI features myself rather than reading about them, including the retrieval-augmented assistant on this site. The site is a working artifact: the same corpus pipeline, evaluation harness, and deployment I would want on a product team.
+I work at the boundary between application engineering and infrastructure: automating delivery, making systems observable, and designing for load and failure. I also build applied AI systems, including this site's retrieval-augmented assistant and its versioned knowledge pipeline. That combination points naturally toward large data and AI platforms built with multi-cloud infrastructure, DevOps-first practices, and automation.
+
+I also run an agentic coding workflow with specialist agents, shared rules, and explicit checks. It is designed to keep automation bounded and reviewable, not to let agents deploy unreviewed changes.
 
 ---
 
 ## 💼 What I Bring
 
-I work across the boundary between application code and infrastructure, which is usually where the hard problems live.
+I connect application code to the infrastructure and operational practices that keep it dependable at scale.
 
-- 📈 **Owned production services under real traffic**, including a distributed load-testing platform that generated up to 10 million requests per minute for 10+ teams, and incident response during peak live events
-- ⚙️ **Built backend systems in Go and Python**, from that load-testing platform and its fault-injection capabilities to a microservice rewrite that increased throughput 10x and cut CPU and memory use by 50%
-- ☁️ **Ran Kubernetes and cloud infrastructure in production**, including centralized GitOps across 20 bare-metal clusters, with Terraform, ArgoCD, and Helm across AWS, GCP, and GPU environments
+- 📈 **Built systems for fraud detection and game services supporting millions of concurrent players**
+- ⚙️ **Scaled backend and testing platforms**, including a distributed load-testing system that served 10+ teams with up to 10 million requests per minute and fault injection for failure testing
+- ☁️ **Automated production infrastructure**, including centralized GitOps across 20 bare-metal Kubernetes clusters, multi-region AWS services, and GPU infrastructure for AI/HPC workloads
+- 🤖 **Applied AI engineering in a working product**, building this site's RAG assistant with retrieval evaluation, versioned data releases, and safe abstention
 - 🔐 **Handled security as engineering work**, with an OSCP background, offensive-security training, and hardening built into the systems rather than bolted on afterward
 
 {{< button href="/resume" target="_self" >}}
@@ -51,7 +54,7 @@ Threat models belong in the design review, not in a separate audit a quarter lat
 | | |
 | --- | --- |
 | **💻 Backend & Systems** | Go • Python • Rust • C/C++ • Distributed systems • Performance engineering |
-| **☁️ Platform & Infrastructure** | Kubernetes • Docker • Terraform • Ansible • AWS • GCP • ArgoCD • GitOps |
+| **☁️ Platform & Infrastructure** | Kubernetes • Docker • Terraform • Ansible • AWS • GCP • Azure • ArgoCD • GitOps |
 | **🗄️ Data & Messaging** | PostgreSQL • MySQL • MongoDB • Redis • Cassandra • Kafka • Vitess |
 | **📊 Observability & Reliability** | Prometheus • Grafana • OpenTelemetry • Load testing • Incident response |
 | **🤖 AI Engineering** | RAG • Embeddings • Vector search • Cloudflare Workers AI • Retrieval and cost evaluation |

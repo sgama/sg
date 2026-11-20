@@ -1,6 +1,6 @@
 ---
 title: "Bitcomplete"
-summary: "Operated a cloud AI infrastructure platform serving GPU-resale providers: centralized GitOps across 20 bare-metal Kubernetes clusters, customer onboarding automation, NVIDIA GPU troubleshooting, and incident response."
+summary: "Centralized GitOps across 20 bare-metal Kubernetes clusters, customer onboarding, and NVIDIA GPU troubleshooting for AI/HPC workloads."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -14,16 +14,15 @@ tags: ["backend", "AI", "infrastructure", "reliability"]
 
 ## 🎯 Scope
 
-Operated and improved a cloud AI infrastructure platform serving AI-native teams and neo-cloud providers reselling excess GPU capacity. The work covered Kubernetes platform operations across 20 bare-metal clusters, GPU troubleshooting on NVIDIA Hopper and Blackwell, customer onboarding, and production incident response for training and inference workloads.
+Supported GPU infrastructure for AI/HPC workloads, including Kubernetes GitOps across 20 bare-metal clusters, NVIDIA GPU troubleshooting, customer onboarding, and incident-response workflows.
 
 ## 🛠️ What I Owned
 
 - **Centralized GitOps across clusters**: Architected management of 20 bare-metal Kubernetes clusters through a single management cluster, replacing independent ArgoCD deployments and eliminating nearly 20 redundant controllers.
-- **Customer onboarding**: Designed a workflow using isolated customer repositories against a shared platform monorepo, reducing new customer onboarding from roughly one day to 15 minutes and a small number of pull requests.
-- **GPU troubleshooting**: Supported NVIDIA Hopper and Blackwell workloads, diagnosing issues across NVLink, InfiniBand, NVIDIA drivers, and Slurm.
-- **Operational readiness**: Standardized runbooks, alerting, and incident-response workflows for AI/HPC training and inference workloads.
-- **Platform operations**: Provisioned, configured, and operated Kubernetes clusters and containerized workloads across heterogeneous infrastructure, automating cluster provisioning and lifecycle work that had been manual.
-- **Incident follow-through**: Investigated customer-facing incidents across networking, storage, scheduling, and system layers, then fed findings into postmortems, runbooks, and prevention work.
+- **Automated customer onboarding**: Designed a workflow using isolated customer repositories against a shared platform monorepo, cutting new customer onboarding from roughly one day to 15 minutes and a small number of pull requests.
+- **Troubleshot GPU workloads**: Diagnosed NVIDIA Hopper and Blackwell issues across NVLink, InfiniBand, NVIDIA drivers, and Slurm.
+- **Raised operational readiness**: Standardized runbooks, alerting, and incident-response workflows for training and inference workloads to shorten diagnosis and handoff.
+- **Closed the loop on incidents**: Investigated customer-facing incidents across networking, storage, scheduling, and system layers, then fed findings into postmortems, runbooks, and prevention work.
 
 ## 📈 Outcomes
 

@@ -6,7 +6,7 @@ showDate: false
 
 ## Did we meet somewhere
 
-I’d love to chat! Just fill out the form, and feel free to share how we met or what brought you to my site.
+I’m open to conversations about large-scale backend and data platforms, AI infrastructure, Kubernetes, and automation in production. Send a message, and include what brought you to my site or the problem your team is solving.
 
 
 <div class="contact">

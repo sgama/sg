@@ -1,6 +1,6 @@
 ---
 title: "Internship: OpenStack Virtual Router Plugin"
-summary: "Developed a Neutron SDN plugin for managing virtual Ericsson routers, streamlining network configuration in cloud environments."
+summary: "Implemented an OpenStack Neutron plugin to automate lifecycle management for virtual Ericsson routers in telecom SDN environments."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -12,14 +12,14 @@ tags: ["backend", "networking", "kubernetes"]
 
 ![OpenStack Neutron diagram of the Ericsson virtual router plugin](featured.webp)
 
-During my internship at **Ericsson**, I worked on integrating their telecommunications hardware into the cloud via OpenStack.
+During my internship at **Ericsson**, I built the control-plane glue between **OpenStack** and virtualized Ericsson routers.
 
 ## 🤝 Key Contributions
 
 ### 1. Neutron Plugin Development
 
-- **Software Defined Networking (SDN)**: Co-developed a plugin for **OpenStack Neutron**, the networking component of OpenStack. This plugin allowed OpenStack to act as a control plane for managing virtualized Ericsson routers.
-- **API Integration**: The plugin translated standard OpenStack API calls into specific configuration commands for the Ericsson routing hardware.
+- **Software Defined Networking (SDN)**: Implemented a plugin for **OpenStack Neutron** that let OpenStack manage virtual Ericsson routers as a programmable network control plane.
+- **API Integration**: Mapped standard OpenStack API calls to the specific configuration commands required by Ericsson routing hardware.
 
 {{< mermaid >}}
 flowchart LR
@@ -30,12 +30,12 @@ flowchart LR
 
 ### 2. Testing & Automation
 
-- **Integration Testing**: Enhanced the team's CI/CD pipeline by writing Python scripts to automate scenario-based testing across different environments.
-- **Dockerization**: Leveraged Docker containers within the OpenStack environment to isolate test components and simulate complex network topologies.
+- **Integration Testing**: Wrote Python automation to exercise scenario-based tests across multiple environments and tighten the team's CI pipeline.
+- **Dockerization**: Used Docker containers inside the OpenStack environment to isolate test components and simulate complex network topologies.
 
 ### 3. Network Security
 
-- **Inter-VM Communication**: Investigated and implemented secure communication channels between multiple Virtual Machines (VMs) without requiring runtime reconfiguration of Linux network interfaces.
+- **Inter-VM Communication**: Investigated and implemented communication channels between virtual machines without requiring Linux interface reconfiguration at runtime.
 
 **Tech Stack:**
 

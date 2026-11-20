@@ -1,7 +1,7 @@
 ---
 title: "An AI-Ready Full-Stack Blueprint: Rust, OpenAPI, and Guardrails"
 date: 2026-02-01
-lastmod: 2026-10-26
+lastmod: 2026-11-20
 slug: "ai-full-stack"
 draft: false
 description: "A proposed contract-first Rust and OpenAPI workflow for AI-assisted full-stack engineering, with explicit validation and human review gates."
@@ -13,7 +13,9 @@ tags:
 summary: "A proposed contract-first workflow for AI-assisted full-stack changes, with clear validation gates and limits."
 ---
 
-This is a **design blueprint**, not a report of a deployed Rust product or measured AI productivity gains. It describes how I would structure a Rust API and static frontend so an AI coding assistant can make small, reviewable changes without guessing at interfaces.
+Cross-stack changes can leave the frontend and backend using different API shapes, even when both builds pass. This **design blueprint** proposes one OpenAPI contract to generate Rust server bindings and the UI client, so an AI coding assistant can work against shared interfaces and focused checks instead of guessing.
+
+It is a proposed workflow, not a report of a deployed Rust product or measured AI productivity gains. A person still reviews the diff before merge or deployment.
 
 ## 🚨 The problem: make changes local and checkable
 

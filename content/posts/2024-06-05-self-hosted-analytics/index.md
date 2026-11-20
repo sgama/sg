@@ -11,11 +11,9 @@ series: ["Homelab"]
 
 ![Featured image](featured.png)
 
-I wanted basic usage analytics without sending visitor data to a third-party ad network, and without a heavy client-side script.
+I wanted basic usage analytics without sending visitor data to a third-party ad network or adding a heavy client-side script. I chose [Umami](https://umami.is/) and run it with Docker Compose on my home server, route public tracking requests through a Cloudflare Tunnel, and use Nginx to block the public admin surface.
 
-[Umami](https://umami.is/) is an open-source, cookieless analytics tool with a small tracking script. This post documents the self-hosted setup: Docker Compose on a home server, exposed through a Cloudflare Tunnel, with Nginx gating the admin surface.
-
-Here is how I deployed it securely on my home server using Docker and Cloudflare Tunnels, ensuring my home IP remains hidden.
+That keeps inbound router ports closed and my home IP out of public DNS. I still own the database, backups, and tunnel uptime; this setup does not remove those operational responsibilities.
 
 ## 🏗️ The Architecture
 

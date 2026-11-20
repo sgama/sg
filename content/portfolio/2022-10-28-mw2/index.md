@@ -18,19 +18,19 @@ Supported backend services and engineering platforms behind **Call of Duty: Mode
 
 ## 🛠️ What I Owned
 
-- **Distributed load testing**: Ran load tests with the internal platform I built in Go, Kubernetes, and Redis to validate services before peak traffic.
-- **Fault injection**: Simulated latency, HTTP errors, and TLS failures to expose cascading failure paths and check rate-limit behavior.
-- **Backend service changes**: Developed and reviewed Python microservice changes behind online features.
-- **Incident response**: Diagnosed production incidents under load and converted the findings into alerting and runbook changes.
-- **Launch readiness**: Helped prepare services and infrastructure for launch-scale demand across the release window.
+- **Built and ran distributed load tests**: Used the internal Go, Kubernetes, and Redis platform I built to validate service capacity before peak traffic and long-running live events.
+- **Injected failure modes**: Simulated latency, HTTP errors, and TLS failures to expose cascading failure paths and confirm rate-limit behavior under stress.
+- **Improved backend services**: Developed and reviewed Python microservice changes behind online features, with safe rollout through the platform team’s deployment path.
+- **Incident response**: Diagnosed production incidents under load and turned recurring failures into alerting and runbook changes.
+- **Prepared launch readiness**: Helped prepare services and infrastructure for launch-scale demand across the release window.
 
 ## 📈 Outcomes
 
 - Gave service owners evidence of capacity and failure behavior before launch.
 - Reduced repeat operational work by automating deployment and provisioning paths.
-- Shortened incident follow-up by turning repeat failures into durable fixes.
+- Shortened incident follow-up by turning repeat failures into durable platform fixes.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

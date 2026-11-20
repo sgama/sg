@@ -1,6 +1,6 @@
 ---
 title: "CTF Writeups"
-summary: "A curated collection of technical writeups detailing solutions for complex Capture The Flag challenges, focusing on binary exploitation and cryptography."
+summary: "Built and maintained a CTF writeup repository covering binary exploitation, reverse engineering, and cryptography."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -13,13 +13,13 @@ tags: ["backend", "cybersecurity", "frontend", "networking"]
 ![Capture-the-flag writeup covering a binary exploitation challenge](featured.webp)
 {{< figure src="/portfolio/2019-12-23-ctfsamsongamacom/ctf.webp" title="CTF Writeup Repository" >}}
 
-I maintain a dedicated repository of writeups for the CTF challenges I've solved. This serves as both a personal knowledge base and a community resource for up-and-coming security researchers.
+I maintain a dedicated repository of writeups for the CTF challenges I have solved. It serves as both a personal knowledge base and a public resource for security researchers who want to learn through concrete examples.
 
 ## 📂 Categories Covered
 
-- **Binary Exploitation (Pwn)**: Buffer overflows, ROP chains, Heap exploitation.
+- **Binary Exploitation (Pwn)**: Buffer overflows, ROP chains, and heap exploitation.
 - **Reverse Engineering**: Disassembling ELF/PE binaries to understand proprietary logic.
-- **Web Security**: SQL Injection, XSS, SSRF, and deserialization attacks.
-- **Cryptography**: Breaking weak encryption schemes and implementation flaws.
+- **Web Security**: SQL injection, XSS, SSRF, and deserialization attacks.
+- **Cryptography**: Weak encryption schemes and implementation flaws.
 
 [Visit ctf.samsongama.com](https://ctf.samsongama.com/)

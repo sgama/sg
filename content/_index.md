@@ -1,11 +1,11 @@
 ---
 title: "Samson Gama"
-description: "Senior software engineer building backend services and distributed systems in Go and Python, Kubernetes platforms, production reliability, and applied RAG work"
+description: "Senior software engineer building backend services and distributed systems, Kubernetes platforms, production reliability, and applied RAG work"
 ---
 
 <div class="intro__container not-prose">
     <section class="intro__content">
-        <p>I build scalable, high-performance systems that power products, accelerate teams, and enable growth. From APIs and microservices to distributed architectures, I combine Cybersecurity and DevOps expertise to drive automation, reliability, and cloud-ready infrastructure.</p>
+        <p>My experience includes backend services for behavioral biometric data collection and fraud detection at Mastercard, backend services and engineering platforms supporting Call of Duty at Demonware, and GPU infrastructure for AI/HPC workloads at Bitcomplete (Mar–Jun 2026). I focus on low-latency backend systems, Kubernetes platforms, automation, and reliability. I’m applying that experience to work on the next generation of large data and AI platforms, using multi-cloud, DevOps-first practices to operate them safely at scale.</p>
     </section>
     <section class="intro__content chat-cta" aria-labelledby="chat-cta-title">
         <div class="chat-cta__header">

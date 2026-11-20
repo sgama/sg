@@ -18,11 +18,11 @@ Supported backend services and engineering platforms behind **Call of Duty: Vang
 
 ## 🛠️ What I Owned
 
-- **Launch load validation**: Ran load tests against release-candidate services to size capacity for peak multiplayer traffic.
-- **Failure injection**: Exercised services under injected latency and error conditions to check rate-limit and degraded-mode behavior.
-- **Backend service changes**: Contributed to Python backend microservices behind online features, including code review and safe rollout.
-- **Incident response**: Triaged production incidents during live traffic and turned repeat failures into runbooks and alerting changes.
-- **Deployment standardization**: Standardized Kubernetes deployments with reusable Helm charts and templates.
+- **Validated launch capacity**: Ran load tests against release-candidate services to size capacity for peak multiplayer traffic and catch bottlenecks before launch.
+- **Exercised failure modes**: Injected latency and error conditions to confirm rate-limit behavior, degraded-mode handling, and service stability under stress.
+- **Improved backend services**: Contributed Python microservice changes behind online features, with review and safe rollout through the platform team’s release path.
+- **Incident response**: Triaged production incidents and turned recurring failures into runbook and alerting changes.
+- **Standardized platform patterns**: Reused Helm charts and shared templates to reduce Kubernetes drift between services and environments.
 
 ## 📈 Outcomes
 
@@ -30,7 +30,7 @@ Supported backend services and engineering platforms behind **Call of Duty: Vang
 - Reduced repeat operational toil through consistent deployment and configuration patterns.
 - Improved incident response by feeding production findings back into alerting and runbooks.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

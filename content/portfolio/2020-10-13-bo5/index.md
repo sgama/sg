@@ -16,19 +16,18 @@ Supported backend services and engineering platforms behind **Call of Duty: Blac
 
 ## 🛠️ What I Owned
 
-- **Live-service operations**: Operated production backend services through the launch window and the live events that followed, prioritizing safe releases and fast recovery.
-- **Capacity and launch readiness**: Prepared services and infrastructure for launch demand, including capacity checks and load tests against release candidates.
-- **Rate limiting and failure behavior**: Tested service behavior under load and degraded conditions before release.
-- **Incident response**: Triaged production issues during live traffic and fed repeated failures into runbooks and alerting changes.
-- **Deployment standardization**: Applied reusable Helm templates and shared conf.d configuration conventions to reduce drift between services.
+- **Built the load-testing backbone**: Architected and operated the distributed load-testing platform in Go, Kubernetes, and Redis to validate service capacity and failure behavior before release traffic surged.
+- **Exercised real-world failure modes**: Injected latency, HTTP errors, and TLS faults to expose cascading failures, check rate-limit behavior, and pressure degraded-service paths.
+- **Owned live-service incident response**: Triaged production issues during live traffic and turned recurring failures into runbooks and alerting changes that reduced repeat toil.
+- **Standardized platform patterns**: Reused Helm charts and shared conf.d conventions to cut deployment drift across backend services.
 
 ## 📈 Outcomes
 
-- Carried live-service backend support through a launch window.
-- Reduced repeat operational work by standardizing deployment templates and configuration.
-- Improved incident follow-through by converting recurring failures into permanent fixes.
+- Gave service owners evidence of launch capacity and failure behavior before release.
+- Reduced repeat operational work by standardizing deployment and configuration patterns.
+- Improved incident follow-through by closing the failure modes production kept surfacing.
 
-*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
+I used the load-testing platform and fault injection across the Demonware titles I supported, not just one release.
 
 **Tech Stack:**
 

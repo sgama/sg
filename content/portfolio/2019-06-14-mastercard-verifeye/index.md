@@ -1,6 +1,6 @@
 ---
 title: "Dynamic Biometrics (Verifeye)"
-summary: "Multi-factor authentication concept using facial recognition and sentiment analysis to verify identity and gauge user friction during transactions."
+summary: "Designed a payments-auth concept that combined facial verification and sentiment cues to strengthen identity checks without adding unnecessary friction."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -12,20 +12,20 @@ tags: ["biometrics", "cybersecurity", "machine-learning"]
 
 ![Verifeye facial-recognition multi-factor authentication concept wireframe](featured.webp)
 
-**Verifeye** was a Proof of Concept (PoC) developed during Mastercard's Innovation Week. The project aimed to rethink payment authentication by moving beyond static passwords to dynamic biological markers.
+**Verifeye** was a proof of concept I built during Mastercard's Innovation Week. The project rethought payment authentication for a high-stakes environment where false positives and customer friction both carry real cost.
 
 ## 💡 The Concept
 
-We designed a passive authentication layer that works in the background during a transaction.
+I designed a passive authentication layer that could work in the background during a transaction.
 
 ### 1. Identity Verification
 
-- **Facial Age/Gender Estimation**: Used computer vision to compare the user's estimated demographics against the cardholder's file.
-- **Liveness Detection**: Ensured the user is a real person and not a photograph.
+- **Facial Identity Checks**: Used computer vision to compare the user's estimated demographics against the cardholder record.
+- **Liveness Detection**: Explored liveness detection to distinguish a real person from a photograph (proof of concept).
 
 ### 2. User Sentiment
 
-- **Friction Analysis**: Analyzed facial expressions to determine "customer delight" or frustration during the checkout flow. This data could help merchants optimize their UX.
+- **Friction Analysis**: Modeled facial expressions to detect customer frustration or confidence during checkout and tune the experience in real time.
 
 {{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-2.webp" title="Initial Screen" >}}
 {{< figure src="/portfolio/2019-06-14-mastercard-verifeye/verifeye-0.webp" title="Debug View (Facial Landmarks)" >}}
