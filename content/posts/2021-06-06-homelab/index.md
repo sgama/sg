@@ -9,7 +9,7 @@ categories: ["Infrastructure", "Automation"]
 
 > This post is intentionally generic and redacts all environment-specific details. Replace placeholders (like `<region>`, `<domain>`, and `<registry>`) with your own values.
 
-## Overview
+## 📋 Overview
 
 A reliable infrastructure lab is built on **repeatable, auditable, and layered automation**. The most effective way to achieve this is to separate concerns into four distinct layers:
 
@@ -22,7 +22,7 @@ This guide walks through an end-to-end architecture you can build and expand ove
 
 ---
 
-## High-Level Architecture
+## 🏗️ High-Level Architecture
 
 {{< mermaid >}}
 flowchart TD
@@ -45,7 +45,7 @@ H --> I[Services Online]
 
 ---
 
-## Repository Structure (Conceptual)
+## 📁 Repository Structure (Conceptual)
 
 A clear folder structure makes the pipeline maintainable. The following is a logical layout that you can implement in your own repository:
 
@@ -68,7 +68,7 @@ This structure lets each layer evolve without pulling in unrelated changes.
 
 ---
 
-## Hypervisor Layer: Proxmox (VMs and LXC)
+## 🖥️ Hypervisor Layer: Proxmox (VMs and LXC)
 
 While Packer, Terraform, Ansible, and Docker Compose are the visible layers, they usually sit **on top of a hypervisor**. In this architecture, **Proxmox** is the virtualization substrate. It sets your execution primitives, scaling model, and upgrade path.
 
@@ -108,7 +108,7 @@ V --> D[Docker Compose]
 
 ---
 
-## Layer 1: Image Baking with Packer
+## 🥞 Layer 1: Image Baking with Packer
 
 ### Why bake images
 
@@ -151,7 +151,7 @@ Packer->>Image: Publish golden image
 
 ---
 
-## Layer 2: Infrastructure Provisioning with Terraform
+## 🏗️ Layer 2: Infrastructure Provisioning with Terraform
 
 ### Why Terraform
 
@@ -202,7 +202,7 @@ This cuts down on manual coordination across layers.
 
 ---
 
-## Layer 3: Configuration Management with Ansible
+## ⚙️ Layer 3: Configuration Management with Ansible
 
 ### Why Ansible after Terraform
 
@@ -302,7 +302,7 @@ CI->>CI: Use secrets, then delete
 
 ---
 
-## Layer 4: Service Orchestration with Docker Compose
+## 🐳 Layer 4: Service Orchestration with Docker Compose
 
 ### Why Docker Compose
 
@@ -342,7 +342,7 @@ A --> D[Edge/Proxy Stack]
 
 ---
 
-## Development Environment Strategy
+## 🛠️ Development Environment Strategy
 
 A solid dev environment keeps this workflow sustainable.
 
@@ -376,7 +376,7 @@ Lab->>Dev: Validation feedback
 
 ---
 
-## End-to-End Flow (Detailed)
+## 🔄 End-to-End Flow (Detailed)
 
 Putting it all together:
 
@@ -396,7 +396,7 @@ Each layer stays focused and can be improved independently.
 
 ---
 
-## Operational Best Practices
+## 📈 Operational Best Practices
 
 ### Versioning and Release Strategy
 
@@ -423,7 +423,7 @@ Treat docs as part of the infrastructure:
 
 ---
 
-## Example: Skeleton Automation Map
+## 🗺️ Example: Skeleton Automation Map
 
 {{< mermaid >}}
 mindmap
@@ -450,7 +450,11 @@ root((Infra Lab))
 
 ---
 
-## Final Thoughts
+## Performance and accessibility
+
+This lab is infrastructure, not a user-facing app, so performance and accessibility apply indirectly: keep services responsive (health checks, resource limits in Compose) and document recovery steps so an operator can restore service without guesswork. No UI is shipped from this repo.
+
+## 💭 Final Thoughts
 
 This approach is modular and practical. It lets you:
 
@@ -463,7 +467,7 @@ Keep each layer clear and minimal, and the lab stays stable as it grows.
 
 ---
 
-## Next Steps
+## 🚀 Next Steps
 
 If you want to extend this pattern:
 

@@ -2,8 +2,8 @@
 title: "Privacy-First Analytics: Self-Hosting Umami with Cloudflare Tunnels"
 date: 2024-06-05
 slug: "self-hosted-analytics"
-description: "How I ditched Google Analytics for a self-hosted Umami instance running on Docker and exposed safely via Cloudflare Tunnels."
-summary: "A technical guide to deploying Umami Analytics using Docker Compose and Cloudflare Tunnels to protect your server's IP while keeping your website fast and GDPR compliant."
+description: "Self-hosting Umami analytics on Docker, exposed through Cloudflare Tunnels, with Nginx gating the admin surface."
+summary: "Self-hosted Umami on Docker and Cloudflare Tunnels: no inbound ports, admin surface gated by Nginx."
 tags: ["analytics", "self-hosted", "docker", "cloudflare", "privacy"]
 showDate: true
 series: ["Homelab"]
@@ -11,13 +11,13 @@ series: ["Homelab"]
 
 ![Featured image](featured.png)
 
-I wanted to know how people were using my portfolio, but I didn't want to feed the data surveillance machine of Google Analytics. I also didn't want a heavy script slowing down my blazing fast [Blowfish](https://blowfish.page/) site.
+I wanted basic usage analytics without sending visitor data to a third-party ad network, and without a heavy client-side script.
 
-Enter [Umami](https://umami.is/). It's open-source, lighter than a feather, and privacy-focused (no cookies!).
+[Umami](https://umami.is/) is an open-source, cookieless analytics tool with a small tracking script. This post documents the self-hosted setup: Docker Compose on a home server, exposed through a Cloudflare Tunnel, with Nginx gating the admin surface.
 
 Here is how I deployed it securely on my home server using Docker and Cloudflare Tunnels, ensuring my home IP remains hidden.
 
-## The Architecture
+## 🏗️ The Architecture
 
 The setup is surprisingly simple but robust. Instead of opening ports on my router (port forwarding 80/443), which exposes my home IP to the world, I use **Cloudflare Tunnels**. A lightweight daemon (`cloudflared`) creates an outbound connection to Cloudflare's edge, creating a secure tunnel for traffic to flow in.
 
@@ -63,7 +63,7 @@ This dual-path architecture enables the best of both worlds:
 1. **Blue Path:** Static content is served instantly from Cloudflare's global cache (Workers static assets).
 2. **Orange Path:** Analytics data travels securely through the tunnel to my home server without ever exposing my IP.
 
-## 1. The Infrastructure: Docker Compose
+## 🐳 1. The Infrastructure: Docker Compose
 
 I orchestrate everything in a single `docker-compose.yml` file. This ensures reproducibility and ease of updates.
 
@@ -121,13 +121,13 @@ services:
 
 *Note: I also use a `postgres` service (not shown above for brevity) which Umami depends on.*
 
-## 2. Secure Networking
+## 🔒 2. Secure Networking
 
 Notice that the `umami` service **does not map any ports** (e.g., `ports: - 3000:3000`). This is intentional.
 
 The container lives entirely inside the `dev-tier` Docker network. The `cloudflared` container is also on this network. It proxies traffic directly to `http://umami:3000` internally. The outside world literally cannot touch the Umami instance except through the verified Cloudflare Tunnel.
 
-## 3. Hardening with Nginx
+## 🛡️ 3. Hardening with Nginx
 
 To take security a step further, I don't expose the Umami container directly to the tunnel. Instead, I place an **Nginx** reverse proxy in between. This allows me to selectively expose endpoints.
 
@@ -174,7 +174,7 @@ server {
 }
 ```
 
-## 4. Integration with Hugo
+## 🔗 4. Integration with Hugo
 
 Once the backend is running at `https://ping.samsongama.com`, integrating it into Hugo is trivial.
 
@@ -187,17 +187,26 @@ I keep the script external so I can update the backend without touching the site
     data-website-id="random-id"></script>
 ```
 
-Using `defer` ensures the script doesn't block the initial page render, keeping those Lighthouse scores at 100.
+Using `defer` keeps the script from blocking initial page render. Lighthouse scores are checked per release; the tracking script is small, but no specific score is claimed here.
 
-## Future Improvements
+## 🚀 Future Improvements
 
 While this setup is robust, there are a few enhancements on my roadmap:
 
 1. **Database Backups to R2**: Automating PostgreSQL dumps and shipping them to Cloudflare R2 for off-site disaster recovery.
 2. **High Availability**: Adding a second `cloudflared` replica on a Raspberry Pi to ensure the tunnel stays up even if the main server takes a brief nap.
 
-## Conclusion
+## ⚖️ Trade-offs and rationale
 
-By self-hosting Umami, I own my data. By using Cloudflare Tunnels, I protect my home infrastructure. It's a win-win that costs nothing but a bit of configuration time.
+- **Self-host vs SaaS:** self-hosting keeps analytics data under my control and avoids a third-party tracker; the cost is owning uptime, backups and hardware.
+- **Tunnel vs port forwarding:** no inbound ports and no home IP exposure; the cost is a dependency on Cloudflare's edge and a running daemon.
+- **Nginx gating:** public endpoints serve only the script and `/api/send`; admin is LAN-only. This limits attack surface but adds a config layer to maintain.
 
-Now I can see exactly which blog posts are trending without compromising my visitors' privacy.
+## 📈 Performance and accessibility
+
+- The tracking script is deferred and small; it does not block first paint. Analytics are aggregate and cookieless, which keeps the consent surface minimal.
+- No accessibility regression is introduced: the script adds no UI.
+
+## ✅ Conclusion
+
+Self-hosting Umami via a Cloudflare Tunnel gives me aggregate, cookieless analytics without exposing my home IP or forwarding ports. The trade-off is operational ownership of the database, backups and tunnel uptime.

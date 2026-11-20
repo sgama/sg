@@ -1,10 +1,10 @@
 ---
-title: "My Over-Engineered Serverless & Self-Hosted Stack"
+title: "How samsongama.com Is Built and Deployed"
 date: 2026-01-26
 lastmod: 2026-10-26
 slug: "website-stack"
 description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, a Cloudflare Worker with static assets, Workers AI, Vectorize, and Tunnels."
-summary: "Why have a simple website when you can have a complex one? A deep dive into the CI/CD pipeline, serverless AI integration, and zero-trust self-hosted analytics stack that powers samsongama.com."
+summary: "Hugo static site on Cloudflare Workers with a versioned RAG corpus, GitHub Actions CI/CD, and self-hosted analytics via Cloudflare Tunnel."
 tags: ["infrastructure", "cloudflare", "github-actions", "reliability", "self-hosted", "hugo"]
 showDate: true
 series: ["Cloudflare Developments"]
@@ -12,9 +12,9 @@ series: ["Cloudflare Developments"]
 
 ![Featured image](featured.webp)
 
-About 10 years ago, hosting a website meant paying \$5/month for a VPS, configuring Nginx, and manually FTPing files. Today, we have the "Modern Web"—a beautiful, chaotic mix of static site generators, edge computing, vector databases, and zero-trust tunnels.
+Ten years ago this site would have been a VPS with Nginx and manual deploys. The current version is a static Hugo site on Cloudflare with a CI/CD pipeline, a versioned RAG corpus, and self-hosted analytics. Each layer exists to solve a specific problem (global delivery, reproducible deploys, a grounded Q&A feature, privacy-preserving analytics); none is there for novelty.
 
-This website is a static site (Hugo), but it's wrapped in layers of automation and serverless features that make it feel alive. Here is an architectural overview of how `samsongama.com` is built, deployed, and monitored, updated for the current implementation.
+This post covers the architecture, the deploy pipeline, and the trade-offs. The assistant implementation is covered separately.
 
 ## 🏗️ The High-Level Architecture
 
@@ -67,7 +67,7 @@ Actions -->|Deploy| Functions
 
 ---
 
-## 1. Development & Quality Assurance
+## ✅ 1. Development & Quality Assurance
 
 Quality starts before any deployment. Quality checks run through **Make targets** on demand and in CI:
 
@@ -82,7 +82,7 @@ make ci-check
 
 ---
 
-## 2. CI/CD: GitHub Actions
+## 🔄 2. CI/CD: GitHub Actions
 
 Production deployment is handled by a **GitHub Actions** workflow on pushes to `develop`. Pull requests targeting `develop` run validation without deploying or making paid embedding calls. Make targets also support deliberate local builds and deployments.
 
@@ -130,7 +130,7 @@ Build->>Vec: Delete older corpora (keep live and previous)
 
 ---
 
-## 3. The Edge: Cloudflare Ecosystem
+## ☁️ 3. The Edge: Cloudflare Ecosystem
 
 Once deployed, the site lives on Cloudflare's network. Static hosting, edge caching and managed TLS reduce the infrastructure I operate; dynamic AI and storage still have usage limits and potential charges.
 
@@ -144,39 +144,15 @@ Cloudflare proxies all traffic. This means:
 
 ### Workers & Vectorize (The "Smart" Layer)
 
-This is where the [AI Assistant](/posts/2026-01-25-ai-chat/) lives. A **Cloudflare Worker** handles `/api/chat` and `/api/logs`; Cloudflare serves the static site directly and runs the Worker first only for `/api/*`. **Workers AI** provides embedding and answer models, and **Vectorize** holds the searchable corpus. I do not operate a dedicated Python inference server or train model weights.
+The assistant is a RAG feature, not a trained model or general-purpose agent. The implementation (contextual query rewriting, semantic retrieval, parent-section expansion, versioned namespaces, deployment gates, rollback, abstention, evaluation) is documented in detail in [Building a Serverless AI Chatbot for My Static Portfolio](/posts/2026-01-25-ai-chat/). This post covers only how it fits the site's build and deploy pipeline.
 
-- **Conversation:** The browser sends bounded recent history. A follow-up such as "What did he do before that?" is rewritten into a standalone search question before embedding.
-- **Retrieval:** Vectorize returns three semantic matches. Matching child excerpts expand into bounded source sections, with generic canonical-source links keeping curated summaries tied to authoritative public content.
-- **Generation:** The answer model receives retrieved text, history and the original question, then streams its response. Insufficient context produces an abstention; service failures produce explicit errors.
-- **Transparency:** The widget shows actual progress stages, public retrieved excerpts and expandable timing/token/cost diagnostics. Source retrieval does not independently verify an answer.
-- **State:** Conversation history stays in browser storage across deployments until manually cleared. When configured, KV separately records questions, responses and answer-model usage.
-
-For example, an internship excerpt can lead retrieval to the full newest-first employment section, rather than presenting that historical fragment as recent experience. This reduces missing context; it does not guarantee that a model interprets every date correctly.
-
-Edge execution reduces the need to manage application servers, but model inference and retrieval still dominate some responses. I measure latency rather than assuming every answer is instant.
-
-### AI assistant: system boundaries and trade-offs
-
-The [portfolio assistant](/posts/2026-01-25-ai-chat/) is a RAG feature, not a trained model or a general-purpose agent. A Cloudflare Worker validates each request, rewrites contextual follow-ups when needed, retrieves three matches from the active Vectorize namespace, expands them into bounded source sections, then streams a Workers AI answer. The browser owns conversation history; optional KV logging is separate.
-
-| Engineering concern | Current choice | Boundary |
-| --- | --- | --- |
-| Corpus | Hugo-aware parsing, heading sections and overlapping child chunks | Chunk sizes are reasoned defaults, not tuned by a sweep |
-| Retrieval | Semantic top-three search, parent expansion and canonical public links | No keyword hybrid, reranker or calibrated relevance threshold |
-| Answers | Bounded context and completion; explicit low-context abstention | Prompt instructions do not verify every generated claim |
-| Releases | Corpus-hash namespaces; deploy only after indexing; retain live and prior versions | One live Worker; rollback means redeploying an earlier commit |
-| Evaluation | Labeled retrieval and answer fixtures; live calls run deliberately | Small, term-based checks are not factual accuracy or a quality gate pass |
-
-I chose custom retrieval for control over canonical evidence, section expansion and versioned releases, while accepting ownership of parsing, indexing, cleanup and evaluation. Cloudflare AI Search is a credible lower-operations alternative; pricing and the current trade-off are covered in the [assistant implementation article](/posts/2026-01-25-ai-chat/). I have no measured cost-savings claim.
-
-That article also documents the baseline and its failures. The key operational distinction is that this site deploys a matching static build, Worker and corpus as one release; ordinary page requests remain static and do not invoke the AI Worker.
+The operational distinction that matters for the stack: a release ships a matching static build, Worker and corpus namespace together; ordinary page requests stay static and never invoke the Worker.
 
 
 
 ---
 
-## 4. Observability: Self-Hosted Analytics via Tunnels
+## 📊 4. Observability: Self-Hosted Analytics via Tunnels
 
 I self-host **Umami**, served at `ping.samsongama.com`, rather than relying on a third-party analytics dashboard. Cloudflare still proxies the traffic, so self-hosting is not a claim that no external infrastructure handles the data. How do I expose the service without forwarding an inbound port on my home router?
 
@@ -216,13 +192,23 @@ style Router stroke:#f00,stroke-width:2px,stroke-dasharray:5
 - **Edge Protection:** Public requests pass through Cloudflare; this does not make the origin or application immune to abuse.
 - **Access Control:** I can put the dashboard usage behind **Cloudflare Access** (OAuth / Email OTP), so only I can view the data, while the tracking script remains public.
 
-## Conclusion
+## 🧭 Why this stack in 2026
 
-This stack represents the sweet spot of modern web development: **Static reliability** mixed with **serverless power**, all glue-coded together with **CI/CD** and secured by **Zero Trust** networking.
+- **Hugo over a JS framework:** build-time rendering, no client runtime, instant page loads, and a content model that maps cleanly to a RAG corpus.
+- **Cloudflare Workers + static assets over a VPS:** global delivery and TLS without operating a server, with the Worker running only for `/api/*` so page views stay cheap.
+- **GitHub Actions + Make targets:** reproducible, locally runnable pipeline; PRs validate without deploying or making paid calls.
+- **Self-hosted Umami via Tunnel:** analytics data stays under my control; the tunnel avoids opening inbound ports. Trade-off: I own uptime, backups and power.
 
-Static delivery is inexpensive, but this is not an infinitely scalable or universally free stack. Workers AI, Vectorize and KV have quotas and usage-based costs, while self-hosting adds hardware, power and maintenance. The chat's displayed cost estimates cover answer and rewrite tokens, not the entire infrastructure bill.
+## 📈 Performance and accessibility
 
-## What's Next
+- **Performance:** static HTML/CSS with Hugo minification; Cloudflare CDN caching for assets; no client-side framework hydration. Lighthouse targets: 90+ on Performance, Accessibility, Best Practices, SEO (verified per release in CI where configured).
+- **Accessibility:** semantic HTML from Blowfish, keyboard-navigable chat dialog (`<dialog>`), theme-aware contrast, and reduced-motion respect in CSS. Known gap: automated a11y audit is not yet in CI.
+
+## ✅ Conclusion
+
+The stack is deliberately small: static delivery, one Worker for the assistant, versioned corpus deploys, and tunneled analytics. Complexity is justified by specific requirements, not by novelty.
+
+## 🚀 What's Next
 
 - **Retrieval quality:** Expand regression questions and human review, especially for ambiguous follow-ups and unsupported claims.
 - **Runtime controls:** Add request deadlines and rate limits, and measure behavior under concurrent traffic.

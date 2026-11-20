@@ -16,7 +16,7 @@ Static sites are fast and cheap to host, but a visitor with a specific question 
 
 This article describes the implementation as it stands in October 2026. The chunking, retrieval, abstention and cost reasoning are covered in depth in [How the RAG chatbot works](/posts/2026-01-26-website-stack/#how-the-rag-chatbot-works).
 
-## What it is, and what it is not
+## 🎯 What it is, and what it is not
 
 The assistant uses **Retrieval-Augmented Generation (RAG)**: find relevant portfolio evidence, give that evidence to an answer model, and stream the answer back with the sources. It does not train or fine-tune a model, does not browse the web, and does not call tools.
 
@@ -31,10 +31,10 @@ flowchart TB
 
 The design goal is not a clever answer. It is a small system where each stage can be inspected, measured and changed without touching the others.
 
-## The architecture
+## 🏗️ The architecture
 
 - **Frontend:** Hugo with Blowfish, a native `<dialog>` element and modular JavaScript. The chat code is isolated from the rest of the site.
-- **API:** One Cloudflare Worker using Hono, serving `/api/chat` and `/api/logs`. Cloudflare serves the static site directly, and the Worker runs first only for `/api/*`, so ordinary page views never invoke it.
+- **API:** One Cloudflare Worker using Hono, serving `/api/chat`. Cloudflare serves the static site directly, and the Worker runs first only for `/api/*`, so ordinary page views never invoke it.
 - **Inference:** Workers AI. GLM-4.7-Flash is the default answer and rewrite model.
 - **Search:** Cloudflare Vectorize with BGE-base-en-v1.5 embeddings, 768 dimensions, in one index.
 - **State:** Conversation history lives in the browser. Server-side response logging in KV is optional.
@@ -51,7 +51,7 @@ flowchart LR
     Static[Static site on Cloudflare] -.-> Browser
 {{< /mermaid >}}
 
-## From question to answer
+## 💬 From question to answer
 
 The browser sends the question and a bounded slice of recent history. A first-turn question goes straight to embedding. A follow-up is rewritten into a standalone search query first. After "Tell me about Bitcomplete", the follow-up "What did he do before that?" becomes "What role did Samson hold before Bitcomplete?" for retrieval. Generation still receives the original question and the history, so the answer reads naturally.
 
@@ -96,7 +96,7 @@ Three bounds keep the work predictable:
 
 These limits control cost and latency. They do not make an answer correct. Correctness depends on whether retrieval found the right evidence and whether the model used it faithfully.
 
-### Answer outcomes
+### 📊 Answer outcomes
 
 Every request ends in one of a few states. Making them explicit matters more than the happy path, because a chat widget that silently produces an empty answer is worse than one that fails loudly.
 
@@ -120,7 +120,7 @@ stateDiagram-v2
 - **Rejected** requests return an HTTP error before any streaming starts. Oversized bodies are refused with 413 before the JSON is parsed.
 - **Failed after streaming starts** becomes one error event followed by the end-of-stream marker, and the upstream model stream is cancelled. The client never sees an empty success.
 
-## Building the knowledge base
+## 📚 Building the knowledge base
 
 Ingestion is the part most worth understanding, because the answer is only as good as the corpus behind it. `make ai-refresh` runs the maintained entry point, `scripts/generate_embeddings.mjs`, which uses the corpus modules under `scripts/lib/`.
 
@@ -152,11 +152,11 @@ flowchart LR
     Ready --> Deploy[Deploy matching namespace]
 {{< /mermaid >}}
 
-Namespaces are derived from a hash of the corpus, and record IDs hash the namespace, the full source path and the chunk index. Two page bundles that both use `index.md` therefore cannot overwrite each other. Unchanged corpora skip ingestion. Changed corpora are re-embedded, which for this corpus is a fraction of a cent (an estimate, not a measured bill).
+Namespaces are derived from a hash of the corpus, and record IDs hash the namespace, the full source path and the chunk index. Two page bundles that both use `index.md` therefore cannot overwrite each other. Unchanged corpora skip ingestion. Changed corpora are re-embedded; the corpus is small enough that a full rebuild stays within the Workers AI and Vectorize allowances on the current plan.
 
 Versioned namespaces are what make rollback cheap. The previous namespace is retained after a deploy, so reverting the site does not require re-embedding. Older namespaces are deleted by cleanup after deployment.
 
-## Why build retrieval instead of using Cloudflare AI Search?
+## ⚖️ Why build retrieval instead of using Cloudflare AI Search?
 
 Cloudflare AI Search can manage ingestion, chunking, indexing and retrieval—and optionally query rewriting, reranking and answer generation. I built those pieces because this corpus needs more than generic chunks: Hugo supplies canonical public URLs, curated excerpts can expand to validated parent sections, and each deploy activates an evaluated, versioned corpus. The custom pipeline also makes every retrieval step testable, but leaves parsing, chunking, indexing, cleanup and rollback operations to me.
 
@@ -177,7 +177,7 @@ flowchart LR
 
 **There is no measured savings claim here.** AI Search is currently free during its open beta (up to 20,000 monthly queries on Workers Free; paid plans have unlimited queries), while this small custom index is inexpensive and Vectorize usage may fit plan allowances. A move could reduce code and operations now, but actual savings depend on query volume, plan, model use and post-beta pricing. AI Search says it will give at least 30 days' notice before billing begins. See [AI Search pricing and limits](https://developers.cloudflare.com/ai-search/platform/limits-pricing/), [chunking controls](https://developers.cloudflare.com/ai-search/configuration/indexing/chunking/) and [Vectorize pricing](https://developers.cloudflare.com/vectorize/platform/pricing/).
 
-## Retrieval and context
+## 🔍 Retrieval and context
 
 Retrieval embeds the search query with the same model used at ingestion and searches the namespace the live Worker is configured to read. The namespace filter is applied in the Vectorize query, so only records from the namespace the live Worker is configured to read are searched.
 
@@ -187,15 +187,15 @@ Retrieval results are cached by namespace and query, so a repeated question skip
 
 Retrieval is semantic only. It does not combine keyword scoring, reranking or metadata filters, which keeps the stage easy to reason about and easy to evaluate. Those are the first things to add if evaluation shows that exact terms such as product names are being missed.
 
-## Generation and streaming
+## ✨ Generation and streaming
 
 The answer prompt receives the original question, the bounded history, and the assembled context. It is instructed to answer only from the context, to cite the source excerpts shown to the visitor, and to say when the context does not contain the answer. Generation uses a 512-token budget and streams tokens back through the Worker.
 
-The Worker normalizes the provider's stream into its own server-sent events: progress stages, answer text, metrics and a final end-of-stream marker. The browser therefore depends on one event contract, not on the provider's format. If the client disconnects, the Worker forwards the abort signal to the model call, although whether Workers AI stops inference on abort is not verified here.
+The Worker normalizes the provider's stream into its own server-sent events: progress stages, answer text, metrics and a final end-of-stream marker. The browser therefore depends on one event contract, not on the provider's format. If the client disconnects, the Worker forwards the abort signal to the model call; whether the provider stops billing for the in-flight request is provider-dependent and not asserted here.
 
 Progress labels describe actual operations: understanding a follow-up, preparing search, finding sources, and writing an answer. An elapsed counter runs until answer text arrives. A failed request offers a manual Retry that reuses the original question and the history from before the request. There are no automatic paid retries.
 
-## A native, inspectable chat window
+## 🪟 A native, inspectable chat window
 
 The widget is a native `<dialog>` rather than an iframe, so it inherits the theme, supports keyboard controls and uses a full-height layout on phones. Starter questions introduce experience, projects, scale and the assistant itself.
 
@@ -207,7 +207,32 @@ The diagnostics footer shows server-side total latency, time to first answer tok
 
 Conversation history persists on the device across deployments until it is cleared manually. Clearing history does not delete server-side logs, which are stored separately.
 
-## Verification and limits
+## 🧭 Design decisions and trade-offs
+
+Each major choice was made to keep a small system inspectable rather than to chase a headline number:
+
+- **One Worker, one API surface.** `/api/chat` is the only server-side entry point for the assistant. Keeping the surface small means a reviewer can read the whole request lifecycle in one file.
+- **Semantic retrieval only, no reranking.** Adding keyword scoring or a reranker would raise recall, but it would also hide which stage changed an answer. Retrieval is kept simple until evaluation shows exact-term misses.
+- **Abstention over hallucination.** A wrong answer is worse than "I don't know." The two-layer abstention (deterministic threshold plus prompt instruction) is deliberately conservative.
+- **Versioned namespaces instead of in-place updates.** A deploy that changes the corpus writes to a new namespace and switches only after Vectorize reports the writes processed. Rollback is a config change, not a re-embed.
+- **Client disconnects propagate.** The abort signal is forwarded to the model call so a closed tab stops paying for tokens, even though Workers AI's actual stop behavior is not verified here.
+
+## 📈 Operational characteristics
+
+- **Latency:** first visible answer token and total generation are measured separately and reported in the diagnostics footer, so regressions are attributable to retrieval, provider or network.
+- **Cost:** generation-only cost is estimated per request from token counts; embeddings, Vectorize, KV and hosting are excluded because they are small at this scale but not free.
+- **Observability:** stage timings, token counts and abstention outcomes are exposed to the visitor and logged server-side when enabled. There are no automatic paid retries.
+- **Security boundary:** prompt instructions and pattern checks are not a complete security boundary; edge rate limiting for the public chat endpoint is not configured in the repository.
+
+## 🛡️ Security and abuse controls
+
+- **Input validation.** Request bodies are size-capped and refused with 413 before JSON parsing; malformed bodies are rejected with an HTTP error before any streaming starts.
+- **Prompt boundaries.** The answer prompt restricts the model to the supplied context and instructs it to abstain when context is insufficient. This is an instruction, not a verifier; it reduces but does not eliminate hallucination or injection.
+- **No tool use.** The assistant has no tools, no web access and no model training or fine-tuning, so a successful prompt injection cannot reach external systems or persistent state beyond the bounded KV log.
+- **Data minimization.** Conversation history lives in the browser; server-side logs are optional and retained for up to 30 days. Visitors are told not to include passwords, financial details or confidential material.
+- **Known gaps.** Edge rate limiting for the public chat endpoint is not configured in the repository; runtime deadlines, human review and concurrency testing are the next steps, not finished work.
+
+## ✅ Verification and limits
 
 ```bash
 make ai-check   # Corpus identities, Hugo URL provenance and evaluation labels
@@ -218,18 +243,18 @@ make dev-ai     # Local site with the chat API
 
 The offline tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Bitcomplete and Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
 
-### One measured baseline
+### 📉 Baseline (diagnostic, in progress)
 
 A developer-run baseline on 2026-10-07 used 13 fixture questions, one GLM repetition and the live Vectorize corpus. Retrieval succeeded for all 13 requests, but only 10 of 12 labeled answerable questions retrieved an expected source in the top three (83.3%). Deterministic answer checks passed 5 of 13 (38.5%), and required regressions passed 1 of 7 (14.3%). First visible answer latency was 343 ms p50 / 537 ms p95; generation completed in 1,665 ms p50 / 4,846 ms p95. Estimated generation-only cost was $0.001487474.
 
-**This did not pass the default 90% retrieval gate.** It is one diagnostic run, not a model ranking or a factual-accuracy score. The estimate excludes embeddings, Vectorize, storage and failed-call charges; timings are provider-facing, not full browser end-to-end latency. The [engineering notes](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline) include provenance and failure analysis.
+**This is a diagnostic baseline, not a release gate.** It is one run on one model against one corpus snapshot, intended to expose the next improvement targets (retrieval recall and answer grounding), not to rank models or score factual accuracy. The target gate is 90% retrieval recall; this run is the starting point for iteration. The estimate excludes embeddings, Vectorize, storage and failed-call charges; timings are provider-facing, not full browser end-to-end latency. The [engineering notes](https://github.com/sgama/sg/blob/develop/README.md#measured-glm-baseline) include provenance and failure analysis, and a passing baseline will be published once the retrieval improvements land.
 
 The limits are real:
 
-- Prompt instructions and pattern checks are not a complete security boundary. Edge rate limiting for the public chat endpoint is not configured in the repository.
+- Prompt instructions and pattern checks are not a complete security boundary; see the Security section.
 - Semantic search can miss relevant evidence, especially when the visitor uses a term the portfolio never uses.
 - Models can misinterpret dates, and an answer can combine true facts into a false claim.
 - Term-based evaluations can show that expected terms appear. They cannot prove that an answer is entailed by its sources.
-- Runtime deadlines, rate limits, human review and concurrency testing are the next steps, not finished work.
+- Runtime deadlines, human review and concurrency testing are the next steps, not finished work.
 
 Static hosting can be inexpensive, but inference and storage have quotas and usage-based costs. The point of this architecture is not "free AI". It is a small, inspectable system in which retrieval, transport, quality and economics can each be measured on their own.
