@@ -99,10 +99,20 @@ export function saveChatLog(
  * @param {{ cursor?: string }} [options]
  */
 async function readRecord(kv, key, { cursor } = {}) {
-    if (key.metadata?.version !== 2) {
+    // Legacy records (written before version 2) stored the entire payload in key metadata
+    // with an empty value. Read them from metadata so historical logs stay visible.
+    const metadata = /** @type {any} */ (key.metadata ?? null);
+    const legacyPayload = metadata && typeof metadata.query === 'string' && typeof metadata.timestamp === 'string' ? metadata : null;
+
+    if (key.metadata?.version !== 2 && !legacyPayload) {
         console.error('Unsupported log record version:', key.name);
         return { status: 'skipped', reason: 'unsupported_version', key: key.name };
     }
+
+    if (legacyPayload) {
+        return { status: 'ok', value: { ...legacyPayload, id: key.name } };
+    }
+
     try {
         const record = await kv.get(key.name, 'json');
         if (record) return { status: 'ok', value: { ...record, id: key.name } };

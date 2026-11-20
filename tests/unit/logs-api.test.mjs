@@ -60,6 +60,33 @@ test('/api/logs', async (t) => {
             assert.equal(body.data[1].query, 'hello');
         });
 
+        await t.test('reads legacy records whose payload is stored in metadata', async () => {
+            const keys = [
+                {
+                    name: 'chat:2026-01-01T00:00:00.000Z',
+                    metadata: {
+                        timestamp: TIMESTAMPS.FIXED_TS,
+                        query: 'legacy hello',
+                        response: 'legacy hi',
+                        usage: null,
+                    },
+                },
+            ];
+            const res = await onRequest(
+                createContext({
+                    method: 'GET',
+                    url: `${URLS.TEST_API_ENDPOINT}/logs`,
+                    env: { CHAT_LOGS: makeKv({ keys }) },
+                }),
+            );
+
+            assert.equal(res.status, 200);
+            const body = await res.json();
+            assert.equal(body.data.length, 1);
+            assert.equal(body.data[0].id, 'chat:2026-01-01T00:00:00.000Z');
+            assert.equal(body.data[0].query, 'legacy hello');
+            assert.equal(body.data[0].response, 'legacy hi');
+        });
         await t.test('skips unsupported log formats explicitly', async (t) => {
             const logged = t.mock.method(console, 'error', () => {});
             const keys = [{ name: 'chat:old', metadata: { query: 'q', response: 'r' } }];
