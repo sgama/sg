@@ -1,6 +1,6 @@
 ---
 title: "Bitcomplete"
-summary: "Operated a cloud AI infrastructure platform serving GPU-resale providers — Kubernetes operations, production reliability for training and inference workloads, incident response, observability and automation."
+summary: "Operated a cloud AI infrastructure platform serving GPU-resale providers: centralized GitOps across 20 bare-metal Kubernetes clusters, customer onboarding automation, NVIDIA GPU troubleshooting, and incident response."
 showPagination: true
 invertPagination: true
 weight: 100
@@ -14,19 +14,26 @@ tags: ["backend", "AI", "infrastructure", "SRE"]
 
 ## Scope
 
-Operated and improved a cloud AI infrastructure platform serving AI-native teams and neo-cloud providers reselling excess GPU capacity. Focus areas included Kubernetes operations, production reliability for training and inference workloads, incident handling, observability, and automation across multi-provider environments.
+Operated and improved a cloud AI infrastructure platform serving AI-native teams and neo-cloud providers reselling excess GPU capacity. The work covered Kubernetes platform operations across 20 bare-metal clusters, GPU troubleshooting on NVIDIA Hopper and Blackwell, customer onboarding, and production incident response for training and inference workloads.
 
 ## What I Owned
 
-- **Platform operations across providers**: Provisioned, configured, and operated Kubernetes clusters and containerized workloads across heterogeneous infrastructure.
-- **Automation of infrastructure workflows**: Built internal tooling for cluster provisioning, integration, and lifecycle management to reduce manual operational load.
-- **Observability and alerting**: Implemented and refined monitoring, health checks, and alerting signals to detect regressions and customer-impact risk earlier.
-- **Incident response and follow-through**: Investigated and resolved customer-facing incidents across networking, storage, scheduling, and system layers, then fed findings into postmortems, runbooks, and prevention work.
+- **Centralized GitOps across clusters**: Architected management of 20 bare-metal Kubernetes clusters through a single management cluster, replacing independent ArgoCD deployments and eliminating nearly 20 redundant controllers.
+- **Customer onboarding**: Designed a workflow using isolated customer repositories against a shared platform monorepo, reducing new customer onboarding from roughly one day to 15 minutes and a small number of pull requests.
+- **GPU troubleshooting**: Supported NVIDIA Hopper and Blackwell workloads, diagnosing issues across NVLink, InfiniBand, NVIDIA drivers, and Slurm.
+- **Operational readiness**: Standardized runbooks, alerting, and incident-response workflows for AI/HPC training and inference workloads.
+- **Platform operations**: Provisioned, configured, and operated Kubernetes clusters and containerized workloads across heterogeneous infrastructure, automating cluster provisioning and lifecycle work that had been manual.
+- **Incident follow-through**: Investigated customer-facing incidents across networking, storage, scheduling, and system layers, then fed findings into postmortems, runbooks, and prevention work.
 
-## Reliability Outcomes
+## Outcomes
 
-- Increased operational maturity by standardizing runbooks, escalation flow, and post-incident follow-up for production AI infrastructure.
-- Improved detection and triage readiness through stronger monitoring and alert coverage on critical service paths.
-- Reduced repeat operational toil by automating core cluster lifecycle and integration tasks.
-- Strengthened resilience for customer workloads by addressing failure modes across the full stack instead of applying temporary mitigations.
-- Improved production support for neo-cloud GPU resale customers by stabilizing the infrastructure layers their training and inference workloads depended on.
+- Removed deployment drift and redundant control-plane work across the GPU fleet.
+- Cut customer onboarding from about a day to 15 minutes.
+- Reduced customer workload downtime by standardizing NVIDIA tooling and incident workflows.
+- Shortened diagnosis and handoff during incidents through clearer alerting and runbooks whose gaps had shown up in real incidents.
+
+**Tech Stack:**
+
+- **Platform**: Kubernetes (bare metal), ArgoCD, GitOps
+- **GPU**: NVIDIA Hopper, NVIDIA Blackwell, NVLink, InfiniBand, Slurm
+- **Domain**: AI/HPC training and inference infrastructure

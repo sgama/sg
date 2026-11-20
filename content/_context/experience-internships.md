@@ -19,7 +19,9 @@ learning models using support vector machines and neural networks.
 
 At Ericsson, Software Developer Intern, Sep 2015 - Dec 2015, he developed a
 Python plugin for OpenStack Neutron that automated provisioning and lifecycle
-management of virtual Ericsson routers.
+management of virtual Ericsson routers, and diagnosed infrastructure,
+networking and deployment issues in containerized virtual-router environments
+and Mirantis OpenStack test pipelines.
 
 At Grin Technologies, Software Developer Intern, May 2014 - Aug 2014, he built
 web applications for processing and visualizing electric-vehicle telemetry and

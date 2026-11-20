@@ -14,6 +14,10 @@ Oct 2018 - Jul 2020.
 He developed PHP backend services for behavioral biometric data collection and
 fraud detection, alongside the AWS infrastructure those services ran on.
 
+He designed and built highly available microservice infrastructure across AWS
+regions with CloudFormation and SaltStack, including backup strategies,
+disaster recovery procedures and operational runbooks.
+
 He architected and deployed an AWS VPC Traffic Mirroring environment using
 CloudFormation, replicating production load-balancer traffic into isolated
 environments while discarding mirrored responses. That enabled realistic

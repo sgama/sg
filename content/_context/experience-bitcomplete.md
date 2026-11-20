@@ -23,6 +23,10 @@ He supported GPU infrastructure across NVIDIA Hopper and Blackwell platforms,
 troubleshooting workloads involving NVLink, InfiniBand, NVIDIA drivers and
 Slurm.
 
+He also raised operational readiness for GPU infrastructure serving AI/HPC
+workloads, standardizing runbooks, alerting and incident-response workflows to
+shorten diagnosis and handoff.
+
 Source: [resume](/resume/), reviewed 2026-11-19.
 
 <!-- FILL IN: One approved example: the initial operational problem, what you

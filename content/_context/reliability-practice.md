@@ -18,6 +18,10 @@ His distributed load-testing platform at Demonware let 10+ teams generate up to
 latency, traffic spikes, HTTP errors and TLS failures, so teams could test rate limits and
 cascading failures before launch.
 
+He standardized runbooks, alerting and incident-response workflows where he
+worked, and at Demonware turned repeat failures into alerting changes that
+reduced repeat incidents and alert fatigue.
+
 His published working principles are to automate repeated workflows, measure
 latency, throughput, cost and failure rate, and design for imperfect inputs,
 traffic spikes and human mistakes.

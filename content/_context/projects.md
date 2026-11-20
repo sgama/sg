@@ -26,7 +26,10 @@ The homelab spans multi-cloud infrastructure across GCP, DigitalOcean and
 Cloudflare using Terraform, Ansible, Packer and GitOps, monitored with
 Prometheus and Grafana. His self-hosted Kubernetes platform uses Proxmox,
 Talos Linux, Cilium CNI, ArgoCD and Helm, alongside MikroTik VLAN and firewall
-networking and OpenResty/Lua load balancing.
+networking, custom OpenResty/Lua load balancing, authentication and hardened
+Ubuntu hosts. He implemented disaster recovery and S3 backup/restore testing
+and deployed honeypots to validate recovery procedures and detect malicious
+activity.
 
 These are personal projects. Their scale should not be read as employer
 production scale, and the AI work is applied retrieval and application

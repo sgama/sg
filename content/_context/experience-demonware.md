@@ -14,13 +14,17 @@ behind the Call of Duty franchise.
 
 He architected and built a distributed load-testing platform from scratch in
 Go, Kubernetes and Redis, implementing horizontally scalable traffic generation
-and Redis-backed distributed token-bucket rate limiting. It let 10+ engineering
-teams generate up to 10 million requests per minute across multiple services,
-sustaining load tests of up to 72 hours.
+and Redis-backed distributed token-bucket rate limiting. It let 10+ engineering teams company-wide generate up to 10 million requests
+per minute across multiple services, sustaining load tests of up to 72 hours.
 
 He added configurable fault injection for latency, traffic spikes, HTTP errors
 and TLS failures, so teams could evaluate rate-limit behavior, identify
 cascading service failures and validate resilience under load.
+
+He supported backend services and engineering platforms powering Call of Duty
+titles with millions of concurrent players, diagnosing production incidents
+under peak live traffic and turning repeat failures into runbooks and alerting
+changes that reduced repeat incidents and alert fatigue.
 
 He developed features in Python backend microservices that integrated Apple,
 Google, Xbox and PlayStation Network commerce platforms with internal
@@ -33,8 +37,8 @@ schema changes and ORM-managed migration plans with rollback procedures.
 
 He standardized Kubernetes deployments with reusable Helm charts, templates
 and internal tooling, automated environment provisioning, and supported seven
-game launches. He also established shared conf.d configuration conventions
-across backend services and contributed to architecture reviews, Python code
+game launches. He also established company-wide conf.d configuration standards
+and resource-utilization practices across backend services and contributed to architecture reviews, Python code
 reviews and mentoring of junior engineers.
 
 Source: [resume](/resume/), reviewed 2026-11-19.

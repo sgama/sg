@@ -14,25 +14,25 @@ tags: ["backend", "gaming", "infrastructure", "SRE"]
 
 ## Scope
 
-Supported the core online services behind **Call of Duty: Modern Warfare II** at **Demonware (Activision)**. The work focused on production reliability, launch-scale readiness, observability, and operational response for high-traffic multiplayer systems.
+Supported backend services and engineering platforms behind **Call of Duty: Modern Warfare II** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
 ## What I Owned
 
-- **Service reliability for live player systems**: Operated production services with emphasis on uptime, fault tolerance, and safe release behavior during live events.
-- **Capacity and launch readiness**: Helped prepare infrastructure and service behavior for peak traffic windows and large launch demand.
-- **Automation and operational tooling**: Built and improved deployment and infrastructure workflows to reduce manual operations and recurring failure modes.
-- **Observability and incident response**: Monitored production signals, triaged incidents under load, and translated incident learnings into preventative platform improvements.
-- **Cross-team execution**: Partnered with service owners and game teams to keep online experiences stable, performant, and shippable.
-- **Operational ownership**: Participated in on-call and reinforced a service-ownership culture for live operations.
+- **Distributed load testing**: Ran load tests with the internal platform I built in Go, Kubernetes, and Redis to validate services before peak traffic.
+- **Fault injection**: Simulated latency, HTTP errors, and TLS failures to expose cascading failure paths and check rate-limit behavior.
+- **Backend service changes**: Developed and reviewed Python microservice changes behind online features.
+- **Incident response**: Diagnosed production incidents under load and converted the findings into alerting and runbook changes.
+- **Launch readiness**: Helped prepare services and infrastructure for launch-scale demand across the release window.
 
-## Reliability Outcomes
+## Outcomes
 
-- Improved operational readiness for launch and live-service demand through stronger reliability and capacity planning practices.
-- Reduced repeat operational toil by increasing automation coverage in deployment and infrastructure workflows.
-- Strengthened incident response posture with clearer production signals and tighter feedback loops from incident review to remediation.
-- Increased resilience of customer-facing game services by prioritizing durable fixes over temporary recovery.
+- Gave service owners evidence of capacity and failure behavior before launch.
+- Reduced repeat operational work by automating deployment and provisioning paths.
+- Shortened incident follow-up by turning repeat failures into durable fixes.
+
+*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
 
 **Tech Stack:**
 
-- **Languages**: Python, C++, Golang, Bash
+- **Languages**: Python, C++, Go, Bash
 - **Infrastructure**: Kubernetes, On-Prem

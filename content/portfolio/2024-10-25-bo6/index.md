@@ -14,25 +14,25 @@ tags: ["backend", "gaming", "infrastructure", "SRE"]
 
 ## Scope
 
-Supported the core online services behind **Call of Duty: Black Ops 6** at **Demonware (Activision)**. The work focused on production reliability, launch-scale readiness, observability, and operational response for high-traffic multiplayer systems.
+Supported backend services and engineering platforms behind **Call of Duty: Black Ops 6** at **Demonware (Activision)**, as part of the team serving millions of concurrent players.
 
 ## What I Owned
 
-- **Service reliability for live player systems**: Operated production services with emphasis on uptime, fault tolerance, and safe release behavior during live events.
-- **Capacity and launch readiness**: Helped prepare infrastructure and service behavior for peak traffic windows and large launch demand.
-- **Automation and operational tooling**: Built and improved deployment and infrastructure workflows to reduce manual operations and recurring failure modes.
-- **Observability and incident response**: Monitored production signals, triaged incidents under load, and translated incident learnings into preventative platform improvements.
-- **Cross-team execution**: Partnered with service owners and game teams to keep online experiences stable, performant, and shippable.
-- **Operational ownership**: Participated in on-call and reinforced a service-ownership culture for live operations.
+- **Distributed load testing**: Validated release-candidate services with the internal load-testing platform in Go, Kubernetes, and Redis, including sustained runs at high request rates.
+- **Fault injection**: Simulated latency, traffic spikes, HTTP errors, and TLS failures to find cascading failures before players did.
+- **Backend service changes**: Contributed Python microservice changes behind online features, with code review and staged rollout.
+- **Incident response**: Diagnosed production incidents during live traffic and fed the results back into alerting, runbooks, and platform fixes.
+- **Deployment standardization**: Applied reusable Helm charts and templates to reduce drift between services and environments.
 
-## Reliability Outcomes
+## Outcomes
 
-- Improved operational readiness for launch and live-service demand through stronger reliability and capacity planning practices.
-- Reduced repeat operational toil by increasing automation coverage in deployment and infrastructure workflows.
-- Strengthened incident response posture with clearer production signals and tighter feedback loops from incident review to remediation.
-- Increased resilience of customer-facing game services by prioritizing durable fixes over temporary recovery.
+- Gave service teams capacity and failure-mode evidence ahead of launch demand.
+- Reduced repeat operational work by automating provisioning and deployment paths.
+- Strengthened production signal quality on the critical service paths.
+
+*The load-testing platform, fault injection, and deployment standards described here were built and maintained across the Demonware titles I supported, not for a single release.*
 
 **Tech Stack:**
 
-- **Languages**: Python, C++, Golang, Bash
+- **Languages**: Python, C++, Go, Bash
 - **Infrastructure**: Kubernetes, On-Prem

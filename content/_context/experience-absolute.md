@@ -19,6 +19,9 @@ Jun 2017 - Sep 2018.
   load-test ingestion services and downstream behavior.
 - Improved MongoDB production performance by roughly 20% through schema design,
   index optimization, data migrations and application data-access patterns.
+- Automated repetitive deployment workflows through Jenkins, and worked with
+  engineers on Docker, Go, Python and Kubernetes practices to keep development
+  and production environments consistent.
 
 The 20% MongoDB improvement and the roughly 10x throughput increase are
 separate outcomes, not interchangeable measurements.

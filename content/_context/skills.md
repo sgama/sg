@@ -24,7 +24,7 @@ ratings such as intermediate Go or expert Python.
 - Observability: Prometheus, Grafana, OpenTelemetry, distributed tracing,
   metrics, logging.
 - Databases and distributed data: MySQL, PostgreSQL, MongoDB, Redis, Cassandra,
-  Kafka, Vitess, InfluxDB.
+  Kafka, Vitess.
 - Networking: Cilium, Nginx, HAProxy, OpenResty/Lua, MikroTik, InfiniBand.
 - AI engineering: retrieval-augmented generation, embeddings, vector search,
   prompt design, evaluation.

@@ -9,7 +9,7 @@ showDate: false
 
 Senior Software Engineer | Backend Systems | Go, Python, Kubernetes, AI
 
-Vancouver, BC | resume@samsongama.com | [samsongama.com](https://samsongama.com) | [linkedin.com/in/samsongama](https://linkedin.com/in/samsongama/)
+Vancouver, BC | [samsongama.com](https://samsongama.com) | [linkedin.com/in/samsongama](https://linkedin.com/in/samsongama/)
 
 ## Summary
 
@@ -106,7 +106,9 @@ Software Developer Intern | May 2014 - Aug 2014
 ### Self-Hosted Homelab & Cloud Infrastructure | 2010 - Present
 
 - Built and managed multi-cloud infrastructure across GCP, DigitalOcean, and Cloudflare with Terraform, Ansible, Packer, and GitOps, monitored with Prometheus and Grafana
-- Designed and operated a self-hosted Kubernetes platform on Proxmox with Talos Linux, Cilium CNI, ArgoCD, and Helm, plus MikroTik VLAN and firewall networking and OpenResty/Lua load balancing
+- Designed and operated a self-hosted Kubernetes platform on Proxmox with Talos Linux, Cilium CNI, ArgoCD, and Helm for reproducible clusters and automated application deployments
+- Engineered MikroTik VLAN and firewall networking, custom OpenResty/Lua load balancing, authentication, and hardened Ubuntu hosts across the environment
+- Implemented disaster recovery and S3 backup/restore testing, and deployed honeypots to validate recovery procedures and detect malicious activity
 
 ## Leadership and Community
 
