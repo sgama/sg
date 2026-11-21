@@ -2,32 +2,28 @@
 
 ## Scope
 
-This remediation addressed the final cross-cutting issues in the shared AI core / worker reliability fix without changing the public HTTP, SSE, corpus, CLI, or widget contracts.
+This follow-up closed the remaining final-gate issues from Plan 1 without changing public chat, SSE, corpus, CLI, or widget contracts. It kept the prior shared-only deploy and AGENTS.md work intact, and it did not stage other `.superpowers` files beyond the already-approved SDD deletions.
 
-### Changed files
+## Changed files
 
-- `AGENTS.md`: restored the shared model-settings guidance and retrieval design note.
-- `eslint.config.js`: narrowed the shared prohibition to `shared/**/*.js`, added the exact shared runtime globals, and kept scripts/tests free to use Node/Hono/Cloudflare imports as normal.
-- `scripts/deploy_needed.mjs`: kept the shared deploy input covered and verified it triggers a deploy when a shared-only change is present.
-- `functions/_lib/chat-app.js`: preserved distinct `requestSignal` and `deadlineSignal` composition through the route and kept optional abort checks consistent.
-- `functions/_lib/ai.js`: propagated the real deadline signal through `AiService` without widening the public API.
-- `shared/ai/chat-stream.js`: consolidated deadline/abort termination, kept a single terminal `[DONE]`, and preserved silent client disconnects and the real deadline identity path.
-- `tests/unit/deploy-needed.test.mjs`: added the shared-only deploy regression.
-- `tests/unit/shared-ai.test.mjs`: added the forbidden-imports and narrow-globals regression.
-- `tests/unit/chat-stream.test.mjs`: added deadline-identity and provider-terminal-order coverage.
-- `tests/unit/chat-api.test.mjs`: preserved the deadline-vs-client-abort regression coverage for the route layer.
+- `eslint.config.js`: narrowed the shared import restriction to `shared/**/*.js`, caught relative imports into `functions/`, `scripts/`, and `assets/`, blocked bare Node built-ins and `node:` built-ins, kept scripts/tests valid, and reduced shared globals to the portable runtime set actually used (`crypto`, `queueMicrotask`, etc.).
+- `shared/ai/chat-stream.js`: removed the `TimeoutError`/`DOMException` fallback, enforced `deadlineSignal.aborted && combinedSignal.reason === deadlineSignal.reason` only, kept client `TimeoutError` disconnects silent, and tightened the deadline/pending-read cancellation logic with one terminal `[DONE]`.
+- `tests/unit/shared-ai.test.mjs`: added the relative-import + bare-Node shared boundary regression and confirmed ordinary Node imports in script files still lint cleanly.
+- `tests/unit/chat-stream.test.mjs`: updated the direct deadline tests to pass separate request/deadline signals and retained the silent client-timeout case.
+- `tests/unit/ai-service.test.mjs`: added focused in-flight abort coverage after rewrite/embedding/generation startup to ensure no subsequent model call or provider-outage log occurs.
 
 ## RED / GREEN evidence
 
 ### RED
 
-- Initial `make lint` failed with exit code 2 because `no-restricted-imports` was applied globally instead of only to `shared/**/*.js`, and the shared globals omitted `crypto` and `queueMicrotask`.
-- The deadline identity and shared deploy regressions were addressed by targeted failing tests before the fix, then verified after the final implementation.
+- Initial follow-up inspection showed the import restriction still missed relative path imports such as `../../functions/...` and allowed bare Node built-ins without `node:` prefixes.
+- The deadline check still accepted a non-deadline timeout by reason name alone, and the pending-read deadline path could return without cancelling the in-flight reader.
+- Provider-failure logic still retained dead source cancellation on the `pipeThrough`-locked stream and needed stricter terminal ordering.
 
 ### GREEN
 
-- `make lint` passed after scoping the restriction and restoring the required shared runtime globals.
-- `make format-check`, `make typecheck`, `make test`, `make test-layouts`, `make ai-build`, and `make ci-check` all passed on the reconciled tree.
+- After the follow-up fix, `make lint` immediately passed after the ESLint edits.
+- Fresh offline validation all passed: `make lint`, `make format-check`, `make typecheck`, `make test`, `make test-layouts`, `make ai-build`, and `make ci-check` all exited 0.
 
 ## Acceptance commands and results
 
@@ -41,7 +37,7 @@ This remediation addressed the final cross-cutting issues in the shared AI core 
 
 ## Commit and report notes
 
-- Scope kept to the brief: shared-only deploy detection, shared import boundary, deadline identity, stream termination, and the final acceptance/report gate.
-- No paid inference, no Cloudflare API mutations, no deploy/push operations, and no public contract changes were performed.
-- Final commit hash: pending until the reconciled commit is created.
-- The tracked SDD report files were removed from the git index only (`task-1-report.md` and `task-3-fix-report.md`), while their local ignored copies were retained.
+- Final follow-up commit: `79e7d467a96387d2045f7ed14d6595d0d0ea59e0`
+- Scope remained narrow and excluded the user-approved architecture spec/plans.
+- No paid inference, no live Cloudflare runtime invocation, no deploys, no cloud mutations, no token-scope changes, and no dependency additions were performed.
+- The tracked SDD report files remained removed from the Git index from the prior remediation; no additional `.superpowers` artifacts were staged.

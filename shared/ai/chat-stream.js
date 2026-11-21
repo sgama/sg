@@ -58,11 +58,8 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         end(controller);
     };
     const isDeadlineAbort = () => {
-        if (!signal?.aborted) return false;
-        if (effectiveDeadlineSignal) {
-            return effectiveDeadlineSignal.aborted && signal.reason === effectiveDeadlineSignal.reason;
-        }
-        return signal.reason?.name === 'TimeoutError' || (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError');
+        if (!signal?.aborted || !effectiveDeadlineSignal) return false;
+        return effectiveDeadlineSignal.aborted && signal.reason === effectiveDeadlineSignal.reason;
     };
     const handle = (data, controller) => {
         if (data.trim() === '[DONE]') return complete(controller);
@@ -105,11 +102,6 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         end(controller);
         if (reader) {
             try {
-                await cancelUpstream(error);
-            } catch {
-                // the source is already closing or already canceled.
-            }
-            try {
                 await reader.cancel(error);
             } catch (cancelError) {
                 if (cancelError !== error) console.error('Chat Stream Cancel Failed:', cancelError);
@@ -117,19 +109,18 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         }
     };
 
-    // The source stream is locked once we pipe through the parser chain, so capture the upstream cancel before it.
-    const cancelUpstream = (reason) => {
-        try {
-            return stream.cancel?.(reason);
-        } catch {
-            // the source is already closing or already canceled.
-        }
-    };
     const reader = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream()).getReader();
 
     const abortRead = async () => {
         if (finished) return;
-        if (signal?.aborted && isDeadlineAbort()) return;
+        if (signal?.aborted && isDeadlineAbort()) {
+            try {
+                await reader.cancel(signal.reason);
+            } catch {
+                // Best-effort cancellation while the deadline aborts the upstream read.
+            }
+            return;
+        }
         finished = true;
         try {
             await reader.cancel(signal?.reason ?? new Error('AbortError'));

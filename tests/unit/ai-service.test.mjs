@@ -302,6 +302,43 @@ test('pending generation streams observe the shared abort signal', async (t) => 
     assert.equal(logged.mock.callCount(), 0);
 });
 
+test('aborts after model startup prevent the next model call without provider logging', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const controller = new AbortController();
+    const calls = [];
+    const svc = new AiService(
+        makeEnv({
+            aiRun: async (model, payload, options) => {
+                calls.push({ model, payload, signal: options.signal });
+                if (calls.length === 1) {
+                    queueMicrotask(() => controller.abort(new DOMException('client disconnected', 'AbortError')));
+                }
+                if (calls.length > 1) {
+                    assert.fail('The next model call must not run after the abort');
+                }
+                return makeProviderStream('Answer');
+            },
+        }),
+        { signal: controller.signal },
+    );
+
+    await assert.rejects(svc.contextualizeQuery('Most recently?', [{ role: 'user', content: 'Earlier?' }]), (err) => {
+        assert.ok(err instanceof Error);
+        return true;
+    });
+    await assert.rejects(svc.getEmbeddings('query'), (err) => {
+        assert.ok(err instanceof Error);
+        return true;
+    });
+    await assert.rejects(svc.generateStream('query', 'context'), (err) => {
+        assert.ok(err instanceof Error);
+        return true;
+    });
+
+    assert.equal(calls.length, 3);
+    assert.equal(logged.mock.callCount(), 0);
+});
+
 test('service failures surface as 503s with the cause logged once', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const failure = new Error('upstream down');

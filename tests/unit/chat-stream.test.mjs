@@ -77,32 +77,37 @@ test('cancels a pending stream read when the abort signal fires', async () => {
 
 test('a client TimeoutError is silent unless it is the actual deadline signal', async () => {
     const client = new AbortController();
+    const deadline = new AbortController();
     client.abort(new DOMException('Timed out', 'TimeoutError'));
     const source = new ReadableStream({
         start(controller) {
             controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'));
         },
     });
-    const stream = normalizeChatStream(source, { signal: client.signal, deadlineSignal: new AbortController().signal });
+    const stream = normalizeChatStream(source, { signal: client.signal, deadlineSignal: deadline.signal });
     assert.equal(await new Response(stream).text(), '');
 });
 
 test('deadline aborts stream reads with the existing error envelope and terminal marker', async () => {
-    const controller = new AbortController();
-    controller.abort(new DOMException('Timed out', 'TimeoutError'));
+    const request = new AbortController();
+    const deadline = new AbortController();
+    const signal = AbortSignal.any([request.signal, deadline.signal]);
+    deadline.abort(new DOMException('Timed out', 'TimeoutError'));
     const source = new ReadableStream({
         start(controller) {
             controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'));
         },
     });
-    const stream = normalizeChatStream(source, { signal: controller.signal });
+    const stream = normalizeChatStream(source, { signal, deadlineSignal: deadline.signal });
     const output = await new Response(stream).text();
     assert.match(output, /"error":"AI response failed\. Please try again\."/);
     assert.match(output, /data: \[DONE\]\n\n$/);
 });
 
 test('deadline aborts a pending read after it has begun without pretending the answer succeeded', async () => {
-    const controller = new AbortController();
+    const request = new AbortController();
+    const deadline = new AbortController();
+    const signal = AbortSignal.any([request.signal, deadline.signal]);
     let upstreamController;
     const source = new ReadableStream({
         start(streamController) {
@@ -112,10 +117,10 @@ test('deadline aborts a pending read after it has begun without pretending the a
             // Keep the read pending until the deadline aborts and the source closes.
         },
     });
-    const stream = normalizeChatStream(source, { signal: controller.signal });
+    const stream = normalizeChatStream(source, { signal, deadlineSignal: deadline.signal });
     const textPromise = new Response(stream).text();
     queueMicrotask(() => {
-        controller.abort(new DOMException('Timed out', 'TimeoutError'));
+        deadline.abort(new DOMException('Timed out', 'TimeoutError'));
         upstreamController.close();
     });
     const output = await textPromise;
