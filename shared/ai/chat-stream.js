@@ -49,6 +49,9 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         if (metrics) send(controller, { metrics: metrics() });
         end(controller);
     };
+    const isDeadlineAbort = () =>
+        !!signal && (signal.reason?.name === 'TimeoutError' || (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'));
+
     const handle = (data, controller) => {
         if (data.trim() === '[DONE]') return complete(controller);
         const payload = JSON.parse(data);
@@ -71,7 +74,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         if (finished) return;
         finished = true;
         if (signal?.aborted) {
-            if (signal.reason?.name === 'TimeoutError' || (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError')) {
+            if (isDeadlineAbort()) {
                 if (!errorSent) {
                     send(controller, { error: 'AI response failed. Please try again.' });
                     errorSent = true;
@@ -129,7 +132,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
     return new ReadableStream({
         async pull(controller) {
             if (signal?.aborted) {
-                if (signal.reason?.name === 'TimeoutError' || (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError')) {
+                if (isDeadlineAbort()) {
                     if (!errorSent) {
                         send(controller, { error: 'AI response failed. Please try again.' });
                         errorSent = true;
@@ -141,6 +144,8 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
                 controller.close();
                 return;
             }
+            // A read can legitimately emit no output (reasoning deltas or usage-only summaries), so wait for
+            // an actual payload or a terminal condition before deciding the pull has completed.
             emitted = false;
             while (!emitted) {
                 if (finished) {
@@ -152,10 +157,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
                     result = await reader.read();
                 } catch (error) {
                     if (signal?.aborted) {
-                        if (
-                            signal.reason?.name === 'TimeoutError' ||
-                            (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError')
-                        ) {
+                        if (isDeadlineAbort()) {
                             if (!errorSent) {
                                 send(controller, { error: 'AI response failed. Please try again.' });
                                 errorSent = true;
@@ -169,6 +171,19 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
                     }
                     await fail(controller, error, reader);
                     continue;
+                }
+                if (signal?.aborted) {
+                    if (isDeadlineAbort()) {
+                        if (!errorSent) {
+                            send(controller, { error: 'AI response failed. Please try again.' });
+                            errorSent = true;
+                        }
+                        end(controller);
+                        return;
+                    }
+                    finished = true;
+                    controller.close();
+                    return;
                 }
                 if (result.done) {
                     try {

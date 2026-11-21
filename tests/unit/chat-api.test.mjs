@@ -294,8 +294,8 @@ test('/api/chat treats the request timeout as a safe deadline instead of an outa
     assert.match(text, /"error":"The response could not be completed\."/);
     assert.match(text, /\[DONE\]/);
     assert.equal(logged.mock.callCount(), 0);
-    timeoutMock.mock.restore();
     AbortSignal.timeout = originalTimeout;
+    timeoutMock.mock.restore();
 });
 
 test('/api/chat rejects invalid requests and unavailable bindings explicitly, before any generation', async (t) => {

@@ -89,6 +89,29 @@ test('deadline aborts stream reads with the existing error envelope and terminal
     assert.match(output, /data: \[DONE\]\n\n$/);
 });
 
+test('deadline aborts a pending read after it has begun without pretending the answer succeeded', async () => {
+    const controller = new AbortController();
+    let upstreamController;
+    const source = new ReadableStream({
+        start(streamController) {
+            upstreamController = streamController;
+        },
+        pull() {
+            // Keep the read pending until the deadline aborts and the source closes.
+        },
+    });
+    const stream = normalizeChatStream(source, { signal: controller.signal });
+    const textPromise = new Response(stream).text();
+    queueMicrotask(() => {
+        controller.abort(new DOMException('Timed out', 'TimeoutError'));
+        upstreamController.close();
+    });
+    const output = await textPromise;
+    assert.match(output, /"error":"AI response failed\. Please try again\."/);
+    assert.match(output, /data: \[DONE\]\n\n$/);
+    assert.doesNotMatch(output, /"metrics"/);
+});
+
 test('terminates the client stream when the upstream stream fails', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const upstream = new ReadableStream({
