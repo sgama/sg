@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ChatRequestSchema, shouldAbstainForMissingContext } from '../../functions/_lib/validation.js';
 import { MAX_API_HISTORY_MESSAGES, MAX_API_HISTORY_MESSAGE_LENGTH, MAX_API_HISTORY_TOTAL_LENGTH } from '../../assets/js/chat/model/history.js';
-import { CONFIG } from '../../functions/_lib/application.js';
+import { CONFIG } from '../../shared/ai/application.js';
 
 const { MAX_TURNS, MAX_CONTENT_LENGTH, MAX_TOTAL_LENGTH } = CONFIG.HISTORY;
 const MAX_QUERY_LENGTH = CONFIG.QUERY.MAX_LENGTH;

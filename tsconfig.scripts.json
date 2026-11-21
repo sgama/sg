@@ -1,5 +1,5 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": { "types": ["node"] },
-    "include": ["evals/**/*.mjs", "scripts/**/*.mjs"]
+    "include": ["evals/**/*.mjs", "scripts/**/*.mjs", "shared/**/*.js"]
 }

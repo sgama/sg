@@ -74,6 +74,7 @@
         "include": [
             "assets/js/**/*.js",
             "functions/**/*.js",
+            "shared/**/*.js",
             "scripts/**/*.mjs"
         ],
         "exclude": [

@@ -2,11 +2,8 @@ import { EventSourceParserStream } from 'eventsource-parser/stream';
 
 const ENCODER = new TextEncoder();
 
-/** Terminal payload; the framing around it is production detail, the token itself is the wire contract. */
 export const DONE_PAYLOAD = '[DONE]';
 const DONE_FRAME = ENCODER.encode(`data: ${DONE_PAYLOAD}\n\n`);
-
-/** One SSE frame. The widget's wire format is produced here only. */
 const frame = (payload) => ENCODER.encode(`data: ${JSON.stringify(payload)}\n\n`);
 
 export function createSseMessageStream(message, metrics) {
@@ -21,10 +18,6 @@ export function createSseMessageStream(message, metrics) {
 }
 
 /**
- * Turns the provider's SSE stream into the widget's: `{ response }`, `{ usage }`, a final `{ metrics }` and `[DONE]`.
- * Framing (CRLF, comments, multi-line data, split UTF-8) is left to eventsource-parser; any failure becomes one
- * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream.
- *
  * @param {ReadableStream<Uint8Array>} stream
  * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object }} [options]
  */
@@ -56,7 +49,6 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
         if (!Array.isArray(payload.choices) && !bindingUsageSummary) throw new Error('Unsupported AI stream event: expected choices');
         const content = payload.choices?.find((item) => item.index === 0)?.delta?.content;
         if (typeof content === 'string' && content) {
-            // Whitespace-only chunks are forwarded but do not count as an answer.
             if (!hasAnswer && content.trim()) onFirstToken?.();
             hasAnswer ||= content.trim().length > 0;
             send(controller, { response: content });
@@ -75,7 +67,6 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
             errorSent = true;
         }
         end(controller);
-        // A reader that already failed cannot be cancelled; cancelling it only rejects.
         if (!reader) return;
         try {
             await reader.cancel(error);
@@ -88,7 +79,6 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
 
     return new ReadableStream({
         async pull(controller) {
-            // Events that emit nothing (reasoning deltas) must not return early: no further pull is scheduled.
             emitted = false;
             while (!emitted) {
                 if (finished) {

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 
 // ---- Contract: identity, hashing and schema validation of a corpus ----
 const digest = (value) => createHash('sha256').update(value).digest('hex');

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { ingestionText } from '../../scripts/lib/content-normalization.mjs';
-import { corpusRecordId } from '../../functions/_lib/retrieval.js';
+import { corpusRecordId } from '../../shared/ai/retrieval.js';
 
 // Built once per file: every test here only reads the repository corpus.
 let repoCorpusPromise;

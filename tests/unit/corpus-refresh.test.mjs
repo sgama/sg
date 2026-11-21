@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { createMaintenanceClient, refreshCorpus, setCorpusNamespace } from '../../scripts/lib/corpus-deployment.mjs';
 

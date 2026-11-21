@@ -12,5 +12,5 @@
         "resolveJsonModule": true,
         "skipLibCheck": true
     },
-    "include": ["functions/**/*.js", "functions/**/*.d.ts"]
+    "include": ["functions/**/*.js", "functions/**/*.d.ts", "shared/**/*.js", "shared/**/*.d.ts"]
 }

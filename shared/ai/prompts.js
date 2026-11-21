@@ -1,6 +1,3 @@
-// Prompt text and message builders. Single source for what the model is asked.
-// Changing any of this changes evaluation fixture hashes, so update fixtures deliberately.
-
 const SYSTEM_PROMPT = `You are a helpful assistant for Samson's portfolio.
 Answer concisely using only supported facts. If uncertain, admit it.
 Maintain a neutral, professional tone. Do not exaggerate qualifications or suppress source-supported limitations.

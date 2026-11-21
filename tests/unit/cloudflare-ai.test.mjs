@@ -2,8 +2,8 @@ import { makeProviderStream } from '../helpers/mocks.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createCloudflareAi } from '../../scripts/lib/cloudflare-ai.mjs';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
-import { corpusRecordId } from '../../functions/_lib/retrieval.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
+import { corpusRecordId } from '../../shared/ai/retrieval.js';
 
 const options = { accountId: 'test-account', apiToken: 'test-token', namespace: 'corpus-test' };
 

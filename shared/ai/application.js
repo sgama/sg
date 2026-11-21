@@ -69,38 +69,10 @@ export async function rewriteSearchQuery(query, history, model, run) {
 
 export const CONFIG = {
     HISTORY: {
-        // Max history messages (user and assistant combined) accepted
-        // alongside the new query. Older messages are dropped by the client.
         MAX_TURNS: 4,
         MAX_CONTENT_LENGTH: 2000,
-        // Total character budget across all history messages combined
         MAX_TOTAL_LENGTH: 4000,
     },
-    // Public query limit (characters, after trimming).
     QUERY: { MAX_LENGTH: 500 },
-    // Below this much retrieved context the assistant abstains instead of answering.
     ABSTAIN: { MIN_CONTEXT_CHARS: 20 },
 };
-
-export class AppError extends Error {
-    /**
-     * @param {string} message
-     * @param {import('hono/utils/http-status').ContentfulStatusCode} [status]
-     */
-    constructor(message, status = 500) {
-        super(message);
-        this.status = status;
-        this.name = this.constructor.name;
-    }
-}
-
-/**
- * Both the request path and the service fail the same way when the Vectorize binding is absent: one
- * log line and one client-facing 503. The request path checks early so it fails before SSE headers.
- * @param {unknown} vectorize
- */
-export function requireVectorizeBinding(vectorize) {
-    if (vectorize) return;
-    console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
-    throw new AppError('Retrieval service unavailable', 503);
-}

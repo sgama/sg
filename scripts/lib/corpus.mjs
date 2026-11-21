@@ -7,7 +7,7 @@ import matter from 'gray-matter';
 import { hasEvidence, ingestionText, sourceSections } from './content-normalization.mjs';
 import { chunkId, corpusHash, namespaceFor, sourceHash, validateCorpus } from './corpus-contract.mjs';
 import { publicSourceUrls } from './source-provenance.mjs';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 
 // ---- Canonical evidence: link curated context to the public section it supports ----
 function linkCanonicalEvidence(chunks, sources, links, maxSectionChars) {

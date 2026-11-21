@@ -1,6 +1,6 @@
 import Cloudflare from 'cloudflare';
-import { AI_CONFIG, getModel, isValidEmbeddingVector, rewriteSearchQuery } from '../../functions/_lib/application.js';
-import { retrieveEvidence } from '../../functions/_lib/retrieval.js';
+import { AI_CONFIG, getModel, isValidEmbeddingVector, rewriteSearchQuery } from '../../shared/ai/application.js';
+import { retrieveEvidence } from '../../shared/ai/retrieval.js';
 
 /** One error message for every CLI that needs Cloudflare credentials. */
 export function requireCloudflareCredentials(env = process.env) {

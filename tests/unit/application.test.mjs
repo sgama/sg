@@ -3,15 +3,14 @@ import { test } from 'node:test';
 import {
     AI_CONFIG,
     AI_MODELS,
-    AppError,
     contextualizationInput,
     contextualizedQueryFromResponse,
     estimateCost,
     generationInput,
     getModel,
-    requireVectorizeBinding,
     rewriteSearchQuery,
-} from '../../functions/_lib/application.js';
+} from '../../shared/ai/application.js';
+import { AppError, requireVectorizeBinding } from '../../functions/_lib/worker-errors.js';
 
 test('AppError defaults to 500 and keeps an explicit status and name', () => {
     const fallback = new AppError('Something failed');

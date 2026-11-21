@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import Cloudflare from 'cloudflare';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 import { buildCorpus, embeddingKey } from '../../scripts/lib/corpus.mjs';
 import { chunkId } from '../../scripts/lib/corpus-contract.mjs';
 import { createMaintenanceClient, ingestCorpus, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';

@@ -2,7 +2,7 @@
  * Shared test constants, fixtures, and builders.
  */
 
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 
 export const URLS = {
     ALLOWED_ORIGIN: 'https://samsongama.com',

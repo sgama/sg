@@ -3,7 +3,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
-import { AI_CONFIG, isValidEmbeddingVector } from '../../functions/_lib/application.js';
+import { AI_CONFIG, isValidEmbeddingVector } from '../../shared/ai/application.js';
 import { buildCorpus, embeddingKey, embeddingText } from './corpus.mjs';
 import { chunkId, validateCorpus } from './corpus-contract.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';

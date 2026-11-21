@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { parseArgs } from 'node:util';
 import pLimit from 'p-limit';
-import { AI_CONFIG } from '../functions/_lib/application.js';
+import { AI_CONFIG } from '../shared/ai/application.js';
 import { createMaintenanceClient } from './lib/corpus-deployment.mjs';
 import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { VERSIONED_NAMESPACE, activeWorker } from './lib/worker-deployment.mjs';

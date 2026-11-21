@@ -1,10 +1,10 @@
-// promptfoo provider: the production retrieval + generation pipeline (functions/_lib), against a live Vectorize namespace.
+// promptfoo provider: the production retrieval + generation pipeline (shared/ai), against a live Vectorize namespace.
 import { EventSourceParserStream } from 'eventsource-parser/stream';
-import { generationInput, getModel } from '../functions/_lib/application.js';
-import { normalizeChatStream } from '../functions/_lib/chat-stream.js';
-import { buildMessages } from '../functions/_lib/prompts.js';
-import { contextFromMatches } from '../functions/_lib/retrieval.js';
-import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../functions/_lib/validation.js';
+import { generationInput, getModel } from '../shared/ai/application.js';
+import { normalizeChatStream } from '../shared/ai/chat-stream.js';
+import { buildMessages } from '../shared/ai/prompts.js';
+import { contextFromMatches } from '../shared/ai/retrieval.js';
+import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../shared/ai/answer-policy.js';
 import { createCloudflareAi } from '../scripts/lib/cloudflare-ai.mjs';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

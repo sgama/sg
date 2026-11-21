@@ -164,8 +164,8 @@ certification.
 ### AI Infrastructure and Model Evaluation
 
 AI configuration is shared by the runtime and evaluation tools in
-[`functions/_lib/application.js`](functions/_lib/application.js). Model aliases are
-`glm`, `gemma`, and `llama`; each registry entry defines its model ID, generation
+[`shared/ai/application.js`](shared/ai/application.js). Model aliases are `glm`,
+`gemma`, and `llama`; each registry entry defines its model ID, generation
 parameters, completion-limit field, and dated token prices. Add an entry there to
 compare another Workers AI model without duplicating pipeline code. Model access
 and pricing must be verified against your Cloudflare account.
@@ -197,7 +197,7 @@ provider entries (`config: { model: gemma }`) to the config; browse results with
 (`scripts/summarize_ai_eval.mjs`).
 Labeled queries retry retrieval for up to 30 seconds because Vectorize queries
 can lag a fresh ingest. Model aliases (`glm`, `gemma`, `llama`) and dated token
-prices stay in `functions/_lib/application.js`.
+prices stay in `shared/ai/application.js`.
 
 Override `REPORT_DIR`, `AI_FIXTURE` or `AI_PASS_RATE` as needed. Developers run
 these targets locally; evaluation is not a GitHub Actions job. Production CI

@@ -5,9 +5,10 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { streamSSE } from 'hono/streaming';
-import { AppError, CONFIG, requireVectorizeBinding } from './application.js';
+import { CONFIG } from '../../shared/ai/application.js';
+import { AppError, requireVectorizeBinding } from './worker-errors.js';
 import { ChatRequestSchema, SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from './validation.js';
-import { createSseMessageStream, DONE_PAYLOAD } from './chat-stream.js';
+import { createSseMessageStream, DONE_PAYLOAD } from '../../shared/ai/chat-stream.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
 

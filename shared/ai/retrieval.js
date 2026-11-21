@@ -1,7 +1,3 @@
-// Retrieval: pure helpers that turn Vectorize matches into record IDs, parent-section expansion and bounded
-// model context, plus the one pipeline (retrieveEvidence) that chains them. Production (AiService) and the
-// evaluation harness both call the pipeline, so the evaluation measures the code that serves visitors; only
-// the transport adapters (embed, search, fetchSections) differ, and they are injected. No bindings here.
 import { AI_CONFIG } from './application.js';
 
 export async function corpusRecordId(namespace, source, index) {
@@ -14,11 +10,6 @@ function assertRecordType(match) {
     if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');
 }
 
-/**
- * The parent and canonical sections a match points at, canonical first, validated. Both consumers must
- * accept the same records, so the shape check lives here rather than in each of them. Order is not
- * semantic: callers index the result by section key.
- */
 function sectionReferences(match) {
     assertRecordType(match);
     return ['canonical', 'parent']
@@ -34,7 +25,6 @@ function sectionReferences(match) {
 }
 
 export async function parentSectionIds(matches, namespace) {
-    // Record-type check first, so an unsupported record reports before any reference lookup.
     for (const match of matches) assertRecordType(match);
     const children = matches.flatMap((match) => sectionReferences(match));
     if (children.length && !namespace) throw new Error('Section expansion requires a corpus namespace');
@@ -91,7 +81,6 @@ export function contextFromMatches(matches, onExcerpt) {
     return context;
 }
 
-// Visitors only see public pages as evidence. Internal `_context` excerpts still feed the model.
 function isPublicEvidence(excerpt) {
     return (
         typeof excerpt.url === 'string' && /^\/(?!\/)/.test(excerpt.url) && !/[\\\r\n]/.test(excerpt.url) && !/\/_context(?:\/|$)/.test(excerpt.url)
@@ -102,7 +91,6 @@ export async function retrieveEvidence({ retrievalQuery, namespace, embed, searc
     const vector = await embed(retrievalQuery);
     const matches = await search(vector);
     if (!Array.isArray(matches)) throw new Error('Invalid retrieval result');
-    // Cosine index: higher is better. A missing or non-numeric score cannot be judged, so it is kept.
     const minScore = AI_CONFIG.retrieval.minScore;
     const relevant = matches.filter((match) => typeof minScore !== 'number' || typeof match?.score !== 'number' || match.score >= minScore);
     const ids = await parentSectionIds(relevant, namespace);

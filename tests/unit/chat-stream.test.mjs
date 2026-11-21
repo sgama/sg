@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { normalizeChatStream, createSseMessageStream } from '../../functions/_lib/chat-stream.js';
+import { normalizeChatStream, createSseMessageStream } from '../../shared/ai/chat-stream.js';
 
 const event = (payload) => `data: ${JSON.stringify(payload)}\n\n`;
 const delta = (content) => ({ choices: [{ index: 0, delta: { content } }] });

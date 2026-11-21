@@ -6,15 +6,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AiService } from '../../functions/_lib/ai.js';
-import {
-    AI_CONFIG,
-    contextualizedQueryFromResponse,
-    getModel,
-    isValidEmbeddingVector,
-    rewriteSearchQuery,
-} from '../../functions/_lib/application.js';
-import { buildMessages } from '../../functions/_lib/prompts.js';
-import { contextFromMatches, corpusRecordId, parentSectionIds, expandSectionMatches } from '../../functions/_lib/retrieval.js';
+import { AI_CONFIG, contextualizedQueryFromResponse, getModel, isValidEmbeddingVector, rewriteSearchQuery } from '../../shared/ai/application.js';
+import { buildMessages } from '../../shared/ai/prompts.js';
+import { contextFromMatches, corpusRecordId, parentSectionIds, expandSectionMatches } from '../../shared/ai/retrieval.js';
 import { buildEmbeddingsResponse, buildVectorizeResult, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
 import { makeEnv, makeProviderStream, makeRetrievalStore } from '../helpers/mocks.mjs';
 

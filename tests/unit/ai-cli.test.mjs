@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { main as refresh } from '../../scripts/refresh_ai_corpus.mjs';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { AI_CONFIG } from '../../functions/_lib/application.js';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 
 async function fixture(t) {
     const root = await mkdtemp(path.join(os.tmpdir(), 'sg-ai-cli-'));
