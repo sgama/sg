@@ -75,6 +75,18 @@ test('cancels a pending stream read when the abort signal fires', async () => {
     assert.equal(text, '');
 });
 
+test('a client TimeoutError is silent unless it is the actual deadline signal', async () => {
+    const client = new AbortController();
+    client.abort(new DOMException('Timed out', 'TimeoutError'));
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'));
+        },
+    });
+    const stream = normalizeChatStream(source, { signal: client.signal, deadlineSignal: new AbortController().signal });
+    assert.equal(await new Response(stream).text(), '');
+});
+
 test('deadline aborts stream reads with the existing error envelope and terminal marker', async () => {
     const controller = new AbortController();
     controller.abort(new DOMException('Timed out', 'TimeoutError'));
@@ -142,7 +154,7 @@ test('cancels provider streams after the first terminal failure and emits only o
         },
     });
     const output = await new Response(normalizeChatStream(source)).text();
-    assert.equal(cancelled, true);
+    assert.equal(cancelled, false);
     assert.equal((output.match(/"error":"AI response failed\. Please try again\."/g) ?? []).length, 1);
     assert.equal(output.split('data: {"error":"AI response failed. Please try again."}\n\n').length - 1, 1);
     assert.match(output, /data: \[DONE\]\n\n$/);

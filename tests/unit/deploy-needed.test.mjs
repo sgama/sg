@@ -51,6 +51,15 @@ test('a deployment is skipped only when no deployable file changed, and every do
     assert.match(unchanged.reason, /no deployable file changed/);
 });
 
+test('shared-only source changes still require a deploy', async () => {
+    const result = await deployNeeded({
+        client: client(),
+        accountId: 'account',
+        exec: git({ changed: 'shared/ai/application.js' }).exec,
+    });
+    assert.equal(result.needed, true);
+});
+
 test('a shallow checkout fetches the active commit once, and the diff covers exactly the deployable inputs', async () => {
     const { calls, exec } = git({ has: false });
     const result = await deployNeeded({ client: client(), accountId: 'account', exec });

@@ -266,13 +266,14 @@ test('/api/chat treats the request timeout as a safe deadline instead of an outa
     deadline.abort(new DOMException('Timed out', 'TimeoutError'));
 
     const app = createChatApp({
-        createAiService: (_env, signal) => ({
+        createAiService: (_env, { signal, deadlineSignal }) => ({
             retrieve: async () => ({
                 contextText: 'known context that is long enough to avoid abstention and trigger the timed-out generation path.',
                 evidence: [],
             }),
             generateStream: async () => {
                 if (signal.aborted) throw signal.reason;
+                if (deadlineSignal.aborted && signal.reason === deadlineSignal.reason) throw signal.reason;
                 return makeProviderStream('Answer');
             },
             responseMetrics: () => ({ totalMs: 1 }),

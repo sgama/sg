@@ -16,13 +16,14 @@ function isValidRetrievalCachePayload(payload) {
 }
 
 export class AiService {
-    constructor(env, { retrievalStore = null, signal = undefined } = {}) {
+    constructor(env, { retrievalStore = null, signal = undefined, deadlineSignal = undefined } = {}) {
         this.ai = env.AI;
         this.vectorize = env.VECTORIZE_INDEX;
         this.namespace = env.AI_CORPUS_NAMESPACE;
         // Options for every model call: AI Gateway routing (analytics, logs, retries) when configured, and the request's
         // abort signal so a closed tab or deadline stops paid rewrite, embedding and generation calls.
         this.runOptions = { ...(env.AI_GATEWAY_ID ? { gateway: { id: env.AI_GATEWAY_ID } } : {}), ...(signal ? { signal } : {}) };
+        this.deadlineSignal = deadlineSignal;
         this.model = getModel(env.AI_MODEL);
         this.contextualizationModel = getModel(AI_CONFIG.contextualization.model);
         this.metrics = createResponseMetrics({ model: this.model, rewriteModel: this.contextualizationModel });
@@ -132,6 +133,7 @@ export class AiService {
                 onUsage: (usage) => this.metrics.generationUsed(usage),
                 metrics: () => this.responseMetrics(),
                 signal: this.runOptions.signal,
+                deadlineSignal: this.deadlineSignal,
             });
         } catch (err) {
             if (this.runOptions.signal?.aborted) throw err;

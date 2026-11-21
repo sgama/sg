@@ -42,7 +42,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
   `content/_context/` is internal RAG corpus, not user-facing pages.
 - `data/prompts.yml` feeds the chat suggestion shortcode with employer questions.
 - Shared model settings, prompts and limits live in
-  `functions/_lib/application.js`; corpus logic lives in `scripts/lib/`.
+  `shared/ai/application.js`; corpus logic lives in `scripts/lib/`.
+  Retrieval, prompt and stream helpers are read from the shared module root so HTTP workers and evals share the same implementation.
 - Corpus CLI scripts use `.mjs`, including `scripts/generate_embeddings.mjs`.
 - `make ai-refresh` skips unchanged production corpora;
   `AI_REFRESH_FLAGS=--force` rebuilds a missing/damaged index.

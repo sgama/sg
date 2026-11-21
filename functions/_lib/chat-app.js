@@ -33,9 +33,12 @@ const BODY_LIMIT_BYTES = 64 * 1024;
 const REQUEST_DEADLINE_MS = 60_000;
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 
-// Uses the Workers Cache API for retrieval results when it exists (it does not in plain Node).
-const defaultCreateAiService = (env, signal) =>
-    new AiService(env, { retrievalStore: typeof caches !== 'undefined' ? workersCacheStore(caches.default) : null, signal });
+/**
+ * @param {Env} env
+ * @param {{ signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
+ */
+const defaultCreateAiService = (env, { signal, deadlineSignal } = {}) =>
+    new AiService(env, { retrievalStore: typeof caches !== 'undefined' ? workersCacheStore(caches.default) : null, signal, deadlineSignal });
 
 /**
  * Builds the /api/chat app. Every collaborator is injectable, so the route can run with another
@@ -92,7 +95,7 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
             const deadlineSignal = AbortSignal.timeout(REQUEST_DEADLINE_MS);
             const signal = AbortSignal.any([requestSignal, deadlineSignal]);
             const isDeadlineAbort = () => !requestSignal?.aborted && deadlineSignal.aborted && signal.reason === deadlineSignal.reason;
-            const aiService = createAiService(env, signal);
+            const aiService = createAiService(env, { signal, deadlineSignal });
             requireVectorizeBinding(env.VECTORIZE_INDEX);
             return streamSSE(c, async (sse) => {
                 try {

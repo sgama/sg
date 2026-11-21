@@ -26,13 +26,14 @@ export function createSseMessageStream(message, metrics) {
  * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream.
  *
  * @param {ReadableStream<Uint8Array>} stream
- * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal }} [options]
+ * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
  */
-export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, signal } = {}) {
+export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, signal, deadlineSignal } = {}) {
     let hasAnswer = false;
     let finished = false;
     let errorSent = false;
     let emitted = false;
+    const effectiveDeadlineSignal = deadlineSignal ?? null;
 
     const send = (controller, payload) => {
         emitted = true;
@@ -44,14 +45,25 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         controller.close();
         finished = true;
     };
+    const finishDeadline = (controller) => {
+        if (!errorSent) {
+            send(controller, { error: 'AI response failed. Please try again.' });
+            errorSent = true;
+        }
+        end(controller);
+    };
     const complete = (controller) => {
         if (!hasAnswer) throw new Error('AI stream completed without an answer');
         if (metrics) send(controller, { metrics: metrics() });
         end(controller);
     };
-    const isDeadlineAbort = () =>
-        !!signal && (signal.reason?.name === 'TimeoutError' || (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError'));
-
+    const isDeadlineAbort = () => {
+        if (!signal?.aborted) return false;
+        if (effectiveDeadlineSignal) {
+            return effectiveDeadlineSignal.aborted && signal.reason === effectiveDeadlineSignal.reason;
+        }
+        return signal.reason?.name === 'TimeoutError' || (signal.reason instanceof DOMException && signal.reason.name === 'TimeoutError');
+    };
     const handle = (data, controller) => {
         if (data.trim() === '[DONE]') return complete(controller);
         const payload = JSON.parse(data);
@@ -75,16 +87,12 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         finished = true;
         if (signal?.aborted) {
             if (isDeadlineAbort()) {
-                if (!errorSent) {
-                    send(controller, { error: 'AI response failed. Please try again.' });
-                    errorSent = true;
-                }
+                finishDeadline(controller);
                 try {
                     await reader?.cancel(error);
                 } catch {
                     // Best-effort cleanup while the deadline aborts the stream.
                 }
-                end(controller);
                 return;
             }
             return;
@@ -94,25 +102,34 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
             send(controller, { error: 'AI response failed. Please try again.' });
             errorSent = true;
         }
+        end(controller);
         if (reader) {
+            try {
+                await cancelUpstream(error);
+            } catch {
+                // the source is already closing or already canceled.
+            }
             try {
                 await reader.cancel(error);
             } catch (cancelError) {
                 if (cancelError !== error) console.error('Chat Stream Cancel Failed:', cancelError);
             }
         }
+    };
+
+    // The source stream is locked once we pipe through the parser chain, so capture the upstream cancel before it.
+    const cancelUpstream = (reason) => {
         try {
-            await stream.cancel?.(error);
+            return stream.cancel?.(reason);
         } catch {
             // the source is already closing or already canceled.
         }
-        end(controller);
     };
-
     const reader = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream()).getReader();
 
     const abortRead = async () => {
         if (finished) return;
+        if (signal?.aborted && isDeadlineAbort()) return;
         finished = true;
         try {
             await reader.cancel(signal?.reason ?? new Error('AbortError'));
@@ -133,11 +150,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         async pull(controller) {
             if (signal?.aborted) {
                 if (isDeadlineAbort()) {
-                    if (!errorSent) {
-                        send(controller, { error: 'AI response failed. Please try again.' });
-                        errorSent = true;
-                    }
-                    end(controller);
+                    finishDeadline(controller);
                     return;
                 }
                 finished = true;
@@ -158,11 +171,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
                 } catch (error) {
                     if (signal?.aborted) {
                         if (isDeadlineAbort()) {
-                            if (!errorSent) {
-                                send(controller, { error: 'AI response failed. Please try again.' });
-                                errorSent = true;
-                            }
-                            end(controller);
+                            finishDeadline(controller);
                             return;
                         }
                         finished = true;
@@ -174,11 +183,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
                 }
                 if (signal?.aborted) {
                     if (isDeadlineAbort()) {
-                        if (!errorSent) {
-                            send(controller, { error: 'AI response failed. Please try again.' });
-                            errorSent = true;
-                        }
-                        end(controller);
+                        finishDeadline(controller);
                         return;
                     }
                     finished = true;
