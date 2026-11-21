@@ -21,8 +21,11 @@ test('shared AI exports resolve runtime-neutral application config and abstentio
 test('shared files reject forbidden imports and worker-only globals', async () => {
     const sharedFile = `${root}shared/ai/eslint-boundary-test.js`;
     const allowedFile = `${root}scripts/eslint-boundary-allowed-test.mjs`;
-    await writeFile(sharedFile, "import '../../functions/_lib/worker-errors.js';\nimport 'node:fs';\nconst value = fetch;\nexport default value;\n");
-    await writeFile(allowedFile, "import { readFile } from 'node:fs/promises';\nexport default readFile;\n");
+    await writeFile(
+        sharedFile,
+        "import vm from 'vm';\nimport workerErrors from '../../../../functions/_lib/worker-errors.js';\nconst value = fetch;\nexport default { vm, workerErrors, value };\n",
+    );
+    await writeFile(allowedFile, "import vm from 'node:vm';\nimport { readFile } from 'node:fs/promises';\nexport default { vm, readFile };\n");
     try {
         const eslint = new ESLint({ cwd: root });
         const [sharedResults, allowedResults] = await Promise.all([eslint.lintFiles([sharedFile]), eslint.lintFiles([allowedFile])]);
@@ -30,7 +33,7 @@ test('shared files reject forbidden imports and worker-only globals', async () =
         const [allowedResult] = allowedResults;
         const sharedErrors = sharedResult.messages.map((entry) => entry.message);
         assert.ok(sharedErrors.some((message) => message.includes('functions/')));
-        assert.ok(sharedErrors.some((message) => message.includes('Node built-ins')) || sharedErrors.some((message) => message.includes('node:fs')));
+        assert.ok(sharedErrors.some((message) => message.includes('Node built-ins')) || sharedErrors.some((message) => message.includes('vm')));
         assert.ok(sharedErrors.some((message) => message.includes('fetch')));
         assert.equal(allowedResult.messages.length, 0);
     } finally {
