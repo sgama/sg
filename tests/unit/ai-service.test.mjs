@@ -375,6 +375,28 @@ test('matches below the configured minimum score are dropped before section expa
     assert.equal((await svc.retrieve('question')).contextText, 'Relevant evidence about Kubernetes');
 });
 
+test('a malformed cache payload falls through to retrieval and is replaced', async () => {
+    const env = makeEnv({
+        aiRun: async () => buildEmbeddingsResponse(),
+        vectorizeQuery: async () => buildVectorizeResult([{ text: 'Fresh evidence from retrieval' }]),
+    });
+    const calls = [];
+    const store = {
+        async get() {
+            return {};
+        },
+        async put(namespace, query, payload) {
+            calls.push({ namespace, query, payload });
+        },
+    };
+
+    const result = await new AiService(env, { retrievalStore: store }).retrieve('What changed?');
+    assert.equal(result.contextText, 'Fresh evidence from retrieval');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].payload.contextText, 'Fresh evidence from retrieval');
+    assert.deepEqual(calls[0].payload.evidence, []);
+});
+
 test('a cache hit with history skips the rewrite model call', async () => {
     let aiCalls = 0;
     const env = makeEnv({

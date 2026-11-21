@@ -5,6 +5,16 @@ import { normalizeChatStream } from '../../shared/ai/chat-stream.js';
 import { createResponseMetrics } from '../../shared/ai/response-metrics.js';
 import { AppError, requireVectorizeBinding } from './worker-errors.js';
 
+function isValidRetrievalCachePayload(payload) {
+    return (
+        !!payload &&
+        typeof payload === 'object' &&
+        !Array.isArray(payload) &&
+        typeof payload.contextText === 'string' &&
+        Array.isArray(payload.evidence)
+    );
+}
+
 export class AiService {
     constructor(env, { retrievalStore = null, signal = undefined } = {}) {
         this.ai = env.AI;
@@ -59,7 +69,7 @@ export class AiService {
         // Keyed by the question as asked plus the history it is read in, so a hit skips the rewrite call too.
         const cacheQuery = history.length ? `${query}\u0000${JSON.stringify(history)}` : query;
         const cached = this.retrievalStore ? await this.retrievalStore.get(this.namespace, cacheQuery) : null;
-        if (cached) {
+        if (isValidRetrievalCachePayload(cached)) {
             this.metrics.resetTiming('retrievalMs');
             await onProgress('search');
             return { contextText: cached.contextText, evidence: cached.evidence.map((item) => ({ ...item })) };
