@@ -93,3 +93,25 @@ DONE
 
 - The fix round focused on the reviewer’s requested compatibility/export and documentation restoration only; broader runtime or deployment validation remains scheduled for later Plan 1 tasks.
 - No live Cloudflare or paid inference calls were made.
+
+## Follow-up documentation-only correction
+
+### Changed files
+
+- `shared/ai/application.js`
+- `shared/ai/retrieval.js`
+
+### Commands and exit codes
+
+- `make format-check` — exit 0
+- `make typecheck` — exit 0
+
+### Commit hash
+
+- `7fbb0ca` (`fix: remove validation compatibility export and restore shared docs`) is the last code-level fix commit; this documentation-only follow-up did not change production behavior and does not create a new code commit.
+
+### Notes
+
+- This follow-up adds only brief readability comments explaining the per-message history limit and the purpose of source headers/separators when folding retrieval excerpts into one model context string.
+- No logic, tests, or abstractions were changed; no broad suite rerun was needed beyond the requested format/typecheck checks.
+- The earlier negative-control evidence was post-fix and was not a TDD red run; it was used only to confirm the regression guard would fail under the old export defect.

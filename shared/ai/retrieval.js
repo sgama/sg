@@ -76,6 +76,8 @@ export function contextFromMatches(matches, onExcerpt) {
         const identity = Object.fromEntries(
             ['title', 'url', 'section'].filter((key) => typeof metadata[key] === 'string' && metadata[key]).map((key) => [key, metadata[key]]),
         );
+        // Keep source identity with each excerpt so a later prompt can cite the public page and keep
+        // excerpt blocks visually distinct when multiple hits are folded into one context string.
         const header = Object.keys(identity).length ? `Source: ${JSON.stringify(identity)}\n` : '';
         const separator = context ? '\n---\n' : '';
         const remaining = AI_CONFIG.retrieval.maxContextChars - context.length - separator.length - header.length;

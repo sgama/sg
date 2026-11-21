@@ -74,6 +74,7 @@ export const CONFIG = {
         // Max history messages (user and assistant combined) accepted alongside the new query.
         // Older messages are dropped by the client.
         MAX_TURNS: 4,
+        // Per-message cap: each entry still must fit before the aggregated history budget is checked.
         MAX_CONTENT_LENGTH: 2000,
         // Total character budget across all history messages combined.
         MAX_TOTAL_LENGTH: 4000,
