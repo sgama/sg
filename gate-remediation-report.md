@@ -33,7 +33,7 @@ This follow-up addresses the remaining import-boundary hole and re-checks the de
 
 ## Commit and report notes
 
-- Final code commit in this follow-up: `9c8e061` (`Fix shared import boundary regression`)
+- Final code commit chain in this follow-up: `9c8e061` (`Fix shared import boundary regression`), followed by `b7e32d863aa31dba3b25cd0aa5b8fd7e9d461ba2` (`Fix shared import boundary regression`).
 - No additional `.superpowers` files were created or staged.
 - Scope remained narrow and excluded the user-approved architecture spec/plans.
 - No paid inference, live Cloudflare runtime work, deploys, pushes, token-scope changes, or dependency additions were performed.
