@@ -108,7 +108,8 @@ DONE
 
 ### Commit hash
 
-- `7fbb0ca` (`fix: remove validation compatibility export and restore shared docs`) is the last code-level fix commit; this documentation-only follow-up did not change production behavior and does not create a new code commit.
+- `7fbb0ca` (`fix: remove validation compatibility export and restore shared docs`) is the last functional fix commit.
+- `84059d1a02c55cd04e93dfa2e5d3260aac944a6b` (`docs: clarify shared AI config and retrieval context comments`) records the documentation-only follow-up and report update; it does not change runtime behavior.
 
 ### Notes
 
