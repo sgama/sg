@@ -66,7 +66,8 @@ Exit code: 0
 
 ## Commit hash
 
-- `ea601ff` — `fix: distinguish request cancellation from AI outages`
+- `ea601ff` — `fix: distinguish request cancellation from AI outages` (fix round 1)
+- `30e6bbf93b4dd96778fb9715b7b212b11d56ffc4` — `fix: resolve stream-phase deadline handling` (fix round 2)
 
 ## Not independently verified
 
@@ -78,19 +79,19 @@ Exit code: 0
 ### What changed
 
 - `shared/ai/chat-stream.js`
-  - rechecks the abort signal immediately after a pending `reader.read()` resolves and before treating `{ done: true }` as a normal completion
-  - preserves the deadline error path as a normalized output-stream failure so the outer route still emits the existing safe `{ error: ... }` frame and `[DONE]`
-  - keeps request disconnects silent, without provider outage logging or a later SSE write
-  - restores the explanatory comment around the `while (!emitted)` loop so the loop's purpose is clear
-  - keeps the real provider-failure route as a single error frame + `[DONE]` with one console log and a single cancellation path
+    - rechecks the abort signal immediately after a pending `reader.read()` resolves and before treating `{ done: true }` as a normal completion
+    - preserves the deadline error path as a normalized output-stream failure so the outer route still emits the existing safe `{ error: ... }` frame and `[DONE]`
+    - keeps request disconnects silent, without provider outage logging or a later SSE write
+    - restores the explanatory comment around the `while (!emitted)` loop so the loop's purpose is clear
+    - keeps the real provider-failure route as a single error frame + `[DONE]` with one console log and a single cancellation path
 
 - `tests/unit/chat-stream.test.mjs`
-  - adds the pending upstream-read regression: a never-erroring source that stays pending until the deadline aborts, then resolves as `{ done: true }` without an error; the output must still be the deadline-safe error frame and `[DONE]`, never success metrics
-  - keeps the pre-aborted deadline path and the real provider-failure assertions in place
+    - adds the pending upstream-read regression: a never-erroring source that stays pending until the deadline aborts, then resolves as `{ done: true }` without an error; the output must still be the deadline-safe error frame and `[DONE]`, never success metrics
+    - keeps the pre-aborted deadline path and the real provider-failure assertions in place
 
 - `tests/unit/chat-api.test.mjs`
-  - retains the actual deadline classification test at the true request/deadline seam; no fake `signal` property was added to `answerChat`
-  - restores the timeout mocking with local test-context cleanup instead of manual ad hoc restoration
+    - retains the actual deadline classification test at the true request/deadline seam; no fake `signal` property was added to `answerChat`
+    - uses `t.mock.method` for test-context cleanup; explicit manual `AbortSignal.timeout` restoration remains and is redundant
 
 ### Validation
 
@@ -110,6 +111,6 @@ Exit status: 0
 
 ### Evidence summary
 
-- Focused task suite: 32 tests passed
+- Focused task suite: 32 tests passed as reported for fix round 2. Fix round 1 reported 56 for the same command; Atuin history has no captured agent command output to reconcile the count difference.
 - Offline acceptance: passed
 - Remaining unverified behavior: no Cloudflare deployment, production Worker invocation, or live provider traffic; only offline mocks were used as required.
