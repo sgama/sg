@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { MarkdownTextSplitter } from '@langchain/textsplitters';
@@ -94,6 +95,12 @@ const CHUNK_CONFIG = Object.freeze({ chunkSize: 2000, chunkOverlap: 200 });
 export function embeddingText(chunk) {
     const labels = [chunk.metadata.title, chunk.metadata.section].filter((label) => label && label !== 'Untitled');
     return labels.length ? `${labels.join(' — ')}\n\n${chunk.text}` : chunk.text;
+}
+
+export function embeddingKey(corpus, chunk) {
+    return createHash('sha256')
+        .update(`${corpus.embedding.model}\0${corpus.embedding.dimensions}\0${embeddingText(chunk)}`)
+        .digest('hex');
 }
 
 /**

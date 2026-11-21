@@ -4,8 +4,8 @@ import { setTimeout as delay } from 'node:timers/promises';
 import pLimit from 'p-limit';
 import Cloudflare, { toFile } from 'cloudflare';
 import { AI_CONFIG, isValidEmbeddingVector } from '../../functions/_lib/application.js';
-import { buildCorpus, embeddingText } from './corpus.mjs';
-import { validateCorpus } from './corpus-contract.mjs';
+import { buildCorpus, embeddingKey, embeddingText } from './corpus.mjs';
+import { chunkId, validateCorpus } from './corpus-contract.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';
 import { activeWorker } from './worker-deployment.mjs';
 
@@ -15,21 +15,26 @@ export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
 
 /** @typedef {Awaited<ReturnType<typeof import('./corpus.mjs').buildCorpus>>} Corpus */
 
+const REUSE_BATCH_SIZE = 20;
+
 /**
  * @param {import('cloudflare').Cloudflare} client
  * @param {string} accountId
  * @param {Corpus} corpus
- * @param {{ namespace?: string, indexName?: string, concurrency?: number, batchSize?: number, afterMutation?: (mutationId: string) => Promise<void> }} [options]
+ * @param {{ namespace?: string, previousNamespace?: string, indexName?: string, concurrency?: number, batchSize?: number, afterMutation?: (mutationId: string) => Promise<void> }} [options]
  */
 export async function ingestCorpus(
     client,
     accountId,
     corpus,
-    { namespace, indexName = AI_CONFIG.retrieval.indexName, concurrency = 5, batchSize = 1000, afterMutation } = {},
+    { namespace, previousNamespace, indexName = AI_CONFIG.retrieval.indexName, concurrency = 5, batchSize = 1000, afterMutation } = {},
 ) {
     validateCorpus(corpus);
     if (!namespace || namespace !== corpus.namespace) {
         throw new Error(`Explicit --namespace must match computed namespace: ${corpus.namespace}`);
+    }
+    if (previousNamespace !== undefined && !/^corpus-[a-f0-9]{56}$/.test(previousNamespace)) {
+        throw new Error(`Invalid previous corpus namespace: ${previousNamespace}`);
     }
     if (!accountId || !indexName) throw new Error('Account ID and index name are required');
     if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 5 || !Number.isInteger(batchSize) || batchSize < 1 || batchSize > 1000) {
@@ -38,11 +43,51 @@ export async function ingestCorpus(
     if (!corpus.chunks.length) throw new Error('Refusing to ingest an empty corpus');
     const limit = pLimit(concurrency);
     const controller = new AbortController();
+    const reuseByOldId = new Map();
+    if (previousNamespace && previousNamespace !== namespace) {
+        try {
+            const ids = corpus.chunks.map((chunk) => chunkId(previousNamespace, chunk.metadata.source, chunk.chunkIndex));
+            for (let offset = 0; offset < ids.length; offset += REUSE_BATCH_SIZE) {
+                const batch = ids.slice(offset, offset + REUSE_BATCH_SIZE);
+                const records = await client.vectorize.indexes.getByIDs(indexName, {
+                    account_id: accountId,
+                    ids: batch,
+                });
+                if (!Array.isArray(records)) continue;
+                for (const record of records) {
+                    if (!record || typeof record.id !== 'string' || !record.id || !batch.includes(record.id)) continue;
+                    if (!Object.hasOwn(record, 'values') || !Array.isArray(record.values) || !record.metadata) continue;
+                    if (!isValidEmbeddingVector(record.values, corpus.embedding.dimensions)) continue;
+                    if (typeof record.metadata?.ekey !== 'string') continue;
+                    reuseByOldId.set(record.id, record);
+                }
+            }
+        } catch (error) {
+            console.warn(error instanceof Error ? error.message : String(error));
+            // Best-effort only: fallback to fresh embeddings when the previous namespace is unavailable or stale.
+        }
+    }
     const vectors = await Promise.all(
         corpus.chunks.map((chunk) =>
             limit(async () => {
                 controller.signal.throwIfAborted();
                 try {
+                    const key = embeddingKey(corpus, chunk);
+                    const oldId =
+                        previousNamespace && previousNamespace !== namespace
+                            ? chunkId(previousNamespace, chunk.metadata.source, chunk.chunkIndex)
+                            : null;
+                    const reused = oldId ? reuseByOldId.get(oldId) : null;
+                    const metadata = { ...chunk.metadata, ekey: key };
+                    if (
+                        reused &&
+                        reused.id === oldId &&
+                        reused.metadata?.ekey === key &&
+                        isValidEmbeddingVector(reused.values, corpus.embedding.dimensions)
+                    ) {
+                        // shortcut: reuse matches only by same (source,index) id in previous namespace; chunks that shift index are re-embedded, upgrade to listVectors if that matters.
+                        return { id: chunk.id, values: reused.values, namespace, metadata, reused: true };
+                    }
                     const result = await runEmbedding(client, accountId, corpus.embedding.model, [embeddingText(chunk)], {
                         signal: controller.signal,
                     });
@@ -51,7 +96,7 @@ export async function ingestCorpus(
                     if (!Array.isArray(result?.data) || result.data.length !== 1 || !isValidEmbeddingVector(values, corpus.embedding.dimensions)) {
                         throw new Error(`Invalid embedding dimensions or values for ${chunk.id}`);
                     }
-                    return { id: chunk.id, values, namespace, metadata: chunk.metadata };
+                    return { id: chunk.id, values, namespace, metadata, reused: false };
                 } catch (error) {
                     controller.abort(error);
                     throw controller.signal.reason;
@@ -63,9 +108,13 @@ export async function ingestCorpus(
     const mutationIds = [];
     for (let i = 0; i < vectors.length; i += batchSize) {
         const batch = vectors.slice(i, i + batchSize);
-        const body = await toFile(new TextEncoder().encode(batch.map((vector) => JSON.stringify(vector)).join('\n') + '\n'), 'vectors.ndjson', {
-            type: 'application/x-ndjson',
-        });
+        const body = await toFile(
+            new TextEncoder().encode(batch.map(({ reused, ...vector }) => JSON.stringify(vector)).join('\n') + '\n'),
+            'vectors.ndjson',
+            {
+                type: 'application/x-ndjson',
+            },
+        );
         const result = await client.vectorize.indexes.upsert(indexName, {
             account_id: accountId,
             body,
@@ -77,8 +126,10 @@ export async function ingestCorpus(
         mutationIds.push(result.mutationId);
         if (afterMutation) await afterMutation(result.mutationId);
     }
+    const reused = vectors.filter((vector) => vector.reused).length;
+    const embedded = vectors.length - reused;
     // Mutation IDs acknowledge asynchronous acceptance, not query readiness or activation.
-    return { namespace, count: vectors.length, mutationIds };
+    return { namespace, count: vectors.length, mutationIds, reused, embedded };
 }
 
 export function setCorpusNamespace(config, namespace, previousNamespace) {
@@ -163,17 +214,15 @@ export async function refreshCorpus({
         return null;
     });
     const activeNamespace = active?.namespace;
-    const updated = setCorpusNamespace(
-        original,
-        corpus.namespace,
-        activeNamespace === corpus.namespace ? active?.previousNamespace : activeNamespace,
-    );
+    const previousNamespace = activeNamespace === corpus.namespace ? active?.previousNamespace : activeNamespace;
+    const updated = setCorpusNamespace(original, corpus.namespace, previousNamespace);
     const skipped = !force && activeNamespace === corpus.namespace;
     // Process one upload batch at a time so no later batch can hide its readiness marker.
     const result = skipped
-        ? { namespace: corpus.namespace, count: corpus.chunks.length, mutationIds: [] }
+        ? { namespace: corpus.namespace, count: corpus.chunks.length, mutationIds: [], reused: 0, embedded: 0 }
         : await ingestCorpus(client, accountId, corpus, {
               namespace: corpus.namespace,
+              previousNamespace: force ? undefined : previousNamespace,
               afterMutation: (mutationId) =>
                   wait(client, accountId, mutationId).catch((error) => {
                       throw new Error(`${error.message}; corpus was not activated`, { cause: error });

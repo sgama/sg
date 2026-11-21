@@ -13,6 +13,7 @@ export async function main(args = process.argv.slice(2)) {
             check: { type: 'boolean', default: false },
             manifest: { type: 'string' },
             namespace: { type: 'string' },
+            'previous-namespace': { type: 'string' },
         },
     });
     const corpus = await buildCorpus();
@@ -47,7 +48,10 @@ export async function main(args = process.argv.slice(2)) {
     await import('dotenv/config');
     const { accountId, apiToken } = requireCloudflareCredentials();
     const client = createMaintenanceClient(apiToken);
-    const result = await ingestCorpus(client, accountId, corpus, { namespace: values.namespace });
+    const result = await ingestCorpus(client, accountId, corpus, {
+        namespace: values.namespace,
+        previousNamespace: values['previous-namespace'],
+    });
     // Mutations apply in order, so the last one processed means the whole namespace is queryable.
     if (result.mutationIds.length) await waitForMutation(client, accountId, result.mutationIds.at(-1));
     console.log(JSON.stringify({ ...result, status: 'processed (not activated)' }, null, 2));

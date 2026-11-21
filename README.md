@@ -524,7 +524,14 @@ Worker that is not deployed yet, or has no namespace, requires ingestion. Use
 `make ai-refresh AI_REFRESH_FLAGS=--force` (or the CLI's `--force`) to rebuild a
 missing or damaged index explicitly; force bypasses the Worker lookup. The hash
 includes source files, embedding and chunking settings, including draft/front-matter
-changes. Individual unchanged chunk reuse is not implemented. Leaving
+changes. When a changed corpus is ingested, vectors are fetched from the live
+namespace with `getByIDs` and reused (re-upserted under new IDs) if the same
+source/index chunk has an identical embedding key (`ekey` metadata: model,
+dimensions and embedding text hash); only the rest are embedded. Reuse is
+best-effort: a lookup failure, `--force`, or a chunk that shifts index falls back to
+fresh embeddings. `ekey` is an unsigned hash, so anyone who can write to the index
+can plant a reusable vector; the index write token is already the trust boundary.
+The refresh output reports `reused` and `embedded` counts. Leaving
 `AI_CORPUS_NAMESPACE` unset is only a migration fallback. A manual rollback to an
 earlier commit must restore its namespace/model configuration and re-ingest it if
 cleanup already pruned it.

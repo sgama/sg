@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import Cloudflare from 'cloudflare';
 import { AI_CONFIG } from '../../functions/_lib/application.js';
-import { buildCorpus } from '../../scripts/lib/corpus.mjs';
+import { buildCorpus, embeddingKey } from '../../scripts/lib/corpus.mjs';
+import { chunkId } from '../../scripts/lib/corpus-contract.mjs';
 import { createMaintenanceClient, ingestCorpus, waitForMutation } from '../../scripts/lib/corpus-deployment.mjs';
 import { corpusFixture as fixture } from '../helpers/corpus.mjs';
 
@@ -107,6 +108,8 @@ test('ingestion uploads namespaced NDJSON files deterministically and reports ac
         namespace: corpus.namespace,
         count: 3,
         mutationIds: ['mutation-1', 'mutation-2'],
+        reused: 0,
+        embedded: 3,
     });
     const vectors = client.calls.upserts.flatMap((call) => call.vectors);
     assert.deepEqual(
@@ -116,6 +119,150 @@ test('ingestion uploads namespaced NDJSON files deterministically and reports ac
     assert.ok(vectors.every((vector) => vector.namespace === corpus.namespace));
     assert.ok(client.calls.upserts.every((call) => call.params['unparsable-behavior'] === 'error' && call.params.account_id === 'account'));
     assert.ok(client.calls.embeddings.every((call) => call.model === corpus.embedding.model));
+    assert.ok(
+        vectors.every(
+            (vector) =>
+                vector.metadata.ekey ===
+                embeddingKey(
+                    corpus,
+                    corpus.chunks.find((chunk) => chunk.id === vector.id),
+                ),
+        ),
+    );
+});
+
+test('reuses only matching ekey and valid vectors and falls back on errors', async (t) => {
+    const corpus = await buildCorpus({ root: await fixture(t) });
+    const previousNamespace = `corpus-${'b'.repeat(56)}`;
+    const warn = t.mock.method(console, 'warn', () => {});
+    for (const [name, stub] of [
+        [
+            'ekey mismatch',
+            async (_, { ids }) =>
+                ids.map((id) => ({
+                    id,
+                    values: Array(corpus.embedding.dimensions).fill(0.2),
+                    metadata: { ekey: 'wrong' },
+                })),
+        ],
+        [
+            'invalid dimension',
+            async (_, { ids }) =>
+                ids.map((id) => {
+                    const chunk = corpus.chunks.find((entry) => chunkId(previousNamespace, entry.metadata.source, entry.chunkIndex) === id);
+                    return {
+                        id,
+                        values: Array(corpus.embedding.dimensions - 1).fill(0.2),
+                        metadata: { ekey: chunk ? embeddingKey(corpus, chunk) : 'missing' },
+                    };
+                }),
+        ],
+        [
+            'getByIDs throws',
+            async () => {
+                throw new Error('lookup unavailable');
+            },
+        ],
+    ]) {
+        const client = clientStub(corpus.embedding.dimensions);
+        client.vectorize.indexes.getByIDs = stub;
+        const result = await ingestCorpus(client, 'account', corpus, {
+            namespace: corpus.namespace,
+            previousNamespace,
+        });
+        assert.equal(result.reused, 0, name);
+        assert.equal(result.embedded, 3, name);
+        assert.equal(client.calls.embeddings.length, 3, name);
+        if (name === 'getByIDs throws') {
+            assert.equal(warn.mock.calls.length > 0, true, name);
+        } else {
+            assert.equal(warn.mock.calls.length, 0, name);
+        }
+    }
+});
+
+test('reuses prior embeddings when the same source-index record is unchanged', async (t) => {
+    const corpus = await buildCorpus({ root: await fixture(t) });
+    const previousNamespace = `corpus-${'b'.repeat(56)}`;
+    const client = clientStub(corpus.embedding.dimensions);
+    client.vectorize.indexes.getByIDs = async (_, { ids }) =>
+        ids.map((id) => {
+            const chunk = corpus.chunks.find((entry) => chunkId(previousNamespace, entry.metadata.source, entry.chunkIndex) === id);
+            return {
+                id,
+                values: Array(corpus.embedding.dimensions).fill(0.2),
+                metadata: { ekey: chunk ? embeddingKey(corpus, chunk) : 'missing' },
+            };
+        });
+    const result = await ingestCorpus(client, 'account', corpus, {
+        namespace: corpus.namespace,
+        previousNamespace,
+    });
+    assert.equal(result.reused, 3);
+    assert.equal(result.embedded, 0);
+    assert.equal(client.calls.embeddings.length, 0);
+    assert.deepEqual(
+        client.calls.upserts[0].vectors.map((vector) => vector.values),
+        [Array(corpus.embedding.dimensions).fill(0.2), Array(corpus.embedding.dimensions).fill(0.2), Array(corpus.embedding.dimensions).fill(0.2)],
+    );
+    assert.ok(client.calls.upserts[0].vectors.every((vector) => vector.namespace === corpus.namespace));
+    assert.ok(client.calls.upserts[0].vectors.every((vector) => vector.metadata.ekey));
+});
+
+test('reuses section vectors fetched by previous source-index ids without new embeddings', async (t) => {
+    const root = await fixture(t, {
+        'content/page.md': [
+            '---',
+            'title: Long Section',
+            '---',
+            'Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega.',
+            ''.padEnd(4000, 'Long repeated section text. '),
+            ''.padEnd(4000, 'More repeated section text. '),
+        ].join('\n'),
+    });
+    const corpus = await buildCorpus({ root });
+    const previousNamespace = `corpus-${'b'.repeat(56)}`;
+    const sectionIds = corpus.chunks
+        .filter((chunk) => chunk.chunkIndex < 0)
+        .map((chunk) => chunkId(previousNamespace, chunk.metadata.source, chunk.chunkIndex));
+    assert.ok(sectionIds.length > 0);
+    const client = clientStub(corpus.embedding.dimensions);
+    const lookedUp = [];
+    client.vectorize.indexes.getByIDs = async (_, { ids }) => {
+        lookedUp.push(ids);
+        return ids.map((id) => {
+            const chunk = corpus.chunks.find((entry) => chunkId(previousNamespace, entry.metadata.source, entry.chunkIndex) === id);
+            return {
+                id,
+                values: Array(corpus.embedding.dimensions).fill(0.2),
+                metadata: { ekey: chunk ? embeddingKey(corpus, chunk) : 'missing' },
+            };
+        });
+    };
+    const result = await ingestCorpus(client, 'account', corpus, {
+        namespace: corpus.namespace,
+        previousNamespace,
+    });
+    assert.equal(result.reused, corpus.chunks.length);
+    assert.equal(result.embedded, 0);
+    assert.equal(client.calls.embeddings.length, 0);
+    assert.ok(lookedUp.some((batch) => batch.some((id) => sectionIds.includes(id))));
+    assert.ok(
+        corpus.chunks
+            .filter((chunk) => chunk.chunkIndex < 0)
+            .every((chunk) => lookedUp.flat().includes(chunkId(previousNamespace, chunk.metadata.source, chunk.chunkIndex))),
+    );
+});
+
+test('no previousNamespace re-embeds every chunk', async (t) => {
+    const corpus = await buildCorpus({ root: await fixture(t) });
+    const client = clientStub(corpus.embedding.dimensions);
+    const result = await ingestCorpus(client, 'account', corpus, {
+        namespace: corpus.namespace,
+    });
+    assert.equal(result.reused, 0);
+    assert.equal(result.embedded, 3);
+    assert.equal(client.calls.embeddings.length, 3);
 });
 
 test('maintenance retry defaults do not retry paid embedding failures', async (t) => {
