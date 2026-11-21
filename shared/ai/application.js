@@ -1,6 +1,8 @@
 import chatAi from '../../data/chat_ai.json' with { type: 'json' };
 import { contextualizationMessages } from './prompts.js';
 
+// The public config lives in data/chat_ai.json; this file simply exposes the exact model registry and
+// limits used by runtime and evaluation callers. Keep the wiring here, not in each consumer.
 export const AI_CONFIG = chatAi.config;
 export const AI_MODELS = chatAi.models;
 
@@ -69,10 +71,15 @@ export async function rewriteSearchQuery(query, history, model, run) {
 
 export const CONFIG = {
     HISTORY: {
+        // Max history messages (user and assistant combined) accepted alongside the new query.
+        // Older messages are dropped by the client.
         MAX_TURNS: 4,
         MAX_CONTENT_LENGTH: 2000,
+        // Total character budget across all history messages combined.
         MAX_TOTAL_LENGTH: 4000,
     },
+    // Public query limit (characters, after trimming).
     QUERY: { MAX_LENGTH: 500 },
+    // Below this much retrieved context the assistant abstains instead of answering.
     ABSTAIN: { MIN_CONTEXT_CHARS: 20 },
 };

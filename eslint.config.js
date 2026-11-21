@@ -32,6 +32,10 @@ export default [
         languageOptions: { globals: globals.worker },
     },
     {
+        files: ['shared/**/*.js'],
+        languageOptions: { globals: globals.browser },
+    },
+    {
         files: ['evals/**/*.mjs', 'scripts/**/*.mjs', 'tests/**/*.mjs', '*.config.js'],
         languageOptions: { globals: globals.node },
     },

@@ -1,5 +1,9 @@
 import { AI_CONFIG, estimateCost } from './application.js';
 
+/**
+ * Collects the timings and token usage of one chat request and renders the `metrics` event payload.
+ * Request-scoped and free of I/O; the clock is injectable.
+ */
 export function createResponseMetrics({ model, rewriteModel, now = () => performance.now() }) {
     const started = now();
     const timings = { rewriteMs: 0, embeddingMs: 0, retrievalMs: 0 };
@@ -9,6 +13,7 @@ export function createResponseMetrics({ model, rewriteModel, now = () => perform
     let firstTokenMs = null;
 
     return {
+        /** Runs `work` and adds its duration to a timing bucket, even if it throws. */
         async time(bucket, work) {
             const begun = now();
             try {
@@ -20,6 +25,7 @@ export function createResponseMetrics({ model, rewriteModel, now = () => perform
         resetTiming(bucket) {
             timings[bucket] = 0;
         },
+        /** Records the query-rewrite call; `begun` is the clock value taken before it started. */
         rewrite({ begun, usage }) {
             timings.rewriteMs = now() - begun;
             rewriteUsage = usage ?? null;

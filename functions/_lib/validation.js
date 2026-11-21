@@ -1,8 +1,5 @@
 import { z } from 'zod';
 import { CONFIG } from '../../shared/ai/application.js';
-import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../shared/ai/answer-policy.js';
-
-export { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext };
 
 const MessageSchema = z
     .object({

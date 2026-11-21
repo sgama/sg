@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ChatRequestSchema, shouldAbstainForMissingContext } from '../../functions/_lib/validation.js';
+import * as validationModule from '../../functions/_lib/validation.js';
+import { ChatRequestSchema } from '../../functions/_lib/validation.js';
 import { MAX_API_HISTORY_MESSAGES, MAX_API_HISTORY_MESSAGE_LENGTH, MAX_API_HISTORY_TOTAL_LENGTH } from '../../assets/js/chat/model/history.js';
 import { CONFIG } from '../../shared/ai/application.js';
+import { shouldAbstainForMissingContext } from '../../shared/ai/answer-policy.js';
 
 const { MAX_TURNS, MAX_CONTENT_LENGTH, MAX_TOTAL_LENGTH } = CONFIG.HISTORY;
 const MAX_QUERY_LENGTH = CONFIG.QUERY.MAX_LENGTH;
@@ -32,6 +34,7 @@ test('context abstention checks types, trimmed length and custom exact boundarie
     assert.equal(shouldAbstainForMissingContext(`  ${'x'.repeat(20)}  `), false);
     assert.equal(shouldAbstainForMissingContext('abc', 4), true);
     assert.equal(shouldAbstainForMissingContext('abcd', 4), false);
+    assert.equal('shouldAbstainForMissingContext' in validationModule, false);
 });
 
 test('history validation rejects invalid turns, defaults to empty and strips unknown fields', () => {
