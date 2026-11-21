@@ -249,6 +249,34 @@ test('AiService', async (t) => {
     });
 });
 
+test('aborts are preserved without wrapping or provider logging', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const controller = new AbortController();
+    controller.abort();
+    const abortError = new Error('client disconnected');
+    const svc = new AiService(
+        makeEnv({
+            aiRun: async () => {
+                throw abortError;
+            },
+        }),
+        { signal: controller.signal },
+    );
+    await assert.rejects(svc.generateStream('query', 'context'), (err) => {
+        assert.equal(err, abortError);
+        return true;
+    });
+    await assert.rejects(svc.contextualizeQuery('Most recently?', [{ role: 'user', content: 'Earlier?' }]), (err) => {
+        assert.equal(err, abortError);
+        return true;
+    });
+    await assert.rejects(svc.getEmbeddings('query'), (err) => {
+        assert.equal(err, abortError);
+        return true;
+    });
+    assert.equal(logged.mock.callCount(), 0);
+});
+
 test('service failures surface as 503s with the cause logged once', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const failure = new Error('upstream down');

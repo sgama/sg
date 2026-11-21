@@ -87,7 +87,10 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
             }
 
             // The client disconnecting or the deadline passing aborts every paid model call for this turn.
-            const signal = AbortSignal.any([c.req.raw.signal, AbortSignal.timeout(REQUEST_DEADLINE_MS)]);
+            const requestSignal = c.req.raw.signal;
+            if (requestSignal?.aborted) return new Response('', { status: 200 });
+            const deadlineSignal = AbortSignal.timeout(REQUEST_DEADLINE_MS);
+            const signal = AbortSignal.any([requestSignal, deadlineSignal]);
             const aiService = createAiService(env, signal);
             requireVectorizeBinding(env.VECTORIZE_INDEX);
             return streamSSE(c, async (sse) => {
@@ -96,10 +99,21 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                         aiService,
                         query,
                         history,
-                        emit: (payload) => sse.writeSSE({ data: JSON.stringify(payload) }),
+                        emit: (payload) => {
+                            if (sse.aborted || signal.aborted) return;
+                            return sse.writeSSE({ data: JSON.stringify(payload) });
+                        },
                     });
                     await sse.pipe(stream);
                 } catch (err) {
+                    if (requestSignal.aborted) return;
+                    if (signal.reason?.name === 'TimeoutError') {
+                        if (!sse.aborted) {
+                            await sse.writeSSE({ data: JSON.stringify({ error: 'The response could not be completed.' }) });
+                            await sse.writeSSE({ data: DONE_PAYLOAD });
+                        }
+                        return;
+                    }
                     console.error('Chat Request Failed:', err);
                     if (!sse.aborted) {
                         await sse.writeSSE({

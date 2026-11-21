@@ -55,6 +55,26 @@ test('creates the current widget response stream directly', async () => {
     assert.equal(timed, event({ response: 'Answer' }) + event({ metrics: { totalMs: 1 } }) + 'data: [DONE]\n\n');
 });
 
+test('cancels a pending stream read when the abort signal fires', async () => {
+    const controller = new AbortController();
+    let canceled = false;
+    const source = new ReadableStream({
+        start() {
+            controller.signal.addEventListener('abort', () => {
+                canceled = true;
+            });
+        },
+        cancel() {
+            canceled = true;
+        },
+    });
+    const stream = normalizeChatStream(source, { signal: controller.signal });
+    controller.abort();
+    const text = await new Response(stream).text();
+    assert.equal(canceled, true);
+    assert.equal(text, '');
+});
+
 test('terminates the client stream when the upstream stream fails', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const upstream = new ReadableStream({

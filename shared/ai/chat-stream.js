@@ -26,9 +26,9 @@ export function createSseMessageStream(message, metrics) {
  * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream.
  *
  * @param {ReadableStream<Uint8Array>} stream
- * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object }} [options]
+ * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal }} [options]
  */
-export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } = {}) {
+export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, signal } = {}) {
     let hasAnswer = false;
     let finished = false;
     let errorSent = false;
@@ -69,6 +69,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
     const fail = async (controller, error, reader) => {
         if (finished) return;
         finished = true;
+        if (signal?.aborted) return;
         console.error('Chat Stream Failed:', error);
         if (!errorSent) {
             send(controller, { error: 'AI response failed. Please try again.' });
@@ -85,8 +86,30 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
 
     const reader = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream()).getReader();
 
+    if (signal) {
+        const onAbort = async () => {
+            if (finished) return;
+            finished = true;
+            try {
+                await reader.cancel(signal.reason ?? new Error('AbortError'));
+            } catch {
+                // Best-effort cancellation while aborting the upstream read.
+            }
+        };
+        if (signal.aborted) {
+            queueMicrotask(() => void onAbort());
+        } else {
+            signal.addEventListener('abort', () => void onAbort(), { once: true });
+        }
+    }
+
     return new ReadableStream({
         async pull(controller) {
+            if (signal?.aborted) {
+                finished = true;
+                controller.close();
+                return;
+            }
             // Events that emit nothing (reasoning deltas) must not return early: no further pull is scheduled.
             emitted = false;
             while (!emitted) {
@@ -98,6 +121,11 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics } =
                 try {
                     result = await reader.read();
                 } catch (error) {
+                    if (signal?.aborted) {
+                        finished = true;
+                        controller.close();
+                        return;
+                    }
                     await fail(controller, error);
                     continue;
                 }

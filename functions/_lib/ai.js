@@ -39,6 +39,7 @@ export class AiService {
             }
             return vector;
         } catch (err) {
+            if (this.runOptions.signal?.aborted) throw err;
             console.error('Embedding Generation Failed:', err);
             throw new AppError('Embedding service unavailable', 503);
         }
@@ -54,6 +55,7 @@ export class AiService {
                 return response;
             });
         } catch (err) {
+            if (this.runOptions.signal?.aborted) throw err;
             console.error('Query Contextualization Failed:', err);
             throw new AppError('Query contextualization service unavailable', 503);
         }
@@ -102,6 +104,7 @@ export class AiService {
             });
         } catch (err) {
             if (err instanceof AppError) throw err;
+            if (this.runOptions.signal?.aborted) throw err;
             console.error('Vector Search Failed:', err);
             throw new AppError('Retrieval service unavailable', 503);
         }
@@ -130,6 +133,7 @@ export class AiService {
                 metrics: () => this.responseMetrics(),
             });
         } catch (err) {
+            if (this.runOptions.signal?.aborted) throw err;
             console.error('Generation Failed:', err);
             throw new AppError('Generation service unavailable', 503);
         }

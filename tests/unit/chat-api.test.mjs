@@ -229,6 +229,75 @@ test('/api/chat', async (t) => {
     });
 });
 
+test('/api/chat preserves disconnects without provider logging or SSE writes after abort', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const env = {
+        AI: {
+            run: async () => {
+                throw new Error('must not reach provider');
+            },
+        },
+        VECTORIZE_INDEX: {
+            query: async () => {
+                throw new Error('must not search');
+            },
+        },
+    };
+    const controller = new AbortController();
+    controller.abort();
+    const request = new Request(`${URLS.TEST_API_ENDPOINT}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: 'https://samsongama.com' },
+        body: JSON.stringify({ query: 'Question?' }),
+        signal: controller.signal,
+    });
+    const response = await onRequest({ request, env, waitUntil() {} });
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.equal(text, '');
+    assert.equal(logged.mock.callCount(), 0);
+});
+
+test('/api/chat treats the request timeout as a safe deadline instead of an outage', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const deadline = new AbortController();
+    deadline.abort(new DOMException('Timed out', 'TimeoutError'));
+    t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
+
+    const app = createChatApp({
+        createAiService: (_env, signal) => ({
+            retrieve: async () => ({ contextText: 'known context', evidence: [] }),
+            generateStream: async () => {
+                if (signal.aborted) throw signal.reason;
+                return makeProviderStream('Answer');
+            },
+            responseMetrics: () => ({ totalMs: 1 }),
+        }),
+        answerChat: async ({ aiService, emit, signal }) => {
+            const { contextText } = await aiService.retrieve('Question?');
+            await emit({ progress: 'generation' });
+            if (signal.aborted) throw signal.reason;
+            return aiService.generateStream(contextText, contextText, []);
+        },
+    });
+
+    const response = await app.request(
+        '/api/chat',
+        new Request(`${URLS.TEST_API_ENDPOINT}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Origin: 'https://samsongama.com' },
+            body: JSON.stringify({ query: 'Question?' }),
+        }),
+        { AI: {}, VECTORIZE_INDEX: { query: async () => ({ matches: [] }) }, waitUntil() {} },
+    );
+
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.match(text, /"error":"The response could not be completed\."/);
+    assert.match(text, /\[DONE\]/);
+    assert.equal(logged.mock.callCount(), 0);
+});
+
 test('/api/chat rejects invalid requests and unavailable bindings explicitly, before any generation', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const refuseAi = { AI: { run: async () => assert.fail('Generation must not start') } };
