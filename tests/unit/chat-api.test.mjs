@@ -261,24 +261,22 @@ test('/api/chat preserves disconnects without provider logging or SSE writes aft
 test('/api/chat treats the request timeout as a safe deadline instead of an outage', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const deadline = new AbortController();
+    const originalTimeout = AbortSignal.timeout;
+    const timeoutMock = t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
     deadline.abort(new DOMException('Timed out', 'TimeoutError'));
-    t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
 
     const app = createChatApp({
         createAiService: (_env, signal) => ({
-            retrieve: async () => ({ contextText: 'known context', evidence: [] }),
+            retrieve: async () => ({
+                contextText: 'known context that is long enough to avoid abstention and trigger the timed-out generation path.',
+                evidence: [],
+            }),
             generateStream: async () => {
                 if (signal.aborted) throw signal.reason;
                 return makeProviderStream('Answer');
             },
             responseMetrics: () => ({ totalMs: 1 }),
         }),
-        answerChat: async ({ aiService, emit, signal }) => {
-            const { contextText } = await aiService.retrieve('Question?');
-            await emit({ progress: 'generation' });
-            if (signal.aborted) throw signal.reason;
-            return aiService.generateStream(contextText, contextText, []);
-        },
     });
 
     const response = await app.request(
@@ -296,6 +294,8 @@ test('/api/chat treats the request timeout as a safe deadline instead of an outa
     assert.match(text, /"error":"The response could not be completed\."/);
     assert.match(text, /\[DONE\]/);
     assert.equal(logged.mock.callCount(), 0);
+    timeoutMock.mock.restore();
+    AbortSignal.timeout = originalTimeout;
 });
 
 test('/api/chat rejects invalid requests and unavailable bindings explicitly, before any generation', async (t) => {

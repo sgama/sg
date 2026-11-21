@@ -91,6 +91,7 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
             if (requestSignal?.aborted) return new Response('', { status: 200 });
             const deadlineSignal = AbortSignal.timeout(REQUEST_DEADLINE_MS);
             const signal = AbortSignal.any([requestSignal, deadlineSignal]);
+            const isDeadlineAbort = () => !requestSignal?.aborted && deadlineSignal.aborted && signal.reason === deadlineSignal.reason;
             const aiService = createAiService(env, signal);
             requireVectorizeBinding(env.VECTORIZE_INDEX);
             return streamSSE(c, async (sse) => {
@@ -107,7 +108,7 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                     await sse.pipe(stream);
                 } catch (err) {
                     if (requestSignal.aborted) return;
-                    if (signal.reason?.name === 'TimeoutError') {
+                    if (isDeadlineAbort()) {
                         if (!sse.aborted) {
                             await sse.writeSSE({ data: JSON.stringify({ error: 'The response could not be completed.' }) });
                             await sse.writeSSE({ data: DONE_PAYLOAD });

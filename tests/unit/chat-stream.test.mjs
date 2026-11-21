@@ -75,6 +75,20 @@ test('cancels a pending stream read when the abort signal fires', async () => {
     assert.equal(text, '');
 });
 
+test('deadline aborts stream reads with the existing error envelope and terminal marker', async () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException('Timed out', 'TimeoutError'));
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'));
+        },
+    });
+    const stream = normalizeChatStream(source, { signal: controller.signal });
+    const output = await new Response(stream).text();
+    assert.match(output, /"error":"AI response failed\. Please try again\."/);
+    assert.match(output, /data: \[DONE\]\n\n$/);
+});
+
 test('terminates the client stream when the upstream stream fails', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const upstream = new ReadableStream({

@@ -131,6 +131,7 @@ export class AiService {
                 onFirstToken: () => this.metrics.firstToken(),
                 onUsage: (usage) => this.metrics.generationUsed(usage),
                 metrics: () => this.responseMetrics(),
+                signal: this.runOptions.signal,
             });
         } catch (err) {
             if (this.runOptions.signal?.aborted) throw err;

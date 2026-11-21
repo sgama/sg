@@ -277,6 +277,31 @@ test('aborts are preserved without wrapping or provider logging', async (t) => {
     assert.equal(logged.mock.callCount(), 0);
 });
 
+test('pending generation streams observe the shared abort signal', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const controller = new AbortController();
+    const svc = new AiService(
+        makeEnv({
+            aiRun: async (_model, _payload, options) =>
+                new ReadableStream({
+                    start(streamController) {
+                        options.signal.addEventListener(
+                            'abort',
+                            () => streamController.error(options.signal.reason ?? new Error('client disconnected')),
+                            { once: true },
+                        );
+                    },
+                }),
+        }),
+        { signal: controller.signal },
+    );
+
+    const stream = await svc.generateStream('query', 'context');
+    controller.abort(new DOMException('client disconnected', 'AbortError'));
+    assert.equal(await new Response(stream).text(), '');
+    assert.equal(logged.mock.callCount(), 0);
+});
+
 test('service failures surface as 503s with the cause logged once', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const failure = new Error('upstream down');
