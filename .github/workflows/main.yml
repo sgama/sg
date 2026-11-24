@@ -124,11 +124,11 @@ jobs:
         run: |
           make ai-refresh
           make deploy-built
-      # Only after a successful deploy: a failed deploy leaves the fresh instance neither live nor previous, and
-      # deleting it would throw away the paid indexing for the next run to buy again.
-      - name: Prune old AI Search instances
+      # Only after a successful deploy: a failed deploy leaves the fresh corpus neither live nor previous, and
+      # deleting it would throw away the paid embedding for the next run to buy again.
+      - name: Prune old corpus vectors
         if: github.event_name == 'push' && steps.changes.outputs.deploy == 'true' && steps.deploy.outcome == 'success'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: make cleanup-instances
+        run: make cleanup-vectors

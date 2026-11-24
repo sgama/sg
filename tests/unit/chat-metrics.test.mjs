@@ -1,8 +1,35 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { formatResponseMetrics } from '../../assets/js/chat/model/metrics.js';
-import { AI_CONFIG, estimateCost, getModel } from '../../shared/ai/application.js';
-import { createResponseMetrics } from '../../shared/ai/response-metrics.js';
+import { AI_CONFIG, getModel, estimateCost } from '../../shared/ai/application.js';
+import { AiService } from '../../functions/_lib/ai.js';
+import { SAMPLE_DATA } from '../helpers/data.mjs';
+import { makeProviderStream } from '../helpers/mocks.mjs';
+
+test('response footer formats timings, token counts and scoped estimated cost', () => {
+    const formatted = formatResponseMetrics({
+        totalMs: 2400,
+        firstTokenMs: 1250,
+        embeddingMs: 45,
+        retrievalMs: 12,
+        rewriteMs: 250,
+        rewriteUsed: true,
+        generationUsage: { prompt_tokens: 1000, completion_tokens: 100 },
+        rewriteUsage: { prompt_tokens: 50, completion_tokens: 10 },
+        estimatedLlmCostUsd: 0.0001,
+    });
+    assert.equal(formatted.summary, '🕧2.40s · 🪙1.25s · 💲0.000100');
+    assert.deepEqual(formatted.timing, [
+        ['Rewrite', '250ms'],
+        ['Embed', '45ms'],
+        ['Search', '12ms'],
+    ]);
+    assert.deepEqual(formatted.usage, [
+        ['Answer', '1,000', '100'],
+        ['Rewrite', '50', '10'],
+    ]);
+    assert.equal(formatted.warning, 'AI answers may be inaccurate. 🤥🤖');
+});
 
 test('missing usage never becomes a zero-cost success or invented token count', () => {
     const formatted = formatResponseMetrics({ totalMs: 10, firstTokenMs: null, estimatedLlmCostUsd: null });
@@ -10,51 +37,10 @@ test('missing usage never becomes a zero-cost success or invented token count', 
     assert.equal(formatted.summary, '🕧10ms · Cost unavailable');
     assert.deepEqual(formatted.timing, []);
     for (const metrics of [null, {}, { totalMs: -1 }, { totalMs: NaN }]) assert.equal(formatResponseMetrics(metrics), null);
-});
-
-test('response footer formats timings, token counts and estimated cost', () => {
-    const formatted = formatResponseMetrics({
-        totalMs: 2400,
-        firstTokenMs: 1250,
-        generationUsage: { prompt_tokens: 1000, completion_tokens: 100 },
-        estimatedLlmCostUsd: 0.0001,
-    });
-    assert.equal(formatted.summary, '🕧2.40s · 🪙1.25s · 💲0.000100');
-    assert.deepEqual(formatted.usage, [['Answer', '1,000', '100']]);
-    assert.equal(formatted.warning, 'AI answers may be inaccurate. 🤥🤖');
-});
-
-test('response metrics never invent a model, token count or cost', () => {
-    const metrics = createResponseMetrics({ now: () => 0 });
-    assert.deepEqual(metrics.snapshot({}), {
-        totalMs: 0,
-        firstTokenMs: null,
-        generationModel: null,
-        generationUsage: null,
-        estimatedLlmCostUsd: null,
-        pricingDate: AI_CONFIG.pricingDate,
-    });
-    assert.equal(metrics.snapshot({ model: getModel() }).estimatedLlmCostUsd, null);
-});
-
-test('response metrics report timings, model, usage and cost from the injected clock', () => {
-    let clock = 100;
-    const metrics = createResponseMetrics({ now: () => clock });
-    const model = getModel('gemma');
-    const usage = { prompt_tokens: 1000, completion_tokens: 100, total_tokens: 1100 };
-    clock = 350;
-    metrics.firstToken();
-    clock = 400;
-    metrics.firstToken();
-    clock = 900;
-    assert.deepEqual(metrics.snapshot({ model, usage }), {
-        totalMs: 800,
-        firstTokenMs: 250,
-        generationModel: model.id,
-        generationUsage: usage,
-        estimatedLlmCostUsd: estimateCost(usage, model),
-        pricingDate: AI_CONFIG.pricingDate,
-    });
+    const abstain = formatResponseMetrics({ totalMs: 10, abstained: true, estimatedLlmCostUsd: 0 });
+    assert.equal(abstain.abstained, true);
+    assert.deepEqual(abstain.usage, []);
+    assert.match(abstain.summary, /💲0.000000/);
 });
 
 test('shared token pricing rejects invalid usage and uses the configured model rates', () => {
@@ -70,4 +56,47 @@ test('shared token pricing rejects invalid usage and uses the configured model r
     ]) {
         assert.equal(estimateCost(usage, model), null);
     }
+});
+
+test('service emits one final metrics event with actual model, aggregate usage and rewrite cost', async () => {
+    const usage = { prompt_tokens: 1000, completion_tokens: 100, total_tokens: 1100 };
+    const rewriteUsage = { prompt_tokens: 50, completion_tokens: 10 };
+    const svc = new AiService({
+        AI_MODEL: 'gemma',
+        AI: {
+            async run(_model, input) {
+                if (input.stream === false) return { response: 'Standalone question', usage: rewriteUsage };
+                if (input.text) return { data: [SAMPLE_DATA.EMBEDDING_VECTOR] };
+                return makeProviderStream('Answer', usage);
+            },
+        },
+        VECTORIZE_INDEX: { query: async () => ({ matches: [{ metadata: { recordType: 'chunk', text: 'Evidence' } }] }) },
+    });
+    const context = (await svc.retrieve('Follow-up?', [{ role: 'user', content: 'Earlier question' }])).contextText;
+    const output = await new Response(await svc.generateStream('Follow-up?', context)).text();
+    const events = output
+        .split('\n')
+        .filter((line) => line.startsWith('data: {'))
+        .map((line) => JSON.parse(line.slice(6)));
+    const metrics = events.filter((event) => event.metrics).map((event) => event.metrics);
+    assert.equal(metrics.length, 1);
+    assert.equal(metrics[0].generationModel, getModel('gemma').id);
+    assert.deepEqual(metrics[0].generationUsage, usage);
+    assert.deepEqual(metrics[0].rewriteUsage, rewriteUsage);
+    assert.equal(
+        metrics[0].estimatedLlmCostUsd,
+        estimateCost(usage, getModel('gemma')) + estimateCost(rewriteUsage, getModel(AI_CONFIG.contextualization.model)),
+    );
+    assert.ok(metrics[0].totalMs >= metrics[0].firstTokenMs);
+    assert.ok(output.indexOf('"metrics"') < output.indexOf('[DONE]'));
+});
+
+test('service marks abstention and incomplete rewrite billing honestly', async () => {
+    const svc = new AiService({ AI: { run: async () => ({ response: 'Standalone question' }) } });
+    assert.equal(svc.responseMetrics({ abstained: true }).estimatedLlmCostUsd, 0);
+    await svc.contextualizeQuery('Follow-up?', [{ role: 'user', content: 'Earlier question' }]);
+    const metrics = svc.responseMetrics({ abstained: true });
+    assert.equal(metrics.generationModel, null);
+    assert.equal(metrics.estimatedLlmCostUsd, null);
+    assert.equal(metrics.rewriteUsed, true);
 });

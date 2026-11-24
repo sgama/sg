@@ -1,0 +1,162 @@
+import 'dotenv/config';
+import { parseArgs } from 'node:util';
+import pLimit from 'p-limit';
+import { AI_CONFIG } from '../shared/ai/application.js';
+import { createMaintenanceClient } from './lib/corpus-deployment.mjs';
+import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
+import { VERSIONED_NAMESPACE, activeWorker } from './lib/worker-deployment.mjs';
+import { runIfMain } from './lib/cli.mjs';
+
+/** Vectorize accepts at most 20 IDs per delete and per record lookup (the API rejects 100 with a 400). */
+const ID_BATCH_SIZE = 20;
+
+/**
+ * Re-read the live namespace every 25 delete batches (~500 vectors) rather than before every batch. A rollback that
+ * lands mid-run is still caught within a few seconds, at a fraction of the Workers settings API calls.
+ */
+const GUARD_BATCH_INTERVAL = 25;
+
+/**
+ * Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of ID_BATCH_SIZE.
+ * @param {import('cloudflare').Cloudflare} client
+ * @param {string} accountId
+ * @param {string} indexName
+ * @param {(message: string) => void} progress
+ */
+async function vectorInventory(client, accountId, indexName, progress) {
+    /** @type {{ id: string, namespace: string }[]} */
+    const vectors = [];
+    /** @type {Set<string>} */
+    const seen = new Set();
+    /** @type {Set<string>} */
+    const cursors = new Set();
+    /** @type {string | null | undefined} */
+    let cursor;
+    let pageNumber = 0;
+    do {
+        const page = await client.vectorize.indexes.listVectors(indexName, {
+            account_id: accountId,
+            count: 1000,
+            ...(cursor ? { cursor } : {}),
+        });
+        if (!Array.isArray(page?.vectors) || typeof page.isTruncated !== 'boolean') {
+            throw new Error('Invalid vector inventory response');
+        }
+        const ids = page.vectors.map((vector) => vector.id);
+        if (ids.some((id) => typeof id !== 'string' || !id || seen.has(id))) {
+            throw new Error('Invalid or repeated vector ID during cleanup');
+        }
+        ids.forEach((id) => seen.add(id));
+        const batches = [];
+        for (let offset = 0; offset < ids.length; offset += ID_BATCH_SIZE) {
+            batches.push(ids.slice(offset, offset + ID_BATCH_SIZE));
+        }
+        progress(`page ${++pageNumber}: ${ids.length} vectors (${seen.size} total, ${batches.length} record batches)`);
+        const limit = pLimit(10);
+        const results = await Promise.all(
+            batches.map((batch) =>
+                limit(async () => {
+                    const records = await client.vectorize.indexes.getByIDs(indexName, {
+                        account_id: accountId,
+                        ids: batch,
+                    });
+                    if (
+                        !Array.isArray(records) ||
+                        records.length !== batch.length ||
+                        new Set(records.map((record) => record.id)).size !== batch.length ||
+                        records.some((record) => !batch.includes(record.id))
+                    ) {
+                        throw new Error('Incomplete vector records; refusing cleanup');
+                    }
+                    return records;
+                }),
+            ),
+        );
+        vectors.push(...results.flat());
+        if (!page.isTruncated) break;
+        cursor = page.nextCursor;
+        if (!cursor || cursors.has(cursor)) throw new Error('Invalid vector inventory cursor');
+        cursors.add(cursor);
+    } while (true);
+    return vectors;
+}
+
+/**
+ * Deletes versioned corpus vectors older than the live Worker and its recorded previous namespace. Unversioned and
+ * foreign namespaces are never touched. The live + previous set is re-read before each deletion, so a deploy that lands
+ * mid-run stops the cleanup instead of racing it.
+ * @param {{
+ *     client: import('cloudflare').Cloudflare,
+ *     accountId: string,
+ *     worker?: string,
+ *     indexName?: string,
+ *     dryRun?: boolean,
+ *     progress?: (message: string) => void,
+ * }} options
+ */
+export async function cleanupVectors({
+    client,
+    accountId,
+    worker = 'sg',
+    indexName = AI_CONFIG.retrieval.indexName,
+    dryRun = false,
+    progress = /** @type {(message: string) => void} */ (() => {}),
+}) {
+    const started = performance.now();
+    const mark = (/** @type {string} */ message) => progress(`[${((performance.now() - started) / 1000).toFixed(1)}s] ${message}`);
+    const active = await activeWorker(client, accountId, worker);
+    const live = active?.namespace;
+    if (!live) throw new Error('Cannot determine the live corpus namespace; refusing vector cleanup');
+    const previous = active.previousNamespace;
+    const retained = new Set([live]);
+    if (previous) retained.add(previous);
+    const vectors = await vectorInventory(client, accountId, indexName, mark);
+    const staleIds = vectors
+        .filter((vector) => VERSIONED_NAMESPACE.test(vector.namespace) && !retained.has(vector.namespace))
+        .map((vector) => vector.id);
+    mark(`live ${live}${previous ? `, previous ${previous}` : ''}: ${vectors.length} vectors, ${staleIds.length} stale`);
+    if (!dryRun) {
+        let lastMutationId;
+        mark(`deleting ${staleIds.length} vectors`);
+        for (let offset = 0, batch = 0; offset < staleIds.length; offset += ID_BATCH_SIZE, batch += 1) {
+            const ids = staleIds.slice(offset, offset + ID_BATCH_SIZE);
+            mark(`delete ${Math.min(offset + ID_BATCH_SIZE, staleIds.length)}/${staleIds.length}`);
+            if (batch % GUARD_BATCH_INTERVAL === 0) {
+                const current = await activeWorker(client, accountId, worker);
+                if (current?.namespace !== live || current?.previousNamespace !== previous) {
+                    throw new Error('Live corpus namespace changed during cleanup; stopping');
+                }
+            }
+            const result = await client.vectorize.indexes.deleteByIDs(indexName, {
+                account_id: accountId,
+                ids,
+            });
+            if (typeof result?.mutationId !== 'string' || !result.mutationId.trim()) throw new Error('Vector deletion did not return a mutation ID');
+            lastMutationId = result.mutationId;
+        }
+        // Not awaited: queries are namespace-scoped, so stale vectors are unreachable while Vectorize processes them, and
+        // a rerun removes any that remain.
+        if (lastMutationId) mark(`deletions submitted; last mutation ${lastMutationId} not awaited`);
+        mark('done');
+    }
+    return { dryRun, liveNamespace: live, removedVectors: staleIds.length };
+}
+
+/**
+ * @param {string[]} [args]
+ * @param {{ fetchImpl?: typeof globalThis.fetch }} [options]
+ */
+export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
+    const { values } = parseArgs({ args, options: { 'dry-run': { type: 'boolean', default: false } } });
+    const { accountId, apiToken } = requireCloudflareCredentials();
+    const result = await cleanupVectors({
+        client: createMaintenanceClient(apiToken, fetchImpl),
+        accountId,
+        worker: process.env.WORKER_NAME ?? 'sg',
+        dryRun: values['dry-run'],
+        progress: (message) => console.error(message),
+    });
+    console.log(JSON.stringify(result, null, 2));
+}
+
+runIfMain(import.meta.url, main, 'Vector cleanup failed');

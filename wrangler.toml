@@ -24,8 +24,8 @@ binding = "AI"
 AI_MODEL = "glm"
 # AI Gateway creates the "default" gateway on its first authenticated request; model calls are routed through it.
 AI_GATEWAY_ID = "default"
-# CI sets AI_SEARCH_INSTANCE (the live AI Search instance) after `make ai-refresh` finishes indexing the commit's corpus.
-# Local deployments can use ai-refresh or set a previously validated instance.
+# CI sets AI_CORPUS_NAMESPACE after `make ai-refresh` finishes indexing the commit's corpus.
+# Local deployments can use ai-refresh or set a previously validated namespace.
 
 # Per-IP throttle for the paid /api/chat route (Workers Rate Limiting binding; limits are per Cloudflare location, approximate).
 [[ratelimits]]
@@ -33,9 +33,9 @@ name = "CHAT_LIMITER"
 namespace_id = "1001"
 simple = { limit = 10, period = 60 }
 
-# AI Search namespace (The "Long Term Memory"); the live instance inside it is named by AI_SEARCH_INSTANCE.
-[[ai_search_namespaces]]
-binding = "AI_SEARCH"
-namespace = "default"
+# Vectorize Binding (The "Long Term Memory")
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "portfolio-index"
 
 # OPENAI_API_KEY = "" # If using OpenAI instead of Cloudflare AI

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-# Live agent evaluation: `make ai-eval` (paid Workers AI + AI Search). Compare models by adding provider entries.
-description: Portfolio AI Search assistant
+# Live RAG evaluation: `make ai-eval` (paid Workers AI + Vectorize). Compare models by adding provider entries.
+description: Portfolio RAG assistant
 prompts:
   - '{{query}}'
 providers:

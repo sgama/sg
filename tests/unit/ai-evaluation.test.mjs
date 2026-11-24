@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { answer, links, searched } from '../../evals/checks.mjs';
 import { summarize } from '../../scripts/summarize_ai_eval.mjs';
 import { validateFixture } from '../../scripts/lib/evaluation/fixtures.mjs';
 import { scoreAnswer, scoreEvidence, scoreRetrievalQuery } from '../../scripts/lib/evaluation/scoring.mjs';
@@ -21,32 +20,6 @@ test('answer checks need every term group and no forbidden term', () => {
     const cpp = { answerTerms: [['c++', 'c/c++']], forbiddenTerms: ['not listed'] };
     assert.equal(scoreAnswer('Yes, C/C++ is listed in the [resume](/resume/).', cpp), true);
     assert.equal(scoreAnswer('C++ is not listed in the [resume](/resume/).', cpp), false);
-});
-
-test('conversational labels need history and model search queries must carry them', () => {
-    const history = [{ role: 'user', content: 'Tell me about Bitcomplete' }];
-    const conversational = { ...item, history, retrievalTerms: [['bitcomplete']] };
-    validateFixture({ version: 1, cases: [conversational] }, chunks);
-    assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, retrievalTerms: [['x']] }] }, chunks), /retrieval query labels/);
-    assert.equal(scoreRetrievalQuery('Bitcomplete role', conversational), true);
-    assert.equal(scoreRetrievalQuery('his role', conversational), false);
-});
-
-test('eval summary counts passing cases and each assertion metric', () => {
-    const part = (metric, pass, weight = 1) => ({ assertion: { metric, weight }, pass });
-    const report = {
-        results: {
-            results: [
-                { success: true, gradingResult: { componentResults: [part('retrieval-hit', true), part('query', true), part('answer', true, 0)] } },
-                { success: false, gradingResult: { componentResults: [part('retrieval-hit', true), part('query', false)] } },
-                { success: false },
-            ],
-        },
-    };
-    assert.deepEqual(summarize(report), {
-        cases: [1, 3],
-        metrics: { 'retrieval-hit': [2, 2], query: [1, 2] },
-    });
 });
 
 test('evidence checks score context text, ignoring source metadata lines', () => {
@@ -74,22 +47,28 @@ test('fixture validation checks source labels, unique IDs and label shapes', () 
     }
 });
 
-test('link checks reject model-written links and non-public evidence URLs', () => {
-    const output = { answer: 'He works at Absolute.', urls: ['/resume/'] };
-    assert.equal(links(output).pass, true);
-    for (const changes of [
-        { answer: 'See [resume](/resume/)' },
-        { answer: 'See https://x.dev' },
-        { urls: ['//evil.dev'] },
-        { urls: ['/_context/profile/'] },
-    ]) {
-        assert.equal(links({ ...output, ...changes }).pass, false);
-    }
+test('conversational labels need history and rewritten queries must carry them', () => {
+    const history = [{ role: 'user', content: 'Tell me about Bitcomplete' }];
+    const conversational = { ...item, history, retrievalTerms: [['bitcomplete']] };
+    validateFixture({ version: 1, cases: [conversational] }, chunks);
+    assert.throws(() => validateFixture({ version: 1, cases: [{ ...item, retrievalTerms: [['x']] }] }, chunks), /retrieval query labels/);
+    assert.equal(scoreRetrievalQuery('Bitcomplete role', conversational), true);
+    assert.equal(scoreRetrievalQuery('his role', conversational), false);
 });
 
-test('search checks need a tool call only for labeled cases', () => {
-    assert.equal(searched({ queries: [] }, { config: item }).pass, false);
-    assert.equal(searched({ queries: ['stack'] }, { config: item }).pass, true);
-    assert.equal(searched({ queries: [] }, { config: { ...item, expectedSources: [] } }).pass, true);
-    assert.equal(answer({ answer: 'Hugo on Cloudflare' }, { config: item }).pass, true);
+test('eval summary counts passing cases and each assertion metric', () => {
+    const part = (metric, pass, weight = 1) => ({ assertion: { metric, weight }, pass });
+    const report = {
+        results: {
+            results: [
+                { success: true, gradingResult: { componentResults: [part('retrieval-hit', true), part('rewrite', true), part('answer', true, 0)] } },
+                { success: false, gradingResult: { componentResults: [part('retrieval-hit', true), part('rewrite', false)] } },
+                { success: false },
+            ],
+        },
+    };
+    assert.deepEqual(summarize(report), {
+        cases: [1, 3],
+        metrics: { 'retrieval-hit': [2, 2], rewrite: [1, 2] },
+    });
 });

@@ -2,6 +2,7 @@
 {{- $settings := partial "chat/settings.html" . -}}
 {{- $ai := $settings.ai -}}
 {{- $model := $settings.model -}}
+{{- $rewrite := $settings.rewrite -}}
 
 <template id="ai-chat-template">
     <button class="toggle" data-role="toggle" type="button" aria-label="Ask AI Assistant"
@@ -20,8 +21,14 @@
             <div class="assistant-heading">
                 <span>Assistant</span>
                 <div class="chat-models" aria-label="AI models configured at build time">
-                    <small title="Answer: {{ $model.id }}">Answer: {{ path.Base $model.id }}</small>
-                    <small title="Reranker: {{ $ai.config.search.reranker }}">Search: hybrid · {{ path.Base $ai.config.search.reranker }}</small>
+                    <small title="Answer: {{ $model.id }}; rewrite: {{ $rewrite.id }}">
+                        {{- if eq $model.id $rewrite.id -}}
+                            Answer + rewrite: {{ path.Base $model.id }}
+                        {{- else -}}
+                            Answer: {{ path.Base $model.id }} · Rewrite: {{ path.Base $rewrite.id }}
+                        {{- end -}}
+                    </small>
+                    <small title="Embedding: {{ $ai.config.embedding.model }}">Embed: {{ path.Base $ai.config.embedding.model }} · {{ $ai.config.embedding.dimensions }}d</small>
                 </div>
             </div>
             <div class="header-actions">

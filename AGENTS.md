@@ -42,8 +42,8 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - `data/prompts.yml` feeds the chat suggestion shortcode with employer questions.
 - Shared model settings, prompts and limits live in
   `shared/ai/application.js`; corpus logic lives in `scripts/lib/`.
-  Prompt, evidence and stream helpers are read from the shared module root so HTTP workers and evals share the same implementation.
-- Corpus CLI scripts use `.mjs`, including `scripts/ingest_corpus.mjs`.
+  Retrieval, prompt and stream helpers are read from the shared module root so HTTP workers and evals share the same implementation.
+- Corpus CLI scripts use `.mjs`, including `scripts/generate_embeddings.mjs`.
 - `make ai-refresh` skips unchanged production corpora;
   `AI_REFRESH_FLAGS=--force` rebuilds a missing/damaged index.
 - Do not invent benchmark results: mock tests and substring checks do not measure
@@ -56,17 +56,19 @@ test patterns. Keep general documentation there rather than duplicating it here.
 - `develop` is the production branch; there is no separate `main`.
 - The site is one Cloudflare Worker with static assets (`wrangler.toml`; `functions/worker.js` runs
   first only for `/api/*`). It has one live version and no deployment history; rollback means
-  redeploying an earlier commit. The live version records `AI_SEARCH_INSTANCE` and `DEPLOY_COMMIT`
+  redeploying an earlier commit. The live version records `AI_CORPUS_NAMESPACE` and `DEPLOY_COMMIT`
   as plain-text variables, which refresh, deploy-skip and cleanup read.
-- `make cleanup-instances` retains the live AI Search instance and the previous one, deleting only older
-  `portfolio-*` instances. It refuses to run without a live instance and stops if a deploy changes it mid-run.
+- `make cleanup-vectors` retains the live namespace and one prior namespace, deleting only older
+  versioned corpora. It refuses to run without a live namespace and stops if a deploy changes it mid-run.
+  It does not wait for Vectorize to process deletions: queries are namespace-scoped, and reruns are idempotent.
 - `make cutover-domains` is a one-time Pages-to-Worker custom domain move; the Pages project is
   frozen until it has run.
 - CI skips the corpus refresh and deployment when no file that can change the site
   differs from the commit the live Worker was built from
-  (`scripts/deploy_needed.mjs`, `make deploy-needed`); any doubt deploys. The instance
+  (`scripts/deploy_needed.mjs`, `make deploy-needed`); any doubt deploys. The vector
   cleanup runs only after a deploy, since a skipped deploy leaves nothing stale.
   Edit its `DEPLOY_INPUTS` list when adding a directory that affects the build.
-- Keep live-instance, fresh inventory and item-completion checks.
+- Keep active-ID, fresh inventory, namespace and mutation-readiness checks.
   Serialized CI does not lock out manual cloud writers.
-- Corpus uploads do not retry and abort on the first failure; AI Search indexing of started items may still incur charges.
+- Paid embedding requests do not retry. On failure, queued inference is prevented
+  and in-flight requests are aborted; started inference may still incur charges.

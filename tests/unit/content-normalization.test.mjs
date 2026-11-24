@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { normalizedDocument, ingestionText } from '../../scripts/lib/content-normalization.mjs';
+import { normalizedDocument, ingestionText, sourceSections } from '../../scripts/lib/content-normalization.mjs';
 
 test('normalization preserves nested lists, code, angle brackets and Markdown entities semantically', () => {
     const examples = [
@@ -71,4 +71,28 @@ test('HTML content becomes Markdown structure, with controls removed', () => {
     assert.equal(ingestionText(markdown), markdown);
     const code = '```html\n<section class="example">Code sample</section>\n```';
     assert.equal(ingestionText(code), code);
+});
+
+test('sections support Setext headings and retain lower-level headings with their parent', () => {
+    assert.deepEqual(
+        sourceSections('Title\n=====\n\nIntro\n\nDetails\n-------\n\n### Subheading\n\nBody').map((section) => section.heading),
+        ['Title', 'Details'],
+    );
+    assert.match(sourceSections('## Details\n\n### Subheading\n\nBody')[0].text, /### Subheading/);
+});
+
+test('section boundaries retain subsections and ignore headings inside fenced code', () => {
+    const content =
+        '# Project\n\nIntro\n\n## Deployment\n\n### Steps\n\n```markdown\n## Not a section\n```\n\n~~~\n## Also code\n~~~\n\n## Monitoring\n\nAlerts';
+    const sections = sourceSections(content);
+    assert.deepEqual(
+        sections.map((section) => section.heading),
+        ['Project', 'Deployment', 'Monitoring'],
+    );
+    assert.match(sections[1].text, /### Steps/);
+    assert.match(sections[1].text, /## Not a section/);
+    assert.match(sections[1].text, /## Also code/);
+    assert.doesNotMatch(sections[1].text, /## Monitoring/);
+    assert.deepEqual(sourceSections('Plain source'), [{ heading: '', text: 'Plain source' }]);
+    assert.deepEqual(sourceSections(' \n'), []);
 });

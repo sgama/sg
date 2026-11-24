@@ -1,89 +1,126 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { AI_CONFIG } from '../../shared/ai/application.js';
 
 // ---- Contract: identity, hashing and schema validation of a corpus ----
 /** @param {string} value */
 const digest = (value) => createHash('sha256').update(value).digest('hex');
-export const sourceHash = digest;
-export const VERSIONED_INSTANCE = /^portfolio-[a-f0-9]{12}$/;
 /** @param {string} hash */
-export const instanceFor = (hash) => `portfolio-${hash.slice(0, 12)}`;
-
-/** Instance creation settings that do not come from config. They are hashed, so changing one yields a new instance. */
-export const INSTANCE_SETTINGS = {
-    index_method: { vector: true, keyword: true },
-    fusion_method: /** @type {const} */ ('rrf'),
-    reranking: true,
-    chunk: true,
-    cache: true,
-    custom_metadata: [
-        { field_name: 'title', data_type: /** @type {const} */ ('text') },
-        { field_name: 'url', data_type: /** @type {const} */ ('text') },
-    ],
-};
-
+export const namespaceFor = (hash) => `corpus-${hash.slice(0, 56)}`;
+/**
+ * @param {string} namespace
+ * @param {string} source
+ * @param {number} index
+ */
+export const chunkId = (namespace, source, index) => digest(`${namespace}\0${source}\0${index}`);
+export const sourceHash = digest;
 const nonempty = z.string().trim().min(1);
+const negativeIndex = z.number().int().negative();
+const metadataSchema = z.object({
+    source: nonempty,
+    type: z.enum(['context', 'content']),
+    title: nonempty,
+    section: z.string(),
+    text: nonempty,
+    url: z
+        .string()
+        .regex(/^\/(?!\/)/)
+        .optional(),
+    recordType: z.enum(['chunk', 'section']),
+    sectionIndex: negativeIndex.optional(),
+    parentIndex: negativeIndex.optional(),
+    parentSource: nonempty.optional(),
+    canonicalIndex: negativeIndex.optional(),
+    canonicalSource: nonempty.optional(),
+});
 const schema = z.object({
-    version: z.literal(3),
+    version: z.literal(2),
     hash: z.string().regex(/^[a-f0-9]{64}$/),
-    instance: z.string().regex(VERSIONED_INSTANCE),
-    index: z.object({
-        embeddingModel: nonempty,
-        reranker: nonempty,
+    namespace: z.string().regex(/^corpus-[a-f0-9]{56}$/),
+    embedding: z.object({ model: nonempty, dimensions: z.number().int().positive() }),
+    chunking: z.object({
         chunkSize: z.number().int().positive(),
         chunkOverlap: z.number().int().nonnegative(),
+        maxSectionChars: z.number().int().positive(),
+        embeddingLabels: z.boolean(),
         normalizationVersion: z.literal(3),
     }),
     sources: z.array(z.object({ source: nonempty, hash: nonempty, status: z.enum(['included', 'draft', 'empty']) })),
-    items: z.array(
-        z.object({
-            key: z
-                .string()
-                .max(128)
-                .regex(/^[A-Za-z0-9._/-]+$/),
-            text: nonempty,
-            metadata: z.object({ title: nonempty, url: z.string().optional() }),
-        }),
-    ),
+    chunks: z.array(z.object({ id: nonempty, chunkIndex: z.number().int(), text: nonempty, metadata: metadataSchema })),
     counts: z.object({
         files: z.number().int().nonnegative(),
         includedFiles: z.number().int().nonnegative(),
         draftFiles: z.number().int().nonnegative(),
         emptyFiles: z.number().int().nonnegative(),
-        items: z.number().int().nonnegative(),
+        chunks: z.number().int().nonnegative(),
     }),
 });
 /** @typedef {z.infer<typeof schema>} ValidatedCorpus */
-/** @typedef {Omit<ValidatedCorpus, 'hash' | 'instance'>} DraftCorpus */
+/** @typedef {Omit<ValidatedCorpus['chunks'][number], 'id'>} DraftChunk */
+/** @typedef {Omit<ValidatedCorpus, 'hash' | 'namespace' | 'chunks'> & { chunks: DraftChunk[] }} DraftCorpus */
 
 /** @param {DraftCorpus} corpus */
 export function corpusHash(corpus) {
     return digest(
-        JSON.stringify({ version: corpus.version, index: corpus.index, settings: INSTANCE_SETTINGS, sources: corpus.sources, items: corpus.items }),
+        JSON.stringify({
+            version: corpus.version,
+            embedding: corpus.embedding,
+            chunking: corpus.chunking,
+            sources: corpus.sources,
+            chunks: corpus.chunks.map(({ chunkIndex, text, metadata }) => ({ chunkIndex, text, metadata })),
+        }),
     );
 }
 
 /** @param {ValidatedCorpus} corpus */
 export function validateCorpus(corpus) {
     schema.parse(corpus);
-    const included = new Set(corpus.sources.filter((source) => source.status === 'included').map((source) => source.source));
+    /** @type {Set<string>} */
+    const ids = new Set();
+    /** @type {Map<string, ValidatedCorpus['chunks'][number]>} */
+    const records = new Map();
+    const includedSources = new Set(corpus.sources.filter((source) => source.status === 'included').map((source) => source.source));
     if (new Set(corpus.sources.map((source) => source.source)).size !== corpus.sources.length) throw new Error('Duplicate corpus source');
-    if (new Set(corpus.items.map((item) => item.key)).size !== corpus.items.length) throw new Error('Duplicate corpus item key');
-    if (corpusHash(corpus) !== corpus.hash || instanceFor(corpus.hash) !== corpus.instance)
-        throw new Error('Corpus hash or instance does not match its contents');
-    for (const { key, metadata } of corpus.items) {
-        if (!included.has(key)) throw new Error(`Item source is not included: ${key}`);
-        const internal = key.startsWith('content/_context/');
-        const { url } = metadata;
-        if (!internal && !url) throw new Error(`Public item is missing its URL: ${key}`);
-        if (url && (!/^\/(?!\/)/.test(url) || /[\\\r\n]/.test(url) || /^\/_context(\/|$)/.test(url)))
-            throw new Error(`Invalid public item URL: ${key}`);
+    for (const chunk of corpus.chunks) {
+        if (ids.has(chunk.id)) throw new Error(`Duplicate chunk ID: ${chunk.id}`);
+        ids.add(chunk.id);
+        records.set(`${chunk.metadata.source}\0${chunk.chunkIndex}`, chunk);
+    }
+    if (corpusHash(corpus) !== corpus.hash || namespaceFor(corpus.hash) !== corpus.namespace)
+        throw new Error('Corpus hash or namespace does not match its contents');
+    for (const chunk of corpus.chunks) {
+        const metadata = chunk.metadata;
+        if (!includedSources.has(metadata.source)) throw new Error(`Evidence source is not included: ${chunk.id}`);
+        if (chunk.id !== chunkId(corpus.namespace, metadata.source, chunk.chunkIndex)) throw new Error(`Invalid chunk ID: ${chunk.id}`);
+        if (chunk.text !== metadata.text) throw new Error(`Inconsistent evidence text: ${chunk.id}`);
+        if (metadata.type === 'context' && metadata.url !== undefined) throw new Error(`Internal evidence has a public URL: ${chunk.id}`);
+        if (metadata.type === 'content' && !metadata.url) throw new Error(`Public evidence is missing its URL: ${chunk.id}`);
+        if (metadata.url && /[\\\r\n]/.test(metadata.url)) throw new Error(`Invalid public evidence URL: ${chunk.id}`);
+        if (metadata.recordType !== 'section' && (chunk.chunkIndex < 0 || metadata.sectionIndex !== undefined))
+            throw new Error(`Invalid child record: ${chunk.id}`);
+        for (const prefix of /** @type {const} */ (['parent', 'canonical'])) {
+            const index = prefix === 'parent' ? metadata.parentIndex : metadata.canonicalIndex;
+            const source = prefix === 'parent' ? metadata.parentSource : metadata.canonicalSource;
+            if (source !== undefined && index === undefined) throw new Error(`Invalid ${prefix} source: ${chunk.id}`);
+            if (prefix === 'canonical' && index !== undefined && source === undefined) throw new Error(`Missing canonical source: ${chunk.id}`);
+            if (index !== undefined) {
+                const parent = records.get(`${source ?? metadata.source}\0${index}`);
+                if (!parent || parent.metadata.recordType !== 'section' || parent.id === chunk.id)
+                    throw new Error(`Missing or invalid ${prefix} section: ${chunk.id}`);
+                if (prefix === 'canonical' && parent.metadata.type !== 'content') throw new Error(`Non-public canonical evidence: ${chunk.id}`);
+            }
+        }
+        if (
+            metadata.recordType === 'section' &&
+            (chunk.chunkIndex >= 0 || metadata.sectionIndex !== chunk.chunkIndex || chunk.text.length > AI_CONFIG.retrieval.maxSectionChars)
+        ) {
+            throw new Error(`Invalid parent section: ${chunk.id}`);
+        }
     }
     const statuses = (/** @type {string} */ status) => corpus.sources.filter((source) => source.status === status).length;
     if (
-        corpus.items.length !== included.size ||
         corpus.counts.files !== corpus.sources.length ||
-        corpus.counts.items !== corpus.items.length ||
+        corpus.counts.chunks !== corpus.chunks.length ||
         corpus.counts.includedFiles !== statuses('included') ||
         corpus.counts.draftFiles !== statuses('draft') ||
         corpus.counts.emptyFiles !== statuses('empty')

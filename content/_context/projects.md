@@ -13,17 +13,16 @@ Portfolio Assistant, 2025 - Present, and Self-Hosted Homelab & Cloud
 Infrastructure, 2010 - Present. Together they show applied AI engineering,
 multi-cloud operations and automation outside his employer production work.
 
-The RAG assistant runs on Cloudflare Workers, Workers AI and Cloudflare AI
-Search, with a single search tool the model calls to find evidence and
-streaming answer generation. AI Search handles chunking, embedding, hybrid
-retrieval and reranking, while the repository validates the corpus and uploads
-it to a hash-named instance. Its deployments are versioned: corpus validation,
-candidate indexing, deployment gates and previous-instance retention keep
-retrieval data consistent with application releases. It answers from retrieved
-evidence with page-level citations, and abstains when the results are
-insufficient. Regression tests and labeled evaluation cases track retrieval
-success, latency, token usage and estimated inference cost. This is retrieval
-and application engineering, not foundation-model training.
+The RAG assistant runs on Cloudflare Workers, Workers AI and Vectorize, with
+custom content ingestion, embedding generation, semantic retrieval and
+streaming answer generation. Its deployments are versioned: corpus validation,
+candidate indexing, deployment gates and rollback support keep retrieval data
+consistent with application releases. It implements contextual query rewriting,
+semantic retrieval and parent-section expansion, answers from retrieved
+evidence, and abstains when retrieved context is insufficient. Regression tests
+and labeled evaluation cases track retrieval success, latency, token usage and
+estimated inference cost. This is retrieval and application engineering, not
+foundation-model training.
 
 The homelab spans multi-cloud infrastructure across GCP, DigitalOcean and
 Cloudflare using Terraform, Ansible, Packer and GitOps, monitored with
@@ -38,4 +37,4 @@ These are personal projects. Their scale should not be read as employer
 production scale, and the AI work is applied retrieval and application
 engineering rather than foundation-model training.
 
-Sources: [resume](/resume/) and [about](/about/), reviewed 2026-11-24.
+Sources: [resume](/resume/) and [about](/about/), reviewed 2026-11-19.

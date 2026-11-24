@@ -11,12 +11,12 @@ export class AppError extends Error {
 }
 
 /**
- * The chat route needs the AI Search binding and the live instance name; without them it fails before SSE headers
- * with one log line and one client-facing 503.
- * @param {{ AI_SEARCH?: unknown, AI_SEARCH_INSTANCE?: string } | undefined} env
+ * Both the request path and the service fail the same way when the Vectorize binding is absent: one
+ * log line and one client-facing 503. The request path checks early so it fails before SSE headers.
+ * @param {unknown} vectorize
  */
-export function requireSearchBinding(env) {
-    if (env?.AI_SEARCH && env.AI_SEARCH_INSTANCE) return;
-    console.error('AI Search Failed: AI_SEARCH binding or AI_SEARCH_INSTANCE missing');
+export function requireVectorizeBinding(vectorize) {
+    if (vectorize) return;
+    console.error('Vector Search Failed: VECTORIZE_INDEX binding missing');
     throw new AppError('Retrieval service unavailable', 503);
 }

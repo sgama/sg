@@ -98,9 +98,9 @@ Software Developer Intern | May 2014 - Aug 2014
 
 ### Personal Website RAG Assistant | 2025 - Present
 
-- Architected and built a serverless RAG application on Cloudflare Workers, Workers AI, and Cloudflare AI Search, with custom content ingestion, a model-driven search tool, hybrid retrieval with reranking, and streaming answer generation
+- Architected and built a serverless RAG application on Cloudflare Workers, Workers AI, and Vectorize, with custom content ingestion, embedding generation, semantic retrieval, and streaming answer generation
 - Engineered versioned knowledge-base deployments with corpus validation, candidate indexing, deployment gates, and rollback support so retrieval data stays consistent with application releases
-- Implemented a model-driven search tool with page-level citations, producing evidence-grounded answers with explicit abstention when retrieved context is insufficient
+- Implemented contextual query rewriting, semantic retrieval, and parent-section expansion, producing evidence-grounded answers with explicit abstention when retrieved context is insufficient
 - Developed regression tests and labeled evaluation cases for retrieval and answer quality, tracking retrieval success, latency, token usage, and estimated inference cost to catch quality regressions
 
 ### Self-Hosted Homelab & Cloud Infrastructure | 2010 - Present

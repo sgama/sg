@@ -1,20 +1,27 @@
-// promptfoo provider: the production agent turn (functions/_lib/agent.js runTurn) against a live AI Search instance.
-// Workers AI and AI Search are reached over REST instead of Worker bindings; the tool, prompt and event mapping are the shipped ones.
-import Cloudflare from 'cloudflare';
-import { createWorkersAI } from 'workers-ai-provider';
-import { runTurn } from '../functions/_lib/agent.js';
-import { NAMESPACE } from '../scripts/lib/corpus-deployment.mjs';
+// promptfoo provider: the production retrieval + generation pipeline (shared/ai), against a live Vectorize namespace.
+import { setTimeout as wait } from 'node:timers/promises';
+import { EventSourceParserStream } from 'eventsource-parser/stream';
+import { generationInput, getModel } from '../shared/ai/application.js';
+import { normalizeChatStream } from '../shared/ai/chat-stream.js';
+import { buildMessages } from '../shared/ai/prompts.js';
+import { contextFromMatches } from '../shared/ai/retrieval.js';
+import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../shared/ai/answer-policy.js';
+import { createCloudflareAi } from '../scripts/lib/cloudflare-ai.mjs';
 
-const TIMEOUT_MS = 120000;
-
-/** @type {Map<string, Cloudflare>} */
+/** @type {Map<string, ReturnType<typeof createCloudflareAi>>} */
 const clients = new Map();
 
-/** @param {string} accountId @param {string} apiToken */
-function clientFor(accountId, apiToken) {
-    const key = `${accountId}:${apiToken}`;
-    if (!clients.has(key)) clients.set(key, new Cloudflare({ apiToken, maxRetries: 0, timeout: TIMEOUT_MS }));
-    return /** @type {Cloudflare} */ (clients.get(key));
+/** @param {ReadableStream<Uint8Array>} stream */
+async function readAnswer(stream) {
+    const events = normalizeChatStream(stream).pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream());
+    let answer = '';
+    for await (const { data } of events) {
+        if (data === '[DONE]') continue;
+        const payload = JSON.parse(data);
+        if (payload.error) throw new Error(payload.error);
+        answer += payload.response ?? '';
+    }
+    return answer;
 }
 
 export default class RagProvider {
@@ -24,7 +31,7 @@ export default class RagProvider {
     }
 
     id() {
-        return `agent:${this.config.model ?? 'default'}`;
+        return `rag:${this.config.model ?? 'glm'}`;
     }
 
     /**
@@ -32,52 +39,23 @@ export default class RagProvider {
      * @param {{ vars: Record<string, string> }} context
      */
     async callApi(_prompt, { vars }) {
-        const { AI_INSTANCE: instance, CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: apiKey } = process.env;
-        if (!instance) return { error: 'Set AI_INSTANCE (make ai-plan prints it)' };
-        if (!accountId || !apiKey) return { error: 'Missing CLOUDFLARE_ACCOUNT_ID or CLOUDFLARE_API_TOKEN' };
-        const client = clientFor(accountId, apiKey);
-        const workersAI = createWorkersAI({ accountId, apiKey });
-        /** @type {string[]} */
-        const queries = [];
-        /** @type {{ text: string, key?: string }[]} */
-        const retrieved = [];
-        const recorder = {
-            /** @param {{ query: string }} params */
-            async search(params) {
-                queries.push(params.query);
-                const found = await client.aiSearch.namespaces.instances.search(instance, { account_id: accountId, name: NAMESPACE, ...params });
-                retrieved.push(...found.chunks.map((chunk) => ({ text: chunk.text, key: chunk.item?.key })));
-                return found;
-            },
-        };
-        let answer = '';
-        /** @type {{ url: string }[]} */
-        let evidence = [];
-        try {
-            const events = runTurn({
-                env: /** @type {any} */ ({ AI_MODEL: this.config.model }),
-                query: vars.query,
-                history: JSON.parse(vars.history),
-                signal: AbortSignal.timeout(TIMEOUT_MS),
-                languageModel: (model) => workersAI(model.id, model.parameters),
-                instance: /** @type {any} */ (recorder),
-            });
-            for await (const event of events) {
-                if ('response' in event) answer += event.response;
-                if ('evidence' in event) evidence = /** @type {any} */ (event.evidence);
-            }
-        } catch (error) {
-            return { error: error instanceof Error ? error.message : String(error) };
+        const namespace = process.env.AI_NAMESPACE;
+        if (!namespace) return { error: 'Set AI_NAMESPACE (make ai-plan prints it)' };
+        if (!clients.has(namespace)) clients.set(namespace, createCloudflareAi({ namespace, timeoutMs: 120000 }));
+        const cloudflare = /** @type {ReturnType<typeof createCloudflareAi>} */ (clients.get(namespace));
+        const history = JSON.parse(vars.history);
+        // Vectorize queries can lag a fresh ingest; retry only when a labeled case found nothing at all.
+        let found = await cloudflare.retrieve(vars.query, history);
+        for (let attempt = 1; attempt < 6 && !found.matches.length && vars.labeled === 'true'; attempt++) {
+            await wait(5000);
+            found = await cloudflare.retrieve(vars.query, history);
         }
-        return {
-            output: {
-                answer,
-                queries,
-                searched: queries.length > 0,
-                sources: [...new Set(retrieved.map((chunk) => chunk.key).filter(Boolean))],
-                context: retrieved.map((chunk) => chunk.text).join('\n'),
-                urls: evidence.map((item) => item.url),
-            },
-        };
+        const context = contextFromMatches(found.matches);
+        const sources = found.matches.map((match) => match.metadata?.source).filter(Boolean);
+        const model = getModel(this.config.model);
+        const answer = shouldAbstainForMissingContext(context)
+            ? SAFE_NO_CONTEXT_MESSAGE
+            : await readAnswer(await cloudflare.run(model.id, generationInput(model, buildMessages(vars.query, context, history))));
+        return { output: { answer, context, sources, retrievalQuery: found.retrievalQuery } };
     }
 }

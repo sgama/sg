@@ -9,4 +9,7 @@
     {{- range $ai.models }}{{ if eq .id $modelName }}{{ $model = . }}{{ end }}{{ end -}}
 {{- end -}}
 {{- if not $model }}{{ errorf "Unknown chat generation model: %s" $modelName }}{{ end -}}
-{{- return (dict "ai" $ai "model" $model) -}}
+{{- $rewriteName := $ai.config.contextualization.model -}}
+{{- $rewrite := index $ai.models $rewriteName -}}
+{{- if not $rewrite }}{{ errorf "Unknown chat contextualization model: %s" $rewriteName }}{{ end -}}
+{{- return (dict "ai" $ai "model" $model "rewrite" $rewrite) -}}

@@ -1,76 +1,241 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { isOutputPart, wireEvents } from '../../shared/ai/chat-stream.js';
-import { getModel } from '../../shared/ai/application.js';
+import { normalizeChatStream, createSseMessageStream } from '../../shared/ai/chat-stream.js';
 
-const metrics = { firstToken() {}, snapshot: ({ model, usage }) => ({ model: model?.id, usage }) };
-async function* parts(...items) {
-    yield* items;
-}
-const collect = async (...items) => {
-    const events = [];
-    for await (const event of wireEvents(parts(...items), metrics)) events.push(event);
-    return events;
+const event = (payload) => `data: ${JSON.stringify(payload)}\n\n`;
+const delta = (content) => ({ choices: [{ index: 0, delta: { content } }] });
+const streamOf = (text, fragmentSize = 7) => {
+    const bytes = new TextEncoder().encode(text);
+    return new ReadableStream({
+        start(controller) {
+            for (let i = 0; i < bytes.length; i += fragmentSize) {
+                controller.enqueue(bytes.slice(i, i + fragmentSize));
+            }
+            controller.close();
+        },
+    });
 };
-const evidence = (url) => ({ title: url, url, text: 'x' });
-const finish = { type: 'finish', totalUsage: { inputTokens: 3, outputTokens: 2, totalTokens: 5 } };
+const normalize = async (text, fragmentSize) => new Response(normalizeChatStream(streamOf(text, fragmentSize))).text();
 
-test('isOutputPart treats only visible work as output', () => {
-    for (const type of ['text-delta', 'reasoning-delta', 'tool-call', 'tool-result']) assert.equal(isOutputPart({ type }), true, type);
-    for (const type of ['start', 'start-step', 'model', 'error', 'finish']) assert.equal(isOutputPart({ type }), false, type);
+test('finishes a valid answer when upstream closes without a DONE event', async () => {
+    assert.equal(await normalize(event(delta('Answer'))), event({ response: 'Answer' }) + 'data: [DONE]\n\n');
 });
 
-test('wireEvents accumulates evidence without repeating sources', async () => {
-    const events = await collect(
-        { type: 'tool-call' },
-        { type: 'tool-result', output: { evidence: [evidence('/a/')] } },
-        { type: 'tool-call' },
-        { type: 'tool-result', output: { evidence: [evidence('/a/'), evidence('/b/')] } },
-        { type: 'tool-result', output: { evidence: [evidence('/b/')] } },
-        { type: 'text-delta', text: 'Hi' },
-        finish,
+test('normalizes GLM deltas, strips reasoning, and preserves final aggregate usage', async () => {
+    const usage = { prompt_tokens: 1195, completion_tokens: 787, total_tokens: 1982 };
+    const input =
+        event({
+            choices: [{ index: 0, delta: { reasoning: 'private', reasoning_content: 'private' } }],
+        }) +
+        event({ ...delta('Hello '), usage: { completion_tokens: 1 } }) +
+        event(delta('world')) +
+        event({ choices: [], usage: { total_tokens: 0 } }) +
+        event({ choices: [], usage }) +
+        'data: [DONE]\n\n';
+
+    assert.equal(await normalize(input), event({ response: 'Hello ' }) + event({ response: 'world' }) + event({ usage }) + 'data: [DONE]\n\n');
+});
+
+test('preserves a standalone OpenAI aggregate usage event without chunk-usage inflation', async () => {
+    const usage = { prompt_tokens: 30, completion_tokens: 2, total_tokens: 32 };
+    const input = event(delta('Answer')) + event({ choices: [], usage }) + 'data: [DONE]\n\n';
+    assert.equal(await normalize(input), event({ response: 'Answer' }) + event({ usage }) + 'data: [DONE]\n\n');
+});
+
+test('accepts the current Workers binding usage summary only after content deltas', async () => {
+    const usage = { prompt_tokens: 30, completion_tokens: 2, total_tokens: 32 };
+    const input = event(delta('Answer')) + event({ response: '', usage }) + 'data: [DONE]\n\n';
+    assert.equal(await normalize(input), event({ response: 'Answer' }) + event({ usage }) + 'data: [DONE]\n\n');
+});
+
+test('creates the current widget response stream directly', async () => {
+    const output = await new Response(createSseMessageStream('Answer')).text();
+    assert.equal(output, event({ response: 'Answer' }) + 'data: [DONE]\n\n');
+    const timed = await new Response(createSseMessageStream('Answer', { totalMs: 1 })).text();
+    assert.equal(timed, event({ response: 'Answer' }) + event({ metrics: { totalMs: 1 } }) + 'data: [DONE]\n\n');
+});
+
+test('cancels a pending stream read when the abort signal fires', async () => {
+    const controller = new AbortController();
+    let canceled = false;
+    const source = new ReadableStream({
+        start() {
+            controller.signal.addEventListener('abort', () => {
+                canceled = true;
+            });
+        },
+        cancel() {
+            canceled = true;
+        },
+    });
+    const stream = normalizeChatStream(source, { signal: controller.signal });
+    controller.abort();
+    const text = await new Response(stream).text();
+    assert.equal(canceled, true);
+    assert.equal(text, '');
+});
+
+test('a client TimeoutError is silent unless it is the actual deadline signal', async () => {
+    const client = new AbortController();
+    const deadline = new AbortController();
+    client.abort(new DOMException('Timed out', 'TimeoutError'));
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'));
+        },
+    });
+    const stream = normalizeChatStream(source, { signal: client.signal, deadlineSignal: deadline.signal });
+    assert.equal(await new Response(stream).text(), '');
+});
+
+test('deadline aborts stream reads with the existing error envelope and terminal marker', async () => {
+    const request = new AbortController();
+    const deadline = new AbortController();
+    const signal = AbortSignal.any([request.signal, deadline.signal]);
+    deadline.abort(new DOMException('Timed out', 'TimeoutError'));
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'));
+        },
+    });
+    const stream = normalizeChatStream(source, { signal, deadlineSignal: deadline.signal });
+    const output = await new Response(stream).text();
+    assert.match(output, /"error":"AI response failed\. Please try again\."/);
+    assert.match(output, /data: \[DONE\]\n\n$/);
+});
+
+test('deadline aborts a pending read after it has begun without pretending the answer succeeded', async () => {
+    const request = new AbortController();
+    const deadline = new AbortController();
+    const signal = AbortSignal.any([request.signal, deadline.signal]);
+    let cancelled = false;
+    let releaseCancel;
+    const cancellation = new Promise((resolve) => {
+        releaseCancel = resolve;
+    });
+    const source = new ReadableStream({
+        pull() {
+            // Keep the read pending until the deadline aborts and the source is cancelled.
+        },
+        cancel() {
+            cancelled = true;
+            releaseCancel();
+            return cancellation;
+        },
+    });
+    const stream = normalizeChatStream(source, { signal, deadlineSignal: deadline.signal });
+    const textPromise = new Response(stream).text();
+    queueMicrotask(() => {
+        deadline.abort(new DOMException('Timed out', 'TimeoutError'));
+    });
+    await Promise.race([cancellation.then(() => 'cancelled'), new Promise((resolve) => setTimeout(() => resolve('timeout'), 50))]);
+    const output = await textPromise;
+    assert.equal(cancelled, true);
+    assert.match(output, /"error":"AI response failed\. Please try again\."/);
+    assert.match(output, /data: \[DONE\]\n\n$/);
+    assert.doesNotMatch(output, /"metrics"/);
+    releaseCancel();
+});
+
+test('terminates the client stream when the upstream stream fails', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const upstream = new ReadableStream({
+        start(controller) {
+            controller.error(new Error('upstream disconnected'));
+        },
+    });
+    assert.equal(
+        await new Response(normalizeChatStream(upstream)).text(),
+        event({ error: 'AI response failed. Please try again.' }) + 'data: [DONE]\n\n',
     );
-    assert.deepEqual(
-        events.filter((event) => event.evidence).map((event) => event.evidence.map((item) => item.url)),
-        [['/a/'], ['/a/', '/b/']],
-    );
+    assert.equal(logged.mock.callCount(), 1);
+    assert.equal(logged.mock.calls[0].arguments[0], 'Chat Stream Failed:');
+    assert.match(logged.mock.calls[0].arguments[1].message, /upstream disconnected/);
 });
 
-test('wireEvents maps parts to the widget wire events in order', async () => {
-    const model = getModel('gemma');
-    const events = await collect(
-        { type: 'model', model },
-        { type: 'tool-call' },
-        { type: 'tool-result', output: { evidence: [evidence('/resume/')] } },
-        { type: 'text-delta', text: ' ' },
-        { type: 'text-delta', text: 'Answer' },
-        { type: 'text-delta', text: '' },
-        finish,
-    );
-    assert.deepEqual(events, [
-        { progress: 'search' },
-        { evidence: [evidence('/resume/')] },
-        { progress: 'generation' },
-        { response: ' ' },
-        { response: 'Answer' },
-        { usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 } },
-        { metrics: { model: model.id, usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 } } },
-    ]);
+test('cancels provider streams after the first terminal failure and emits only one client error frame', async () => {
+    let cancelled = false;
+    let resolveCancel;
+    const cancelPromise = new Promise((resolve) => {
+        resolveCancel = resolve;
+    });
+    const source = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode('data: {"error":{"message":"provider failed"}}\n\n'));
+            queueMicrotask(() => {
+                controller.enqueue(new TextEncoder().encode('data: {"choices":[{"index":0,"delta":{"content":"later"}}]}\n\n'));
+            });
+        },
+        cancel() {
+            cancelled = true;
+            resolveCancel();
+            return cancelPromise;
+        },
+    });
+    const outputPromise = new Response(normalizeChatStream(source)).text();
+    await Promise.race([cancelPromise.then(() => 'cancelled'), new Promise((resolve) => setTimeout(() => resolve('timeout'), 50))]);
+    const output = await outputPromise;
+    assert.equal(cancelled, true);
+    assert.equal((output.match(/"error":"AI response failed\. Please try again\."/g) ?? []).length, 1);
+    assert.equal(output.split('data: {"error":"AI response failed. Please try again."}\n\n').length - 1, 1);
+    assert.match(output, /data: \[DONE\]\n\n$/);
+    resolveCancel();
 });
 
-test('wireEvents marks the first non-blank token once', async () => {
-    let first = 0;
-    const counting = { ...metrics, firstToken: () => first++ };
-    const items = [{ type: 'text-delta', text: '  ' }, { type: 'text-delta', text: 'a' }, { type: 'text-delta', text: 'b' }, finish];
-    await Array.fromAsync(wireEvents(parts(...items), counting));
-    assert.equal(first, 1);
+test('reports reasoning-only, empty, malformed, and provider-error streams explicitly', async (t) => {
+    const cases = [
+        {
+            name: 'reasoning-only',
+            input: event({ choices: [{ index: 0, delta: { reasoning_content: 'private' } }] }) + 'data: [DONE]\n\n',
+            errorType: Error,
+            message: /^AI stream completed without an answer$/,
+        },
+        {
+            name: 'legacy response',
+            input: event({ response: 'Legacy answer' }),
+            errorType: Error,
+            message: /^Unsupported AI stream event: expected choices$/,
+        },
+        {
+            name: 'usage summary without preceding content deltas',
+            input: event({ response: '', usage: { total_tokens: 20 } }),
+            errorType: Error,
+            message: /^Unsupported AI stream event: expected choices$/,
+        },
+        {
+            name: 'empty',
+            input: '',
+            errorType: Error,
+            message: /^AI stream completed without an answer$/,
+        },
+        {
+            name: 'malformed JSON',
+            input: 'data: {bad json}\n\n',
+            errorType: SyntaxError,
+            message: /JSON/,
+        },
+        {
+            name: 'provider error',
+            input: event({ error: { message: 'provider failed' } }),
+            errorType: Error,
+            message: /^AI returned a streaming error$/,
+        },
+    ];
+    for (const { name, input, errorType, message } of cases) {
+        await t.test(name, async (t) => {
+            const logged = t.mock.method(console, 'error', () => {});
+            assert.equal(await normalize(input), event({ error: 'AI response failed. Please try again.' }) + 'data: [DONE]\n\n');
+            assert.equal(logged.mock.callCount(), 1);
+            const [label, failure] = logged.mock.calls[0].arguments;
+            assert.equal(logged.mock.calls[0].arguments.length, 2);
+            assert.equal(label, 'Chat Stream Failed:');
+            assert.ok(failure instanceof errorType);
+            assert.match(failure.message, message);
+        });
+    }
 });
 
-test('wireEvents throws on aborts, stream errors, search failures and answerless streams', async () => {
-    await assert.rejects(collect({ type: 'abort' }), /aborted/);
-    await assert.rejects(collect({ type: 'error', error: new Error('boom') }), /boom/);
-    await assert.rejects(collect({ type: 'error', error: 'text' }), /AI stream failed/);
-    await assert.rejects(collect({ type: 'tool-error', error: new Error('search down') }), /search down/);
-    await assert.rejects(collect({ type: 'text-delta', text: '  ' }, finish), /without an answer/);
-    await assert.rejects(collect(finish), /without an answer/);
+test('supports CRLF, SSE comments, multiline data, and byte-fragmented UTF-8', async () => {
+    const input = ': heartbeat\r\n\r\ndata: {"choices":\r\n' + 'data: [{"index":0,"delta":{"content":"Hi \u{1f44b}"}}]}\r\n\r\n' + 'data: [DONE]';
+    assert.equal(await normalize(input, 1), event({ response: 'Hi \u{1f44b}' }) + 'data: [DONE]\n\n');
 });

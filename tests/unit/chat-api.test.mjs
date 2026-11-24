@@ -1,211 +1,320 @@
 /**
- * Unit tests for /api/chat: CORS, validation, limits, and the streamed chat turn against a scripted model and a fake AI Search instance.
+ * Unit tests for /api/chat endpoint
+ * Tests CORS handling, input validation, guardrails, and end-to-end chat flow
  */
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createChatApp } from '../../functions/_lib/chat-app.js';
-import { runTurn } from '../../functions/_lib/agent.js';
 import { onRequest } from '../helpers/worker.mjs';
-import { FIXTURES, URLS } from '../helpers/data.mjs';
-import { answerStep, createContext, failingStep, fakeSearchInstance, scriptedModel, searchChunk, searchStep, sseEvents } from '../helpers/mocks.mjs';
+import { createChatApp } from '../../functions/_lib/chat-app.js';
+import { buildEmbeddingsResponse, buildVectorizeResult, URLS, SAMPLE_DATA, FIXTURES } from '../helpers/data.mjs';
+import { createContext, makeStream, makeProviderStream } from '../helpers/mocks.mjs';
 
-const ENV = { AI: {}, AI_SEARCH: {}, AI_SEARCH_INSTANCE: 'portfolio-test' };
-const RESUME = searchChunk({ text: 'Senior engineer at Bitcomplete 2020-2024.', title: 'Resume', url: '/resume/' });
-
-/** An app whose chat turn runs the real agent against scripted models (by registry model id) and a fake instance. */
-function appWith({ models, instance = fakeSearchInstance([RESUME]) }) {
-    return createChatApp({
-        runTurn: (turn) => runTurn({ ...turn, languageModel: (model) => models[model.id] ?? models.default, instance }),
-    });
+/**
+ * Env for the three-call /api/chat flow: query rewrite, embedding, then generation whose system
+ * prompt must carry the retrieved evidence. Calls are recorded only when the caller passes `calls`.
+ */
+function chatEnv({
+    calls = [],
+    evidence = 'Public evidence',
+    matches,
+    response = 'Standalone query',
+    stream = () => makeProviderStream('Answer'),
+    vector = SAMPLE_DATA.EMBEDDING_VECTOR,
+}) {
+    return {
+        AI: {
+            async run(model, payload) {
+                calls.push({ model, payload });
+                if (payload.stream === false) return { response };
+                if (payload.text) return buildEmbeddingsResponse(vector);
+                assert.ok(payload.messages[0].content.includes(evidence));
+                return stream();
+            },
+        },
+        VECTORIZE_INDEX: {
+            query: async () => ({ matches }),
+        },
+    };
 }
 
-const post = (app, body = { query: 'What did Samson do last?' }, { env = ENV, signal } = {}) =>
-    app.request(
-        '/api/chat',
-        new Request(`${URLS.TEST_API_ENDPOINT}/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Origin: URLS.ALLOWED_ORIGIN },
-            body: JSON.stringify(body),
-            signal,
-        }),
-        env,
-        { waitUntil() {} },
-    );
-
 test('/api/chat', async (t) => {
-    await t.test('abstains without evidence when search finds nothing', async () => {
-        const model = scriptedModel(searchStep('Samson pottery'), answerStep('The available information is insufficient.'));
-        const app = appWith({ models: { default: model }, instance: fakeSearchInstance([]) });
-        const text = await (await post(app, { query: 'Does Samson do pottery?' })).text();
-        const events = sseEvents(text);
-        assert.equal(
-            events.some((event) => event.evidence),
-            false,
-        );
-        assert.match(text, /insufficient/);
-        assert.match(JSON.stringify(model.doStreamCalls[1].prompt), /No matching content found/);
-        assert.ok(text.trimEnd().endsWith('data: [DONE]'));
-    });
-
-    await t.test('answers after the model calls the search tool, with real stage events and public evidence only', async () => {
-        const instance = fakeSearchInstance([
-            RESUME,
-            searchChunk({ text: 'Internal note.', title: 'Private corpus label', url: '/_context/profile/' }),
-            searchChunk({ text: 'Unlinked note.', title: 'Unlinked' }),
-        ]);
-        const model = scriptedModel(searchStep('Samson most recent role'), answerStep('Bitcomplete, ', 'until 2024.'));
-        const response = await post(appWith({ models: { default: model }, instance }), {
-            query: 'And then?',
-            history: FIXTURES.VALID_HISTORY,
+    await t.test('streams real stage events and only public excerpts actually supplied to generation', async () => {
+        const usage = { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 };
+        const env = chatEnv({
+            matches: [
+                {
+                    metadata: {
+                        recordType: 'chunk',
+                        title: 'Resume',
+                        url: '/resume/',
+                        section: 'Experience',
+                        text: 'Public evidence',
+                    },
+                },
+                {
+                    metadata: {
+                        recordType: 'chunk',
+                        title: 'Private corpus label',
+                        source: 'content/_context/profile.md',
+                        text: 'Internal evidence',
+                    },
+                },
+            ],
+            stream: () => makeProviderStream('Answer', usage),
         });
-        assert.equal(response.status, 200);
-        assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
-        assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
+        const response = await onRequest(
+            createContext({
+                method: 'POST',
+                url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                body: { query: 'And then?', history: [{ role: 'user', content: 'Earlier?' }] },
+                env,
+            }),
+        );
         const text = await response.text();
-        const events = sseEvents(text);
+        const events = text
+            .split('\n')
+            .filter((line) => line.startsWith('data: {'))
+            .map((line) => JSON.parse(line.slice(6)));
         assert.deepEqual(
             events.filter((event) => event.progress).map((event) => event.progress),
-            ['search', 'generation'],
+            ['rewrite', 'embedding', 'search', 'generation'],
         );
-        assert.deepEqual(events.find((event) => event.evidence).evidence, [
-            { title: 'Resume', url: '/resume/', text: 'Senior engineer at Bitcomplete 2020-2024.' },
-        ]);
-        assert.equal(
-            events
-                .filter((event) => event.response)
-                .map((event) => event.response)
-                .join(''),
-            'Bitcomplete, until 2024.',
+        const evidence = events.find((event) => event.evidence).evidence;
+        assert.deepEqual(evidence, [{ title: 'Resume', url: '/resume/', section: 'Experience', text: 'Public evidence' }]);
+        assert.doesNotMatch(text, /content\/|Internal evidence|Private corpus label/);
+    });
+
+    await t.test('retrieval failures after streaming starts emit explicit errors, not successful abstention', async (t) => {
+        t.mock.method(console, 'error', () => {});
+        const response = await onRequest(
+            createContext({
+                method: 'POST',
+                url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                body: { query: 'Question?' },
+                env: {
+                    AI: {
+                        run: async () => {
+                            throw new Error('Provider failed');
+                        },
+                    },
+                    VECTORIZE_INDEX: { query: async () => assert.fail('Search must not run') },
+                },
+            }),
         );
-        assert.equal(instance.calls.length, 1);
-        assert.equal(instance.calls[0].query, 'Samson most recent role');
-        assert.doesNotMatch(text, /Private corpus label|_context|Internal note/);
-        const metrics = events.find((event) => event.metrics).metrics;
-        assert.equal(metrics.generationUsage.prompt_tokens, 30);
-        assert.ok(metrics.totalMs >= metrics.firstTokenMs);
-        assert.ok(metrics.estimatedLlmCostUsd > 0);
-        assert.ok(text.indexOf('"metrics"') < text.indexOf('[DONE]'));
-        const prompt = model.doStreamCalls[0].prompt;
-        assert.deepEqual(
-            prompt.slice(1).map((message) => [message.role, message.content[0].text]),
-            [...FIXTURES.VALID_HISTORY, { role: 'user', content: 'And then?' }].map(({ role, content }) => [role, content]),
-        );
+        assert.equal(response.status, 200);
+        const text = await response.text();
+        assert.match(text, /"progress":"embedding"/);
+        assert.match(text, /"error":"Embedding service unavailable"/);
+        assert.doesNotMatch(text, /"response":/);
+    });
+
+    await t.test('End-to-end flow', async (t) => {
+        await t.test('normalizes GLM output before streaming to the widget', async () => {
+            const usage = { prompt_tokens: 1195, completion_tokens: 787, total_tokens: 1982 };
+            const env = {
+                AI: {
+                    async run(model, payload) {
+                        if (payload.text) return buildEmbeddingsResponse();
+                        assert.equal(payload.chat_template_kwargs.enable_thinking, false);
+                        return makeStream(
+                            'data: {"choices":[{"index":0,"delta":{"reasoning_content":"private"}}]}\n',
+                            'data: {"choices":[{"index":0,"delta":{"content":"Visible answer"}}]}\n',
+                            `data: ${JSON.stringify({ choices: [], usage })}\n`,
+                            'data: [DONE]\n',
+                        );
+                    },
+                },
+                VECTORIZE_INDEX: {
+                    async query() {
+                        return buildVectorizeResult(['Relevant portfolio context for response.']);
+                    },
+                },
+            };
+            const response = await onRequest(
+                createContext({
+                    method: 'POST',
+                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                    body: { query: 'What do you build?' },
+                    env,
+                }),
+            );
+            const output = await response.text();
+            assert.equal(response.status, 200);
+            assert.match(output, /"response":"Visible answer"/);
+            assert.doesNotMatch(output, /private|reasoning|choices/);
+            const metrics = output
+                .split('\n')
+                .filter((line) => line.startsWith('data: {'))
+                .map((line) => JSON.parse(line.slice(6)))
+                .find((event) => event.metrics)?.metrics;
+            assert.deepEqual(metrics.generationUsage, usage);
+            assert.ok(metrics.totalMs >= metrics.firstTokenMs);
+            assert.ok(metrics.estimatedLlmCostUsd > 0);
+        });
+
+        await t.test('passes trimmed query and sanitized history into generation', async () => {
+            const calls = [];
+            const env = chatEnv({
+                calls,
+                evidence: SAMPLE_DATA.CONTEXT_TEXT,
+                matches: buildVectorizeResult([SAMPLE_DATA.CONTEXT_TEXT]).matches,
+                response: 'What is Samson’s most recent role?',
+                stream: () => makeProviderStream('Supported answer'),
+                vector: SAMPLE_DATA.EMBEDDING_VECTOR,
+            });
+
+            const response = await onRequest(
+                createContext({
+                    method: 'POST',
+                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                    env,
+                    body: {
+                        query: '  What do you build?  ',
+                        history: FIXTURES.VALID_HISTORY,
+                    },
+                }),
+            );
+
+            assert.equal(response.status, 200);
+            assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
+            assert.equal(response.headers.get('Cache-Control'), 'no-cache');
+            assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
+            assert.match(await response.text(), /"response":"Supported answer"/);
+
+            assert.equal(calls.length, 3);
+            assert.equal(calls[0].payload.stream, false);
+            assert.deepEqual(calls[1].payload.text, ['What is Samson’s most recent role?']);
+            assert.equal(calls[2].payload.messages.at(-1).content, 'What do you build?');
+            assert.deepEqual(calls[2].payload.messages.slice(1, -1), FIXTURES.VALID_HISTORY);
+        });
+    });
+
+    await t.test('Guardrails', async (t) => {
+        await t.test('returns grounded fallback when retrieval has no context', async () => {
+            const calls = [];
+            const env = {
+                AI: {
+                    async run(model, payload) {
+                        calls.push({ model, payload });
+                        if (payload?.text) {
+                            return buildEmbeddingsResponse();
+                        }
+                        return makeProviderStream('Should not generate');
+                    },
+                },
+                VECTORIZE_INDEX: {
+                    async query() {
+                        return buildVectorizeResult([]);
+                    },
+                },
+            };
+
+            const response = await onRequest(
+                createContext({
+                    method: 'POST',
+                    url: `${URLS.TEST_API_ENDPOINT}/chat`,
+                    env,
+                    body: { query: 'Tell me unknown details' },
+                }),
+            );
+
+            const body = await response.text();
+            assert.equal(response.status, 200);
+            assert.match(body, /don't have enough reliable context/i);
+
+            // Only embeddings should run; generation should be skipped due to abstain guardrail.
+            assert.equal(calls.length, 1);
+        });
     });
 });
 
-test('/api/chat falls back to the next model only when the first fails before output', async (t) => {
-    t.mock.method(console, 'error', () => {});
-    const recovered = await post(
-        appWith({
-            models: {
-                '@cf/zai-org/glm-4.7-flash': scriptedModel(failingStep()),
-                default: scriptedModel(searchStep('role'), answerStep('Fallback answer')),
+test('/api/chat preserves disconnects without provider logging or SSE writes after abort', async (t) => {
+    const logged = t.mock.method(console, 'error', () => {});
+    const env = {
+        AI: {
+            run: async () => {
+                throw new Error('must not reach provider');
             },
-        }),
-    );
-    const text = await recovered.text();
-    assert.match(text, /Fallback answer/);
-    assert.equal(sseEvents(text).find((event) => event.metrics).metrics.generationModel, '@cf/google/gemma-4-26b-a4b-it');
-    assert.doesNotMatch(text, /"error"/);
-
-    const midAnswer = [
-        { type: 'stream-start', warnings: [] },
-        { type: 'text-start', id: 't' },
-        { type: 'text-delta', id: 't', delta: 'Partial' },
-        ...failingStep().slice(1),
-    ];
-    const broken = await (
-        await post(appWith({ models: { '@cf/zai-org/glm-4.7-flash': scriptedModel(midAnswer), default: scriptedModel(answerStep('Never used')) } }))
-    ).text();
-    assert.match(broken, /"response":"Partial"/);
-    assert.match(broken, /"error":"The response could not be completed\."/);
-    assert.doesNotMatch(broken, /Never used/);
-});
-
-test('/api/chat ends failures with one {error} event and [DONE], and logs them', async (t) => {
-    const logged = t.mock.method(console, 'error', () => {});
-    const everyModelFails = { default: scriptedModel(failingStep(), failingStep(), failingStep()) };
-    const modelFailure = await (await post(appWith({ models: everyModelFails }))).text();
-    const searchFailure = await (
-        await post(
-            appWith({
-                models: { default: scriptedModel(searchStep('role'), answerStep('Guess')) },
-                instance: fakeSearchInstance([], new Error('AI Search down')),
-            }),
-        )
-    ).text();
-    for (const text of [modelFailure, searchFailure]) {
-        assert.equal(text.match(/"error":/g).length, 1);
-        assert.match(text, /"error":"The response could not be completed\."/);
-        assert.ok(text.trimEnd().endsWith('data: [DONE]'));
-        assert.doesNotMatch(text, /"response"|AI Search down|model down/);
-    }
-    assert.ok(logged.mock.callCount() >= 2);
-});
-
-test('/api/chat preserves a closed connection without provider logging or SSE writes', async (t) => {
-    const logged = t.mock.method(console, 'error', () => {});
-    const refuse = createChatApp({ runTurn: () => assert.fail('must not reach the model') });
-    const closed = new AbortController();
-    closed.abort();
-    const text = await (await post(refuse, undefined, { signal: closed.signal })).text();
-    assert.equal(text, '');
-
-    const model = scriptedModel('hang');
+        },
+        VECTORIZE_INDEX: {
+            query: async () => {
+                throw new Error('must not search');
+            },
+        },
+    };
     const controller = new AbortController();
-    // Keep the request alive: Node only weakly links a Request's signal to the controller that aborts it.
+    controller.abort();
     const request = new Request(`${URLS.TEST_API_ENDPOINT}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Origin: URLS.ALLOWED_ORIGIN },
+        headers: { 'Content-Type': 'application/json', Origin: 'https://samsongama.com' },
         body: JSON.stringify({ query: 'Question?' }),
         signal: controller.signal,
     });
-    const response = await appWith({ models: { default: model } }).request('/api/chat', request, ENV, { waitUntil() {} });
-    const reader = response.body.getReader();
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    controller.abort();
-    let read = '';
-    for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) read += new TextDecoder().decode(chunk.value);
-    assert.doesNotMatch(read, /error|DONE/);
-    assert.equal(request.signal.aborted, true);
+    const response = await onRequest({ request, env, waitUntil() {} });
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.equal(text, '');
     assert.equal(logged.mock.callCount(), 0);
 });
 
-test('/api/chat treats the request deadline as a safe failure instead of an outage', async (t) => {
+test('/api/chat treats the request timeout as a safe deadline instead of an outage', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
     const deadline = new AbortController();
-    t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
+    const originalTimeout = AbortSignal.timeout;
+    const timeoutMock = t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
     deadline.abort(new DOMException('Timed out', 'TimeoutError'));
-    const text = await (await post(appWith({ models: { default: scriptedModel('hang') } }))).text();
+
+    const app = createChatApp({
+        createAiService: (_env, { signal, deadlineSignal }) => ({
+            retrieve: async () => ({
+                contextText: 'known context that is long enough to avoid abstention and trigger the timed-out generation path.',
+                evidence: [],
+            }),
+            generateStream: async () => {
+                if (signal.aborted) throw signal.reason;
+                if (deadlineSignal.aborted && signal.reason === deadlineSignal.reason) throw signal.reason;
+                return makeProviderStream('Answer');
+            },
+            responseMetrics: () => ({ totalMs: 1 }),
+        }),
+    });
+
+    const response = await app.request(
+        '/api/chat',
+        new Request(`${URLS.TEST_API_ENDPOINT}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Origin: 'https://samsongama.com' },
+            body: JSON.stringify({ query: 'Question?' }),
+        }),
+        { AI: {}, VECTORIZE_INDEX: { query: async () => ({ matches: [] }) }, waitUntil() {} },
+    );
+
+    assert.equal(response.status, 200);
+    const text = await response.text();
     assert.match(text, /"error":"The response could not be completed\."/);
-    assert.ok(text.trimEnd().endsWith('data: [DONE]'));
+    assert.match(text, /\[DONE\]/);
     assert.equal(logged.mock.callCount(), 0);
+    AbortSignal.timeout = originalTimeout;
+    timeoutMock.mock.restore();
 });
 
-test('/api/chat rejects invalid requests and unavailable bindings explicitly, before any model call', async (t) => {
+test('/api/chat rejects invalid requests and unavailable bindings explicitly, before any generation', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
-    const app = createChatApp({ runTurn: () => assert.fail('Generation must not start') });
+    const refuseAi = { AI: { run: async () => assert.fail('Generation must not start') } };
     for (const { body, env, status, error, log } of [
         { body: { query: '   ' }, status: 400, error: 'Invalid query. Must be a string < 500 chars.' },
         { body: { query: 'hello' }, status: 503, error: 'Service Unavailable: AI binding missing' },
         {
             body: { query: 'What do you build?' },
-            env: { AI: {} },
+            env: refuseAi,
             status: 503,
             error: 'Retrieval service unavailable',
-            log: ['AI Search Failed: AI_SEARCH binding or AI_SEARCH_INSTANCE missing'],
-        },
-        {
-            body: { query: 'What do you build?' },
-            env: { AI: {}, AI_SEARCH: {} },
-            status: 503,
-            error: 'Retrieval service unavailable',
-            log: ['AI Search Failed: AI_SEARCH binding or AI_SEARCH_INSTANCE missing'],
+            log: ['Vector Search Failed: VECTORIZE_INDEX binding missing'],
         },
     ]) {
         logged.mock.resetCalls();
-        const response = await post(app, body, { env: env ?? {} });
+        const response = await onRequest(createContext({ method: 'POST', url: `${URLS.TEST_API_ENDPOINT}/chat`, body, env }));
         assert.equal(response.status, status, error);
         assert.match(response.headers.get('Content-Type'), /application\/json/);
         assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff', error);
@@ -260,26 +369,26 @@ test('CORS preflight allows only the configured origins', async () => {
     assert.equal(allowed.headers.get('Access-Control-Max-Age'), '86400');
 });
 
-test('createChatApp runs the route with an injected turn and origin list', async () => {
+test('createChatApp runs the route with injected collaborators and origin list', async () => {
     const calls = [];
     const app = createChatApp({
         allowedOrigins: ['https://example.test'],
-        runTurn: async function* ({ env, query, history }) {
-            calls.push({ ai: env.AI, query, history });
-            yield { response: 'Injected' };
+        createAiService: (env) => ({ fromEnv: env.AI }),
+        answerChat: async ({ aiService, query }) => {
+            calls.push({ aiService, query });
+            return makeStream('data: {"response":"Injected"}', 'data: [DONE]');
         },
     });
+    const env = { AI: 'ai-binding', VECTORIZE_INDEX: {} };
     const init = (origin) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Origin: origin },
         body: JSON.stringify({ query: 'Hello' }),
     });
-    const allowed = await app.request('/api/chat', init('https://example.test'), ENV, { waitUntil() {} });
-    const text = await allowed.text();
-    assert.deepEqual(sseEvents(text), [{ response: 'Injected' }]);
-    assert.ok(text.trimEnd().endsWith('data: [DONE]'));
+    const allowed = await app.request('/api/chat', init('https://example.test'), env, { waitUntil() {} });
+    assert.match(await allowed.text(), /Injected/);
     assert.equal(allowed.headers.get('access-control-allow-origin'), 'https://example.test');
-    assert.deepEqual(calls, [{ ai: ENV.AI, query: 'Hello', history: [] }]);
-    const blocked = await app.request('/api/chat', init('https://samsongama.com'), ENV, { waitUntil() {} });
+    assert.deepEqual(calls, [{ aiService: { fromEnv: 'ai-binding' }, query: 'Hello' }]);
+    const blocked = await app.request('/api/chat', init('https://samsongama.com'), env, { waitUntil() {} });
     assert.equal(blocked.headers.get('access-control-allow-origin'), null);
 });
