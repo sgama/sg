@@ -40,8 +40,21 @@ const MERMAID_CONFIG = {
     flowchart: { htmlLabels: false },
 };
 
-/** Runs `task` once; a rejected attempt clears the memo so the next call retries. */
+/**
+ * @typedef {{ parse(text: string, options: { gfm: boolean, breaks: boolean }): string }} Marked
+ * @typedef {{ sanitize(html: string, config: object): string }} Purify
+ * @typedef {{ initialize(config: object): void, render(id: string, text: string): Promise<{ svg: string }> }} Mermaid
+ * @typedef {{ readonly ready: boolean, load(): Promise<void>, renderDiagrams(element: Element): Promise<void>, write(element: HTMLElement, text: string, sender: 'user' | 'bot'): void }} MessageRenderer
+ */
+
+/**
+ * Runs `task` once; a rejected attempt clears the memo so the next call retries.
+ * @template T
+ * @param {() => Promise<T>} task
+ * @returns {() => Promise<T>}
+ */
 function memoizeUntilSuccess(task) {
+    /** @type {Promise<T> | null} */
     let pending = null;
     return () =>
         (pending ??= task().catch((error) => {
@@ -52,24 +65,30 @@ function memoizeUntilSuccess(task) {
 
 /**
  * Loaders are injected by the host; without them the renderer stays in plain-text mode.
- * @param {{ loadModules?: (() => Promise<[{ marked: any }, { default: any }]>) | null, loadMermaid?: (() => Promise<any>) | null, warn?: (...args: unknown[]) => void }} [options]
+ * @param {{ loadModules?: (() => Promise<[{ marked: Marked }, { default: Purify }]>) | null, loadMermaid?: (() => Promise<{ default: Mermaid }>) | null, warn?: (...args: unknown[]) => void }} [options]
+ * @returns {MessageRenderer}
  */
 export function createMessageRenderer({ loadModules = null, loadMermaid = null, warn = (...args) => console.warn(...args) } = {}) {
+    /** @type {((text: string) => string) | null} */
     let markdown = null;
+    /** @type {Purify | null} */
     let purify = null;
     let warnedUnavailable = false;
     let diagramQueue = Promise.resolve();
     let diagramId = 0;
+    /** @type {Promise<void> | null} */
     let loading = null;
     const rendering = new WeakSet();
     const loadMarkdown = async () => {
+        if (!loadModules) throw new Error('Markdown is not configured.');
         const [markedModule, purifyModule] = await loadModules();
         const marked = markedModule.marked;
-        purify = purifyModule.default;
-        if (typeof marked?.parse !== 'function' || typeof purify?.sanitize !== 'function') {
+        const sanitizer = purifyModule.default;
+        purify = sanitizer;
+        if (typeof marked?.parse !== 'function' || typeof sanitizer?.sanitize !== 'function') {
             throw new Error('Chat markdown modules are incomplete.');
         }
-        markdown = (text) => purify.sanitize(marked.parse(text, { gfm: true, breaks: true }), MARKDOWN_SANITIZE);
+        markdown = (/** @type {string} */ text) => sanitizer.sanitize(marked.parse(text, { gfm: true, breaks: true }), MARKDOWN_SANITIZE);
     };
     const loadDiagrams = memoizeUntilSuccess(async () => {
         if (!loadMermaid) throw new Error('Mermaid is not configured.');
@@ -98,18 +117,19 @@ export function createMessageRenderer({ loadModules = null, loadMermaid = null, 
                 diagramQueue = diagramQueue.then(async () => {
                     try {
                         const mermaid = await loadDiagrams();
-                        const { svg } = await mermaid.render(`chat-diagram-${++diagramId}`, code.textContent);
+                        const { svg } = await mermaid.render(`chat-diagram-${++diagramId}`, code.textContent ?? '');
                         if (!element.contains(code)) return;
                         const diagram = code.ownerDocument.createElement('div');
                         diagram.classList.add('evidence-diagram');
+                        if (!purify) throw new Error('Chat markdown modules are not loaded.');
                         diagram.innerHTML = purify.sanitize(svg, SVG_SANITIZE);
-                        code.parentElement.replaceWith(diagram);
+                        code.parentElement?.replaceWith(diagram);
                     } catch (error) {
                         warn('Source diagram unavailable; retaining Mermaid code.', error);
                         if (element.contains(code)) {
                             const note = code.ownerDocument.createElement('small');
                             note.textContent = 'Diagram unavailable. The Mermaid source is shown below.';
-                            code.parentElement.before(note);
+                            code.parentElement?.before(note);
                         }
                     }
                 });

@@ -3,6 +3,19 @@
 import { publicEvidence } from '../model/evidence.js';
 import { duration, formatResponseMetrics, validDuration } from '../model/metrics.js';
 
+/**
+ * @typedef {import('../model/history.js').ChatMessage} ChatMessage
+ * @typedef {import('../model/conversation.js').RetryRequest} RetryRequest
+ * @typedef {import('../model/metrics.js').ResponseMetrics} ResponseMetrics
+ * @typedef {import('./markdown-renderer.js').MessageRenderer} MessageRenderer
+ * @typedef {(message: ChatMessage | undefined, sender: ChatMessage['sender']) => Node | null} Decorator
+ */
+
+/**
+ * @param {unknown} value
+ * @param {Document} document
+ * @param {MessageRenderer | undefined} renderer
+ */
 function createEvidencePanel(value, document, renderer) {
     const evidence = publicEvidence(value);
     if (!evidence.length) return null;
@@ -35,9 +48,20 @@ function createEvidencePanel(value, document, renderer) {
     return panel;
 }
 
+/**
+ * @param {ResponseMetrics | null | undefined} metrics
+ * @param {Document} document
+ */
 function createMetricsFooter(metrics, document) {
     const formatted = formatResponseMetrics(metrics);
-    if (!formatted) return null;
+    if (!metrics || !formatted) return null;
+    /**
+     * @template {keyof HTMLElementTagNameMap} K
+     * @param {K} tag
+     * @param {string} [text]
+     * @param {string} [className]
+     * @returns {HTMLElementTagNameMap[K]}
+     */
     const node = (tag, text, className) => {
         const element = document.createElement(tag);
         if (text !== undefined) element.textContent = text;
@@ -54,6 +78,7 @@ function createMetricsFooter(metrics, document) {
     const details = node('details', undefined, 'metrics-details');
     details.append(node('summary', 'Details'));
     const grid = node('div', undefined, 'metrics-grid');
+    /** @param {[string, string]} row */
     const timingRow = ([label, value]) => {
         const row = node('div', undefined, 'metrics-timing-row');
         row.append(node('span', label), node('span', value));
@@ -62,11 +87,11 @@ function createMetricsFooter(metrics, document) {
     const timing = node('div');
     timing.append(node('strong', 'Timing'));
     timing.append(
-        ...[
+        .../** @type {[string, string][]} */ ([
             ['Total', duration(metrics.totalMs)],
             ...(validDuration(metrics.firstTokenMs) ? [['First token', duration(metrics.firstTokenMs)]] : []),
             ...formatted.timing,
-        ].map(timingRow),
+        ]).map(timingRow),
     );
     const usage = node('div');
     if (formatted.abstained) usage.append(node('span', 'No AI model call was needed'));
@@ -105,12 +130,20 @@ function createMetricsFooter(metrics, document) {
 }
 
 /** Public sources the assistant was given, shown under its answer. */
+/**
+ * @param {{ renderer?: MessageRenderer }} options
+ * @returns {Decorator}
+ */
 export const evidenceDecorator =
     ({ renderer }) =>
     (message, sender) =>
         sender === 'bot' && message?.evidence ? createEvidencePanel(message.evidence, document, renderer) : null;
 
 /** A manual retry button on a failed exchange. */
+/**
+ * @param {{ retryFor: (message: ChatMessage) => RetryRequest | null, onRetry: (retry: RetryRequest) => void }} options
+ * @returns {Decorator}
+ */
 export const retryDecorator =
     ({ retryFor, onRetry }) =>
     (message) => {
@@ -125,4 +158,5 @@ export const retryDecorator =
     };
 
 /** Latency, cost and token details under an assistant answer. */
+/** @returns {Decorator} */
 export const metricsDecorator = () => (message, sender) => createMetricsFooter(sender === 'bot' ? message?.metrics : null, document);

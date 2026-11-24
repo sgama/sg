@@ -1,19 +1,28 @@
 const TOGGLE_SELECTOR = 'button[data-menu-toggle]';
 
+/**
+ * @param {Document} document
+ * @param {HTMLInputElement} checkbox
+ */
 const controlsFor = (document, checkbox) =>
-    Array.from(document.querySelectorAll(TOGGLE_SELECTOR)).filter((button) => button.dataset.menuToggle === checkbox.id);
+    Array.from(document.querySelectorAll(/** @type {'button'} */ (TOGGLE_SELECTOR))).filter((button) => button.dataset.menuToggle === checkbox.id);
 
+/**
+ * @param {Document} document
+ * @param {HTMLInputElement} checkbox
+ */
 const syncControls = (document, checkbox) => {
     for (const button of controlsFor(document, checkbox)) button.setAttribute('aria-expanded', String(checkbox.checked));
 };
 
 /** Native buttons toggle their checkbox and keep every control's `aria-expanded` in sync. */
+/** @type {import('../core/feature-host.js').Feature} */
 export const menuButtons = {
     name: 'menu-buttons',
     init({ document, window, log }) {
         const checkboxes = new Set();
-        for (const button of document.querySelectorAll(TOGGLE_SELECTOR)) {
-            const checkbox = document.getElementById(button.dataset.menuToggle);
+        for (const button of document.querySelectorAll(/** @type {'button'} */ (TOGGLE_SELECTOR))) {
+            const checkbox = /** @type {HTMLInputElement | null} */ (document.getElementById(button.dataset.menuToggle ?? ''));
             if (!checkbox || checkbox.type !== 'checkbox') {
                 log.error('Menu toggle checkbox missing:', button.dataset.menuToggle);
                 continue;
@@ -31,17 +40,19 @@ export const menuButtons = {
 };
 
 /** The mobile menu is a native modal dialog: showModal makes the page inert, and Escape, cancel and backdrop clicks close it. */
+/** @type {import('../core/feature-host.js').Feature} */
 export const mobileMenuDismissal = {
     name: 'mobile-menu-dismissal',
     init({ document, window }) {
-        const toggle = document.getElementById('mobile-menu-toggle');
-        const dialog = document.getElementById('mobile-menu-dialog');
+        const toggle = /** @type {HTMLInputElement | null} */ (document.getElementById('mobile-menu-toggle'));
+        const dialog = /** @type {HTMLDialogElement | null} */ (document.getElementById('mobile-menu-dialog'));
         if (!toggle || !dialog) return;
         const opener = controlsFor(document, toggle).find((button) => !dialog.contains(button));
         // Top-layer dialogs lose the header row as containing block, so anchor the dropdown to the row.
         const placeDropdown = () => {
             if (!dialog.classList.contains('mobile-menu-style-dropdown')) return;
-            const row = dialog.parentElement.getBoundingClientRect();
+            const row = dialog.parentElement?.getBoundingClientRect();
+            if (!row) return;
             const rtl = window.getComputedStyle(dialog).direction === 'rtl';
             dialog.style.top = `calc(${row.bottom + window.scrollY}px + 0.75rem)`;
             dialog.style.insetInlineEnd = rtl ? `${row.left}px` : `${document.documentElement.clientWidth - row.right}px`;
@@ -51,7 +62,7 @@ export const mobileMenuDismissal = {
             if (dialog.open) return;
             placeDropdown();
             dialog.showModal();
-            dialog.querySelector('a[href], button, input, [tabindex]:not([tabindex="-1"])')?.focus();
+            /** @type {HTMLElement | null} */ (dialog.querySelector('a[href], button, input, [tabindex]:not([tabindex="-1"])'))?.focus();
         });
         // Runs for Escape, cancel and programmatic close alike, so the checkbox and aria state never drift.
         dialog.addEventListener('close', () => {
@@ -70,18 +81,20 @@ export const mobileMenuDismissal = {
 };
 
 /** Desktop submenus open on hover or focus and close on Escape or when focus leaves them. */
+/** @type {import('../core/feature-host.js').Feature} */
 export const desktopDropdowns = {
     name: 'desktop-dropdowns',
     init({ document }) {
-        for (const menu of document.querySelectorAll('.nested-menu')) {
-            const trigger = menu.querySelector('[aria-haspopup]');
+        for (const menu of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.nested-menu'))) {
+            const trigger = /** @type {HTMLElement | null} */ (menu.querySelector('[aria-haspopup]'));
             if (!trigger) continue;
+            /** @param {boolean} expanded */
             const setExpanded = (expanded) => trigger.setAttribute('aria-expanded', String(expanded));
             menu.addEventListener('mouseenter', () => setExpanded(true));
             menu.addEventListener('mouseleave', () => setExpanded(false));
             menu.addEventListener('focusin', () => setExpanded(true));
             menu.addEventListener('focusout', (event) => {
-                if (!menu.contains(event.relatedTarget)) setExpanded(false);
+                if (!menu.contains(/** @type {Node | null} */ (event.relatedTarget))) setExpanded(false);
             });
             menu.addEventListener('keydown', (event) => {
                 if (event.key !== 'Escape') return;

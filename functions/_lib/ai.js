@@ -6,7 +6,13 @@ import { createResponseMetrics } from '../../shared/ai/response-metrics.js';
 import { AppError, requireVectorizeBinding } from './worker-errors.js';
 import { isValidRetrievalCachePayload } from './retrieval-cache.js';
 
+/** @typedef {import('../../shared/ai/application.js').ChatMessage} ChatMessage */
+
 export class AiService {
+    /**
+     * @param {Env} env
+     * @param {{ retrievalStore?: import('./retrieval-cache.js').RetrievalStore | null, signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
+     */
     constructor(env, { retrievalStore = null, signal = undefined, deadlineSignal = undefined } = {}) {
         this.ai = env.AI;
         this.vectorize = env.VECTORIZE_INDEX;
@@ -22,7 +28,14 @@ export class AiService {
         this.retrievalStore = retrievalStore;
     }
 
-    /** Runs one upstream step: client aborts and AppErrors pass through, anything else is logged and reported as a 503. */
+    /**
+     * Runs one upstream step: client aborts and AppErrors pass through, anything else is logged and reported as a 503.
+     * @template T
+     * @param {string} label
+     * @param {string} publicMessage
+     * @param {() => Promise<T>} step
+     * @returns {Promise<T>}
+     */
     async #guard(label, publicMessage, step) {
         try {
             return await step();
@@ -33,6 +46,7 @@ export class AiService {
         }
     }
 
+    /** @param {string} text */
     getEmbeddings(text) {
         return this.#guard('Embedding Generation', 'Embedding service unavailable', async () => {
             const { data } = await this.ai.run(AI_CONFIG.embedding.model, { text: [text] }, this.runOptions);
@@ -42,6 +56,7 @@ export class AiService {
         });
     }
 
+    /** @param {string} query @param {ChatMessage[]} [history] */
     async contextualizeQuery(query, history = []) {
         if (!history.length) return query;
         const begun = this.metrics.startRewrite();
@@ -57,8 +72,11 @@ export class AiService {
     /**
      * Retrieval for one question: returns the bounded context and the public evidence it came from.
      * Stateless per call (no evidence kept on the instance); only timings feed the response metrics.
+     * @param {string} query
+     * @param {ChatMessage[]} [history]
+     * @param {(stage: string) => Promise<void> | void} [onProgress]
      */
-    async retrieve(query, history = [], onProgress = /** @type {(stage: string) => Promise<void>} */ (async () => {})) {
+    async retrieve(query, history = [], onProgress = async () => {}) {
         requireVectorizeBinding(this.vectorize);
 
         // Keyed by the question as asked plus the history it is read in, so a hit skips the rewrite call too.
@@ -106,10 +124,12 @@ export class AiService {
         return { contextText: result.contextText, evidence: result.evidence };
     }
 
+    /** @param {{ abstained?: boolean }} [options] */
     responseMetrics(options) {
         return this.metrics.snapshot(options);
     }
 
+    /** @param {string} query @param {string} contextText @param {ChatMessage[]} [history] */
     async generateStream(query, contextText, history = []) {
         const messages = buildMessages(query, contextText, history);
         return this.#guard('Generation', 'Generation service unavailable', async () =>

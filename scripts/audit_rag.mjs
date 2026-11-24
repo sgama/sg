@@ -20,7 +20,16 @@ const Question = z.object({
     evidenceTerms: z.array(z.array(nonBlank).min(1)).min(1),
 });
 
-/** Maps a configured source name to a file under `root`, refusing anything outside content/. */
+/** @typedef {z.infer<typeof Config> & { reviewed: string }} AuditConfig */
+/** @typedef {{ errors: string[], warnings: string[] }} Findings */
+/** @typedef {Awaited<ReturnType<typeof buildCorpus>>} Corpus */
+/** @typedef {(name: string) => string} SafePath */
+
+/**
+ * Maps a configured source name to a file under `root`, refusing anything outside content/.
+ * @param {string} root
+ * @returns {SafePath}
+ */
 const sourcePathIn = (root) => (name) => {
     if (
         typeof name !== 'string' ||
@@ -33,6 +42,11 @@ const sourcePathIn = (root) => (name) => {
     return path.join(root, name);
 };
 
+/**
+ * @param {string} reviewed
+ * @param {Date} now
+ * @param {Findings} findings
+ */
 function checkReviewed(reviewed, now, { errors, warnings }) {
     const date = new Date(`${reviewed}T00:00:00Z`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(reviewed) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== reviewed || date > now) {
@@ -42,9 +56,16 @@ function checkReviewed(reviewed, now, { errors, warnings }) {
     }
 }
 
-/** Compares every canonical source with the hash the corpus build already computed; returns the ones that changed. */
+/**
+ * Compares every canonical source with the hash the corpus build already computed; returns the ones that changed.
+ * @param {Record<string, string>} sources
+ * @param {Corpus} corpus
+ * @param {SafePath} safePath
+ * @param {Findings} findings
+ */
 function checkSourceHashes(sources, corpus, safePath, { errors }) {
     const current = new Map(corpus.sources.map((entry) => [entry.source, entry.hash]));
+    /** @type {Set<string>} */
     const changed = new Set();
     for (const [source, hash] of Object.entries(sources)) {
         safePath(source);
@@ -55,6 +76,12 @@ function checkSourceHashes(sources, corpus, safePath, { errors }) {
     return changed;
 }
 
+/**
+ * @param {string} source
+ * @param {unknown} dependencies
+ * @param {{ sources: Record<string, unknown>, changed: Set<string>, safePath: SafePath }} context
+ * @param {Findings} findings
+ */
 function checkDependencies(source, dependencies, { sources, changed, safePath }, { errors, warnings }) {
     if (!dependencies) return warnings.push(`Missing provenance mapping: ${source}`);
     if (!Array.isArray(dependencies) || !dependencies.length) return errors.push(`Invalid provenance mapping: ${source}`);
@@ -65,8 +92,16 @@ function checkDependencies(source, dependencies, { sources, changed, safePath },
     }
 }
 
-/** Audits each internal context document: title, provenance mapping and unfinished "FILL IN" gaps. */
+/**
+ * Audits each internal context document: title, provenance mapping and unfinished "FILL IN" gaps.
+ * @param {AuditConfig} config
+ * @param {Corpus} corpus
+ * @param {Set<string>} changed
+ * @param {SafePath} safePath
+ * @param {Findings} findings
+ */
 async function checkContextDocuments(config, corpus, changed, safePath, findings) {
+    /** @type {{ source: string, authoringGaps: number, dependencies: string[] }[]} */
     const documents = [];
     const contextSources = corpus.sources
         .map((item) => item.source)
@@ -87,6 +122,13 @@ async function checkContextDocuments(config, corpus, changed, safePath, findings
     return documents;
 }
 
+/**
+ * @param {AuditConfig['questions']} questions
+ * @param {string[]} prompts
+ * @param {Corpus} corpus
+ * @param {SafePath} safePath
+ * @param {Findings} findings
+ */
 function checkQuestions(questions, prompts, corpus, safePath, { errors, warnings }) {
     const seen = new Set();
     for (const item of questions) {
@@ -100,7 +142,12 @@ function checkQuestions(questions, prompts, corpus, safePath, { errors, warnings
     }
 }
 
-/** How well the indexed sources cover each question the UI suggests. */
+/**
+ * How well the indexed sources cover each question the UI suggests.
+ * @param {string[]} prompts
+ * @param {z.infer<typeof Question>[]} questions
+ * @param {Corpus} corpus
+ */
 function coverageOf(prompts, questions, corpus) {
     return prompts.map((query) => {
         const item = questions.find((entry) => entry.query === query);
@@ -118,6 +165,7 @@ function coverageOf(prompts, questions, corpus) {
     });
 }
 
+/** @param {{ root?: string, now?: Date }} [options] */
 export async function auditRag({ root = process.cwd(), now = new Date() } = {}) {
     const rawConfig = JSON.parse(await fs.readFile(path.join(root, 'data/rag_audit.json'), 'utf8'));
     const rawPrompts = matter(`---\n${await fs.readFile(path.join(root, 'data/prompts.yml'), 'utf8')}\n---`).data.prompts;
@@ -126,8 +174,10 @@ export async function auditRag({ root = process.cwd(), now = new Date() } = {}) 
     if (!parsed.success || !prompts.success || new Set(prompts.data).size !== prompts.data.length) {
         throw new Error('Malformed RAG audit configuration or prompts');
     }
+    /** @type {AuditConfig} */
     const config = { ...rawConfig, ...parsed.data };
     const safePath = sourcePathIn(root);
+    /** @type {Findings} */
     const findings = { errors: [], warnings: [] };
     checkReviewed(config.reviewed, now, findings);
     const corpus = await buildCorpus({ root });

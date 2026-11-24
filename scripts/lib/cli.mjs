@@ -1,7 +1,12 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Runs `main` only when the module is the process entry point, reporting a failure with `label` and a non-zero exit code. */
+/**
+ * Runs `main` only when the module is the process entry point, reporting a failure with `label` and a non-zero exit code.
+ * @param {string} moduleUrl
+ * @param {() => Promise<unknown>} main
+ * @param {string} label
+ */
 export function runIfMain(moduleUrl, main, label) {
     if (!process.argv[1] || path.resolve(process.argv[1]) !== fileURLToPath(moduleUrl)) return;
     main().catch((error) => {

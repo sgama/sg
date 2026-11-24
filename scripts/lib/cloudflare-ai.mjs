@@ -9,6 +9,17 @@ export function requireCloudflareCredentials(env = process.env) {
     return { accountId, apiToken };
 }
 
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
+const isRecord = (value) => typeof value === 'object' && value !== null;
+
+/**
+ * @param {Cloudflare} client
+ * @param {string} accountId
+ * @param {string} model
+ * @param {string[]} text
+ * @param {Record<string, unknown>} [options]
+ * @returns {Promise<any>} Workers AI embedding result
+ */
 export async function runEmbedding(client, accountId, model, text, options = {}) {
     // SDK 7's ai.run encodes model slashes, which the Workers AI route rejects.
     const response = await client.post(`/accounts/${encodeURIComponent(accountId)}/ai/run/${model}`, {
@@ -39,6 +50,10 @@ export function createCloudflareAi({
     });
     const contextualizationModel = getModel(AI_CONFIG.contextualization.model);
     // One place for direct Workers AI REST calls: auth, timeout and HTTP status handling.
+    /**
+     * @param {string} modelId
+     * @param {unknown} input
+     */
     const post = (modelId, input) =>
         fetchImpl(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${modelId}`, {
             method: 'POST',
@@ -46,6 +61,10 @@ export function createCloudflareAi({
             body: JSON.stringify(input),
             signal: AbortSignal.timeout(timeoutMs),
         });
+    /**
+     * @param {string} modelId
+     * @param {unknown} input
+     */
     const runJson = async (modelId, input) => {
         const response = await post(modelId, input);
         if (!response.ok) {
@@ -58,10 +77,20 @@ export function createCloudflareAi({
         return payload?.result;
     };
     return {
-        /** Same pipeline as production (retrieveEvidence in retrieval.js); only the transports differ. */
+        /**
+         * Same pipeline as production (retrieveEvidence in retrieval.js); only the transports differ.
+         * @param {string} query
+         * @param {{ role: string, content: string }[]} [history]
+         */
         async retrieve(query, history = []) {
             const retrievalQuery = history.length ? await rewriteSearchQuery(query, history, contextualizationModel, runJson) : query;
+            /** @type {{ embeddingMs: number, searchMs: number }} */
             const timing = { embeddingMs: 0, searchMs: 0 };
+            /**
+             * @template T
+             * @param {'embeddingMs' | 'searchMs'} key
+             * @param {() => Promise<T>} work
+             */
             const timed = async (key, work) => {
                 const started = performance.now();
                 try {
@@ -73,32 +102,38 @@ export function createCloudflareAi({
             const { matches } = await retrieveEvidence({
                 retrievalQuery,
                 namespace,
-                embed: (text) =>
+                embed: (/** @type {string} */ text) =>
                     timed('embeddingMs', async () => {
                         const vector = (await runEmbedding(client, accountId, AI_CONFIG.embedding.model, [text]))?.data?.[0];
                         if (!isValidEmbeddingVector(vector, AI_CONFIG.embedding.dimensions)) throw new Error('Invalid embedding vector');
                         return vector;
                     }),
-                search: (vector) =>
-                    timed(
-                        'searchMs',
-                        async () =>
-                            (
-                                await client.vectorize.indexes.query(AI_CONFIG.retrieval.indexName, {
-                                    account_id: accountId,
-                                    vector,
-                                    // @ts-expect-error The SDK's IndexQueryParams type omits the Vectorize v2 `namespace` parameter.
-                                    namespace,
-                                    topK: AI_CONFIG.retrieval.topK,
-                                    returnMetadata: 'all',
-                                })
-                            ).matches,
-                    ),
-                fetchSections: (ids) =>
+                search: (/** @type {number[]} */ vector) =>
+                    timed('searchMs', async () => {
+                        const response = await client.vectorize.indexes.query(AI_CONFIG.retrieval.indexName, {
+                            account_id: accountId,
+                            vector,
+                            // @ts-expect-error The SDK's IndexQueryParams type omits the Vectorize v2 `namespace` parameter.
+                            namespace,
+                            topK: AI_CONFIG.retrieval.topK,
+                            returnMetadata: 'all',
+                        });
+                        // The SDK types match metadata as unknown; retrieval expects a record.
+                        if (!Array.isArray(response?.matches)) throw new Error('Invalid retrieval result');
+                        return response.matches.map(({ metadata, ...match }) => ({
+                            ...match,
+                            metadata: isRecord(metadata) ? metadata : undefined,
+                        }));
+                    }),
+                fetchSections: (/** @type {string[]} */ ids) =>
                     timed('searchMs', () => client.vectorize.indexes.getByIDs(AI_CONFIG.retrieval.indexName, { account_id: accountId, ids })),
             });
             return { matches, retrievalQuery, ...timing };
         },
+        /**
+         * @param {string} modelId
+         * @param {unknown} input
+         */
         async run(modelId, input) {
             const response = await post(modelId, input);
             if (!response.ok || !response.body) {

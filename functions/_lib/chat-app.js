@@ -17,6 +17,8 @@ import { workersCacheStore } from './retrieval-cache.js';
 /**
  * One chat turn: retrieve context, announce evidence, then either abstain or
  * generate. Returns the answer stream. Events leave through `emit`, so the route owns the transport.
+ *
+ * @param {{ aiService: AiService, query: string, history: import('../../shared/ai/application.js').ChatMessage[], emit: (payload: object) => Promise<void> | void }} turn
  */
 async function defaultAnswerChat({ aiService, query, history, emit }) {
     const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));

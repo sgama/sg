@@ -31,17 +31,26 @@ export const DEPLOY_INPUTS = [
     'wrangler.toml',
 ];
 
+/** @param {string[]} args */
 const git = async (args) => (await run('git', args, { maxBuffer: 10 * 1024 * 1024 })).stdout;
 
 /**
  * Whether a new deployment is needed: true unless no deployable file changed since the commit the active production
  * deployment was built from. Any doubt (no recorded commit, commit not available, git failure) means deploy.
+ * @param {{
+ *     client: import('cloudflare').Cloudflare,
+ *     accountId: string,
+ *     worker?: string,
+ *     exec?: (args: string[]) => Promise<string>,
+ *     inputs?: string[],
+ * }} options
+ * @returns {Promise<{ needed: boolean, reason: string }>}
  */
 export async function deployNeeded({ client, accountId, worker = 'sg', exec = git, inputs = DEPLOY_INPUTS }) {
     const active = await activeWorker(client, accountId, worker);
     if (!active) return { needed: true, reason: 'the Worker has not been deployed yet' };
     const commit = active.commit;
-    if (!/^[0-9a-f]{40}$/.test(commit ?? '')) return { needed: true, reason: 'the live Worker has no recorded commit' };
+    if (!commit || !/^[0-9a-f]{40}$/.test(commit)) return { needed: true, reason: 'the live Worker has no recorded commit' };
     try {
         await exec(['cat-file', '-e', `${commit}^{commit}`]);
     } catch {
@@ -58,8 +67,12 @@ export async function deployNeeded({ client, accountId, worker = 'sg', exec = gi
         : { needed: false, reason: `no deployable file changed since the live Worker (${commit.slice(0, 7)})` };
 }
 
-/** Prints `deploy=true|false` for GITHUB_OUTPUT and the reason to stderr. Failures print `deploy=true`: never skip on doubt. */
+/**
+ * Prints `deploy=true|false` for GITHUB_OUTPUT and the reason to stderr. Failures print `deploy=true`: never skip on doubt.
+ * @param {{ fetchImpl?: typeof globalThis.fetch, exec?: (args: string[]) => Promise<string> }} [options]
+ */
 export async function main({ fetchImpl = globalThis.fetch, exec = git } = {}) {
+    /** @type {{ needed: boolean, reason: string }} */
     let result;
     try {
         const { accountId, apiToken } = requireCloudflareCredentials();
@@ -70,7 +83,7 @@ export async function main({ fetchImpl = globalThis.fetch, exec = git } = {}) {
             exec,
         });
     } catch (error) {
-        result = { needed: true, reason: `could not decide (${error.message})` };
+        result = { needed: true, reason: `could not decide (${error instanceof Error ? error.message : String(error)})` };
     }
     console.error(`Deployment ${result.needed ? 'needed' : 'skipped'}: ${result.reason}`);
     console.log(`deploy=${result.needed}`);

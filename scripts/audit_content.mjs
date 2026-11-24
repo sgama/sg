@@ -5,6 +5,11 @@ import matter from 'gray-matter';
 import { glob } from 'glob';
 import { runIfMain } from './lib/cli.mjs';
 
+/**
+ * @param {string} file
+ * @param {string[]} requiredFields
+ * @param {string[][]} recommendedGroups
+ */
 function policy(file, requiredFields, recommendedGroups) {
     const type = file.startsWith('content/_context/')
         ? 'context'
@@ -22,6 +27,7 @@ function policy(file, requiredFields, recommendedGroups) {
     };
 }
 
+/** @param {unknown} value */
 function isValuePresent(value) {
     if (value === null || value === undefined) return false;
     if (Array.isArray(value)) return value.length > 0;
@@ -29,10 +35,15 @@ function isValuePresent(value) {
     return true;
 }
 
+/**
+ * @param {Record<string, unknown>} data
+ * @param {string[]} group
+ */
 function groupSatisfied(data, group) {
     return group.some((field) => isValuePresent(data[field]));
 }
 
+/** @param {unknown} value */
 function validDate(value) {
     if (value instanceof Date) return Number.isFinite(value.getTime());
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) return false;
@@ -40,10 +51,12 @@ function validDate(value) {
     return Number.isFinite(Date.parse(value)) && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value.slice(0, 10);
 }
 
+/** @param {number} value */
 function formatPercent(value) {
     return `${(value * 100).toFixed(1)}%`;
 }
 
+/** @param {string} [raw] */
 function parseList(raw) {
     return (raw || '')
         .split(',')
@@ -55,6 +68,7 @@ function parseList(raw) {
  * Compute the content coverage report and its markdown rendering without touching the
  * filesystem beyond reading content files. Kept free of process.exit/env writes so it can
  * be exercised directly in tests.
+ * @param {{ cwd?: string, env?: Record<string, string | undefined> }} [options]
  */
 async function runAudit({ cwd = process.cwd(), env = process.env } = {}) {
     const requiredFields = parseList(env.CONTENT_REQUIRED_FIELDS);
@@ -77,6 +91,7 @@ async function runAudit({ cwd = process.cwd(), env = process.env } = {}) {
             const rules = policy(filePath.split(path.sep).join('/'), requiredFields, recommendedGroups);
             const missingRequired = rules.required.filter((field) => !isValuePresent(data[field]));
             const missingRecommended = rules.recommended.filter((group) => !groupSatisfied(data, group)).map((group) => group.join('|'));
+            /** @type {string[]} */
             const invalidFields = [];
             if (rules.required.includes('date') && isValuePresent(data.date) && !validDate(data.date)) invalidFields.push('date');
             return {
@@ -127,6 +142,7 @@ async function runAudit({ cwd = process.cwd(), env = process.env } = {}) {
         lines.push('All content meets required and recommended fields.');
     } else {
         for (const item of report.missing) {
+            /** @type {string[]} */
             const parts = [];
             if (item.missingRequired.length > 0) parts.push(`required: ${item.missingRequired.join(', ')}`);
             if (item.missingRecommended.length > 0) parts.push(`recommended: ${item.missingRecommended.join(', ')}`);
@@ -136,6 +152,7 @@ async function runAudit({ cwd = process.cwd(), env = process.env } = {}) {
     }
     const markdown = `${lines.join('\n')}\n`;
 
+    /** @type {string[]} */
     const failures = [];
     if (requiredCoverage < requiredMin) failures.push(`Required coverage ${formatPercent(requiredCoverage)} below ${formatPercent(requiredMin)}`);
     if (recommendedCoverage < recommendedMin)
@@ -144,7 +161,10 @@ async function runAudit({ cwd = process.cwd(), env = process.env } = {}) {
     return { report, markdown, failures };
 }
 
-/** CLI entry point: writes reports, appends the job summary and sets the exit code. */
+/**
+ * CLI entry point: writes reports, appends the job summary and sets the exit code.
+ * @param {{ cwd?: string, env?: Record<string, string | undefined> }} [options]
+ */
 export async function main({ cwd = process.cwd(), env = process.env } = {}) {
     const { report, markdown, failures } = await runAudit({ cwd, env });
 

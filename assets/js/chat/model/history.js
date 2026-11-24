@@ -1,3 +1,9 @@
+/**
+ * @typedef {{ text: string, sender: 'user' | 'bot', evidence?: unknown[], metrics?: import('./metrics.js').ResponseMetrics }} ChatMessage
+ * @typedef {{ role: 'user' | 'assistant', content: string }} ApiMessage
+ * @typedef {{ get(key: string, fallback?: unknown): unknown, set(key: string, value: unknown): void, remove(key: string): void }} Store
+ */
+
 export const STORAGE_KEY = 'ai-chat-history';
 export const SESSION_OPEN_KEY = 'ai-chat-open';
 
@@ -7,7 +13,13 @@ export const MAX_API_HISTORY_MESSAGES = 4;
 export const MAX_API_HISTORY_MESSAGE_LENGTH = 2000;
 export const MAX_API_HISTORY_TOTAL_LENGTH = 4000;
 
+/**
+ * @param {ChatMessage[]} messages
+ * @param {string} welcomeMessage
+ * @returns {ApiMessage[]}
+ */
 export function apiHistory(messages, welcomeMessage) {
+    /** @type {ApiMessage[]} */
     const selected = [];
     let totalLength = 0;
     for (const message of [...messages].reverse()) {
@@ -28,8 +40,20 @@ export function apiHistory(messages, welcomeMessage) {
     return selected.reverse();
 }
 
+/**
+ * @param {() => Storage} getStorage
+ * @param {{ json?: boolean }} [options]
+ * @returns {Store}
+ */
 export function createStore(getStorage, { json = false } = {}) {
     // Blocked or full storage (private modes, quota) must not break the widget; it simply stops persisting.
+    /**
+     * @template T
+     * @param {string} warning
+     * @param {(storage: Storage) => T} action
+     * @param {T} [fallback]
+     * @returns {T | undefined}
+     */
     const attempt = (warning, action, fallback) => {
         try {
             return action(getStorage());
@@ -49,11 +73,18 @@ export function createStore(getStorage, { json = false } = {}) {
                 fallback,
             ),
         set: (key, value) =>
-            attempt('Chat history could not be saved on this device.', (storage) => storage.setItem(key, json ? JSON.stringify(value) : value)),
+            attempt('Chat history could not be saved on this device.', (storage) =>
+                storage.setItem(key, json ? JSON.stringify(value) : String(value)),
+            ),
         remove: (key) => attempt('Chat storage could not be cleared.', (storage) => storage.removeItem(key)),
     };
 }
 
+/**
+ * @param {Store} store
+ * @param {string} welcome
+ * @returns {ChatMessage[]}
+ */
 export function readHistory(store, welcome) {
     const value = store.get(STORAGE_KEY, []);
     if (!Array.isArray(value)) {

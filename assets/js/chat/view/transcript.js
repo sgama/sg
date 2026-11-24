@@ -1,15 +1,35 @@
 /**
+ * @typedef {import('../model/history.js').ChatMessage} ChatMessage
+ * @typedef {import('../model/conversation.js').RequestSnapshot} RequestSnapshot
+ * @typedef {import('./decorators.js').Decorator} Decorator
+ * @typedef {import('./markdown-renderer.js').MessageRenderer} MessageRenderer
+ * @typedef {ReturnType<typeof import('./scroll.js').createChatScroller>} ChatScroller
+ */
+
+/**
  * The message list. Each message is drawn by the renderer and then extended by `decorators`:
  * functions `(message, sender) => Node | null` whose nodes are appended in order. Evidence,
  * retry and metrics are decorators, so a new per-message feature needs no change here.
+ *
+ * @param {{ container: HTMLElement, renderer: MessageRenderer, scroller: ChatScroller, decorators?: Decorator[], activeRequest: () => RequestSnapshot | null, log?: Pick<Console, 'error'> }} options
  */
 export function createTranscript({ container, renderer, scroller, decorators = [], activeRequest, log = console }) {
+    /** @type {WeakMap<ChatMessage, HTMLElement>} */
     const elementOf = new WeakMap();
+    /** @type {WeakMap<HTMLElement, ChatMessage>} */
     const messageOf = new WeakMap();
+    /** @type {number | null} */
     let ticker = null;
+    /** @type {number | null} */
     let frame = null;
 
-    // Streaming frames skip decorators so open "sources" panels are not rebuilt closed mid-answer.
+    /**
+     * Streaming frames skip decorators so open "sources" panels are not rebuilt closed mid-answer.
+     * @param {HTMLElement} element
+     * @param {string} text
+     * @param {ChatMessage['sender']} sender
+     * @param {boolean} [decorate]
+     */
     function write(element, text, sender, decorate = true) {
         renderer.write(element, text, sender);
         const message = messageOf.get(element);
@@ -25,6 +45,7 @@ export function createTranscript({ container, renderer, scroller, decorators = [
         scroller.changed();
     }
 
+    /** @param {ChatMessage} message */
     function build(message) {
         const element = document.createElement('div');
         element.classList.add('message', `message--${message.sender}`);
@@ -40,18 +61,20 @@ export function createTranscript({ container, renderer, scroller, decorators = [
         const active = activeRequest();
         if (!active || active.answer) return;
         const element = elementOf.get(active.message);
+        if (!element) return;
         quiet(element);
         element.textContent = `${active.stage} · ${Math.floor(active.elapsedMs / 1000)}s elapsed`;
         scroller.changed();
     }
 
     // Ticks and streamed frames stay out of the polite log; the finished answer is announced once.
+    /** @param {HTMLElement} element */
     function quiet(element) {
         element.setAttribute('aria-live', 'off');
     }
 
     function stopTicker() {
-        clearInterval(ticker);
+        if (ticker !== null) clearInterval(ticker);
         ticker = null;
     }
 
@@ -62,24 +85,33 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     }
 
     return {
-        /** Replaces the whole conversation; `extras` are nodes appended after it (for example starters). */
+        /**
+         * Replaces the whole conversation; `extras` are nodes appended after it (for example starters).
+         * @param {ChatMessage[]} messages
+         * @param {Node[]} [extras]
+         */
         reset(messages, extras = []) {
             container.replaceChildren(...messages.map(build));
             if (extras.length) container.append(...extras);
             scroller.changed();
         },
+        /** @param {ChatMessage} message */
         add(message) {
             container.append(build(message));
             scroller.changed();
         },
+        /** @param {ChatMessage} message */
         update(message) {
             const element = elementOf.get(message);
+            if (!element) return;
             element.removeAttribute('aria-live');
             write(element, message.text, 'bot');
         },
         /** Redraws assistant messages, for example once the Markdown renderer has finished loading. */
         refresh() {
-            container.querySelectorAll('.message--bot').forEach((element) => write(element, element.dataset.rawText, 'bot'));
+            /** @type {NodeListOf<HTMLElement>} */ (container.querySelectorAll('.message--bot')).forEach((element) =>
+                write(element, element.dataset.rawText ?? '', 'bot'),
+            );
             scroller.changed();
         },
         clearStarters() {
@@ -93,6 +125,7 @@ export function createTranscript({ container, renderer, scroller, decorators = [
         stopProgress,
         stage: showElapsed,
         /** Streamed answers are coalesced to one DOM write per animation frame. */
+        /** @param {RequestSnapshot} request */
         answer(request) {
             stopTicker();
             if (frame !== null) return;
@@ -100,9 +133,10 @@ export function createTranscript({ container, renderer, scroller, decorators = [
                 frame = null;
                 const current = activeRequest();
                 if (current?.id !== request.id) return;
-                quiet(elementOf.get(current.message));
-                // Streamed frames render as plain text; the single markdown render happens on finish().
                 const element = elementOf.get(current.message);
+                if (!element) return;
+                quiet(element);
+                // Streamed frames render as plain text; the single markdown render happens on finish().
                 element.dataset.rawText = current.answer;
                 element.classList.toggle('message--loading', !current.answer);
                 element.textContent = current.answer || 'Thinking…';
@@ -113,7 +147,11 @@ export function createTranscript({ container, renderer, scroller, decorators = [
     };
 }
 
-/** Shortcut buttons for an empty conversation. `onPick(query)` receives the canned question. */
+/**
+ * Shortcut buttons for an empty conversation. `onPick(query)` receives the canned question.
+ * @param {[string, string][]} items
+ * @param {(query: string) => void} onPick
+ */
 export function createStarters(items, onPick) {
     const starters = document.createElement('div');
     starters.classList.add('chat-starters');

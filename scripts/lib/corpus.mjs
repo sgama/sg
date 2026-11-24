@@ -9,8 +9,24 @@ import { chunkId, corpusHash, namespaceFor, sourceHash, validateCorpus } from '.
 import { publicSourceUrls } from './source-provenance.mjs';
 import { AI_CONFIG } from '../../shared/ai/application.js';
 
+/** @typedef {import('./corpus-contract.mjs').ValidatedCorpus} ValidatedCorpus */
+/** @typedef {import('./corpus-contract.mjs').DraftChunk} DraftChunk */
+/** @typedef {import('./corpus-contract.mjs').DraftCorpus} DraftCorpus */
+/** @typedef {DraftChunk['metadata']} ChunkMetadata */
+/** @typedef {Pick<ChunkMetadata, 'source' | 'type' | 'title' | 'url'>} SourceIdentity */
+/** @typedef {{ heading: string, text: string }} Section */
+/** @typedef {{ identity: SourceIdentity, sections: Section[] }} SourceEntry */
+/** @typedef {{ source: string, target: string, section: string }} CanonicalLink */
+
 // ---- Canonical evidence: link curated context to the public section it supports ----
+/**
+ * @param {DraftChunk[]} chunks
+ * @param {Map<string, SourceEntry>} sources
+ * @param {CanonicalLink[]} links
+ * @param {number} maxSectionChars
+ */
 function linkCanonicalEvidence(chunks, sources, links, maxSectionChars) {
+    /** @type {Map<string, DraftChunk[]>} */
     const bySource = new Map();
     for (const chunk of chunks) {
         const records = bySource.get(chunk.metadata.source) ?? [];
@@ -20,7 +36,7 @@ function linkCanonicalEvidence(chunks, sources, links, maxSectionChars) {
     for (const link of links) {
         const target = sources.get(link.target);
         const sections = target?.sections.filter((section) => section.heading === link.section);
-        if (!target || sections.length !== 1 || target.identity.type !== 'content')
+        if (!target || !sections || sections.length !== 1 || target.identity.type !== 'content')
             throw new Error(`Missing or ambiguous public retrieval section for ${link.source}`);
         const section = sections[0];
         if (!hasEvidence(section.text)) throw new Error(`Empty public retrieval section for ${link.source}`);
@@ -47,9 +63,15 @@ function linkCanonicalEvidence(chunks, sources, links, maxSectionChars) {
 }
 
 // ---- Section chunking ----
+/**
+ * @param {SourceIdentity} identity
+ * @param {Section[]} sections
+ * @param {{ chunkSize: number, chunkOverlap: number, maxSectionChars: number }} config
+ */
 async function sectionChunks(identity, sections, config) {
     const splitter = new MarkdownTextSplitter(config);
     const sectionSplitter = new MarkdownTextSplitter({ chunkSize: config.maxSectionChars, chunkOverlap: config.chunkOverlap });
+    /** @type {DraftChunk[]} */
     const chunks = [];
     let chunkIndex = 0;
     let sectionIndex = -1;
@@ -92,11 +114,16 @@ async function sectionChunks(identity, sections, config) {
 // ---- Corpus build ----
 const CHUNK_CONFIG = Object.freeze({ chunkSize: 2000, chunkOverlap: 200 });
 
+/** @param {{ text: string, metadata: { title: string, section: string } }} chunk */
 export function embeddingText(chunk) {
     const labels = [chunk.metadata.title, chunk.metadata.section].filter((label) => label && label !== 'Untitled');
     return labels.length ? `${labels.join(' — ')}\n\n${chunk.text}` : chunk.text;
 }
 
+/**
+ * @param {{ embedding: { model: string, dimensions: number } }} corpus
+ * @param {{ text: string, metadata: { title: string, section: string } }} chunk
+ */
 export function embeddingKey(corpus, chunk) {
     return createHash('sha256')
         .update(`${corpus.embedding.model}\0${corpus.embedding.dimensions}\0${embeddingText(chunk)}`)
@@ -108,6 +135,7 @@ export function embeddingKey(corpus, chunk) {
  */
 export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.embedding, chunking = CHUNK_CONFIG, sourceUrls } = {}) {
     const embeddingConfig = { model: embedding.model, dimensions: embedding.dimensions };
+    /** @type {ValidatedCorpus['chunking']} */
     const chunkConfig = {
         chunkSize: chunking.chunkSize,
         chunkOverlap: chunking.chunkOverlap,
@@ -136,8 +164,11 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
     const files = (await glob('content/**/*.md', { cwd: root, nodir: true })).sort();
     const urls = sourceUrls ?? (await publicSourceUrls(root));
     if (!(urls instanceof Map)) throw new Error('Source provenance must be a source-to-URL map');
+    /** @type {CanonicalLink[]} */
     const links = [];
+    /** @type {Map<string, SourceEntry>} */
     const sourceContent = new Map();
+    /** @type {DraftCorpus} */
     const corpus = {
         version: 2,
         embedding: embeddingConfig,
@@ -161,6 +192,7 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
         corpus.counts.includedFiles++;
         const url = urls.get(source);
         if (!isContext && !url) throw new Error(`Missing published Hugo URL for ${source}`);
+        /** @type {SourceIdentity} */
         const identity = {
             source,
             type: isContext ? 'context' : 'content',
@@ -179,12 +211,17 @@ export async function buildCorpus({ root = process.cwd(), embedding = AI_CONFIG.
     }
     linkCanonicalEvidence(corpus.chunks, sourceContent, links, chunkConfig.maxSectionChars);
     corpus.counts.chunks = corpus.chunks.length;
-    corpus.hash = corpusHash(corpus);
-    corpus.namespace = namespaceFor(corpus.hash);
-    corpus.chunks = corpus.chunks.map((chunk) => ({
-        id: chunkId(corpus.namespace, chunk.metadata.source, chunk.chunkIndex),
-        ...chunk,
-    }));
-    validateCorpus(corpus);
-    return corpus;
+    const hash = corpusHash(corpus);
+    const namespace = namespaceFor(hash);
+    const built = {
+        ...corpus,
+        hash,
+        namespace,
+        chunks: corpus.chunks.map((chunk) => ({
+            id: chunkId(namespace, chunk.metadata.source, chunk.chunkIndex),
+            ...chunk,
+        })),
+    };
+    validateCorpus(built);
+    return built;
 }

@@ -1,18 +1,35 @@
 import { SESSION_OPEN_KEY } from '../model/history.js';
 
 /**
+ * @typedef {import('../model/history.js').Store} Store
+ */
+
+/**
  * The launcher and its dialog: open/close state, focus management and session restore.
  * It knows nothing about conversations; the host reacts through the optional hooks.
  */
+/**
+ * @param {{
+ *     host: HTMLElement,
+ *     roles: { window: HTMLDialogElement, toggle: HTMLButtonElement, close: HTMLButtonElement, input: HTMLTextAreaElement },
+ *     session: Store,
+ *     signal: AbortSignal,
+ *     beforeOpen?: () => void,
+ *     afterOpen?: () => void,
+ *     afterClose?: () => void,
+ * }} options
+ */
 export function createDialog({ host, roles, session, signal, beforeOpen, afterOpen, afterClose }) {
     const { window: dialog, toggle, close: closeButton, input } = roles;
+    /** @type {HTMLElement | null} */
     let opener = null;
+    /** @type {number | null} */
     let frame = null;
 
     function open() {
         beforeOpen?.();
         if (!dialog.open) {
-            opener = document.activeElement;
+            opener = /** @type {HTMLElement | null} */ (document.activeElement);
             // Non-modal: the page stays scrollable and clickable while the chat is open.
             dialog.show();
             host.classList.add('is-open');
@@ -46,6 +63,12 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
     }
 
     const flip = () => (dialog.open ? close() : open());
+    /**
+     * @template {keyof HTMLElementEventMap} K
+     * @param {HTMLElement} target
+     * @param {K} event
+     * @param {(event: HTMLElementEventMap[K]) => void} listener
+     */
     const listen = (target, event, listener) => target.addEventListener(event, listener, { signal });
     listen(toggle, 'click', flip);
     listen(closeButton, 'click', close);
@@ -65,11 +88,15 @@ export function createDialog({ host, roles, session, signal, beforeOpen, afterOp
     // Escape closes the widget no matter where focus sits, as long as it is open.
     // Guarded: the unit fixture's document stub has no event methods (unit: chat-widget.test.mjs).
     if (typeof document.addEventListener === 'function') {
-        listen(document, 'keydown', (event) => {
-            if (event.key !== 'Escape' || !dialog.open) return;
-            event.preventDefault();
-            close();
-        });
+        document.addEventListener(
+            'keydown',
+            (event) => {
+                if (event.key !== 'Escape' || !dialog.open) return;
+                event.preventDefault();
+                close();
+            },
+            { signal },
+        );
     }
 
     return {

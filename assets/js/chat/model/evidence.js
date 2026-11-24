@@ -1,3 +1,8 @@
+/**
+ * @typedef {{ url: string, title: string, section: string, text: string }} Evidence
+ * @param {unknown} value
+ * @returns {Evidence[]}
+ */
 export function publicEvidence(value) {
     if (!Array.isArray(value)) throw new Error('Invalid retrieved evidence');
     return value

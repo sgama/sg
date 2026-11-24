@@ -1,7 +1,13 @@
 import { createParser } from 'eventsource-parser';
 
 const PROGRESS_STAGES = new Set(['rewrite', 'embedding', 'search', 'generation']);
-const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+/** @typedef {'rewrite' | 'embedding' | 'search' | 'generation'} Stage */
 
 /** A failed chat request. `serverMessage` is the server's own client-safe explanation, when it sent one. */
 export class ChatRequestError extends Error {
@@ -13,6 +19,7 @@ export class ChatRequestError extends Error {
     }
 }
 
+/** @param {Response} response */
 async function requestError(response) {
     const fallback = `Chat request failed (${response.status})`;
     // The body is opaque unless it is a JSON object with a non-empty string `error`.
@@ -23,20 +30,21 @@ async function requestError(response) {
 
 /**
  * @param {(text: string) => void} onDelta
- * @param {((metrics: object) => void) | undefined} [onMetrics]
- * @param {{ onProgress?: (stage: string) => void, onEvidence?: (items: unknown[]) => void }} [handlers]
+ * @param {((metrics: import('./metrics.js').ResponseMetrics) => void) | undefined} [onMetrics]
+ * @param {{ onProgress?: (stage: Stage) => void, onEvidence?: (items: unknown[]) => void }} [handlers]
  *
  * Feeds raw SSE text and calls back for each validated event field. Framing (CRLF, split chunks, comments) is
  * eventsource-parser's job; this validates the widget's event shapes and fails loudly on anything else.
  */
 export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence } = {}) {
     let finished = false;
+    /** @param {unknown} event */
     const handle = (event) => {
         if (!isObject(event)) throw new Error('Invalid chat answer event');
         if (event.error) throw new Error(String(event.error));
         if (event.progress !== undefined) {
-            if (!PROGRESS_STAGES.has(event.progress)) throw new Error('Invalid chat progress event');
-            onProgress?.(event.progress);
+            if (typeof event.progress !== 'string' || !PROGRESS_STAGES.has(event.progress)) throw new Error('Invalid chat progress event');
+            onProgress?.(/** @type {Stage} */ (event.progress));
         }
         if (event.evidence !== undefined) {
             if (!Array.isArray(event.evidence)) throw new Error('Invalid chat evidence event');
@@ -44,7 +52,7 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
         }
         if (event.metrics !== undefined) {
             if (!isObject(event.metrics)) throw new Error('Invalid chat metrics event');
-            onMetrics?.(event.metrics);
+            onMetrics?.(/** @type {import('./metrics.js').ResponseMetrics} */ (event.metrics));
         }
         if (event.response !== undefined) {
             if (typeof event.response !== 'string') throw new Error('Invalid chat answer event');
@@ -59,6 +67,7 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
         },
     });
     return {
+        /** @param {string} chunk */
         push: (chunk) => parser.feed(chunk),
         // Delivers a final event the server did not terminate with a blank line.
         flush: () => parser.feed('\n\n'),
@@ -71,6 +80,20 @@ export function createAnswerParser(onDelta, onMetrics, { onProgress, onEvidence 
 // Total budget for one exchange, not an idle timer: a hung request fails here so the widget never stays busy forever.
 const REQUEST_TIMEOUT_MS = 120_000;
 
+/**
+ * @param {string} query
+ * @param {{
+ *     history?: import('./history.js').ApiMessage[],
+ *     signal?: AbortSignal,
+ *     onUpdate: (text: string) => void,
+ *     onMetrics?: (metrics: import('./metrics.js').ResponseMetrics) => void,
+ *     onProgress?: (stage: Stage) => void,
+ *     onEvidence?: (items: unknown[]) => void,
+ *     fetcher?: typeof fetch,
+ *     timeoutMs?: number,
+ * }} options
+ * @returns {Promise<string>}
+ */
 export async function streamAnswer(
     query,
     { history = [], signal, onUpdate, onMetrics, onProgress, onEvidence, fetcher = fetch, timeoutMs = REQUEST_TIMEOUT_MS },

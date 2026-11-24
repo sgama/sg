@@ -6,6 +6,7 @@ import { requireCloudflareCredentials } from './lib/cloudflare-ai.mjs';
 import { createMaintenanceClient, ingestCorpus, waitForMutation } from './lib/corpus-deployment.mjs';
 import { runIfMain } from './lib/cli.mjs';
 
+/** @param {string[]} [args] */
 export async function main(args = process.argv.slice(2)) {
     const { values } = parseArgs({
         args,
@@ -53,7 +54,8 @@ export async function main(args = process.argv.slice(2)) {
         previousNamespace: values['previous-namespace'],
     });
     // Mutations apply in order, so the last one processed means the whole namespace is queryable.
-    if (result.mutationIds.length) await waitForMutation(client, accountId, result.mutationIds.at(-1));
+    const lastMutationId = result.mutationIds.at(-1);
+    if (lastMutationId) await waitForMutation(client, accountId, lastMutationId);
     console.log(JSON.stringify({ ...result, status: 'processed (not activated)' }, null, 2));
     return result;
 }

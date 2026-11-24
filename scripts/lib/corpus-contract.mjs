@@ -3,8 +3,15 @@ import { z } from 'zod';
 import { AI_CONFIG } from '../../shared/ai/application.js';
 
 // ---- Contract: identity, hashing and schema validation of a corpus ----
+/** @param {string} value */
 const digest = (value) => createHash('sha256').update(value).digest('hex');
+/** @param {string} hash */
 export const namespaceFor = (hash) => `corpus-${hash.slice(0, 56)}`;
+/**
+ * @param {string} namespace
+ * @param {string} source
+ * @param {number} index
+ */
 export const chunkId = (namespace, source, index) => digest(`${namespace}\0${source}\0${index}`);
 export const sourceHash = digest;
 const nonempty = z.string().trim().min(1);
@@ -48,7 +55,11 @@ const schema = z.object({
         chunks: z.number().int().nonnegative(),
     }),
 });
+/** @typedef {z.infer<typeof schema>} ValidatedCorpus */
+/** @typedef {Omit<ValidatedCorpus['chunks'][number], 'id'>} DraftChunk */
+/** @typedef {Omit<ValidatedCorpus, 'hash' | 'namespace' | 'chunks'> & { chunks: DraftChunk[] }} DraftCorpus */
 
+/** @param {DraftCorpus} corpus */
 export function corpusHash(corpus) {
     return digest(
         JSON.stringify({
@@ -61,9 +72,12 @@ export function corpusHash(corpus) {
     );
 }
 
+/** @param {ValidatedCorpus} corpus */
 export function validateCorpus(corpus) {
     schema.parse(corpus);
+    /** @type {Set<string>} */
     const ids = new Set();
+    /** @type {Map<string, ValidatedCorpus['chunks'][number]>} */
     const records = new Map();
     const includedSources = new Set(corpus.sources.filter((source) => source.status === 'included').map((source) => source.source));
     if (new Set(corpus.sources.map((source) => source.source)).size !== corpus.sources.length) throw new Error('Duplicate corpus source');
@@ -84,9 +98,9 @@ export function validateCorpus(corpus) {
         if (metadata.url && /[\\\r\n]/.test(metadata.url)) throw new Error(`Invalid public evidence URL: ${chunk.id}`);
         if (metadata.recordType !== 'section' && (chunk.chunkIndex < 0 || metadata.sectionIndex !== undefined))
             throw new Error(`Invalid child record: ${chunk.id}`);
-        for (const prefix of ['parent', 'canonical']) {
-            const index = metadata[`${prefix}Index`];
-            const source = metadata[`${prefix}Source`];
+        for (const prefix of /** @type {const} */ (['parent', 'canonical'])) {
+            const index = prefix === 'parent' ? metadata.parentIndex : metadata.canonicalIndex;
+            const source = prefix === 'parent' ? metadata.parentSource : metadata.canonicalSource;
             if (source !== undefined && index === undefined) throw new Error(`Invalid ${prefix} source: ${chunk.id}`);
             if (prefix === 'canonical' && index !== undefined && source === undefined) throw new Error(`Missing canonical source: ${chunk.id}`);
             if (index !== undefined) {
@@ -103,7 +117,7 @@ export function validateCorpus(corpus) {
             throw new Error(`Invalid parent section: ${chunk.id}`);
         }
     }
-    const statuses = (status) => corpus.sources.filter((source) => source.status === status).length;
+    const statuses = (/** @type {string} */ status) => corpus.sources.filter((source) => source.status === status).length;
     if (
         corpus.counts.files !== corpus.sources.length ||
         corpus.counts.chunks !== corpus.chunks.length ||

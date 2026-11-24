@@ -13,7 +13,7 @@ export async function activeWorker(client, accountId, worker = 'sg') {
     try {
         settings = await client.workers.scripts.scriptAndVersionSettings.get(worker, { account_id: accountId });
     } catch (error) {
-        if (error?.status === 404) return null;
+        if (error instanceof Error && 'status' in error && error.status === 404) return null;
         throw error;
     }
     const vars = Object.fromEntries(
@@ -23,6 +23,7 @@ export async function activeWorker(client, accountId, worker = 'sg') {
         throw new Error('Invalid active corpus namespace');
     if (vars.AI_PREVIOUS_CORPUS_NAMESPACE !== undefined && !VERSIONED_NAMESPACE.test(vars.AI_PREVIOUS_CORPUS_NAMESPACE))
         throw new Error('Invalid previous corpus namespace');
+    /** @type {{ namespace?: string, previousNamespace?: string, commit?: string }} */
     const active = { namespace: vars.AI_CORPUS_NAMESPACE, commit: vars.DEPLOY_COMMIT };
     if (vars.AI_PREVIOUS_CORPUS_NAMESPACE !== undefined) active.previousNamespace = vars.AI_PREVIOUS_CORPUS_NAMESPACE;
     return active;

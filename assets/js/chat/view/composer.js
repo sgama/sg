@@ -1,17 +1,42 @@
 /**
+ * @typedef {import('../model/conversation.js').RetryRequest} RetryRequest
+ */
+
+/**
  * The question form: input, send/stop buttons, status line and the busy state they share.
  * It reports intent through callbacks and never talks to the conversation itself.
+ */
+/**
+ * @param {{
+ *     roles: { form: HTMLFormElement, input: HTMLTextAreaElement, send: HTMLButtonElement, stop: HTMLButtonElement, clear: HTMLButtonElement, status: HTMLElement },
+ *     signal: AbortSignal,
+ *     isBusy: () => boolean,
+ *     onSubmit: (text: string, retry: RetryRequest | null) => boolean,
+ *     onStop: () => void,
+ *     onClear: () => void,
+ *     confirm?: (message: string) => boolean | undefined,
+ * }} options
  */
 export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClear, confirm = (message) => globalThis.window?.confirm?.(message) }) {
     const { form, input, send, stop, clear, status } = roles;
     const focus = () => input.focus({ preventScroll: true });
+    /**
+     * @template {keyof HTMLElementEventMap} K
+     * @param {HTMLElement} target
+     * @param {K} event
+     * @param {(event: HTMLElementEventMap[K]) => void} listener
+     */
     const listen = (target, event, listener) => target.addEventListener(event, listener, { signal });
-    /** Puts text in the input, truncated to its limit, without sending it. */
+    /**
+     * Puts text in the input, truncated to its limit, without sending it.
+     * @param {unknown} text
+     */
     const prefill = (text) => {
         input.value = String(text).slice(0, input.maxLength);
     };
 
     // A retry sends its stored query and leaves the user's typed draft alone.
+    /** @param {RetryRequest | null} [retry] */
     function submit(retry = null) {
         const text = retry ? retry.query : input.value.trim();
         if (!text || isBusy() || (!retry && !form.reportValidity())) return;
@@ -43,23 +68,31 @@ export function createComposer({ roles, signal, isBusy, onSubmit, onStop, onClea
     return {
         focus,
         prefill,
-        /** Sends a canned question, as the starter shortcuts do. */
+        /**
+         * Sends a canned question, as the starter shortcuts do.
+         * @param {unknown} question
+         */
         ask(question) {
             if (isBusy()) return;
             prefill(question);
             form.requestSubmit();
         },
-        /** Resends a failed exchange with the history it originally used. */
+        /**
+         * Resends a failed exchange with the history it originally used.
+         * @param {RetryRequest} retry
+         */
         retry(retry) {
             if (isBusy()) return;
             submit(retry);
         },
+        /** @param {boolean} busy */
         setBusy(busy) {
             send.disabled = busy;
             stop.hidden = !busy;
             send.hidden = busy;
             status.textContent = busy ? 'Assistant is responding.' : '';
         },
+        /** @param {unknown} text */
         setStatus(text) {
             // Stage labels lead with an emoji; screen readers would speak its name.
             status.textContent = String(text).replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');

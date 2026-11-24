@@ -12,6 +12,7 @@ import { evidenceDecorator, metricsDecorator, retryDecorator } from './chat/view
 import { createChatScroller } from './chat/view/scroll.js';
 import { createMessageRenderer } from './chat/view/markdown-renderer.js';
 
+/** @type {[string, string][]} */
 const STARTERS = [
     ['Summarize his experience', "Summarize Samson's recent engineering experience."],
     ['Show a technical project', 'Show me a technical project Samson built and explain its architecture.'],
@@ -22,8 +23,17 @@ const STARTERS = [
 const ROLES = ['toggle', 'window', 'close', 'clear', 'form', 'input', 'send', 'stop', 'messages', 'transcript', 'latest', 'status'];
 
 /**
+ * @typedef {{ toggle: HTMLButtonElement, window: HTMLDialogElement, close: HTMLButtonElement, clear: HTMLButtonElement, form: HTMLFormElement, input: HTMLTextAreaElement, send: HTMLButtonElement, stop: HTMLButtonElement, messages: HTMLElement, transcript: HTMLElement, latest: HTMLButtonElement, status: HTMLElement }} Roles
+ * @typedef {import('./chat/model/conversation.js').RetryRequest} RetryRequest
+ * @typedef {import('./chat/model/conversation.js').ConversationEvent} ConversationEvent
+ */
+
+/**
  * Finds the widget's DOM by `data-role`, cloning the page template first when the host is empty.
  * Returns null after logging the reason, which leaves the widget inert instead of half-working.
+ * @param {HTMLElement} host
+ * @param {{ document?: Document, log?: Pick<Console, 'error'> }} [options]
+ * @returns {Roles | null}
  */
 function hydrate(host, { document = globalThis.document, log = console } = {}) {
     if (!host.querySelector('[data-role="window"]')) {
@@ -39,20 +49,29 @@ function hydrate(host, { document = globalThis.document, log = console } = {}) {
         log.error('Chat widget template is incomplete.');
         return null;
     }
-    return roles;
+    return /** @type {Roles} */ (roles);
 }
 
 class AiChatWidget extends HTMLElement {
     #chat = createConversation({ storage: createStore(() => localStorage, { json: true }) });
     #session = createStore(() => sessionStorage);
+    /** @type {ReturnType<typeof createMessageRenderer> | null} */
     #renderer = null;
+    /** @type {AbortController | null} */
     #lifecycle = null;
+    /** @type {(() => void) | null} */
     #unsubscribe = null;
+    /** @type {Roles | null} */
     #roles = null;
+    /** @type {ReturnType<typeof createComposer> | null} */
     #composer = null;
+    /** @type {ReturnType<typeof createDialog> | null} */
     #dialog = null;
+    /** @type {ReturnType<typeof createChatScroller> | null} */
     #scroller = null;
+    /** @type {ReturnType<typeof createTranscript> | null} */
     #transcript = null;
+    /** @type {string | null} */
     #pendingQuestion = null;
 
     connectedCallback() {
@@ -71,7 +90,7 @@ class AiChatWidget extends HTMLElement {
             onStop: () => this.#chat.cancel(),
             onClear: () => {
                 this.#chat.clear();
-                this.#scroller.changed(true);
+                this.#scroller?.changed(true);
             },
         });
         this.#dialog = createDialog({
@@ -82,7 +101,7 @@ class AiChatWidget extends HTMLElement {
             beforeOpen: () => this.#prepare(),
             afterOpen: () => {
                 this.#applyPendingQuestion();
-                this.#scroller.changed(true);
+                this.#scroller?.changed(true);
             },
             afterClose: () => this.#chat.cancel(),
         });
@@ -117,6 +136,7 @@ class AiChatWidget extends HTMLElement {
     }
 
     /** Prefills the input the next time the dialog is open (used by the page's chat trigger buttons). */
+    /** @param {unknown} text */
     setPendingQuestion(text) {
         this.#pendingQuestion = String(text);
         if (this.#dialog?.isOpen) this.#applyPendingQuestion();
@@ -141,26 +161,27 @@ class AiChatWidget extends HTMLElement {
 
     // History and transcript work is deferred to the first open so an idle page pays nothing for it.
     #prepare() {
-        if (this.#transcript) return;
+        if (this.#transcript || !this.#lifecycle || !this.#roles || !this.#renderer) return;
         const { signal } = this.#lifecycle;
         const { messages, transcript, latest } = this.#roles;
-        this.#scroller = createChatScroller(messages, transcript, latest, { isOpen: () => this.#dialog.isOpen, signal });
+        const renderer = this.#renderer;
+        this.#scroller = createChatScroller(messages, transcript, latest, { isOpen: () => this.#dialog?.isOpen ?? false, signal });
         this.#transcript = createTranscript({
             container: transcript,
-            renderer: this.#renderer,
+            renderer,
             scroller: this.#scroller,
             activeRequest: () => this.#chat.activeRequest,
             decorators: [
-                evidenceDecorator({ renderer: this.#renderer }),
-                retryDecorator({ retryFor: (message) => this.#chat.retryFor(message), onRetry: (retry) => this.#composer.retry(retry) }),
+                evidenceDecorator({ renderer }),
+                retryDecorator({ retryFor: (message) => this.#chat.retryFor(message), onRetry: (retry) => this.#composer?.retry(retry) }),
                 metricsDecorator(),
             ],
         });
         this.#chat.load();
-        this.#renderer
+        renderer
             .load()
             .then(() => {
-                if (signal.aborted || !this.isConnected || !this.#renderer.ready) return;
+                if (signal.aborted || !this.isConnected || !renderer.ready) return;
                 this.#transcript?.refresh();
             })
             .catch((error) => {
@@ -170,24 +191,31 @@ class AiChatWidget extends HTMLElement {
 
     #applyPendingQuestion() {
         if (this.#pendingQuestion === null) return;
-        this.#composer.prefill(this.#pendingQuestion);
+        this.#composer?.prefill(this.#pendingQuestion);
         this.#pendingQuestion = null;
     }
 
+    /**
+     * @param {string} text
+     * @param {RetryRequest | null} retry
+     */
     #ask(text, retry) {
-        this.#scroller.changed(true);
-        this.#transcript.clearStarters();
+        this.#scroller?.changed(true);
+        this.#transcript?.clearStarters();
         return Boolean(this.#chat.ask(text, { retry }));
     }
 
-    /** Maps one conversation event to view updates. */
+    /**
+     * Maps one conversation event to view updates.
+     * @param {ConversationEvent} event
+     */
     #render(event) {
         const transcript = this.#transcript;
         switch (event.type) {
             case 'history:reset': {
                 const messages = this.#chat.messages;
                 const fresh = messages.length === 1 && messages[0].text === WELCOME_MESSAGE;
-                transcript?.reset(messages, fresh ? [createStarters(STARTERS, (query) => this.#composer.ask(query))] : []);
+                transcript?.reset(messages, fresh ? [createStarters(STARTERS, (query) => this.#composer?.ask(query))] : []);
                 break;
             }
             case 'message:add':
@@ -197,19 +225,19 @@ class AiChatWidget extends HTMLElement {
                 transcript?.update(event.message);
                 break;
             case 'busy':
-                this.#composer.setBusy(event.busy);
+                this.#composer?.setBusy(event.busy);
                 if (event.busy) transcript?.startProgress();
                 else transcript?.stopProgress();
                 break;
             case 'stage':
-                this.#composer.setStatus(event.request.stage);
+                this.#composer?.setStatus(event.request.stage);
                 transcript?.stage();
                 break;
             case 'answer':
                 transcript?.answer(event.request);
                 break;
             case 'status':
-                this.#composer.setStatus(event.text);
+                this.#composer?.setStatus(event.text);
                 break;
         }
     }

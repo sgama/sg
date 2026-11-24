@@ -3,9 +3,18 @@ import { contextualizationMessages } from './prompts.js';
 
 // The public config lives in data/chat_ai.json; this file simply exposes the exact model registry and
 // limits used by runtime and evaluation callers. Keep the wiring here, not in each consumer.
-export const AI_CONFIG = chatAi.config;
-export const AI_MODELS = chatAi.models;
+/** @typedef {{ id: string, inputPerMillion: number, outputPerMillion: number, completionLimitKey: string, parameters: Record<string, unknown> }} Model */
+/** @typedef {{ prompt_tokens?: number, completion_tokens?: number, total_tokens?: number }} Usage */
+/** @typedef {string | { response?: unknown, choices?: { message?: { content?: unknown } }[] } | null | undefined} RewriteResponse */
+/** @typedef {{ role: string, content: string }} ChatMessage */
 
+export const AI_CONFIG = chatAi.config;
+export const AI_MODELS = /** @type {Record<string, Model>} */ (chatAi.models);
+
+/**
+ * @param {string} [name]
+ * @returns {Model}
+ */
 export function getModel(name = AI_CONFIG.generation.defaultModel) {
     const model = AI_MODELS[name] ?? Object.values(AI_MODELS).find((item) => item.id === name);
     if (!model) throw new Error(`Unknown AI model: ${name}. Choose ${Object.keys(AI_MODELS).join(', ')}`);
@@ -17,19 +26,25 @@ export function isValidEmbeddingVector(vector, dimensions) {
     return Array.isArray(vector) && vector.length === dimensions && vector.every(Number.isFinite);
 }
 
+/** @param {Usage | null | undefined} usage @param {Model} model @returns {number | null} */
 export function estimateCost(usage, model) {
+    const prompt = usage?.prompt_tokens;
+    const completion = usage?.completion_tokens;
     if (
         !Number.isFinite(model.inputPerMillion) ||
         !Number.isFinite(model.outputPerMillion) ||
-        !Number.isFinite(usage?.prompt_tokens) ||
-        !Number.isFinite(usage?.completion_tokens) ||
-        usage.prompt_tokens < 0 ||
-        usage.completion_tokens < 0
+        typeof prompt !== 'number' ||
+        typeof completion !== 'number' ||
+        !Number.isFinite(prompt) ||
+        !Number.isFinite(completion) ||
+        prompt < 0 ||
+        completion < 0
     )
         return null;
-    return (usage.prompt_tokens * model.inputPerMillion + usage.completion_tokens * model.outputPerMillion) / 1e6;
+    return (prompt * model.inputPerMillion + completion * model.outputPerMillion) / 1e6;
 }
 
+/** @param {Model} model @param {ChatMessage[]} messages */
 export function generationInput(model, messages) {
     return {
         messages,
@@ -39,6 +54,7 @@ export function generationInput(model, messages) {
     };
 }
 
+/** @param {Model} model @param {string} query @param {ChatMessage[]} [history] */
 export function contextualizationInput(model, query, history = []) {
     return {
         messages: contextualizationMessages(query, history),
@@ -48,8 +64,10 @@ export function contextualizationInput(model, query, history = []) {
     };
 }
 
+/** @param {RewriteResponse} response */
 export function contextualizedQueryFromResponse(response) {
-    const text = [response, response?.response, response?.choices?.[0]?.message?.content].find((value) => typeof value === 'string');
+    const body = typeof response === 'object' ? response : null;
+    const text = [response, body?.response, body?.choices?.[0]?.message?.content].find((value) => typeof value === 'string');
     if (text === undefined) throw new Error('Invalid contextualization response');
     const query = text.trim();
     if (!query || query.length > AI_CONFIG.contextualization.maxQueryChars || /[\r\n]/.test(query)) {
@@ -58,6 +76,12 @@ export function contextualizedQueryFromResponse(response) {
     return query;
 }
 
+/**
+ * @param {string} query
+ * @param {ChatMessage[]} history
+ * @param {Model} model
+ * @param {(modelId: string, input: object) => Promise<RewriteResponse>} run
+ */
 export async function rewriteSearchQuery(query, history, model, run) {
     return contextualizedQueryFromResponse(await run(model.id, contextualizationInput(model, query, history)));
 }

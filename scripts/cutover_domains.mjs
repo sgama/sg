@@ -7,12 +7,23 @@ import { runIfMain } from './lib/cli.mjs';
 /**
  * One-time move of the Pages project's custom domains to the Worker. Per hostname: detach from Pages, attach to the
  * Worker, and re-attach to Pages if the Worker attachment fails, so a failure never leaves a hostname unserved.
+ * @param {{
+ *     client: import('cloudflare').Cloudflare,
+ *     accountId: string,
+ *     project?: string,
+ *     worker?: string,
+ *     zone: string,
+ *     dryRun?: boolean,
+ *     log?: (message: string) => void,
+ * }} options
  */
 export async function cutoverDomains({ client, accountId, project = 'sg', worker = 'sg', zone, dryRun = false, log = console.error }) {
+    /** @type {string[]} */
     const domains = [];
     for await (const domain of client.pages.projects.domains.list(project, { account_id: accountId })) {
         if (!domain.name.endsWith('.pages.dev')) domains.push(domain.name);
     }
+    /** @type {string[]} */
     const moved = [];
     for (const hostname of domains) {
         log(`${dryRun ? 'would move' : 'moving'} ${hostname}: Pages ${project} -> Worker ${worker}`);
@@ -52,6 +63,10 @@ export async function cutoverDomains({ client, accountId, project = 'sg', worker
     return { dryRun, hostnames: domains, moved };
 }
 
+/**
+ * @param {string[]} [args]
+ * @param {{ fetchImpl?: typeof globalThis.fetch }} [options]
+ */
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({ args, options: { zone: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } } });
     if (!values.zone) throw new Error('Missing --zone (for example --zone samsongama.com)');

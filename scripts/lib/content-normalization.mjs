@@ -46,17 +46,27 @@ const htmlTags = new Set([
     ...omitted,
 ]);
 
+/**
+ * @param {import('mdast').Nodes} node
+ * @param {(node: import('mdast').Nodes) => void} visit
+ */
 function walk(node, visit) {
     visit(node);
-    for (const child of node.children ?? []) walk(child, visit);
+    if ('children' in node) for (const child of node.children) walk(child, visit);
 }
 
+/**
+ * @param {string} content
+ * @param {[number, number][]} protectedRanges
+ */
 function shortcodeTokens(content, protectedRanges) {
+    /** @type {{ start: number, end: number, name: string }[]} */
     const tokens = [];
     for (let start = content.indexOf('{{'); start !== -1; start = content.indexOf('{{', start + 2)) {
         const marker = content[start + 2];
         if (!['<', '%'].includes(marker) || protectedRanges.some(([from, to]) => start >= from && start < to)) continue;
         const close = marker === '<' ? '>}}' : '%}}';
+        /** @type {string | null} */
         let quote = null;
         let end = start + 3;
         for (; end < content.length; end++) {
@@ -79,17 +89,30 @@ function shortcodeTokens(content, protectedRanges) {
     return tokens;
 }
 
-/** Offsets of fenced and inline code, where `{{ }}` is literal text rather than a shortcode. */
+/**
+ * Offsets of fenced and inline code, where `{{ }}` is literal text rather than a shortcode.
+ * @param {string} content
+ * @returns {[number, number][]}
+ */
 function codeRanges(content) {
+    /** @type {[number, number][]} */
     const ranges = [];
     walk(processor.parse(content), (node) => {
-        if (node.type === 'code' || node.type === 'inlineCode') ranges.push([node.position.start.offset, node.position.end.offset]);
+        if ((node.type === 'code' || node.type === 'inlineCode') && node.position) {
+            ranges.push([node.position.start.offset ?? 0, node.position.end.offset ?? 0]);
+        }
     });
     return ranges;
 }
 
+/**
+ * @param {string} content
+ * @param {[number, number][]} protectedRanges
+ */
 function shortcodes(content, protectedRanges) {
+    /** @type {{ start: number, end: number, text: string }[]} */
     const edits = [];
+    /** @type {{ start: number, end: number } | null} */
     let mermaid = null;
     for (const token of shortcodeTokens(content, protectedRanges)) {
         const name = token.name;
@@ -111,24 +134,28 @@ function shortcodes(content, protectedRanges) {
     return content;
 }
 
+/** @param {import('hast').Parents} node */
 function cleanHtml(node) {
-    if (!node.children) return;
     node.children = node.children.filter(
         (child) => child.type !== 'comment' && !(child.type === 'element' && (omitted.has(child.tagName) || child.tagName === 'img')),
     );
-    for (const child of node.children) cleanHtml(child);
+    for (const child of node.children) if ('children' in child) cleanHtml(child);
 }
 
+/** @param {import('mdast').Parents} node */
 function preserveLiteralTags(node) {
-    if (!node.children) return;
     node.children = node.children.map((child) => {
         const tag = child.type === 'html' && child.value.match(/^<\/?([a-z][\w-]*)\b/i)?.[1].toLowerCase();
         if (tag && !htmlTags.has(tag)) return { type: 'text', value: child.value };
-        preserveLiteralTags(child);
+        if ('children' in child) preserveLiteralTags(child);
         return child;
     });
 }
 
+/**
+ * @param {string} content
+ * @param {{ rejectUnclosedComments?: boolean }} [options]
+ */
 export function normalizedDocument(content, { rejectUnclosedComments = false } = {}) {
     const protectedRanges = codeRanges(content);
     if (rejectUnclosedComments) {
@@ -142,18 +169,25 @@ export function normalizedDocument(content, { rejectUnclosedComments = false } =
     const tree = processor.parse(prepared);
     preserveLiteralTags(tree);
     const html = raw(toHast(tree, { allowDangerousHtml: true }));
-    cleanHtml(html);
+    if ('children' in html) cleanHtml(html);
     return /** @type {import('mdast').Root} */ (toMdast(html));
 }
 
+/**
+ * @param {string} content
+ * @param {{ rejectUnclosedComments?: boolean }} [options]
+ */
 export function ingestionText(content, options) {
     return processor.stringify(normalizedDocument(content, options)).trim();
 }
 
+/** @param {string} content */
 export function sourceSections(content) {
     const tree = processor.parse(content);
+    /** @type {{ heading: string, text: string }[]} */
     const sections = [];
     let heading = '';
+    /** @type {import('mdast').RootContent[]} */
     let children = [];
     const flush = () => {
         if (children.length) sections.push({ heading, text: processor.stringify({ type: 'root', children }).trim() });
@@ -170,6 +204,7 @@ export function sourceSections(content) {
     return sections;
 }
 
+/** @param {string} content */
 export function hasEvidence(content) {
     return processor.parse(content).children.some((node) => node.type !== 'heading' && node.type !== 'definition');
 }

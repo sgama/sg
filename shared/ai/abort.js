@@ -1,4 +1,8 @@
-/** True when `signal` (a request signal combined with a deadline) was aborted by the deadline, not the client. */
+/**
+ * True when `signal` (a request signal combined with a deadline) was aborted by the deadline, not the client.
+ * @param {AbortSignal} [signal]
+ * @param {AbortSignal} [deadlineSignal]
+ */
 export function isDeadlineAbort(signal, deadlineSignal) {
     return !!signal?.aborted && !!deadlineSignal?.aborted && signal.reason === deadlineSignal.reason;
 }

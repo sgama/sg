@@ -9,13 +9,17 @@
 const IDLE_TIMEOUT_MS = 2000;
 const IDLE_FALLBACK_DELAY_MS = 250;
 
+/**
+ * @param {Window & typeof globalThis} window
+ * @returns {(task: () => void) => void}
+ */
 const idleScheduler = (window) => (task) =>
     'requestIdleCallback' in window ? window.requestIdleCallback(task, { timeout: IDLE_TIMEOUT_MS }) : setTimeout(task, IDLE_FALLBACK_DELAY_MS);
 
 /**
- * @typedef {{ document: Document, window: Window, log: Pick<Console, 'error'> }} FeatureContext
+ * @typedef {{ document: Document, window: Window & typeof globalThis, log: Pick<Console, 'error'> }} FeatureContext
  * @typedef {{ name: string, phase?: 'ready' | 'idle', init: (context: FeatureContext) => void }} Feature
- * @param {{ features: Feature[], document?: Document, window?: Window, schedule?: (task: () => void) => void, log?: Pick<Console, 'error'> }} options
+ * @param {{ features: Feature[], document?: Document, window?: Window & typeof globalThis, schedule?: (task: () => void) => void, log?: Pick<Console, 'error'> }} options
  */
 export function createFeatureHost({
     features,
@@ -25,7 +29,9 @@ export function createFeatureHost({
     log = console,
 }) {
     const context = { document, window, log };
+    /** @param {Feature} feature */
     const phaseOf = (feature) => feature.phase ?? 'ready';
+    /** @param {'ready' | 'idle'} phase */
     const run = (phase) => {
         for (const feature of features) {
             if (phaseOf(feature) !== phase) continue;

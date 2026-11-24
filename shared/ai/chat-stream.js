@@ -7,9 +7,16 @@ const ENCODER = new TextEncoder();
 export const DONE_PAYLOAD = '[DONE]';
 const DONE_FRAME = ENCODER.encode(`data: ${DONE_PAYLOAD}\n\n`);
 
-/** One SSE frame. The widget's wire format is produced here only. */
+/**
+ * One SSE frame. The widget's wire format is produced here only.
+ * @param {object} payload
+ */
 const frame = (payload) => ENCODER.encode(`data: ${JSON.stringify(payload)}\n\n`);
 
+/**
+ * @param {string} message
+ * @param {object} [metrics]
+ */
 export function createSseMessageStream(message, metrics) {
     return new ReadableStream({
         start(controller) {
@@ -30,7 +37,7 @@ const FAILURE_MESSAGE = 'AI response failed. Please try again.';
  * stream silently; the request deadline ends it like a failure. Ending early cancels the provider stream.
  *
  * @param {ReadableStream<Uint8Array>} stream
- * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
+ * @param {{ onUsage?: (usage: import('./application.js').Usage) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
  */
 export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, signal, deadlineSignal } = {}) {
     let hasAnswer = false;
@@ -38,6 +45,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
     /** @type {TransformStreamDefaultController<Uint8Array>} */
     let out;
 
+    /** @param {object} payload */
     const send = (payload) => out.enqueue(frame(payload));
     // The one way out: `error` adds the failure event, then [DONE]; `terminate` also cancels the provider stream.
     const finish = ({ error = false, silent = false } = {}) => {
@@ -49,6 +57,7 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         }
         out.terminate();
     };
+    /** @param {unknown} error */
     const fail = (error) => {
         if (finished) return;
         console.error('Chat Stream Failed:', error);
@@ -59,8 +68,10 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         if (metrics) send({ metrics: metrics() });
         finish();
     };
+    /** @param {string} data */
     const handle = (data) => {
         if (data.trim() === '[DONE]') return complete();
+        /** @type {{ error?: unknown, response?: unknown, usage?: import('./application.js').Usage, choices?: { index?: number, delta?: { content?: unknown } }[] }} */
         const payload = JSON.parse(data);
         if (payload.error) throw new Error('AI returned a streaming error');
         const bindingUsageSummary = hasAnswer && payload.response === '' && payload.usage && payload.choices === undefined;
@@ -72,11 +83,12 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
             hasAnswer ||= content.trim().length > 0;
             send({ response: content });
         }
-        if (payload.usage && (bindingUsageSummary || (payload.choices.length === 0 && payload.usage.total_tokens > 0))) {
+        if (payload.usage && (bindingUsageSummary || (payload.choices?.length === 0 && (payload.usage.total_tokens ?? 0) > 0))) {
             onUsage?.(payload.usage);
             send({ usage: payload.usage });
         }
     };
+    /** @param {() => void} step */
     const attempt = (step) => {
         try {
             step();

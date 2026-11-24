@@ -2,6 +2,7 @@ import { apiHistory, MAX_SAVED_MESSAGES, readHistory, STORAGE_KEY } from './hist
 import { ChatRequestError, streamAnswer as fetchAnswer } from './stream.js';
 import { formatResponseMetrics } from './metrics.js';
 
+/** @type {Record<import('./stream.js').Stage, string>} */
 const STAGE_LABELS = {
     rewrite: '🧠 Understanding your follow-up…',
     embedding: '🧩 Preparing source search…',
@@ -9,7 +10,10 @@ const STAGE_LABELS = {
     generation: '✍️ Writing answer…',
 };
 
-/** Explanation shown when a request fails, depending on connectivity. */
+/**
+ * Explanation shown when a request fails, depending on connectivity.
+ * @param {boolean} online
+ */
 function failureMessage(online) {
     return online ? 'The response could not be completed. Please try again.' : 'You appear to be offline. Check your connection and try again.';
 }
@@ -29,7 +33,13 @@ export const WELCOME_MESSAGE = "Hello! I'm an AI assistant using information fro
  *   answer          { request }      streamed answer text advanced
  *   status          { text }         a user-facing status line changed
  *
- * @typedef {{ get(key: string, fallback?: any): any, set(key: string, value: any): void, remove(key: string): void }} Store
+ * @typedef {import('./history.js').ChatMessage} ChatMessage
+ * @typedef {import('./history.js').ApiMessage} ApiMessage
+ * @typedef {import('./history.js').Store} Store
+ * @typedef {{ query: string, history: ApiMessage[] }} RetryRequest
+ * @typedef {{ id: number, message: ChatMessage, query: string, stage: string, answer: string, elapsedMs: number }} RequestSnapshot
+ * @typedef {{ id: number, query: string, history: ApiMessage[], message: ChatMessage, answer: string, stage: string, started: number, controller: AbortController }} ActiveRequest
+ * @typedef {{ type: 'message:add' | 'message:update', message: ChatMessage } | { type: 'history:reset' } | { type: 'busy', busy: boolean } | { type: 'stage' | 'answer', request: RequestSnapshot } | { type: 'status', text: string }} ConversationEvent
  * @param {{ storage: Store, streamAnswer?: typeof fetchAnswer, isOnline?: () => boolean, now?: () => number, log?: Pick<Console, 'error'> }} options
  */
 export function createConversation({
@@ -39,12 +49,17 @@ export function createConversation({
     now = () => performance.now(),
     log = console,
 }) {
+    /** @type {Set<(event: ConversationEvent) => void>} */
     const listeners = new Set();
+    /** @type {WeakMap<ChatMessage, RetryRequest>} */
     const retries = new WeakMap();
+    /** @type {ChatMessage[]} */
     let messages = [];
+    /** @type {ActiveRequest | null} */
     let request = null;
 
     // A failing view must not corrupt controller state, so each listener is isolated.
+    /** @param {ConversationEvent} event */
     const emit = (event) => {
         for (const listener of listeners) {
             try {
@@ -57,6 +72,7 @@ export function createConversation({
     let nextId = 0;
     // Views receive snapshots, never the live request (which holds the AbortController). `message` is
     // shared by reference so the view can map it to its element.
+    /** @param {ActiveRequest} active @returns {RequestSnapshot} */
     const snapshot = (active) => ({
         id: active.id,
         message: active.message,
@@ -66,19 +82,31 @@ export function createConversation({
         elapsedMs: now() - active.started,
     });
     const persist = () => storage.set(STORAGE_KEY, messages.filter((message) => message.text.trim()).slice(-MAX_SAVED_MESSAGES));
+    /** @param {ChatMessage} message */
     const add = (message) => {
         messages.push(message);
         emit({ type: 'message:add', message });
     };
 
     // Ignores stale callbacks: only the request that is still current may change state.
+    /** @param {ActiveRequest} active */
     const isCurrent = (active) => request === active;
+    /**
+     * @template {unknown[]} A
+     * @param {(active: ActiveRequest, ...args: A) => void} handler
+     * @returns {(active: ActiveRequest, ...args: A) => void}
+     */
     const whenCurrent =
         (handler) =>
         (active, ...args) => {
             if (isCurrent(active)) handler(active, ...args);
         };
 
+    /**
+     * @param {ActiveRequest} active
+     * @param {string} text
+     * @param {string} status
+     */
     function finish(active, text, status) {
         if (!isCurrent(active)) return;
         active.message.text = text;
@@ -89,26 +117,27 @@ export function createConversation({
         emit({ type: 'status', text: status });
     }
 
-    const onStage = whenCurrent((active, stage) => {
+    const onStage = whenCurrent((/** @type {ActiveRequest} */ active, /** @type {import('./stream.js').Stage} */ stage) => {
         active.stage = STAGE_LABELS[stage];
         emit({ type: 'stage', request: snapshot(active) });
     });
 
     // Stored as received; the view filters evidence to public sources at render time.
-    const onEvidence = whenCurrent((active, value) => {
+    const onEvidence = whenCurrent((/** @type {ActiveRequest} */ active, /** @type {unknown[]} */ value) => {
         active.message.evidence = value;
     });
 
-    const onMetrics = whenCurrent((active, metrics) => {
+    const onMetrics = whenCurrent((/** @type {ActiveRequest} */ active, /** @type {import('./metrics.js').ResponseMetrics} */ metrics) => {
         if (!formatResponseMetrics(metrics)) throw new Error('Invalid response metrics');
         active.message.metrics = metrics;
     });
 
-    const onAnswer = whenCurrent((active, answer) => {
+    const onAnswer = whenCurrent((/** @type {ActiveRequest} */ active, /** @type {string} */ answer) => {
         active.answer = answer;
         emit({ type: 'answer', request: snapshot(active) });
     });
 
+    /** @param {ActiveRequest} active */
     async function run(active) {
         try {
             if (!isOnline()) throw new Error('Offline');
@@ -123,7 +152,7 @@ export function createConversation({
             finish(active, answer, 'Response complete.');
         } catch (error) {
             if (!isCurrent(active)) return;
-            const { status, serverMessage } = error instanceof ChatRequestError ? error : {};
+            const { status, serverMessage } = error instanceof ChatRequestError ? error : { status: undefined, serverMessage: null };
             log.error('Chat request failed.', { status, serverMessage, cause: error });
             const explanation = serverMessage || failureMessage(isOnline());
             retries.set(active.message, { query: active.query, history: active.history });
@@ -131,11 +160,16 @@ export function createConversation({
         }
     }
 
+    /**
+     * @param {unknown} text
+     * @param {{ retry?: RetryRequest | null }} [options]
+     */
     function ask(text, { retry = null } = {}) {
         const query = String(text).trim();
         if (!query || request) return null;
         const history = retry?.history ?? apiHistory(messages, WELCOME_MESSAGE);
         add({ text: query, sender: 'user' });
+        /** @type {ChatMessage} */
         const message = { text: '', sender: 'bot' };
         add(message);
         const active = {
@@ -176,6 +210,7 @@ export function createConversation({
     }
 
     return {
+        /** @param {(event: ConversationEvent) => void} listener */
         subscribe(listener) {
             listeners.add(listener);
             return () => listeners.delete(listener);
@@ -194,6 +229,7 @@ export function createConversation({
         get busy() {
             return request !== null;
         },
+        /** @param {ChatMessage} message */
         retryFor(message) {
             return retries.get(message) ?? null;
         },

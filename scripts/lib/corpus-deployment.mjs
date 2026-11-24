@@ -9,6 +9,10 @@ import { chunkId, validateCorpus } from './corpus-contract.mjs';
 import { runEmbedding } from './cloudflare-ai.mjs';
 import { activeWorker } from './worker-deployment.mjs';
 
+/**
+ * @param {string} apiToken
+ * @param {typeof globalThis.fetch} [fetch]
+ */
 export function createMaintenanceClient(apiToken, fetch = globalThis.fetch) {
     return new Cloudflare({ apiToken, fetch, maxRetries: 2, timeout: 30000 });
 }
@@ -132,6 +136,11 @@ export async function ingestCorpus(
     return { namespace, count: vectors.length, mutationIds, reused, embedded };
 }
 
+/**
+ * @param {string} config wrangler.toml text
+ * @param {string} namespace
+ * @param {string} [previousNamespace]
+ */
 export function setCorpusNamespace(config, namespace, previousNamespace) {
     if (!/^corpus-[a-f0-9]{56}$/.test(namespace)) throw new Error('Invalid corpus namespace');
     const sections = config.split(/(^\[[^\r\n]+\][ \t]*\r?$)/m);
@@ -156,6 +165,12 @@ export function setCorpusNamespace(config, namespace, previousNamespace) {
     return sections.join('');
 }
 
+/**
+ * @param {import('cloudflare').Cloudflare} client
+ * @param {string} accountId
+ * @param {string} mutationId
+ * @param {{ indexName?: string, timeoutMs?: number, intervalMs?: number, clock?: () => number, sleep?: (ms: number, signal: AbortSignal) => Promise<unknown> }} [options]
+ */
 export async function waitForMutation(
     client,
     accountId,
@@ -171,7 +186,8 @@ export async function waitForMutation(
     const signal = AbortSignal.timeout(timeoutMs);
     const start = clock();
     const timeoutError = () => new Error(`Timed out waiting for Vectorize mutation ${mutationId}`);
-    let onAbort;
+    /** @type {() => void} */
+    let onAbort = () => {};
     const deadline = new Promise((_, reject) => {
         onAbort = () => reject(timeoutError());
         signal.addEventListener('abort', onAbort, { once: true });
@@ -196,6 +212,17 @@ export async function waitForMutation(
     }
 }
 
+/**
+ * @param {{
+ *     client: import('cloudflare').Cloudflare,
+ *     accountId: string,
+ *     root?: string,
+ *     configPath?: string,
+ *     worker?: string,
+ *     force?: boolean,
+ *     wait?: typeof waitForMutation,
+ * }} options
+ */
 export async function refreshCorpus({
     client,
     accountId,

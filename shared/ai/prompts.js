@@ -25,6 +25,10 @@ Do not introduce answers with "Based on the retrieved context" or discuss retrie
 Put the citation directly after the supported fact; do not add a separate sentence explaining that references support the answer.
 Cite /resume/ only when the answer is supported by retrieved resume evidence; never invent a citation.`;
 
+/**
+ * @param {string} query
+ * @param {import('./application.js').ChatMessage[]} [history]
+ */
 export function contextualizationMessages(query, history = []) {
     return [
         {
@@ -41,6 +45,11 @@ Return exactly one concise search query, with no explanation or quotation marks.
     ];
 }
 
+/**
+ * @param {string} query
+ * @param {string} contextText
+ * @param {import('./application.js').ChatMessage[]} [history]
+ */
 export function buildMessages(query, contextText, history = []) {
     return [
         {

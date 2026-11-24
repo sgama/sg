@@ -7,9 +7,12 @@ import { contextFromMatches } from '../shared/ai/retrieval.js';
 import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../shared/ai/answer-policy.js';
 import { createCloudflareAi } from '../scripts/lib/cloudflare-ai.mjs';
 
+/** @param {number} ms */
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** @type {Map<string, ReturnType<typeof createCloudflareAi>>} */
 const clients = new Map();
 
+/** @param {ReadableStream<Uint8Array>} stream */
 async function readAnswer(stream) {
     const events = normalizeChatStream(stream).pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream());
     let answer = '';
@@ -32,18 +35,21 @@ export default class RagProvider {
         return `rag:${this.config.model ?? 'glm'}`;
     }
 
+    /**
+     * @param {string} _prompt
+     * @param {{ vars: Record<string, string> }} context
+     */
     async callApi(_prompt, { vars }) {
         const namespace = process.env.AI_NAMESPACE;
         if (!namespace) return { error: 'Set AI_NAMESPACE (make ai-plan prints it)' };
         if (!clients.has(namespace)) clients.set(namespace, createCloudflareAi({ namespace, timeoutMs: 120000 }));
-        const cloudflare = clients.get(namespace);
+        const cloudflare = /** @type {ReturnType<typeof createCloudflareAi>} */ (clients.get(namespace));
         const history = JSON.parse(vars.history);
         // Vectorize queries can lag a fresh ingest; retry only when a labeled case found nothing at all.
-        let found;
-        for (let attempt = 0; attempt < 6; attempt++) {
-            found = await cloudflare.retrieve(vars.query, history);
-            if (found.matches.length || vars.labeled !== 'true') break;
+        let found = await cloudflare.retrieve(vars.query, history);
+        for (let attempt = 1; attempt < 6 && !found.matches.length && vars.labeled === 'true'; attempt++) {
             await wait(5000);
+            found = await cloudflare.retrieve(vars.query, history);
         }
         const context = contextFromMatches(found.matches);
         const sources = found.matches.map((match) => match.metadata?.source).filter(Boolean);

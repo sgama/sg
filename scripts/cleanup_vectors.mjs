@@ -16,11 +16,21 @@ const ID_BATCH_SIZE = 20;
  */
 const GUARD_BATCH_INTERVAL = 25;
 
-/** Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of ID_BATCH_SIZE. */
+/**
+ * Every vector with its namespace: lists IDs (1000 per page), then fetches records in batches of ID_BATCH_SIZE.
+ * @param {import('cloudflare').Cloudflare} client
+ * @param {string} accountId
+ * @param {string} indexName
+ * @param {(message: string) => void} progress
+ */
 async function vectorInventory(client, accountId, indexName, progress) {
+    /** @type {{ id: string, namespace: string }[]} */
     const vectors = [];
+    /** @type {Set<string>} */
     const seen = new Set();
+    /** @type {Set<string>} */
     const cursors = new Set();
+    /** @type {string | null | undefined} */
     let cursor;
     let pageNumber = 0;
     do {
@@ -75,6 +85,14 @@ async function vectorInventory(client, accountId, indexName, progress) {
  * Deletes versioned corpus vectors older than the live Worker and its recorded previous namespace. Unversioned and
  * foreign namespaces are never touched. The live + previous set is re-read before each deletion, so a deploy that lands
  * mid-run stops the cleanup instead of racing it.
+ * @param {{
+ *     client: import('cloudflare').Cloudflare,
+ *     accountId: string,
+ *     worker?: string,
+ *     indexName?: string,
+ *     dryRun?: boolean,
+ *     progress?: (message: string) => void,
+ * }} options
  */
 export async function cleanupVectors({
     client,
@@ -85,7 +103,7 @@ export async function cleanupVectors({
     progress = /** @type {(message: string) => void} */ (() => {}),
 }) {
     const started = performance.now();
-    const mark = (message) => progress(`[${((performance.now() - started) / 1000).toFixed(1)}s] ${message}`);
+    const mark = (/** @type {string} */ message) => progress(`[${((performance.now() - started) / 1000).toFixed(1)}s] ${message}`);
     const active = await activeWorker(client, accountId, worker);
     const live = active?.namespace;
     if (!live) throw new Error('Cannot determine the live corpus namespace; refusing vector cleanup');
@@ -124,6 +142,10 @@ export async function cleanupVectors({
     return { dryRun, liveNamespace: live, removedVectors: staleIds.length };
 }
 
+/**
+ * @param {string[]} [args]
+ * @param {{ fetchImpl?: typeof globalThis.fetch }} [options]
+ */
 export async function main(args = process.argv.slice(2), { fetchImpl = globalThis.fetch } = {}) {
     const { values } = parseArgs({ args, options: { 'dry-run': { type: 'boolean', default: false } } });
     const { accountId, apiToken } = requireCloudflareCredentials();

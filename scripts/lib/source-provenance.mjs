@@ -5,6 +5,10 @@ import { parse } from 'csv-parse/sync';
 
 const execute = promisify(execFile);
 
+/**
+ * @param {string} root
+ * @param {{ hugo?: string }} [options]
+ */
 export async function publicSourceUrls(root, { hugo = process.env.HUGO || 'hugo' } = {}) {
     const { stdout } = await execute(hugo, ['list', 'published', '--source', root], { maxBuffer: 10 * 1024 * 1024 });
     // Hugo may emit warning/info lines to stdout before the CSV header (version-dependent);
@@ -12,6 +16,7 @@ export async function publicSourceUrls(root, { hugo = process.env.HUGO || 'hugo'
     const lines = stdout.split(/\r?\n/);
     const headerIndex = lines.findIndex((line) => line.includes('permalink') && line.includes('path'));
     const csvText = headerIndex >= 0 ? lines.slice(headerIndex).join('\n') : stdout;
+    /** @type {Map<string, string>} */
     const sources = new Map();
     /** @type {Record<string, string>[]} */
     const rows = parse(csvText, { columns: true, skip_empty_lines: true, relax_column_count: true });
