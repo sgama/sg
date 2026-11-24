@@ -302,40 +302,70 @@ test('pending generation streams observe the shared abort signal', async (t) => 
     assert.equal(logged.mock.callCount(), 0);
 });
 
-test('aborts after model startup prevent the next model call without provider logging', async (t) => {
+test('rewrite, embedding and generation startup aborts keep the abort reason and stop any later model call', async (t) => {
     const logged = t.mock.method(console, 'error', () => {});
-    const controller = new AbortController();
-    const calls = [];
-    const svc = new AiService(
+    const abortReason = new DOMException('client disconnected', 'AbortError');
+
+    const startAbort = (controller) =>
+        new Promise((_, reject) => {
+            controller.signal.addEventListener('abort', () => reject(controller.signal.reason), { once: true });
+        });
+
+    const rewriteController = new AbortController();
+    const rewriteStarted = startAbort(rewriteController);
+    const rewriteSvc = new AiService(
         makeEnv({
-            aiRun: async (model, payload, options) => {
-                calls.push({ model, payload, signal: options.signal });
-                if (calls.length === 1) {
-                    queueMicrotask(() => controller.abort(new DOMException('client disconnected', 'AbortError')));
-                }
-                if (calls.length > 1) {
-                    assert.fail('The next model call must not run after the abort');
-                }
+            aiRun: async (_model, _payload, options) => {
+                assert.equal(options.signal, rewriteController.signal);
+                rewriteController.abort(abortReason);
+                await rewriteStarted;
                 return makeProviderStream('Answer');
             },
         }),
-        { signal: controller.signal },
+        { signal: rewriteController.signal },
     );
+    await assert.rejects(rewriteSvc.contextualizeQuery('Most recently?', [{ role: 'user', content: 'Earlier?' }]), (err) => {
+        assert.equal(err, abortReason);
+        return true;
+    });
+    assert.equal(logged.mock.callCount(), 0);
 
-    await assert.rejects(svc.contextualizeQuery('Most recently?', [{ role: 'user', content: 'Earlier?' }]), (err) => {
-        assert.ok(err instanceof Error);
+    const embeddingController = new AbortController();
+    const embeddingStarted = startAbort(embeddingController);
+    const embeddingSvc = new AiService(
+        makeEnv({
+            aiRun: async (_model, _payload, options) => {
+                assert.equal(options.signal, embeddingController.signal);
+                embeddingController.abort(abortReason);
+                await embeddingStarted;
+                return buildEmbeddingsResponse();
+            },
+        }),
+        { signal: embeddingController.signal },
+    );
+    await assert.rejects(embeddingSvc.getEmbeddings('query'), (err) => {
+        assert.equal(err, abortReason);
         return true;
     });
-    await assert.rejects(svc.getEmbeddings('query'), (err) => {
-        assert.ok(err instanceof Error);
-        return true;
-    });
-    await assert.rejects(svc.generateStream('query', 'context'), (err) => {
-        assert.ok(err instanceof Error);
-        return true;
-    });
+    assert.equal(logged.mock.callCount(), 0);
 
-    assert.equal(calls.length, 3);
+    const generationController = new AbortController();
+    const generationStarted = startAbort(generationController);
+    const generationSvc = new AiService(
+        makeEnv({
+            aiRun: async (_model, _payload, options) => {
+                assert.equal(options.signal, generationController.signal);
+                generationController.abort(abortReason);
+                await generationStarted;
+                return makeProviderStream('Answer');
+            },
+        }),
+        { signal: generationController.signal },
+    );
+    await assert.rejects(generationSvc.generateStream('query', 'context'), (err) => {
+        assert.equal(err, abortReason);
+        return true;
+    });
     assert.equal(logged.mock.callCount(), 0);
 });
 

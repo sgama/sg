@@ -85,11 +85,9 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         if (signal?.aborted) {
             if (isDeadlineAbort()) {
                 finishDeadline(controller);
-                try {
-                    await reader?.cancel(error);
-                } catch {
+                void reader?.cancel(error).catch(() => {
                     // Best-effort cleanup while the deadline aborts the stream.
-                }
+                });
                 return;
             }
             return;
@@ -101,11 +99,9 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
         }
         end(controller);
         if (reader) {
-            try {
-                await reader.cancel(error);
-            } catch (cancelError) {
+            void reader.cancel(error).catch((cancelError) => {
                 if (cancelError !== error) console.error('Chat Stream Cancel Failed:', cancelError);
-            }
+            });
         }
     };
 

@@ -108,25 +108,33 @@ test('deadline aborts a pending read after it has begun without pretending the a
     const request = new AbortController();
     const deadline = new AbortController();
     const signal = AbortSignal.any([request.signal, deadline.signal]);
-    let upstreamController;
+    let cancelled = false;
+    let releaseCancel;
+    const cancellation = new Promise((resolve) => {
+        releaseCancel = resolve;
+    });
     const source = new ReadableStream({
-        start(streamController) {
-            upstreamController = streamController;
-        },
         pull() {
-            // Keep the read pending until the deadline aborts and the source closes.
+            // Keep the read pending until the deadline aborts and the source is cancelled.
+        },
+        cancel() {
+            cancelled = true;
+            releaseCancel();
+            return cancellation;
         },
     });
     const stream = normalizeChatStream(source, { signal, deadlineSignal: deadline.signal });
     const textPromise = new Response(stream).text();
     queueMicrotask(() => {
         deadline.abort(new DOMException('Timed out', 'TimeoutError'));
-        upstreamController.close();
     });
+    await Promise.race([cancellation.then(() => 'cancelled'), new Promise((resolve) => setTimeout(() => resolve('timeout'), 50))]);
     const output = await textPromise;
+    assert.equal(cancelled, true);
     assert.match(output, /"error":"AI response failed\. Please try again\."/);
     assert.match(output, /data: \[DONE\]\n\n$/);
     assert.doesNotMatch(output, /"metrics"/);
+    releaseCancel();
 });
 
 test('terminates the client stream when the upstream stream fails', async (t) => {
@@ -147,6 +155,10 @@ test('terminates the client stream when the upstream stream fails', async (t) =>
 
 test('cancels provider streams after the first terminal failure and emits only one client error frame', async () => {
     let cancelled = false;
+    let resolveCancel;
+    const cancelPromise = new Promise((resolve) => {
+        resolveCancel = resolve;
+    });
     const source = new ReadableStream({
         start(controller) {
             controller.enqueue(new TextEncoder().encode('data: {"error":{"message":"provider failed"}}\n\n'));
@@ -156,13 +168,18 @@ test('cancels provider streams after the first terminal failure and emits only o
         },
         cancel() {
             cancelled = true;
+            resolveCancel();
+            return cancelPromise;
         },
     });
-    const output = await new Response(normalizeChatStream(source)).text();
-    assert.equal(cancelled, false);
+    const outputPromise = new Response(normalizeChatStream(source)).text();
+    await Promise.race([cancelPromise.then(() => 'cancelled'), new Promise((resolve) => setTimeout(() => resolve('timeout'), 50))]);
+    const output = await outputPromise;
+    assert.equal(cancelled, true);
     assert.equal((output.match(/"error":"AI response failed\. Please try again\."/g) ?? []).length, 1);
     assert.equal(output.split('data: {"error":"AI response failed. Please try again."}\n\n').length - 1, 1);
     assert.match(output, /data: \[DONE\]\n\n$/);
+    resolveCancel();
 });
 
 test('reports reasoning-only, empty, malformed, and provider-error streams explicitly', async (t) => {
