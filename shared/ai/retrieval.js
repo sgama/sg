@@ -1,3 +1,7 @@
+/**
+ * Pure retrieval stages shared by the Worker and offline evals: score filter, parent/canonical section expansion,
+ * context assembly and public-evidence selection. Must not perform I/O itself; callers inject embed/search/fetchSections.
+ */
 import { AI_CONFIG } from './application.js';
 
 /** @typedef {{ id?: string, score?: number, metadata?: Record<string, unknown> }} Match */
@@ -48,6 +52,25 @@ export async function parentSectionIds(matches, namespace) {
     return [...new Set(await Promise.all(children.map(({ source, index }) => corpusRecordId(namespace, source, index))))];
 }
 
+/** @param {any} section @param {string} prefix 'canonical' sections must additionally be page content. */
+function isValidSection(section, prefix) {
+    const metadata = section?.metadata;
+    return (
+        !!metadata &&
+        metadata.recordType === 'section' &&
+        typeof metadata.text === 'string' &&
+        !!metadata.text.trim() &&
+        metadata.text.length <= AI_CONFIG.retrieval.maxSectionChars &&
+        (prefix !== 'canonical' || metadata.type === 'content')
+    );
+}
+
+/** Cosine index: higher is better. A missing or non-numeric score cannot be judged, so it is kept. @param {Match[]} matches */
+function filterByMinScore(matches) {
+    const minScore = AI_CONFIG.retrieval.minScore;
+    return matches.filter((match) => typeof minScore !== 'number' || typeof match?.score !== 'number' || match.score >= minScore);
+}
+
 /** @param {Match[]} matches @param {unknown} sections */
 export function expandSectionMatches(matches, sections) {
     if (!Array.isArray(sections)) throw new Error('Invalid section expansion response');
@@ -65,15 +88,7 @@ export function expandSectionMatches(matches, sections) {
         let evidence = match;
         for (const { prefix, source, index } of sectionReferences(match)) {
             const section = sectionByKey.get(`${source}\0${index}`);
-            if (
-                !section ||
-                section.metadata.recordType !== 'section' ||
-                typeof section.metadata.text !== 'string' ||
-                !section.metadata.text.trim() ||
-                section.metadata.text.length > AI_CONFIG.retrieval.maxSectionChars ||
-                (prefix === 'canonical' && section.metadata.type !== 'content')
-            )
-                throw new Error('Missing or invalid parent section evidence');
+            if (!isValidSection(section, prefix)) throw new Error('Missing or invalid parent section evidence');
             if (prefix === 'canonical') append({ ...section, score: match.score });
             else evidence = { ...section, score: match.score };
         }
@@ -119,9 +134,7 @@ export async function retrieveEvidence({ retrievalQuery, namespace, embed, searc
     const vector = await embed(retrievalQuery);
     const matches = await search(vector);
     if (!Array.isArray(matches)) throw new Error('Invalid retrieval result');
-    // Cosine index: higher is better. A missing or non-numeric score cannot be judged, so it is kept.
-    const minScore = AI_CONFIG.retrieval.minScore;
-    const relevant = matches.filter((match) => typeof minScore !== 'number' || typeof match?.score !== 'number' || match.score >= minScore);
+    const relevant = filterByMinScore(matches);
     const ids = await parentSectionIds(relevant, namespace);
     const sections = ids.length ? await fetchSections(ids) : [];
     const expanded = expandSectionMatches(relevant, sections);
