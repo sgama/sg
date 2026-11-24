@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { MarkdownTextSplitter } from '@langchain/textsplitters';
@@ -26,13 +25,7 @@ import { AI_CONFIG } from '../../shared/ai/application.js';
  * @param {number} maxSectionChars
  */
 function linkCanonicalEvidence(chunks, sources, links, maxSectionChars) {
-    /** @type {Map<string, DraftChunk[]>} */
-    const bySource = new Map();
-    for (const chunk of chunks) {
-        const records = bySource.get(chunk.metadata.source) ?? [];
-        records.push(chunk);
-        bySource.set(chunk.metadata.source, records);
-    }
+    const bySource = Map.groupBy(chunks, (chunk) => chunk.metadata.source);
     for (const link of links) {
         const target = sources.get(link.target);
         const sections = target?.sections.filter((section) => section.heading === link.section);
@@ -125,9 +118,7 @@ export function embeddingText(chunk) {
  * @param {{ text: string, metadata: { title: string, section: string } }} chunk
  */
 export function embeddingKey(corpus, chunk) {
-    return createHash('sha256')
-        .update(`${corpus.embedding.model}\0${corpus.embedding.dimensions}\0${embeddingText(chunk)}`)
-        .digest('hex');
+    return sourceHash(`${corpus.embedding.model}\0${corpus.embedding.dimensions}\0${embeddingText(chunk)}`);
 }
 
 /**

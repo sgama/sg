@@ -1,4 +1,5 @@
 // promptfoo provider: the production retrieval + generation pipeline (shared/ai), against a live Vectorize namespace.
+import { setTimeout as wait } from 'node:timers/promises';
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { generationInput, getModel } from '../shared/ai/application.js';
 import { normalizeChatStream } from '../shared/ai/chat-stream.js';
@@ -7,8 +8,6 @@ import { contextFromMatches } from '../shared/ai/retrieval.js';
 import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../shared/ai/answer-policy.js';
 import { createCloudflareAi } from '../scripts/lib/cloudflare-ai.mjs';
 
-/** @param {number} ms */
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /** @type {Map<string, ReturnType<typeof createCloudflareAi>>} */
 const clients = new Map();
 

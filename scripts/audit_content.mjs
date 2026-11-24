@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import matter from 'gray-matter';
 import { glob } from 'glob';
+import { z } from 'zod';
 import { runIfMain } from './lib/cli.mjs';
 
 /**
@@ -46,9 +47,8 @@ function groupSatisfied(data, group) {
 /** @param {unknown} value */
 function validDate(value) {
     if (value instanceof Date) return Number.isFinite(value.getTime());
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) return false;
-    const date = new Date(value.slice(0, 10));
-    return Number.isFinite(Date.parse(value)) && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value.slice(0, 10);
+    if (typeof value !== 'string' || !z.iso.date().safeParse(value.slice(0, 10)).success) return false;
+    return value.length === 10 || (value[10] === 'T' && Number.isFinite(Date.parse(value)));
 }
 
 /** @param {number} value */
