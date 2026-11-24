@@ -3,7 +3,7 @@ title: "Building a Serverless AI Chatbot for My Static Portfolio"
 date: 2026-01-25
 lastmod: 2026-11-20
 slug: "ai-chat"
-description: "How this Hugo portfolio answers visitor questions with a Cloudflare Worker, Workers AI and a versioned Vectorize corpus, with source excerpts, abstention and measured latency and cost."
+description: "Why I built a custom RAG pipeline on Cloudflare Workers AI and Vectorize instead of AI Search: versioned corpora, source evidence, abstention, evaluation gates and measured latency and cost."
 summary: "A custom portfolio assistant with contextual follow-ups, streamed answers, public source evidence, explicit abstention and measurable latency and token cost."
 tags: ["AI", "cloudflare", "hugo", "javascript", "rag"]
 showDate: true
@@ -158,7 +158,15 @@ Versioned namespaces are what make rollback cheap. The previous namespace is ret
 
 ## ⚖️ Why build retrieval instead of using Cloudflare AI Search?
 
-Cloudflare AI Search can manage ingestion, chunking, indexing and retrieval—and optionally query rewriting, reranking and answer generation. I built those pieces because this corpus needs more than generic chunks: Hugo supplies canonical public URLs, curated excerpts can expand to validated parent sections, and each deploy activates an evaluated, versioned corpus. The custom pipeline also makes every retrieval step testable, but leaves parsing, chunking, indexing, cleanup and rollback operations to me.
+I built the retrieval pipeline myself on Vectorize instead of using Cloudflare AI Search, and building it taught me more about RAG than configuring a managed index would have. Every stage is code I can read, test and time:
+
+- **Normalization.** Markdown is parsed into an AST with unified and remark, so presentation controls go away while lists, links and code survive. Hugo supplies the canonical public URLs.
+- **Evidence expansion.** A curated excerpt can point at a canonical public section, and long sections have parents that are fetched at query time. Retrieval validates those records (`isValidSection`) and drops low-scoring matches (`filterByMinScore`).
+- **Versioned namespaces.** Each corpus gets a hash-derived Vectorize namespace. Deploys switch only after indexing finishes, and the previous namespace stays for rollback without re-embedding.
+- **Abstention, timings and cost.** A deterministic abstention threshold, per-stage timings and token-cost estimates are part of the response, not bolted on.
+- **Gates and evaluation.** Deployment gates block a mismatched corpus, and the promptfoo evaluation calls the same retrieval and generation code as the Worker.
+
+The cost is that parsing, chunking, indexing, cleanup and rollback are mine to maintain.
 
 {{< mermaid >}}
 flowchart LR
@@ -172,10 +180,15 @@ flowchart LR
 | | Custom pipeline | Cloudflare AI Search |
 | --- | --- | --- |
 | Control | Custom normalization, parent/canonical evidence, abstention and deployment gates | Managed indexing and retrieval, with configurable chunk size/overlap, metadata, hybrid search and optional reranking |
-| Work | Maintain ingestion, validation, indexing, versioning, cleanup and evaluation | Less search infrastructure; adapt and revalidate corpus ingestion, evidence handling and API integration |
+| Setup and maintenance | I run ingestion, validation, indexing, versioning and cleanup | Managed service wins: far less to set up and maintain |
+| Retrieval quality features | Semantic only, no reranker | Managed service wins: hybrid search and reranking are built in |
 | Cost today | Workers AI embeddings and Vectorize; this small corpus rebuild is estimated at a fraction of a cent, and Vectorize has included monthly allowances | Open beta currently includes storage, indexing and crawling; Workers AI and AI Gateway remain billable |
 
 **There is no measured savings claim here.** AI Search is currently free during its open beta (up to 20,000 monthly queries on Workers Free; paid plans have unlimited queries), while this small custom index is inexpensive and Vectorize usage may fit plan allowances. A move could reduce code and operations now, but actual savings depend on query volume, plan, model use and post-beta pricing. AI Search says it will give at least 30 days' notice before billing begins. See [AI Search pricing and limits](https://developers.cloudflare.com/ai-search/platform/limits-pricing/), [chunking controls](https://developers.cloudflare.com/ai-search/configuration/indexing/chunking/) and [Vectorize pricing](https://developers.cloudflare.com/vectorize/platform/pricing/).
+
+### What I tried instead
+
+On a separate branch I prototyped the managed alternative: AI Search with hybrid search and a reranker, behind a single tool-calling agent built with the Vercel AI SDK and a nine-line prompt. I never deployed or evaluated it, so **I have no comparison numbers** for quality, latency or cost. I kept the custom pipeline because of the control and measurability above, and because its baseline (the evaluation below) already exists. Hybrid search and reranking are the next thing I would evaluate against that baseline.
 
 ## 🔍 Retrieval and context
 
@@ -183,7 +196,7 @@ Retrieval embeds the search query with the same model used at ingestion and sear
 
 The retrieval stage returns five matches. Each match is a chunk. If a chunk belongs to a parent section, the parent is fetched so the model sees the surrounding context rather than a fragment. Duplicate sections are removed, canonical links are followed, and the assembled context is trimmed to the 12,000-character budget.
 
-Retrieval results are cached by namespace and query, so a repeated question skips the paid embedding and search calls. The cache key includes the namespace, so a new deploy never serves answers from the previous corpus.
+Retrieval results are cached by namespace, question and history (`retrievalCacheKey`), so a repeated question skips the paid embedding and search calls. The cache key includes the namespace, so a new deploy never serves answers from the previous corpus.
 
 Retrieval is semantic only. It does not combine keyword scoring, reranking or metadata filters, which keeps the stage easy to reason about and easy to evaluate. Those are the first things to add if evaluation shows that exact terms such as product names are being missed.
 
@@ -242,7 +255,7 @@ make ai-eval    # Paid: promptfoo evaluation against the live corpus
 make dev-ai     # Local site with the chat API
 ```
 
-The offline tests cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
+The stack is Hono and Zod on the Worker, unified/remark and LangChain's Markdown text splitter in ingestion, and JSDoc types checked strictly by `tsc`. The offline tests use mock-fetch and real-SDK contract tests and cover parsing preservation, section expansion, explicit errors, streaming, token accounting and deployment gates. Live evaluations are separate: they run retrieval and generation against labeled questions. For example, a recent-experience regression checks that the answer names Demonware and cites dated evidence, instead of accepting a plausible but vague internship summary. Those evaluations make paid calls and are run deliberately, not in CI.
 
 ### 📊 Evaluation
 
