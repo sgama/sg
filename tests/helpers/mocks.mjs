@@ -1,52 +1,9 @@
+import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
+
 /**
  * Mock factories for common test objects
- * Provides reusable mock objects for AI bindings, vectorize indexes, etc.
+ * Provides reusable mock objects for requests, SSE streams and the AI SDK/AI Search fakes.
  */
-
-/**
- * Create a mock Cloudflare AI binding
- * @param {Object} options
- * @param {Function} options.aiRun - Mock AI.run implementation
- * @returns {Object} Mock AI binding
- */
-function makeAiBinding({ aiRun } = {}) {
-    return {
-        AI: {
-            run:
-                aiRun ??
-                (async () => {
-                    throw new Error('AI.run not configured');
-                }),
-        },
-    };
-}
-
-/**
- * Create a mock Vectorize index binding
- * @param {Function} queryFn - Mock query implementation
- * @returns {Object} Mock Vectorize index
- */
-function makeVectorizeIndex(queryFn) {
-    if (!queryFn) return undefined;
-    return {
-        query: queryFn,
-        getByIds: async () => [],
-    };
-}
-
-/**
- * Create a complete mock environment with AI and Vectorize
- * @param {Object} options
- * @param {Function} options.aiRun - Mock AI.run implementation
- * @param {Function} options.vectorizeQuery - Mock Vectorize query implementation
- * @returns {Object} Mock environment object
- */
-export function makeEnv({ aiRun, vectorizeQuery } = {}) {
-    return {
-        ...makeAiBinding({ aiRun }),
-        VECTORIZE_INDEX: makeVectorizeIndex(vectorizeQuery),
-    };
-}
 
 /**
  * Create a mock Request context for API handlers
@@ -116,12 +73,87 @@ export function drainStream(stream) {
     return new Response(stream).text();
 }
 
-/** In-memory retrieval store honouring the get/put contract of functions/_lib/retrieval-cache.js. */
-export function makeRetrievalStore() {
-    const entries = new Map();
-    const key = (namespace, query) => `${namespace}\0${query}`;
+/** One AI Search chunk as `instance.search()` returns it. */
+export function searchChunk({ text, title, url, key = 'content/page/index.md' }) {
     return {
-        get: async (namespace, query) => structuredClone(entries.get(key(namespace, query)) ?? null),
-        put: async (namespace, query, payload) => void entries.set(key(namespace, query), structuredClone(payload)),
+        id: `${key}#${text.slice(0, 8)}`,
+        type: 'chunk',
+        score: 0.9,
+        text,
+        item: { key, metadata: { ...(title ? { title } : {}), ...(url ? { url } : {}) } },
     };
 }
+
+/** Fake AI Search instance: records requests, answers with `chunks` (or throws `failure`). */
+export function fakeSearchInstance(chunks = [], failure) {
+    const calls = [];
+    return {
+        calls,
+        async search(request) {
+            calls.push(request);
+            if (failure) throw failure;
+            return { search_query: request.query, chunks };
+        },
+    };
+}
+
+const usage = (input, output) => ({
+    inputTokens: { total: input, noCache: input, cacheRead: undefined, cacheWrite: undefined },
+    outputTokens: { total: output, text: output, reasoning: undefined },
+});
+const finish = (reason, input, output) => ({ type: 'finish', finishReason: { unified: reason, raw: reason }, usage: usage(input, output) });
+
+/** Model stream chunks for a final text answer. */
+export const answerStep = (...deltas) => [
+    { type: 'stream-start', warnings: [] },
+    { type: 'text-start', id: 't' },
+    ...deltas.map((delta) => ({ type: 'text-delta', id: 't', delta })),
+    { type: 'text-end', id: 't' },
+    finish('stop', 20, 5),
+];
+
+/** Model stream chunks for a searchPortfolio tool call. */
+export const searchStep = (query) => [
+    { type: 'stream-start', warnings: [] },
+    { type: 'tool-call', toolCallId: 'call-1', toolName: 'searchPortfolio', input: JSON.stringify({ query }) },
+    finish('tool-calls', 10, 3),
+];
+
+/** A stream that fails before producing anything. */
+export const failingStep = (error = new Error('model down')) => [
+    { type: 'stream-start', warnings: [] },
+    { type: 'error', error },
+];
+
+/**
+ * Scripted model: each doStream call plays the next step (an array of chunks, or an Error to throw from doStream).
+ * `hang` steps never end until the call's abort signal fires, like a provider honouring a closed connection.
+ */
+export function scriptedModel(...steps) {
+    let call = 0;
+    return new MockLanguageModelV3({
+        doStream: async ({ abortSignal }) => {
+            const step = steps[call++];
+            if (step instanceof Error) throw step;
+            if (step === 'hang') {
+                return {
+                    stream: new ReadableStream({
+                        start(controller) {
+                            abortSignal?.addEventListener('abort', () => controller.error(abortSignal.reason ?? new Error('aborted')), {
+                                once: true,
+                            });
+                        },
+                    }),
+                };
+            }
+            return { stream: simulateReadableStream({ chunks: step, initialDelayInMs: null, chunkDelayInMs: null }) };
+        },
+    });
+}
+
+/** Parses the JSON `data:` frames of an SSE body. */
+export const sseEvents = (text) =>
+    text
+        .split('\n')
+        .filter((line) => line.startsWith('data: {'))
+        .map((line) => JSON.parse(line.slice(6)));

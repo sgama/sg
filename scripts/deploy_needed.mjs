@@ -22,7 +22,7 @@ export const DEPLOY_INPUTS = [
     'shared',
     'static',
     'scripts/generate_csp.mjs',
-    'scripts/generate_embeddings.mjs',
+    'scripts/ingest_corpus.mjs',
     'scripts/refresh_ai_corpus.mjs',
     'config.toml',
     'go.mod',

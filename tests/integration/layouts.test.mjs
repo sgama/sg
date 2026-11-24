@@ -135,10 +135,8 @@ test('generated layouts preserve structured types, public indexes, image selecti
         assert.equal(submenu['aria-expanded'], 'true');
         assert.ok(tags(home, 'div').some((tag) => tag.id === submenu['aria-controls']));
         assert.match(home, /aria-label=["']?Close Chat["']?[^>]*title=["']?Close Chat/);
-        assert.match(home, /Answer \+ rewrite: glm-4.7-flash/);
-        assert.match(home, /Answer: @cf\/zai-org\/glm-4.7-flash; rewrite: @cf\/zai-org\/glm-4.7-flash/);
-        assert.match(home, /Embed: bge-base-en-v1.5/);
-        assert.match(home, /768d/);
+        assert.match(home, /Answer: glm-4.7-flash/);
+        assert.match(home, /Reranker: @cf\/baai\/bge-reranker-base/);
         assert.match(home, /fixed inset-x-0 top-3 z-100/);
         assert.match(home, /backdrop-blur-xl/);
         assert.ok(tags(home, 'img').some((tag) => tag.class?.includes('group-hover:scale-[1.03]')));

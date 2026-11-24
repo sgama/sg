@@ -15,11 +15,13 @@ const check = (name, metric, item, weight = 1) => ({ type: 'javascript', value: 
 
 export default fixture.cases.map((item) => ({
     description: item.id,
-    vars: { query: item.query, history: JSON.stringify(item.history ?? []), labeled: String(item.expectedSources.length > 0) },
+    vars: { query: item.query, history: JSON.stringify(item.history ?? []) },
     assert: [
+        item.expectedSources.length && check('searched', 'searched', item),
         item.expectedSources.length && check('retrievalHit', 'retrieval-hit', item),
         item.evidenceTerms && check('evidence', 'evidence', item, 0),
-        item.retrievalTerms && check('rewrite', 'rewrite', item),
+        item.retrievalTerms && check('query', 'query', item),
+        check('links', 'links', item),
         check('answer', 'answer', item, 0),
     ].filter(Boolean),
 }));

@@ -1,123 +1,76 @@
-import { EventSourceParserStream } from 'eventsource-parser/stream';
-import { isDeadlineAbort } from './abort.js';
-
-const ENCODER = new TextEncoder();
-
-/** Terminal payload; the framing around it is production detail, the token itself is the wire contract. */
+/** Terminal payload; the SSE framing around it is the route's concern, the token itself is the wire contract. */
 export const DONE_PAYLOAD = '[DONE]';
-const DONE_FRAME = ENCODER.encode(`data: ${DONE_PAYLOAD}\n\n`);
+
+const OUTPUT_PARTS = new Set(['reasoning-delta', 'text-delta', 'tool-call', 'tool-result']);
 
 /**
- * One SSE frame. The widget's wire format is produced here only.
- * @param {object} payload
+ * True for stream parts a visitor could already have seen; a failure after one of these can no longer be retried
+ * on another model without repeating output.
+ * @param {{ type: string }} part
  */
-const frame = (payload) => ENCODER.encode(`data: ${JSON.stringify(payload)}\n\n`);
+export const isOutputPart = (part) => OUTPUT_PARTS.has(part.type);
 
 /**
- * @param {string} message
- * @param {object} [metrics]
+ * Maps `streamText().fullStream` parts to the widget's wire events: `{ progress }`, `{ evidence }`, `{ response }`,
+ * `{ usage }` and a final `{ metrics }`. Failures and aborts throw, so the caller owns the `{ error }` + `[DONE]` ending.
+ * A `{ type: 'model', model }` part (see runWithFallback) names the model that is answering.
+ * @param {AsyncIterable<any>} parts
+ * @param {{ firstToken: () => void, snapshot: (call: { model?: import('./application.js').Model, usage?: import('./application.js').Usage }) => object }} metrics
  */
-export function createSseMessageStream(message, metrics) {
-    return new ReadableStream({
-        start(controller) {
-            controller.enqueue(frame({ response: message }));
-            if (metrics) controller.enqueue(frame({ metrics }));
-            controller.enqueue(DONE_FRAME);
-            controller.close();
-        },
-    });
-}
-
-const FAILURE_MESSAGE = 'AI response failed. Please try again.';
-
-/**
- * Turns the provider's SSE stream into the widget's: `{ response }`, `{ usage }`, a final `{ metrics }` and `[DONE]`.
- * Framing (CRLF, comments, multi-line data, split UTF-8) is left to eventsource-parser; any failure becomes one
- * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream. A client abort ends the
- * stream silently; the request deadline ends it like a failure. Ending early cancels the provider stream.
- *
- * @param {ReadableStream<Uint8Array>} stream
- * @param {{ onUsage?: (usage: import('./application.js').Usage) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
- */
-export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, signal, deadlineSignal } = {}) {
-    let hasAnswer = false;
-    let finished = false;
-    /** @type {TransformStreamDefaultController<Uint8Array>} */
-    let out;
-
-    /** @param {object} payload */
-    const send = (payload) => out.enqueue(frame(payload));
-    // The one way out: `error` adds the failure event, then [DONE]; `terminate` also cancels the provider stream.
-    const finish = ({ error = false, silent = false } = {}) => {
-        if (finished) return;
-        finished = true;
-        if (!silent) {
-            if (error) send({ error: FAILURE_MESSAGE });
-            out.enqueue(DONE_FRAME);
+export async function* wireEvents(parts, metrics) {
+    /** @type {import('./application.js').Model | undefined} */
+    let model;
+    /** @type {import('./application.js').Usage | undefined} */
+    let usage;
+    /** @type {import('./evidence.js').Evidence[]} */
+    let evidence = [];
+    let answered = false;
+    let generating = false;
+    for await (const part of parts) {
+        switch (part.type) {
+            case 'model':
+                model = part.model;
+                break;
+            case 'tool-call':
+                yield { progress: 'search' };
+                break;
+            case 'tool-result': {
+                const found = /** @type {import('./evidence.js').Evidence[]} */ (part.output?.evidence ?? []);
+                const urls = new Set(evidence.map((item) => item.url));
+                const fresh = found.filter((item) => !urls.has(item.url));
+                if (fresh.length) {
+                    evidence = [...evidence, ...fresh];
+                    yield { evidence };
+                }
+                break;
+            }
+            case 'text-delta':
+                if (!part.text) break;
+                if (!generating) {
+                    generating = true;
+                    yield { progress: 'generation' };
+                }
+                // Whitespace-only deltas are forwarded but do not count as an answer.
+                if (!answered && part.text.trim()) {
+                    answered = true;
+                    metrics.firstToken();
+                }
+                yield { response: part.text };
+                break;
+            case 'finish': {
+                const { inputTokens, outputTokens, totalTokens } = part.totalUsage ?? {};
+                usage = { prompt_tokens: inputTokens, completion_tokens: outputTokens, total_tokens: totalTokens };
+                break;
+            }
+            case 'tool-error':
+                throw part.error instanceof Error ? part.error : new Error('Search failed', { cause: part.error });
+            case 'abort':
+                throw new Error('Chat stream aborted');
+            case 'error':
+                throw part.error instanceof Error ? part.error : new Error('AI stream failed', { cause: part.error });
         }
-        out.terminate();
-    };
-    /** @param {unknown} error */
-    const fail = (error) => {
-        if (finished) return;
-        console.error('Chat Stream Failed:', error);
-        finish({ error: true });
-    };
-    const complete = () => {
-        if (!hasAnswer) throw new Error('AI stream completed without an answer');
-        if (metrics) send({ metrics: metrics() });
-        finish();
-    };
-    /** @param {string} data */
-    const handle = (data) => {
-        if (data.trim() === '[DONE]') return complete();
-        /** @type {{ error?: unknown, response?: unknown, usage?: import('./application.js').Usage, choices?: { index?: number, delta?: { content?: unknown } }[] }} */
-        const payload = JSON.parse(data);
-        if (payload.error) throw new Error('AI returned a streaming error');
-        const bindingUsageSummary = hasAnswer && payload.response === '' && payload.usage && payload.choices === undefined;
-        if (!Array.isArray(payload.choices) && !bindingUsageSummary) throw new Error('Unsupported AI stream event: expected choices');
-        const content = payload.choices?.find((item) => item.index === 0)?.delta?.content;
-        if (typeof content === 'string' && content) {
-            // Whitespace-only chunks are forwarded but do not count as an answer.
-            if (!hasAnswer && content.trim()) onFirstToken?.();
-            hasAnswer ||= content.trim().length > 0;
-            send({ response: content });
-        }
-        if (payload.usage && (bindingUsageSummary || (payload.choices?.length === 0 && (payload.usage.total_tokens ?? 0) > 0))) {
-            onUsage?.(payload.usage);
-            send({ usage: payload.usage });
-        }
-    };
-    /** @param {() => void} step */
-    const attempt = (step) => {
-        try {
-            step();
-        } catch (error) {
-            fail(error);
-        }
-    };
-
-    const normalizer = new TransformStream({
-        start(controller) {
-            out = controller;
-        },
-        transform: (event) => {
-            if (!finished) attempt(() => handle(event.data));
-        },
-        flush: () => {
-            if (!finished) attempt(complete);
-        },
-    });
-    // preventAbort: an upstream error must reach `fail` so the client still gets an error event and [DONE].
-    stream
-        .pipeThrough(new TextDecoderStream())
-        .pipeThrough(new EventSourceParserStream())
-        .pipeTo(normalizer.writable, { preventAbort: true })
-        .catch(fail);
-
-    const onAbort = () => finish(isDeadlineAbort(signal, deadlineSignal) ? { error: true } : { silent: true });
-    if (signal?.aborted) onAbort();
-    else signal?.addEventListener('abort', onAbort, { once: true });
-
-    return normalizer.readable;
+    }
+    if (!answered) throw new Error('AI stream completed without an answer');
+    if (usage) yield { usage };
+    yield { metrics: metrics.snapshot({ model, usage }) };
 }

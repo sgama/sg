@@ -3,30 +3,10 @@ import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
 import { ingestionText } from '../../scripts/lib/content-normalization.mjs';
-import { corpusRecordId } from '../../shared/ai/retrieval.js';
 
 // Built once per file: every test here only reads the repository corpus.
 let repoCorpusPromise;
 const repoCorpus = () => (repoCorpusPromise ??= buildCorpus());
-
-test('canonical resume uses the same addressable parent sections as other sources', async () => {
-    const corpus = await repoCorpus();
-    const section = corpus.chunks.find(
-        (chunk) =>
-            chunk.metadata.source === 'content/resume/_index.md' &&
-            chunk.metadata.section === '💼 Professional Experience' &&
-            chunk.metadata.recordType === 'section',
-    );
-    assert.ok(section);
-    assert.match(section.text, /Bitcomplete/);
-    assert.match(section.text, /Demonware/);
-    assert.match(section.text, /Aug 2020 - Jan 2026/);
-    assert.match(section.text, /Oct 2018 - Jul 2020/);
-    assert.equal(section.id, await corpusRecordId(corpus.namespace, section.metadata.source, section.chunkIndex));
-    assert.equal(section.metadata.url, '/resume/');
-    assert.doesNotMatch(section.text, /## Technical Skills/);
-    assert.doesNotMatch(corpus.chunks.find((chunk) => chunk.metadata.source === 'content/_context/profile.md').text, /Employment chronology/);
-});
 
 test('homepage ingestion retains introductory prose without recreating presentation controls', async () => {
     const homepage = ingestionText((await readFile(new URL('../../content/_index.md', import.meta.url), 'utf8')).split('---').slice(2).join('---'));
@@ -46,20 +26,29 @@ test('published resume contains the supplied skills and employment facts', async
 
 test('published resume skills remain available in the indexed corpus', async () => {
     const corpus = await repoCorpus();
-    const chunks = corpus.chunks.filter((chunk) => chunk.metadata.source === 'content/resume/_index.md');
-    assert.ok(chunks.some((chunk) => chunk.text.includes('C/C++')));
+    assert.ok(corpus.items.find((item) => item.key === 'content/resume/_index.md').text.includes('C/C++'));
 });
 
-test('recruiter context contains sourced facts without authoring placeholders or public URLs', async () => {
+test('recruiter context contains sourced facts without authoring placeholders; only linked context carries a page URL', async () => {
     const corpus = await repoCorpus();
-    const internal = corpus.chunks.filter((chunk) => chunk.metadata.type === 'context');
+    const internal = corpus.items.filter((item) => item.key.startsWith('content/_context/') && !item.key.endsWith('/_index.md'));
     assert.ok(internal.length >= 13);
-    assert.ok(internal.every((chunk) => !Object.hasOwn(chunk.metadata, 'url')));
-    assert.ok(internal.every((chunk) => !/<!--|FILL IN:/.test(chunk.text)));
-    const skills = internal.filter((chunk) => chunk.metadata.source === 'content/_context/skills.md');
-    assert.ok(skills.some((chunk) => /Go, Python, Bash, C\/C\+\+, Rust, Java,/.test(chunk.text)));
-    const demonware = internal.filter((chunk) => chunk.metadata.source === 'content/_context/experience-demonware.md');
-    assert.ok(demonware.some((chunk) => /Go, Kubernetes and Redis/.test(chunk.text)));
-    const bitcomplete = internal.filter((chunk) => chunk.metadata.source === 'content/_context/experience-bitcomplete.md');
-    assert.ok(bitcomplete.some((chunk) => /role ended in June 2026/.test(chunk.text)));
+    assert.ok(internal.every((item) => !/<!--|FILL IN:/.test(item.text)));
+    assert.ok(internal.every((item) => item.metadata.url === undefined || !item.metadata.url.startsWith('/_context')));
+    assert.equal(internal.find((item) => item.key === 'content/_context/profile.md').metadata.url, '/resume/');
+    assert.match(internal.find((item) => item.key === 'content/_context/skills.md').text, /Go, Python, Bash, C\/C\+\+, Rust, Java,/);
+    assert.match(internal.find((item) => item.key === 'content/_context/experience-demonware.md').text, /Go, Kubernetes and Redis/);
+    assert.match(internal.find((item) => item.key === 'content/_context/experience-bitcomplete.md').text, /role ended in June 2026/);
+});
+
+test('resume is indexed as a single public item with its URL', async () => {
+    const corpus = await repoCorpus();
+    const resume = corpus.items.find((item) => item.key === 'content/resume/_index.md');
+    assert.ok(resume);
+    assert.equal(resume.metadata.url, '/resume/');
+    assert.match(resume.text, /Bitcomplete/);
+    assert.match(resume.text, /Demonware/);
+    assert.match(resume.text, /Aug 2020 - Jan 2026/);
+    assert.match(resume.text, /Oct 2018 - Jul 2020/);
+    assert.match(resume.text, /## .*Technical Skills/);
 });

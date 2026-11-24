@@ -6,7 +6,10 @@ import { validateFixture } from './lib/evaluation/fixtures.mjs';
 
 export async function main(fixturePath = 'tests/fixtures/ai-eval.json') {
     const fixture = JSON.parse(await fs.readFile(fixturePath, 'utf8'));
-    validateFixture(fixture, (await buildCorpus()).chunks);
+    validateFixture(
+        fixture,
+        (await buildCorpus()).items.map(({ key }) => ({ metadata: { source: key } })),
+    );
     console.log(`Evaluation fixture valid: ${fixture.cases.length} cases`);
 }
 

@@ -18,7 +18,12 @@
         "type": "git",
         "url": "git+https://github.com/sgama/sg.git"
     },
-    "keywords": ["hugo", "cloudflare-workers", "rag", "portfolio"],
+    "keywords": [
+        "hugo",
+        "cloudflare-workers",
+        "rag",
+        "portfolio"
+    ],
     "author": "Samson Gama",
     "license": "MIT",
     "engines": {
@@ -33,7 +38,10 @@
         "undici": "7.30.1"
     },
     "dependencies": {
+        "@ai-sdk/provider": "3.0.19",
         "@hono/zod-validator": "0.9.1",
+        "ai": "6.0.336",
+        "ai-search-provider": "0.1.2",
         "cloudflare": "^7.3.0",
         "csv-parse": "^7.0.3",
         "dompurify": "3.4.17",
@@ -53,12 +61,12 @@
         "remark-parse": "^11.0.0",
         "remark-stringify": "^11.0.0",
         "unified": "^11.0.5",
+        "workers-ai-provider": "3.3.1",
         "zod": "^4.3.6"
     },
     "devDependencies": {
         "@cloudflare/workers-types": "5.20261024.1",
         "@eslint/js": "^10.0.1",
-        "@langchain/textsplitters": "^1.0.1",
         "@types/node": "24.19.2",
         "c8": "^12.0.0",
         "eslint": "^10.0.0",

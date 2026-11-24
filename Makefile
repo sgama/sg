@@ -3,12 +3,12 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 MAKEFLAGS += --no-builtin-rules
 
-.PHONY: help check check-node check-env check-ns csp-headers \
+.PHONY: help check check-node check-env check-instance csp-headers \
 	serve dev-ai build build-prod clean \
 	deps test test-layouts lint lint-fix typecheck format format-check typos lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
-	ai-plan ai-check ai-build ai-embeddings ai-refresh ai-eval ai-audit deploy-ai \
-	deploy deploy-built deploy-needed cleanup-vectors cutover-domains ci-check
+	ai-plan ai-check ai-build ai-ingest ai-refresh ai-eval ai-audit deploy-ai \
+	deploy deploy-built deploy-needed cleanup-instances cutover-domains ci-check
 
 ifneq (,$(wildcard .env))
 include .env
@@ -60,8 +60,8 @@ check-env: ## Verify Cloudflare credentials are set
 	@test -n "$${CLOUDFLARE_ACCOUNT_ID:-}" || (echo "Missing CLOUDFLARE_ACCOUNT_ID" && exit 1)
 	@test -n "$${CLOUDFLARE_API_TOKEN:-}"  || (echo "Missing CLOUDFLARE_API_TOKEN"  && exit 1)
 
-check-ns:
-	@test -n "$${AI_NAMESPACE:-}" || { echo "Set AI_NAMESPACE to the candidate namespace printed by make ai-plan"; exit 1; }
+check-instance:
+	@test -n "$${AI_INSTANCE:-}" || { echo "Set AI_INSTANCE to the candidate instance printed by make ai-plan"; exit 1; }
 
 # ── Help ───────────────────────────────────────────────────────────────────────
 help: ## Show available targets
@@ -174,28 +174,28 @@ audit-rag: check-node ## Audit RAG prompt coverage, provenance and authoring gap
 
 ##@ AI
 ai-plan: check ## Validate corpus and write candidate manifest (offline)
-	@$(NODE) scripts/generate_embeddings.mjs --check --manifest "$$REPORT_DIR/ai-corpus.json"
+	@$(NODE) scripts/ingest_corpus.mjs --check --manifest "$$REPORT_DIR/ai-corpus.json"
 
-ai-check: check ## Validate corpus IDs and evaluation labels (offline)
-	@$(NODE) scripts/generate_embeddings.mjs --check
+ai-check: check ## Validate corpus items and evaluation labels (offline)
+	@$(NODE) scripts/ingest_corpus.mjs --check
 	@$(NODE) scripts/validate_ai_fixture.mjs
 
 ai-build: check-node ## Bundle the Worker locally (dry run: no credentials, no deployment)
 	@mkdir -p "$$REPORT_DIR/empty-assets"
 	@$(WRANGLER) deploy --dry-run --assets "$$REPORT_DIR/empty-assets" --outdir "$$REPORT_DIR/worker" >/dev/null
 
-ai-embeddings: check check-env check-ns ## Ingest explicit candidate namespace (paid API; no activation/deletion)
-	@$(NODE) scripts/generate_embeddings.mjs --namespace "$$AI_NAMESPACE" --manifest "$$REPORT_DIR/ai-corpus.json"
+ai-ingest: check check-env check-instance ## Create and index the explicit candidate AI Search instance (paid API; no activation/deletion)
+	@$(NODE) scripts/ingest_corpus.mjs --instance "$$AI_INSTANCE" --manifest "$$REPORT_DIR/ai-corpus.json"
 
-ai-refresh: check check-env ## Index changed corpus and set namespace (force: AI_REFRESH_FLAGS=--force)
+ai-refresh: check check-env ## Index changed corpus and set the live instance (force: AI_REFRESH_FLAGS=--force)
 	@$(NODE) scripts/refresh_ai_corpus.mjs $(AI_REFRESH_FLAGS)
 
-ai-eval: check check-env check-ns ## Evaluate retrieval and answers with promptfoo (paid; gate: AI_PASS_RATE %)
+ai-eval: check check-env check-instance ## Evaluate retrieval and answers with promptfoo (paid; gate: AI_PASS_RATE %)
 	@PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_PASS_RATE_THRESHOLD="$$AI_PASS_RATE" \
 		$(NPX) promptfoo eval -c evals/promptfooconfig.yaml --no-cache --no-share -o "$$REPORT_DIR/ai-eval.json"; \
 	status=$$?; $(NODE) scripts/summarize_ai_eval.mjs "$$REPORT_DIR/ai-eval.json"; exit $$status
 
-ai-audit: ai-embeddings ai-eval ## Ingest candidate namespace then evaluate it (paid)
+ai-audit: ai-ingest ai-eval ## Ingest candidate instance then evaluate it (paid)
 
 deploy-ai: ## Run offline checks and the live evaluation gate before deployment
 	@$(MAKE) --no-print-directory ai-check test
@@ -210,8 +210,8 @@ deploy: build-prod ## Build (prod) and deploy the Worker with its static assets
 
 deploy-built: check check-env ## Deploy an already validated production build (no rebuild)
 	@test -f "$(PUBLIC_DIR)/index.html" || { echo "Missing site build; run make build-prod first"; exit 1; }
-	@grep -Eq '^AI_CORPUS_NAMESPACE = "corpus-[a-f0-9]{56}"$$' wrangler.toml || \
-		{ echo "Missing AI_CORPUS_NAMESPACE in wrangler.toml; run make ai-refresh first"; exit 1; }
+	@grep -Eq '^AI_SEARCH_INSTANCE = "portfolio-[a-f0-9]{12}"$$' wrangler.toml || \
+		{ echo "Missing AI_SEARCH_INSTANCE in wrangler.toml; run make ai-refresh first"; exit 1; }
 	@COMMIT_HASH=$$(git rev-parse HEAD); \
 	COMMIT_MESSAGE=$$(printf '%.100s' "$$(git log -1 --pretty=%s)"); \
 	$(WRANGLER) deploy --name "$(WORKER_NAME)" --assets "$(PUBLIC_DIR)" \
@@ -221,8 +221,8 @@ deploy-built: check check-env ## Deploy an already validated production build (n
 deploy-needed: check-node check-env ## Print deploy=true|false: whether deployable files changed since the live Worker's commit
 	@$(NODE) scripts/deploy_needed.mjs
 
-cleanup-vectors: check-node check-env ## Retain the live corpus and the previous one; delete older versioned vectors
-	@$(NODE) scripts/cleanup_vectors.mjs
+cleanup-instances: check-node check-env ## Retain the live AI Search instance and the previous one; delete older versioned instances
+	@$(NODE) scripts/cleanup_instances.mjs
 
 cutover-domains: check-node check-env ## One-time: move the Pages custom domains to the Worker (ZONE=example.com, optional DRY_RUN=1)
 	@test -n "$(ZONE)" || { echo "Set ZONE, for example make cutover-domains ZONE=samsongama.com"; exit 1; }

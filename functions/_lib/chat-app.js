@@ -6,48 +6,22 @@ import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
 import { streamSSE } from 'hono/streaming';
 import { CONFIG } from '../../shared/ai/application.js';
-import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../shared/ai/answer-policy.js';
-import { AppError, requireVectorizeBinding } from './worker-errors.js';
-import { ChatRequestSchema } from './validation.js';
 import { isDeadlineAbort } from '../../shared/ai/abort.js';
-import { createSseMessageStream, DONE_PAYLOAD } from '../../shared/ai/chat-stream.js';
-import { AiService } from './ai.js';
-import { workersCacheStore } from './retrieval-cache.js';
-
-/**
- * One chat turn: retrieve context, announce evidence, then either abstain or
- * generate. Returns the answer stream. Events leave through `emit`, so the route owns the transport.
- *
- * @param {{ aiService: AiService, query: string, history: import('../../shared/ai/application.js').ChatMessage[], emit: (payload: object) => Promise<void> | void }} turn
- */
-async function defaultAnswerChat({ aiService, query, history, emit }) {
-    const { contextText, evidence } = await aiService.retrieve(query, history, (stage) => emit({ progress: stage }));
-    await emit({ evidence });
-
-    if (shouldAbstainForMissingContext(contextText)) {
-        return createSseMessageStream(SAFE_NO_CONTEXT_MESSAGE, aiService.responseMetrics({ abstained: true }));
-    }
-    await emit({ progress: 'generation' });
-    return aiService.generateStream(query, contextText, history);
-}
+import { DONE_PAYLOAD } from '../../shared/ai/chat-stream.js';
+import { runTurn as defaultRunTurn } from './agent.js';
+import { ChatRequestSchema } from './validation.js';
+import { AppError, requireSearchBinding } from './worker-errors.js';
 
 const BODY_LIMIT_BYTES = 64 * 1024;
-// Upper bound for one chat turn (rewrite, embedding, search and the streamed answer).
+// Upper bound for one chat turn (the model's search steps and the streamed answer).
 const REQUEST_DEADLINE_MS = 60_000;
 const ALLOWED_ORIGINS = ['https://samsongama.com', 'https://www.samsongama.com'];
 
 /**
- * @param {Env} env
- * @param {{ signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
- */
-const defaultCreateAiService = (env, { signal, deadlineSignal } = {}) =>
-    new AiService(env, { retrievalStore: typeof caches !== 'undefined' ? workersCacheStore(caches.default) : null, signal, deadlineSignal });
-
-/**
  * Builds the /api/chat app. Every collaborator is injectable, so the route can run with another
- * AI service, cache store, chat flow or origin list without touching the handler.
+ * chat turn (`runTurn` returns an async iterable of wire events) or origin list without touching the handler.
  */
-export function createChatApp({ createAiService = defaultCreateAiService, answerChat = defaultAnswerChat, allowedOrigins = ALLOWED_ORIGINS } = {}) {
+export function createChatApp({ runTurn = defaultRunTurn, allowedOrigins = ALLOWED_ORIGINS } = {}) {
     const app = /** @type {Hono<{ Bindings: Env }>} */ (new Hono());
 
     // www and the apex are one site, so same-site (not the same-origin default) keeps CORS-allowed calls readable.
@@ -97,20 +71,14 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
             if (requestSignal?.aborted) return new Response('', { status: 200 });
             const deadlineSignal = AbortSignal.timeout(REQUEST_DEADLINE_MS);
             const signal = AbortSignal.any([requestSignal, deadlineSignal]);
-            const aiService = createAiService(env, { signal, deadlineSignal });
-            requireVectorizeBinding(env.VECTORIZE_INDEX);
+            requireSearchBinding(env);
             return streamSSE(c, async (sse) => {
                 try {
-                    const stream = await answerChat({
-                        aiService,
-                        query,
-                        history,
-                        emit: (payload) => {
-                            if (sse.aborted || signal.aborted) return;
-                            return sse.writeSSE({ data: JSON.stringify(payload) });
-                        },
-                    });
-                    await sse.pipe(stream);
+                    for await (const event of runTurn({ env, query, history, signal })) {
+                        if (sse.aborted || signal.aborted) return;
+                        await sse.writeSSE({ data: JSON.stringify(event) });
+                    }
+                    await sse.writeSSE({ data: DONE_PAYLOAD });
                 } catch (err) {
                     if (requestSignal.aborted) return;
                     if (!isDeadlineAbort(signal, deadlineSignal)) console.error('Chat Request Failed:', err);
