@@ -49,15 +49,8 @@ export function contextualizationInput(model, query, history = []) {
 }
 
 export function contextualizedQueryFromResponse(response) {
-    const text =
-        typeof response === 'string'
-            ? response
-            : typeof response?.response === 'string'
-              ? response.response
-              : typeof response?.choices?.[0]?.message?.content === 'string'
-                ? response.choices[0].message.content
-                : null;
-    if (text === null) throw new Error('Invalid contextualization response');
+    const text = [response, response?.response, response?.choices?.[0]?.message?.content].find((value) => typeof value === 'string');
+    if (text === undefined) throw new Error('Invalid contextualization response');
     const query = text.trim();
     if (!query || query.length > AI_CONFIG.contextualization.maxQueryChars || /[\r\n]/.test(query)) {
         throw new Error('Invalid contextualized query');

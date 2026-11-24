@@ -4,16 +4,7 @@ import { retrieveEvidence } from '../../shared/ai/retrieval.js';
 import { normalizeChatStream } from '../../shared/ai/chat-stream.js';
 import { createResponseMetrics } from '../../shared/ai/response-metrics.js';
 import { AppError, requireVectorizeBinding } from './worker-errors.js';
-
-function isValidRetrievalCachePayload(payload) {
-    return (
-        !!payload &&
-        typeof payload === 'object' &&
-        !Array.isArray(payload) &&
-        typeof payload.contextText === 'string' &&
-        Array.isArray(payload.evidence)
-    );
-}
+import { isValidRetrievalCachePayload } from './retrieval-cache.js';
 
 export class AiService {
     constructor(env, { retrievalStore = null, signal = undefined, deadlineSignal = undefined } = {}) {
@@ -31,35 +22,36 @@ export class AiService {
         this.retrievalStore = retrievalStore;
     }
 
-    async getEmbeddings(text) {
+    /** Runs one upstream step: client aborts and AppErrors pass through, anything else is logged and reported as a 503. */
+    async #guard(label, publicMessage, step) {
         try {
+            return await step();
+        } catch (err) {
+            if (err instanceof AppError || this.runOptions.signal?.aborted) throw err;
+            console.error(`${label} Failed:`, err);
+            throw new AppError(publicMessage, 503);
+        }
+    }
+
+    getEmbeddings(text) {
+        return this.#guard('Embedding Generation', 'Embedding service unavailable', async () => {
             const { data } = await this.ai.run(AI_CONFIG.embedding.model, { text: [text] }, this.runOptions);
             const vector = data?.[0];
-            if (!isValidEmbeddingVector(vector, AI_CONFIG.embedding.dimensions)) {
-                throw new Error('Invalid embedding response');
-            }
+            if (!isValidEmbeddingVector(vector, AI_CONFIG.embedding.dimensions)) throw new Error('Invalid embedding response');
             return vector;
-        } catch (err) {
-            if (this.runOptions.signal?.aborted) throw err;
-            console.error('Embedding Generation Failed:', err);
-            throw new AppError('Embedding service unavailable', 503);
-        }
+        });
     }
 
     async contextualizeQuery(query, history = []) {
         if (!history.length) return query;
         const begun = this.metrics.startRewrite();
-        try {
-            return await rewriteSearchQuery(query, history, this.contextualizationModel, async (modelId, input) => {
+        return this.#guard('Query Contextualization', 'Query contextualization service unavailable', () =>
+            rewriteSearchQuery(query, history, this.contextualizationModel, async (modelId, input) => {
                 const response = await this.ai.run(modelId, input, this.runOptions);
                 this.metrics.rewrite({ begun, usage: response?.usage });
                 return response;
-            });
-        } catch (err) {
-            if (this.runOptions.signal?.aborted) throw err;
-            console.error('Query Contextualization Failed:', err);
-            throw new AppError('Query contextualization service unavailable', 503);
-        }
+            }),
+        );
     }
 
     /**
@@ -81,9 +73,8 @@ export class AiService {
         if (history.length) await onProgress('rewrite');
         const retrievalQuery = await this.contextualizeQuery(query, history);
 
-        let result;
-        try {
-            result = await retrieveEvidence({
+        const result = await this.#guard('Vector Search', 'Retrieval service unavailable', () =>
+            retrieveEvidence({
                 retrievalQuery,
                 namespace: this.namespace,
                 embed: async (text) => {
@@ -102,13 +93,8 @@ export class AiService {
                     });
                 },
                 fetchSections: (ids) => this.metrics.time('retrievalMs', () => this.vectorize.getByIds(ids)),
-            });
-        } catch (err) {
-            if (err instanceof AppError) throw err;
-            if (this.runOptions.signal?.aborted) throw err;
-            console.error('Vector Search Failed:', err);
-            throw new AppError('Retrieval service unavailable', 503);
-        }
+            }),
+        );
 
         // Only non-empty contexts are cached. The store never rejects, so the write cannot fail the request.
         if (this.retrievalStore && result.contextText.trim().length >= CONFIG.ABSTAIN.MIN_CONTEXT_CHARS) {
@@ -126,19 +112,14 @@ export class AiService {
 
     async generateStream(query, contextText, history = []) {
         const messages = buildMessages(query, contextText, history);
-        try {
-            const stream = await this.ai.run(this.model.id, generationInput(this.model, messages), this.runOptions);
-            return normalizeChatStream(stream, {
+        return this.#guard('Generation', 'Generation service unavailable', async () =>
+            normalizeChatStream(await this.ai.run(this.model.id, generationInput(this.model, messages), this.runOptions), {
                 onFirstToken: () => this.metrics.firstToken(),
                 onUsage: (usage) => this.metrics.generationUsed(usage),
                 metrics: () => this.responseMetrics(),
                 signal: this.runOptions.signal,
                 deadlineSignal: this.deadlineSignal,
-            });
-        } catch (err) {
-            if (this.runOptions.signal?.aborted) throw err;
-            console.error('Generation Failed:', err);
-            throw new AppError('Generation service unavailable', 503);
-        }
+            }),
+        );
     }
 }

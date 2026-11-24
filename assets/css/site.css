@@ -1522,4 +1522,28 @@
             transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
     }
+
+    /* Scroll fade for Blowfish's blur layers: transparent at the top, fully visible after 300px. Browsers without
+       scroll timelines show them fully. */
+    @keyframes blur-in {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @supports (animation-timeline: scroll()) {
+        #menu-blur,
+        #background-blur {
+            animation: blur-in linear both;
+            animation-timeline: scroll(root);
+            animation-range: 0 300px;
+        }
+    }
+
+    @supports not (animation-timeline: scroll()) {
+        #menu-blur,
+        #background-blur {
+            opacity: 1;
+        }
+    }
 }

@@ -1,4 +1,5 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
+import { isDeadlineAbort } from './abort.js';
 
 const ENCODER = new TextEncoder();
 
@@ -20,10 +21,13 @@ export function createSseMessageStream(message, metrics) {
     });
 }
 
+const FAILURE_MESSAGE = 'AI response failed. Please try again.';
+
 /**
  * Turns the provider's SSE stream into the widget's: `{ response }`, `{ usage }`, a final `{ metrics }` and `[DONE]`.
  * Framing (CRLF, comments, multi-line data, split UTF-8) is left to eventsource-parser; any failure becomes one
- * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream.
+ * `{ error }` event followed by `[DONE]`, so the widget always gets a terminated stream. A client abort ends the
+ * stream silently; the request deadline ends it like a failure. Ending early cancels the provider stream.
  *
  * @param {ReadableStream<Uint8Array>} stream
  * @param {{ onUsage?: (usage: object) => void, onFirstToken?: () => void, metrics?: () => object, signal?: AbortSignal, deadlineSignal?: AbortSignal }} [options]
@@ -31,38 +35,32 @@ export function createSseMessageStream(message, metrics) {
 export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, signal, deadlineSignal } = {}) {
     let hasAnswer = false;
     let finished = false;
-    let errorSent = false;
-    let emitted = false;
-    const effectiveDeadlineSignal = deadlineSignal ?? null;
+    /** @type {TransformStreamDefaultController<Uint8Array>} */
+    let out;
 
-    const send = (controller, payload) => {
-        emitted = true;
-        controller.enqueue(frame(payload));
-    };
-    const end = (controller) => {
-        emitted = true;
-        controller.enqueue(DONE_FRAME);
-        controller.close();
+    const send = (payload) => out.enqueue(frame(payload));
+    // The one way out: `error` adds the failure event, then [DONE]; `terminate` also cancels the provider stream.
+    const finish = ({ error = false, silent = false } = {}) => {
+        if (finished) return;
         finished = true;
-    };
-    const finishDeadline = (controller) => {
-        if (!errorSent) {
-            send(controller, { error: 'AI response failed. Please try again.' });
-            errorSent = true;
+        if (!silent) {
+            if (error) send({ error: FAILURE_MESSAGE });
+            out.enqueue(DONE_FRAME);
         }
-        end(controller);
+        out.terminate();
     };
-    const complete = (controller) => {
+    const fail = (error) => {
+        if (finished) return;
+        console.error('Chat Stream Failed:', error);
+        finish({ error: true });
+    };
+    const complete = () => {
         if (!hasAnswer) throw new Error('AI stream completed without an answer');
-        if (metrics) send(controller, { metrics: metrics() });
-        end(controller);
+        if (metrics) send({ metrics: metrics() });
+        finish();
     };
-    const isDeadlineAbort = () => {
-        if (!signal?.aborted || !effectiveDeadlineSignal) return false;
-        return effectiveDeadlineSignal.aborted && signal.reason === effectiveDeadlineSignal.reason;
-    };
-    const handle = (data, controller) => {
-        if (data.trim() === '[DONE]') return complete(controller);
+    const handle = (data) => {
+        if (data.trim() === '[DONE]') return complete();
         const payload = JSON.parse(data);
         if (payload.error) throw new Error('AI returned a streaming error');
         const bindingUsageSummary = hasAnswer && payload.response === '' && payload.usage && payload.choices === undefined;
@@ -72,129 +70,42 @@ export function normalizeChatStream(stream, { onUsage, onFirstToken, metrics, si
             // Whitespace-only chunks are forwarded but do not count as an answer.
             if (!hasAnswer && content.trim()) onFirstToken?.();
             hasAnswer ||= content.trim().length > 0;
-            send(controller, { response: content });
+            send({ response: content });
         }
         if (payload.usage && (bindingUsageSummary || (payload.choices.length === 0 && payload.usage.total_tokens > 0))) {
             onUsage?.(payload.usage);
-            send(controller, { usage: payload.usage });
+            send({ usage: payload.usage });
         }
     };
-    const fail = async (controller, error, reader) => {
-        if (finished) return;
-        finished = true;
-        if (signal?.aborted) {
-            if (isDeadlineAbort()) {
-                finishDeadline(controller);
-                void reader?.cancel(error).catch(() => {
-                    // Best-effort cleanup while the deadline aborts the stream.
-                });
-                return;
-            }
-            return;
-        }
-        console.error('Chat Stream Failed:', error);
-        if (!errorSent) {
-            send(controller, { error: 'AI response failed. Please try again.' });
-            errorSent = true;
-        }
-        end(controller);
-        if (reader) {
-            void reader.cancel(error).catch((cancelError) => {
-                if (cancelError !== error) console.error('Chat Stream Cancel Failed:', cancelError);
-            });
-        }
-    };
-
-    const reader = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new EventSourceParserStream()).getReader();
-
-    const abortRead = async () => {
-        if (finished) return;
-        if (signal?.aborted && isDeadlineAbort()) {
-            try {
-                await reader.cancel(signal.reason);
-            } catch {
-                // Best-effort cancellation while the deadline aborts the upstream read.
-            }
-            return;
-        }
-        finished = true;
+    const attempt = (step) => {
         try {
-            await reader.cancel(signal?.reason ?? new Error('AbortError'));
-        } catch {
-            // Best-effort cancellation while aborting the upstream read.
+            step();
+        } catch (error) {
+            fail(error);
         }
     };
 
-    if (signal) {
-        if (signal.aborted) {
-            queueMicrotask(() => void abortRead());
-        } else {
-            signal.addEventListener('abort', () => void abortRead(), { once: true });
-        }
-    }
-
-    return new ReadableStream({
-        async pull(controller) {
-            if (signal?.aborted) {
-                if (isDeadlineAbort()) {
-                    finishDeadline(controller);
-                    return;
-                }
-                finished = true;
-                controller.close();
-                return;
-            }
-            // A read can legitimately emit no output (reasoning deltas or usage-only summaries), so wait for
-            // an actual payload or a terminal condition before deciding the pull has completed.
-            emitted = false;
-            while (!emitted) {
-                if (finished) {
-                    controller.close();
-                    return;
-                }
-                let result;
-                try {
-                    result = await reader.read();
-                } catch (error) {
-                    if (signal?.aborted) {
-                        if (isDeadlineAbort()) {
-                            finishDeadline(controller);
-                            return;
-                        }
-                        finished = true;
-                        controller.close();
-                        return;
-                    }
-                    await fail(controller, error, reader);
-                    continue;
-                }
-                if (signal?.aborted) {
-                    if (isDeadlineAbort()) {
-                        finishDeadline(controller);
-                        return;
-                    }
-                    finished = true;
-                    controller.close();
-                    return;
-                }
-                if (result.done) {
-                    try {
-                        complete(controller);
-                    } catch (error) {
-                        await fail(controller, error, reader);
-                    }
-                    continue;
-                }
-                try {
-                    handle(result.value.data, controller);
-                } catch (error) {
-                    await fail(controller, error, reader);
-                }
-            }
+    const normalizer = new TransformStream({
+        start(controller) {
+            out = controller;
         },
-        cancel(reason) {
-            finished = true;
-            return reader.cancel(reason);
+        transform: (event) => {
+            if (!finished) attempt(() => handle(event.data));
+        },
+        flush: () => {
+            if (!finished) attempt(complete);
         },
     });
+    // preventAbort: an upstream error must reach `fail` so the client still gets an error event and [DONE].
+    stream
+        .pipeThrough(new TextDecoderStream())
+        .pipeThrough(new EventSourceParserStream())
+        .pipeTo(normalizer.writable, { preventAbort: true })
+        .catch(fail);
+
+    const onAbort = () => finish(isDeadlineAbort(signal, deadlineSignal) ? { error: true } : { silent: true });
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener('abort', onAbort, { once: true });
+
+    return normalizer.readable;
 }

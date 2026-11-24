@@ -104,9 +104,9 @@ accessibility-panel settings and the starfield. Each feature is
 [`assets/js/core/feature-host.js`](assets/js/core/feature-host.js), which the
 navigation menu entry ([`assets/js/menu-a11y.js`](assets/js/menu-a11y.js)) also
 uses; one failing feature does not stop the others. Hugo bundles each entry with
-`js.Build`. [`assets/js/background-blur.js`](assets/js/background-blur.js) is the
-exception: Blowfish's own partials load that path directly, so it must stay a
-self-contained classic script.
+`js.Build`. [`assets/js/background-blur.js`](assets/js/background-blur.js) is an
+intentionally empty stub: Blowfish's own partials load that path directly, and the
+scroll fade it used to drive is a CSS scroll-driven animation (`blur-in`).
 
 Connection clones the template once and installs abortable event listeners.
 History reads, transcript rendering, resize observation and Markdown loading

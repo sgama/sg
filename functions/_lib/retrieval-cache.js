@@ -4,6 +4,12 @@
 // Contract: get(namespace, query) -> payload | null, put(namespace, query, payload).
 // Both methods must never reject: a failing cache is a miss, not an outage.
 
+import { sha256Hex } from '../../shared/ai/retrieval.js';
+
+export function isValidRetrievalCachePayload(payload) {
+    return !!payload && typeof payload === 'object' && !Array.isArray(payload) && typeof payload.contextText === 'string' && Array.isArray(payload.evidence);
+}
+
 const CACHE_SCHEME = 'v2';
 const CACHE_TTL_SECONDS = 86400;
 
@@ -12,9 +18,7 @@ const CACHE_TTL_SECONDS = 86400;
 // serve stale evidence. The scheme prefix lets a change to the payload shape invalidate old entries.
 export async function retrievalCacheKey(namespace, query) {
     const input = `${CACHE_SCHEME}:${namespace ?? ''}:${query}`;
-    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-    const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-    return `https://rag-cache.internal/${CACHE_SCHEME}?ns=${encodeURIComponent(namespace ?? '')}&q=${hex}`;
+    return `https://rag-cache.internal/${CACHE_SCHEME}?ns=${encodeURIComponent(namespace ?? '')}&q=${await sha256Hex(input)}`;
 }
 
 /** Store backed by the Workers Cache API (`caches.default`). */

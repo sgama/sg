@@ -3,23 +3,22 @@ import { createParser } from 'eventsource-parser';
 const PROGRESS_STAGES = new Set(['rewrite', 'embedding', 'search', 'generation']);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
-async function parseErrorResponse(response) {
-    const fallback = `Chat request failed (${response.status})`;
-    if (!response.body || response.bodyUsed) return { message: fallback, serverMessage: null };
-    try {
-        const text = await response.clone().text();
-        if (!text.trim()) return { message: fallback, serverMessage: null };
-        const payload = JSON.parse(text);
-        if (isObject(payload) && typeof payload.error === 'string') {
-            const serverMessage = payload.error.trim();
-            if (serverMessage) {
-                return { message: serverMessage, serverMessage };
-            }
-        }
-    } catch {
-        // Response payload is intentionally opaque when not a safe JSON error object.
+/** A failed chat request. `serverMessage` is the server's own client-safe explanation, when it sent one. */
+export class ChatRequestError extends Error {
+    /** @param {string} message @param {number} [status] @param {string | null} [serverMessage] */
+    constructor(message, status, serverMessage = null) {
+        super(message);
+        this.status = status;
+        this.serverMessage = serverMessage;
     }
-    return { message: fallback, serverMessage: null };
+}
+
+async function requestError(response) {
+    const fallback = `Chat request failed (${response.status})`;
+    // The body is opaque unless it is a JSON object with a non-empty string `error`.
+    const payload = await response.json().catch(() => null);
+    const serverMessage = isObject(payload) && typeof payload.error === 'string' ? payload.error.trim() : '';
+    return new ChatRequestError(serverMessage || fallback, response.status, serverMessage || null);
 }
 
 /**
@@ -80,18 +79,9 @@ export async function streamAnswer(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, history }),
-        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.any([AbortSignal.timeout(timeoutMs), ...(signal ? [signal] : [])]),
     });
-    if (!response.ok) {
-        const { message, serverMessage } = await parseErrorResponse(response);
-        if (response.body && !response.bodyUsed) {
-            response.body.cancel?.().catch(() => {});
-        }
-        const error = /** @type {Error & { status?: number, serverMessage?: string | null }} */ (new Error(message));
-        error.status = response.status;
-        error.serverMessage = serverMessage;
-        throw error;
-    }
+    if (!response.ok) throw await requestError(response);
     if (!response.body) throw new Error('Chat response has no stream');
 
     const reader = response.body.getReader();

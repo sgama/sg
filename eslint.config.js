@@ -8,6 +8,7 @@ const SHARED_GLOBALS = {
     ReadableStream: 'readonly',
     TextDecoderStream: 'readonly',
     TextEncoder: 'readonly',
+    TransformStream: 'readonly',
     console: 'readonly',
     crypto: 'readonly',
     performance: 'readonly',

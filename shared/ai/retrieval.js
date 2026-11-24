@@ -19,11 +19,12 @@ function sectionReferences(match) {
         });
 }
 
-export async function corpusRecordId(namespace, source, index) {
-    const bytes = new TextEncoder().encode(`${namespace}\0${source}\0${index}`);
-    const hash = await crypto.subtle.digest('SHA-256', bytes);
+export async function sha256Hex(text) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
     return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
+
+export const corpusRecordId = (namespace, source, index) => sha256Hex(`${namespace}\0${source}\0${index}`);
 
 function assertRecordType(match) {
     if (!['chunk', 'section'].includes(match.metadata?.recordType)) throw new Error('Unsupported corpus record type');

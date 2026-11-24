@@ -1,5 +1,5 @@
 import { apiHistory, MAX_SAVED_MESSAGES, readHistory, STORAGE_KEY } from './history.js';
-import { streamAnswer as fetchAnswer } from './stream.js';
+import { ChatRequestError, streamAnswer as fetchAnswer } from './stream.js';
 import { formatResponseMetrics } from './metrics.js';
 
 const STAGE_LABELS = {
@@ -8,11 +8,6 @@ const STAGE_LABELS = {
     search: '🔎 Finding sources…',
     generation: '✍️ Writing answer…',
 };
-
-/** Human label for a server progress stage; undefined for unknown stages. */
-function stageLabel(stage) {
-    return STAGE_LABELS[stage];
-}
 
 /** Explanation shown when a request fails, depending on connectivity. */
 function failureMessage(online) {
@@ -78,6 +73,11 @@ export function createConversation({
 
     // Ignores stale callbacks: only the request that is still current may change state.
     const isCurrent = (active) => request === active;
+    const whenCurrent =
+        (handler) =>
+        (active, ...args) => {
+            if (isCurrent(active)) handler(active, ...args);
+        };
 
     function finish(active, text, status) {
         if (!isCurrent(active)) return;
@@ -89,28 +89,25 @@ export function createConversation({
         emit({ type: 'status', text: status });
     }
 
-    function onStage(active, stage) {
-        if (!isCurrent(active)) return;
-        active.stage = stageLabel(stage);
+    const onStage = whenCurrent((active, stage) => {
+        active.stage = STAGE_LABELS[stage];
         emit({ type: 'stage', request: snapshot(active) });
-    }
+    });
 
-    function onEvidence(active, value) {
-        // Stored as received; the view filters evidence to public sources at render time.
-        if (isCurrent(active)) active.message.evidence = value;
-    }
+    // Stored as received; the view filters evidence to public sources at render time.
+    const onEvidence = whenCurrent((active, value) => {
+        active.message.evidence = value;
+    });
 
-    function onMetrics(active, metrics) {
-        if (!isCurrent(active)) return;
+    const onMetrics = whenCurrent((active, metrics) => {
         if (!formatResponseMetrics(metrics)) throw new Error('Invalid response metrics');
         active.message.metrics = metrics;
-    }
+    });
 
-    function onAnswer(active, answer) {
-        if (!isCurrent(active)) return;
+    const onAnswer = whenCurrent((active, answer) => {
         active.answer = answer;
         emit({ type: 'answer', request: snapshot(active) });
-    }
+    });
 
     async function run(active) {
         try {
@@ -126,10 +123,9 @@ export function createConversation({
             finish(active, answer, 'Response complete.');
         } catch (error) {
             if (!isCurrent(active)) return;
-            const status = error && typeof error === 'object' && 'status' in error ? error.status : undefined;
-            const serverMessage = error && typeof error === 'object' && 'serverMessage' in error ? error.serverMessage : undefined;
+            const { status, serverMessage } = error instanceof ChatRequestError ? error : {};
             log.error('Chat request failed.', { status, serverMessage, cause: error });
-            const explanation = typeof serverMessage === 'string' && serverMessage.trim() ? serverMessage : failureMessage(isOnline());
+            const explanation = serverMessage || failureMessage(isOnline());
             retries.set(active.message, { query: active.query, history: active.history });
             finish(active, active.answer ? `${active.answer}\n\n${explanation}` : explanation, explanation);
         }

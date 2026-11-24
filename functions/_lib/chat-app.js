@@ -9,6 +9,7 @@ import { CONFIG } from '../../shared/ai/application.js';
 import { SAFE_NO_CONTEXT_MESSAGE, shouldAbstainForMissingContext } from '../../shared/ai/answer-policy.js';
 import { AppError, requireVectorizeBinding } from './worker-errors.js';
 import { ChatRequestSchema } from './validation.js';
+import { isDeadlineAbort } from '../../shared/ai/abort.js';
 import { createSseMessageStream, DONE_PAYLOAD } from '../../shared/ai/chat-stream.js';
 import { AiService } from './ai.js';
 import { workersCacheStore } from './retrieval-cache.js';
@@ -94,7 +95,6 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
             if (requestSignal?.aborted) return new Response('', { status: 200 });
             const deadlineSignal = AbortSignal.timeout(REQUEST_DEADLINE_MS);
             const signal = AbortSignal.any([requestSignal, deadlineSignal]);
-            const isDeadlineAbort = () => !requestSignal?.aborted && deadlineSignal.aborted && signal.reason === deadlineSignal.reason;
             const aiService = createAiService(env, { signal, deadlineSignal });
             requireVectorizeBinding(env.VECTORIZE_INDEX);
             return streamSSE(c, async (sse) => {
@@ -111,20 +111,11 @@ export function createChatApp({ createAiService = defaultCreateAiService, answer
                     await sse.pipe(stream);
                 } catch (err) {
                     if (requestSignal.aborted) return;
-                    if (isDeadlineAbort()) {
-                        if (!sse.aborted) {
-                            await sse.writeSSE({ data: JSON.stringify({ error: 'The response could not be completed.' }) });
-                            await sse.writeSSE({ data: DONE_PAYLOAD });
-                        }
-                        return;
-                    }
-                    console.error('Chat Request Failed:', err);
-                    if (!sse.aborted) {
-                        await sse.writeSSE({
-                            data: JSON.stringify({ error: err instanceof AppError ? err.message : 'The response could not be completed.' }),
-                        });
-                        await sse.writeSSE({ data: DONE_PAYLOAD });
-                    }
+                    if (!isDeadlineAbort(signal, deadlineSignal)) console.error('Chat Request Failed:', err);
+                    if (sse.aborted) return;
+                    const message = err instanceof AppError && !signal.aborted ? err.message : 'The response could not be completed.';
+                    await sse.writeSSE({ data: JSON.stringify({ error: message }) });
+                    await sse.writeSSE({ data: DONE_PAYLOAD });
                 }
             });
         },
