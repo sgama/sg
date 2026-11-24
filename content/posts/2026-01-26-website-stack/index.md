@@ -1,10 +1,10 @@
 ---
 title: "How samsongama.com Is Built and Deployed"
 date: 2026-01-26
-lastmod: 2026-11-20
+lastmod: 2026-11-24
 slug: "website-stack"
-description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, a Cloudflare Worker with static assets, Workers AI, Vectorize, and Tunnels."
-summary: "Hugo static site on Cloudflare Workers with a versioned RAG corpus, GitHub Actions CI/CD, and self-hosted analytics via Cloudflare Tunnel."
+description: "A comprehensive look at how this static site is built, deployed, and monitored using Hugo, GitHub Actions, a Cloudflare Worker with static assets, Workers AI, Cloudflare AI Search, and Tunnels."
+summary: "Hugo static site on Cloudflare Workers with a versioned AI Search corpus, GitHub Actions CI/CD, and self-hosted analytics via Cloudflare Tunnel."
 tags: ["infrastructure", "cloudflare", "github-actions", "reliability", "self-hosted", "hugo"]
 showDate: true
 series: ["Cloudflare Developments"]
@@ -12,7 +12,7 @@ series: ["Cloudflare Developments"]
 
 ![Featured image](featured.webp)
 
-Ten years ago this site would have been a VPS with Nginx and manual deploys. The current version is a static Hugo site on Cloudflare with a CI/CD pipeline, a versioned RAG corpus, and self-hosted analytics. Each layer exists to solve a specific problem (global delivery, reproducible deploys, a grounded Q&A feature, privacy-preserving analytics); none is there for novelty.
+Ten years ago this site would have been a VPS with Nginx and manual deploys. The current version is a static Hugo site on Cloudflare with a CI/CD pipeline, a versioned AI Search corpus, and self-hosted analytics. Each layer exists to solve a specific problem (global delivery, reproducible deploys, a grounded Q&A feature, privacy-preserving analytics); none is there for novelty.
 
 This post covers the architecture, the deploy pipeline, and the trade-offs. The assistant implementation is covered separately.
 
@@ -31,7 +31,7 @@ subgraph Cloudflare["☁️ Cloudflare Edge"]
     Assets[Static Assets]
     Functions[Worker /api/*]
     Workers[Cloudflare Workers AI]
-    Vectorize[Vectorize]
+    Search[AI Search]
     Gateway[AI Gateway]
     Tunnel[Cloudflare Tunnel]
 end
@@ -54,7 +54,7 @@ CDN -->|Static Content| Assets
 CDN -->|Dynamic API| Functions
 Functions --> Gateway
 Gateway --> Workers
-Functions --> Vectorize
+Functions --> Search
 CDN -->|ping.samsongama.com| Tunnel
 
 Tunnel <-->|Secure Connection| Cloudflared
@@ -84,7 +84,7 @@ make ci-check
 
 ## 🔄 2. CI/CD: GitHub Actions
 
-Production deployment is handled by a **GitHub Actions** workflow on pushes to `develop`. Pull requests targeting `develop` run validation without deploying or making paid embedding calls. Make targets also support deliberate local builds and deployments.
+Production deployment is handled by a **GitHub Actions** workflow on pushes to `develop`. Pull requests targeting `develop` run validation without deploying or making paid AI Search calls. Make targets also support deliberate local builds and deployments.
 
 ### The Pipeline Steps
 
@@ -92,11 +92,11 @@ Production deployment is handled by a **GitHub Actions** workflow on pushes to `
 2. **Setup Node & Hugo**: Installs dependencies.
 3. **Validate & Build**: Runs `make ci-check`: workflow and JavaScript linting, offline tests with coverage, corpus checks, Worker bundling check, type checking, PostCSS/PurgeCSS, the production Hugo build, and generated-layout tests.
 4. **Detect Changes**: Runs `make deploy-needed`, which compares the commit the live Worker was built from (recorded in its `DEPLOY_COMMIT` variable) with the current one. If no file that can change the site differs, the refresh and deploy are skipped; any doubt deploys.
-5. **Refresh Corpus**: Runs `make ai-refresh` to skip an unchanged corpus or embed a changed one into a versioned Vectorize namespace. It waits for indexing before preparing the matching deployment configuration; failure blocks deployment.
+5. **Refresh Corpus**: Runs `make ai-refresh` to skip an unchanged corpus or upload a changed one into a new hash-named Cloudflare AI Search instance (`portfolio-<corpus hash>`). It waits for every item to finish indexing before setting `AI_SEARCH_INSTANCE` in the deployment configuration; failure blocks deployment.
 6. **Deploy**: Runs `make deploy-built`, one `wrangler deploy` that uploads the validated `public/` output as static assets and the Worker together, as a single live version.
-7. **Prune**: Runs `make cleanup-vectors`, deleting the vectors of older versioned corpora. It keeps the namespace the live Worker uses and the one before it, so a rollback can reuse recent vectors. Rolling back means redeploying an earlier commit.
+7. **Prune**: Runs `make cleanup-instances`, deleting older `portfolio-*` instances. It keeps the instance the live Worker uses and the one before it, so a rollback can reuse the recent one. Rolling back means redeploying an earlier commit.
 
-For example, a CSS-only change can reuse the existing corpus. A published content edit changes the corpus hash and requires new embeddings before the deployment proceeds. Three caches (tools, Hugo modules, generated resources) and parallel Make jobs keep a cached run to about a minute.
+For example, a CSS-only change can reuse the existing corpus. A published content edit changes the corpus hash and requires a new instance to be indexed before the deployment proceeds. Three caches (tools, Hugo modules, generated resources) and parallel Make jobs keep a cached run to about a minute.
 
 {{< mermaid >}}
 sequenceDiagram
@@ -104,8 +104,7 @@ participant Dev as Developer
 participant GH as GitHub Actions
 participant Build as Build Container
 participant CF as Cloudflare Worker
-participant Vec as Vectorize DB
-participant AI as Workers AI
+participant Vec as AI Search
 
 Dev->>GH: git push develop
 GH->>Build: Spin up Runner
@@ -115,15 +114,13 @@ Build->>Build: make ci-check
 Note over Build, Vec: Refresh changed corpus, skip unchanged corpus
 Build->>Build: Parse content and compute corpus hash
 opt Corpus changed
-Build->>AI: Generate embeddings
-AI-->>Build: Return vectors
-Build->>Vec: Upsert versioned records
+Build->>Vec: Create instance and upload files
 Build->>Vec: Wait for indexing completion
 end
 
-Build->>CF: Deploy assets, Worker and matching namespace
+Build->>CF: Deploy assets, Worker and matching instance
 CF-->>Dev: Deployment Success
-Build->>Vec: Delete older corpora (keep live and previous)
+Build->>Vec: Delete older instances (keep live and previous)
 {{< /mermaid >}}
 
 ---
@@ -140,11 +137,11 @@ Cloudflare proxies all traffic. This means:
 - **Caching:** Static assets (images, CSS, JS) are cached in data centers close to the user, reducing latency.
 - **Build-Time Optimization:** Hugo minifies output, while PostCSS/PurgeCSS builds the production stylesheet. This does not depend on Cloudflare auto-minification.
 
-### Workers & Vectorize (The "Smart" Layer)
+### Workers & AI Search (The "Smart" Layer)
 
-The assistant is a RAG feature, not a trained model or general-purpose agent. The implementation (contextual query rewriting, semantic retrieval, parent-section expansion, versioned namespaces, deployment gates, rollback, abstention, evaluation) is documented in detail in [Building a Serverless AI Chatbot for My Static Portfolio](/posts/2026-01-25-ai-chat/). This post covers only how it fits the site's build and deploy pipeline.
+The assistant is a RAG feature, not a trained model or general-purpose agent. The implementation (a single search tool backed by managed Cloudflare AI Search, model fallback, hash-named instances, deployment gates, rollback, abstention, evaluation) is documented in detail in [Building a Serverless AI Chatbot for My Static Portfolio](/posts/2026-01-25-ai-chat/). This post covers only how it fits the site's build and deploy pipeline.
 
-The operational distinction that matters for the stack: a release ships a matching static build, Worker and corpus namespace together; ordinary page requests stay static and never invoke the Worker. Model calls go through AI Gateway, and the Worker's request logs go to Workers Logs (`[observability]` in `wrangler.toml`), so there is no separate log store to run.
+The operational distinction that matters for the stack: a release ships a matching static build, Worker and AI Search instance together; ordinary page requests stay static and never invoke the Worker. Model calls go through AI Gateway, and the Worker's request logs go to Workers Logs (`[observability]` in `wrangler.toml`), so there is no separate log store to run.
 
 
 ---
@@ -203,10 +200,10 @@ style Router stroke:#f00,stroke-width:2px,stroke-dasharray:5
 
 ## ✅ Conclusion
 
-The stack is deliberately small: static delivery, one Worker for the assistant, versioned corpus deploys, and tunneled analytics. Complexity is justified by specific requirements, not by novelty.
+The stack is deliberately small: static delivery, one Worker for the assistant, hash-named corpus instances, and tunneled analytics. Complexity is justified by specific requirements, not by novelty.
 
 ## 🚀 What's Next
 
-- **Retrieval quality:** The latest evaluation passes 67 of 74 cases (90.5%) and retrieves the right source for 61 of 64 answerable questions, but only 1 of 5 follow-up rewrites keeps the conversation's subject. Expand regression questions and human review, starting with follow-ups and unsupported claims; details in the [AI chat post](/posts/2026-01-25-ai-chat/#-results-905-of-cases-pass-follow-ups-are-the-weak-spot).
+- **Retrieval quality:** The assistant was rebuilt on managed AI Search and has not been deployed or evaluated yet. The last measured run (67 of 74 cases, 61 of 64 retrieval hits, 1 of 5 follow-ups) was on the previous Vectorize-based pipeline. Run the evaluation on the new one, then expand regression questions and human review, starting with follow-ups and unsupported claims; details in the [AI chat post](/posts/2026-01-25-ai-chat/).
 - **Runtime controls:** Add a spend cap (per-IP rate limiting and a per-turn deadline are in place), and measure behavior under concurrent traffic.
-- **Ingestion efficiency:** Reuse unchanged document embeddings across corpus versions instead of regenerating the whole changed corpus.
+- **Citations:** Citations are page-level; section-level citations would need the section back in the chunk metadata.
