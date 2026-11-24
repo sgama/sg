@@ -7,7 +7,13 @@
 import { sha256Hex } from '../../shared/ai/retrieval.js';
 
 export function isValidRetrievalCachePayload(payload) {
-    return !!payload && typeof payload === 'object' && !Array.isArray(payload) && typeof payload.contextText === 'string' && Array.isArray(payload.evidence);
+    return (
+        !!payload &&
+        typeof payload === 'object' &&
+        !Array.isArray(payload) &&
+        typeof payload.contextText === 'string' &&
+        Array.isArray(payload.evidence)
+    );
 }
 
 const CACHE_SCHEME = 'v2';
