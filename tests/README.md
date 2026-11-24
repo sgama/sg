@@ -17,7 +17,7 @@ make lint format-check
 
 # Focused suites; corpus tests still need Hugo
 node --test --test-timeout=30000 tests/unit/corpus*.test.mjs
-node --test --test-name-pattern='embedding' tests/unit/corpus-deployment.test.mjs
+node --test --test-name-pattern='upload' tests/unit/corpus-deployment.test.mjs
 node --test --watch tests/unit/validation.test.mjs
 ```
 
@@ -29,27 +29,26 @@ Coverage uses c8 and includes unexecuted browser, Functions, and script files. I
 
 Keep detailed behavior tests with the module that owns it. Keep cross-module regressions only where they verify integration rather than repeating the same isolated assertions. Files under `unit/` include offline contract and CLI integration tests as well as isolated unit tests.
 
-| Suite                                                                                       | Responsibility                                                                                                                        |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `content-normalization.test.mjs`                                                            | Markdown/HTML normalization, shortcode parsing, literal code, media removal, and heading boundaries                                   |
-| `source-provenance.test.mjs`                                                                | Hugo-owned URLs, slugs, explicit URLs, and permalinks                                                                                 |
-| `corpus.test.mjs`                                                                           | Corpus assembly, section chunking and parent linkage, curated-to-public evidence, schema and integrity contracts, and reproducibility |
-| `corpus-content.test.mjs`                                                                   | Repository content regressions: homepage prose, resume chronology/skills, and internal evidence                                       |
-| `corpus-deployment.test.mjs`                                                                | Embedding/upload transport, NDJSON, retries, cancellation, and pre-request validation                                                 |
-| `corpus-refresh.test.mjs`                                                                   | Activation, unchanged-corpus handling, and concurrent configuration edits                                                             |
-| `ai-cli.test.mjs`                                                                           | Offline manifests, side-effect-safe imports, evaluation, and refresh CLI contracts                                                    |
-| `ai-evaluation.test.mjs`, `cloudflare-ai.test.mjs`                                          | Evaluation gates and injected local/cloud transport contracts                                                                         |
-| `ai-service.test.mjs`, `chat-api.test.mjs`, `validation.test.mjs`                           | Request validation, query contextualization, retrieval, generation, and error behavior                                                |
-| `retrieval-cache.test.mjs`                                                                  | Retrieval-result store contract: key separation, fail-open behaviour, cache hits                                                      |
-| `chat-controller.test.mjs`                                                                  | DOM-free conversation and request controller: lifecycle, retries, cancellation, offline, clearing                                     |
-| `chat-stream.test.mjs`, `chat-metrics.test.mjs`                                             | Provider SSE normalization, usage, costs, and timing                                                                                  |
-| `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior                                                               |
-| `content-audit.test.mjs`, `rag-audit.test.mjs`, `makefile.test.mjs`                         | Content policies, provenance review, and build/test commands                                                                          |
-| `menu-a11y.test.mjs`                                                                        | Native dialog open/close, menu button wiring, expanded state, and backdrop dismissal                                                  |
-| `vector-cleanup.test.mjs`                                                                   | Live-Worker lookup and stale-vector pruning safety                                                                                    |
-| `domain-cutover.test.mjs`                                                                   | One-time Pages-to-Worker domain move, with rollback on failure                                                                        |
-| `deploy-needed.test.mjs`                                                                    | Skip-deploy decision: only unchanged deployable files skip; every doubt deploys                                                       |
-| `integration/layouts.test.mjs`                                                              | Generated Hugo schema, public LLM index, image preloads, and theme settings                                                           |
+| Suite                                                                                       | Responsibility                                                                                                    |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `content-normalization.test.mjs`                                                            | Markdown/HTML normalization, shortcode parsing, literal code, media removal, and heading boundaries               |
+| `source-provenance.test.mjs`                                                                | Hugo-owned URLs, slugs, explicit URLs, and permalinks                                                             |
+| `corpus.test.mjs`                                                                           | Corpus assembly, one item per source, curated-to-public URLs, schema and integrity contracts, and reproducibility |
+| `corpus-content.test.mjs`                                                                   | Repository content regressions: homepage prose, resume chronology/skills, and internal evidence                   |
+| `corpus-deployment.test.mjs`                                                                | Upload transport, completion polling, no-retry abort on first failure, and validation                             |
+| `corpus-refresh.test.mjs`                                                                   | Activation, unchanged-corpus handling, and concurrent configuration edits                                         |
+| `ai-cli.test.mjs`                                                                           | Offline manifests, side-effect-safe imports, evaluation, and refresh CLI contracts                                |
+| `ai-evaluation.test.mjs`, `cloudflare-ai.test.mjs`                                          | Evaluation gates and injected local/cloud transport contracts                                                     |
+| `agent.test.mjs`, `chat-api.test.mjs`, `validation.test.mjs`                                | Request validation, the search-tool agent turn, model fallback, and error behavior                                |
+| `chat-controller.test.mjs`                                                                  | DOM-free conversation and request controller: lifecycle, retries, cancellation, offline, clearing                 |
+| `chat-stream.test.mjs`, `chat-metrics.test.mjs`                                             | Provider SSE normalization, usage, costs, and timing                                                              |
+| `chat-widget.test.mjs`, `chat-render.test.mjs`, `site.test.mjs`, `background-blur.test.mjs` | Browser lifecycle, persistence, rendering boundaries, and site behavior                                           |
+| `content-audit.test.mjs`, `rag-audit.test.mjs`, `makefile.test.mjs`                         | Content policies, provenance review, and build/test commands                                                      |
+| `menu-a11y.test.mjs`                                                                        | Native dialog open/close, menu button wiring, expanded state, and backdrop dismissal                              |
+| `instance-cleanup.test.mjs`                                                                 | Live-Worker lookup and stale-instance pruning safety                                                              |
+| `domain-cutover.test.mjs`                                                                   | One-time Pages-to-Worker domain move, with rollback on failure                                                    |
+| `deploy-needed.test.mjs`                                                                    | Skip-deploy decision: only unchanged deployable files skip; every doubt deploys                                   |
+| `integration/layouts.test.mjs`                                                              | Generated Hugo schema, public LLM index, image preloads, and theme settings                                       |
 
 This table groups responsibilities rather than serving as an exhaustive file inventory.
 
@@ -57,7 +56,7 @@ This table groups responsibilities rather than serving as an exhaustive file inv
 
 [helpers/corpus.mjs](helpers/corpus.mjs) creates isolated temporary content trees with test-owned cleanup. Use `corpusFixture(t, files)` for synthetic source trees and `integrityFixture(t)` for a small corpus plus Wrangler configuration. It does not modify the repository's real content or indexes.
 
-[helpers/mocks.mjs](helpers/mocks.mjs) provides injected AI, Vectorize, request, and stream boundaries. [helpers/data.mjs](helpers/data.mjs) contains shared constants and builders.
+[helpers/mocks.mjs](helpers/mocks.mjs) provides injected AI Search instance, scripted model, request, and stream boundaries. [helpers/ai-search.mjs](helpers/ai-search.mjs) mocks the Cloudflare REST endpoints used by the ingest pipeline. [helpers/data.mjs](helpers/data.mjs) contains shared constants and builders.
 
 ```javascript
 import { corpusFixture } from '../helpers/corpus.mjs';
@@ -75,9 +74,7 @@ The local [mobile-menu partial](../layouts/partials/header/components/mobile-men
 
 ## Corpus and retrieval contracts
 
-Normalization tests compare Markdown structure and preserve nested lists, indented/fenced code, literal angle brackets, inline shortcodes, balanced image destinations, and Setext headings. Corpus assembly tests check content-driven hashes, namespaces, and full-source-path IDs. Contract tests deliberately recompute hashes after malformed edits to exercise semantic invariants independently of hash integrity.
-
-Parent expansion replaces narrow child evidence with its bounded section. Canonical expansion supplements curated facts with public evidence; unique internal facts remain in model context, while only public excerpts are displayed. Runtime/cloud/local tests verify deduplication, ordering, context budgets, and explicit missing-vector errors. Current chunks without section references require no parent lookup. Legacy records without an explicit record type are rejected by runtime retrieval.
+Normalization tests compare Markdown structure and preserve nested lists, indented/fenced code, literal angle brackets, inline shortcodes, balanced image destinations, and Setext headings. Corpus assembly tests check content-driven hashes, instance names, and full-source-path item keys. Contract tests deliberately recompute hashes after malformed edits to exercise semantic invariants independently of hash integrity.
 
 Cloudflare contract tests use the installed SDK with injected fetch and native `Request`/`Response` objects. They verify actual payload bytes, model paths, pagination, mutations, readiness, and safe deletion acknowledgements.
 

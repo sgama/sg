@@ -21,7 +21,7 @@ export async function main(args = process.argv.slice(2), { fetchImpl = globalThi
         worker: process.env.WORKER_NAME ?? 'sg',
     });
     console.log(
-        `Corpus ${result.skipped ? 'unchanged; ingestion skipped' : 'indexed'}: ${result.namespace} (${result.count} chunks, ${result.reused ?? 0} reused, ${result.embedded ?? 0} embedded). Deployment configuration updated.`,
+        `Corpus ${result.skipped ? 'unchanged; ingestion skipped' : 'indexed'}: ${result.instance} (${result.count} items, ${result.reused} reused, ${result.uploaded} uploaded). Deployment configuration updated.`,
     );
 }
 

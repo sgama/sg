@@ -31,25 +31,19 @@ To enable the AI chatbot feature:
     npm install
     ```
 
-2. **Create Vector Database** (One-time setup):
-
-    ```bash
-    npx wrangler vectorize create portfolio-index --dimensions=768 --metric=cosine
-    ```
-
-3. **Validate and plan the corpus** (offline):
+2. **Validate and plan the corpus** (offline):
 
     ```bash
     npm ci
     make ai-check ai-plan
     ```
 
-4. **Ingest a candidate**, using the namespace printed by the plan:
+3. **Ingest a candidate**, using the instance printed by the plan:
 
     ```bash
     export CLOUDFLARE_ACCOUNT_ID="your_id"
     export CLOUDFLARE_API_TOKEN="your_token"
-    make ai-embeddings AI_NAMESPACE=corpus-HASH_FROM_PLAN
+    make ai-ingest AI_INSTANCE=portfolio-HASH_FROM_PLAN
     ```
 
     This makes paid Cloudflare API calls. It does not activate or delete a corpus.
@@ -126,9 +120,8 @@ The composer stays editable during generation; duplicate submissions are blocked
 The browser posts `{ query, history }` to `/api/chat`, selecting at most the four
 most recent user/assistant messages within the API's character limits; the
 welcome message is omitted. This bounded request history is sent for conversational
-context, while the full saved transcript remains local. Before vector retrieval,
-the backend uses the configured contextualization model to rewrite follow-ups
-into standalone queries. Rewriting is skipped when there is no history.
+context, while the full saved transcript remains local. The model decides when to call
+its `searchPortfolio` tool and with what query, so follow-ups are rewritten by the model itself.
 The API validates requests with Hono `bodyLimit` (64 KB) and `@hono/zod-validator`,
 sets `secureHeaders`, and routes Workers AI calls through AI Gateway
 (`AI_GATEWAY_ID`, default gateway; analytics and logs in the dashboard). Workers
@@ -175,34 +168,33 @@ and pricing must be verified against your Cloudflare account.
 make ai-check test ai-plan
 make ai-build
 
-# Paid: evaluate the candidate namespace with promptfoo (live Vectorize + Workers AI)
-make ai-eval AI_NAMESPACE=corpus-HASH_FROM_PLAN
+# Paid: evaluate the candidate instance with promptfoo (live AI Search + Workers AI)
+make ai-eval AI_INSTANCE=portfolio-HASH_FROM_PLAN
 
-# Paid: ingest the candidate (waits for Vectorize to process it), then evaluate
-make ai-audit AI_NAMESPACE=corpus-HASH_FROM_PLAN
+# Paid: ingest the candidate (waits for indexing), then evaluate
+make ai-audit AI_INSTANCE=portfolio-HASH_FROM_PLAN
 ```
 
 Evaluation uses [promptfoo](https://www.promptfoo.dev/). [`evals/promptfooconfig.yaml`](evals/promptfooconfig.yaml)
 runs the real retrieval and generation pipeline through the custom provider
 [`evals/rag-provider.mjs`](evals/rag-provider.mjs) and builds one test per fixture
 case ([`evals/tests.mjs`](evals/tests.mjs)). `evals/checks.mjs` holds the
-deterministic assertions: `retrieval-hit` (a labeled source was retrieved) and
-`rewrite` (the contextualized query kept the conversation's subject) gate the
-run, while `evidence` and `answer` term checks are reported with weight 0 because
+deterministic assertions: `searched` (the model called the search tool), `retrieval-hit` (a labeled source
+was retrieved), `query` (the search query kept the conversation's subject) and `links`
+gate the run, while `evidence` and `answer` term checks are reported with weight 0 because
 they are phrasing-sensitive. `make ai-eval` fails when the pass rate is below
 `AI_PASS_RATE` (default 90%, promptfoo exits 100). Compare models by adding
 provider entries (`config: { model: gemma }`) to the config; browse results with
 `npx promptfoo view`. The raw report is written to `reports/ai-eval.json`, and
 `make ai-eval` ends by printing the pass count per gating check
 (`scripts/summarize_ai_eval.mjs`).
-Labeled queries retry retrieval for up to 30 seconds because Vectorize queries
-can lag a fresh ingest. Model aliases (`glm`, `gemma`, `llama`) and dated token
+Model aliases (`glm`, `gemma`, `llama`) and dated token
 prices stay in `shared/ai/application.js`.
 
 Override `REPORT_DIR`, `AI_FIXTURE` or `AI_PASS_RATE` as needed. Developers run
 these targets locally; evaluation is not a GitHub Actions job. Production CI
 prepares the corpus on each production push, skipping ingestion when its
-namespace matches the active deployment.
+instance matches the active deployment.
 
 The labeled fixture in [`tests/fixtures/ai-eval.json`](tests/fixtures/ai-eval.json)
 checks expected source paths rather than keyword-only retrieval hits. Its answer
@@ -210,19 +202,10 @@ checks are deterministic term assertions, not a substitute for human groundednes
 review. Extend the small starter set with paraphrases, project-specific facts,
 negative questions, and production failures before trusting a model ranking.
 Follow-up cases include bounded recent chat history. When history is present,
-the API passes it as JSON data to a dedicated rewrite task before embedding,
-rather than asking the model to continue the conversation. Retrieval reports record that query
-and score labeled rewrite terms, source hits, and evidence separately. Add
+the model receives it as conversation context and chooses its own search query.
+Evaluation records that query and scores labeled query terms, source hits, and evidence separately. Add
 conversation histories to the fixture to cover pronouns, elliptical follow-ups,
 topic changes, and ambiguity.
-
-Negative questions run through real retrieval in retrieved-context comparisons,
-including irrelevant matches; they are not assigned an artificial empty context.
-Source hit@k is computed only for questions with labeled relevant sources.
-All cases, including negatives, must have successful retrieval records.
-Version-2 reports are required; regenerate older positive-only retrieval reports.
-Labeled-source comparisons still use oracle context and cannot establish
-end-to-end abstention performance. Empty-context fallback is tested separately.
 
 ### Source formatting
 
@@ -246,7 +229,7 @@ Responses expose a collapsible **Retrieved sources** panel with only public-page
 excerpts actually included in the bounded model context. Internal RAG excerpts
 are omitted. These are retrieval evidence, not independently verified citations.
 Source links and literal excerpt text persist locally with the answer.
-The streaming API reports real rewrite, embedding, search and generation stages;
+The streaming API reports real search and generation stages;
 the widget displays these while waiting for answer tokens. Failures after SSE
 starts are explicit error events (HTTP status is already 200); validation and
 missing-binding errors still return HTTP error responses before streaming.
@@ -265,8 +248,8 @@ The chat header renders two compact model-information rows at Hugo build time.
 dated pricing source for Hugo, the API and evaluations; the answer model is
 selected from `AI_MODEL` in [`wrangler.toml`](wrangler.toml).
 Completed responses include server-side total/time-to-first-answer-token,
-embedding/search/rewrite timings, reported answer and rewrite token counts, and
-estimated LLM token cost. Cost excludes embeddings, Vectorize and hosting and
+the generation model and its reported token usage, and
+estimated LLM token cost. Cost excludes AI Search and hosting and
 is unavailable when required usage is missing, rather than reported as zero.
 Metrics persist with local chat history but are never sent as conversation
 evidence. Historical messages without metrics remain readable.
@@ -279,9 +262,7 @@ with a keyboard-accessible Details disclosure for timing and token-count tables.
 
 `make audit-content` uses separate policies: posts require title/date and recommend tags plus description/summary; public pages (including section indexes) and internal context require title and recommend description/summary. The internal context's headless cascade configuration index is excluded, not public section indexes. Required dates must be parseable dates, not merely present values. Environment field overrides apply explicitly to every type. `make test` is the canonical complete offline suite.
 
-Newly built corpora require explicit record types and normalization version 3. Runtime section expansion rejects records without an explicit current record type. Rebuild and activate the current corpus before serving these stricter Functions.
-
-Ingestion uses structured Markdown/HTML ASTs (remark with GFM, mdast-to-hast, hast-util-raw and hast-to-mdast). It removes media and presentation controls without flattening nested lists, indented code or inline code. A quote-aware Hugo shortcode tokenizer runs only outside Markdown code spans/blocks; Mermaid shortcodes become fenced diagrams. Serialization normalizes Markdown formatting and resolves reference links, while preserving rendered meaning. Embedding inputs include page/section labels; stored excerpts contain normalized source evidence. Local and Cloudflare embedding paths use the same helper.
+Ingestion uses structured Markdown/HTML ASTs (remark with GFM, mdast-to-hast, hast-util-raw and hast-to-mdast). It removes media and presentation controls without flattening nested lists, indented code or inline code. A quote-aware Hugo shortcode tokenizer runs only outside Markdown code spans/blocks; Mermaid shortcodes become fenced diagrams. Serialization normalizes Markdown formatting and resolves reference links, while preserving rendered meaning.
 Hugo Mermaid shortcodes become fenced Mermaid blocks during ingestion. Opening
 retrieved sources lazy-loads Mermaid to render those blocks with strict security
 and sanitized SVG. Mermaid is not bundled: `config.toml` mounts its prebuilt ESM
@@ -302,9 +283,9 @@ page classes, inline styles or interactive controls. This also prevents older
 HTML-heavy excerpts from recreating the website inside the source panel.
 Public source URLs come from `hugo list published`, parsed as CSV, rather than inferred filenames. Hugo owns slugs, explicit URLs and permalink configuration. Corpus commands therefore require Hugo; missing provenance is an explicit error. Synthetic callers may supply a `sourceUrls` map.
 
-Curated documents can declare `retrievalSource` (a public content file path) and `retrievalSection` (an exact level-one/two heading) in front matter. Canonical links use distinct `canonicalSource`/`canonicalIndex` fields rather than overwriting ordinary parent relationships. A hit supplies canonical evidence first and retains the curated evidence alongside it, deduplicated within the 12,000-character context budget. Only public excerpts actually included in context appear in Retrieved sources. Missing, ambiguous, empty, non-public or oversized targets fail validation. This is generic linkage, not a career-specific lookup.
+Internal context documents can declare `retrievalSource` (a public content file path) in front matter; that page's URL becomes the item's citation URL. Internal context is never cited under its own URL, and a missing or unknown target fails ingestion.
 
-The corpus builder orchestrates separate normalization, Hugo provenance, section/chunk construction, canonical linkage and schema/identity modules under `scripts/lib/`. Schema validation checks record shapes before hashing and verifies references, text consistency and counts. Reindex and deploy the changed corpus to use the new normalization, URLs and supplemental evidence semantics.
+The corpus builder uploads one AI Search item per included source file, with title and public URL metadata (`scripts/lib/corpus.mjs`). Reindex and deploy the changed corpus to use new normalization or URLs.
 
 [`content/_context/`](content/_context/) holds headless Markdown: indexed for
 chat responses but not rendered as website pages. Its focused documents cover
@@ -312,19 +293,7 @@ career overview, skills, employer-specific contributions, early career,
 reliability practice, leadership, projects, education/security, hiring logistics
 and athletics. The career excerpts are sourced from the canonical
 [`content/resume/_index.md`](content/resume/_index.md) and the about page.
-Ingestion splits every included source at level-one/two Markdown headings,
-retaining nested subsections together. Sections larger than a retrieval chunk
-also get addressable parent records, bounded to 6,000 characters; oversized
-sections are split into overlapping windows. Short sections remain single chunks.
-Runtime and cloud evaluation expand semantic hits into their parent sections by
-namespace-specific ID. Local evaluation uses the same expansion. Sibling hits
-are deduplicated in search order within the existing 12,000-character context
-budget. This applies equally to resumes, projects, posts, and internal context;
-there is no topic-specific lookup or generated career summary.
-A missing referenced parent is an explicit retrieval error. Existing corpora
-without parent metadata retain semantic-only retrieval; reindex the updated
-corpus to enable expansion. Expansion improves evidence coverage around a hit,
-but cannot recover a source that semantic search never matches.
+Each included source is uploaded as one item; AI Search chunks it server-side, and citations are page-level only.
 Keep these excerpts synchronized when the resume changes; they are curated
 retrieval material, not an independent record of qualifications.
 
@@ -389,7 +358,7 @@ publish or re-index content.
 ### Local Docker/GPU validation
 
 Removed: the previous local Docker/GPU RAG validation lane was retired. Use
-`make ai-check` and `make ai-eval` (paid API) with live Vectorize retrieval.
+`make ai-check` and `make ai-eval` (paid API) with live AI Search retrieval.
 Local runs cannot establish Cloudflare latency, cost, or factual accuracy.
 
 #### Source-grounded factual accuracy
@@ -417,12 +386,12 @@ Developer validation workflow:
 
 ```bash
 make ai-check test ai-plan
-# Paid: ingest the namespace printed above, then evaluate it
-make ai-audit AI_NAMESPACE=corpus-HASH_FROM_PLAN
+# Paid: ingest the instance printed above, then evaluate it
+make ai-audit AI_INSTANCE=portfolio-HASH_FROM_PLAN
 ```
 
 Review the actual answers, including citations and negations, before deployment
-(`npx promptfoo view`). The corpus namespace changes when the resume changes, so
+(`npx promptfoo view`). The corpus instance changes when the resume changes, so
 evaluate each new candidate. Term checks are smoke tests, not semantic proof: add real failing questions,
 paraphrases, false premises, and contradictory-history tests as failures arise.
 
@@ -435,44 +404,39 @@ automatic; paid model quality evaluations remain developer-run.
 
 #### Safe corpus release and rollback
 
-Corpus namespaces are deterministic hashes of source contents and embedding/chunk
-configuration. Chunk IDs incorporate full source paths and the namespace: two
-`index.md` files cannot overwrite each other, and a candidate cannot mutate the
-active version. Ingestion rejects duplicates, invalid vectors and partial
-failures. Accepted Vectorize mutations are asynchronous: wait for visibility and
-rerun retrieval evaluation if necessary before proceeding. Character-based
-chunking remains approximate, not a guaranteed tokenizer limit.
+The corpus lives in a Cloudflare AI Search instance named `portfolio-<12 hex of the
+corpus hash>`. The hash covers source contents and chunking/search configuration, so
+a candidate never mutates the live instance. AI Search does the chunking, embedding,
+hybrid (vector plus keyword) retrieval and reranking; the repository only uploads
+source files and metadata (`scripts/ingest_corpus.mjs`).
 
-1. Run offline checks and ingest the candidate namespace.
+1. Run offline checks and ingest the candidate instance.
 2. Run `make ai-eval` against it.
 3. Review answers and source labels, not only latency or cost.
-4. Set `AI_CORPUS_NAMESPACE` and the chosen `AI_MODEL` in `[vars]` in
-   `wrangler.toml`. The namespace must exactly match the plan and reports.
+4. Set `AI_SEARCH_INSTANCE` and the chosen `AI_MODEL` in `[vars]` in
+   `wrangler.toml`. The instance must exactly match the plan and reports.
 5. Run the ordered release command:
 
     ```bash
-    make deploy-ai AI_NAMESPACE=corpus-HASH_FROM_PLAN
+    make deploy-ai AI_INSTANCE=portfolio-HASH_FROM_PLAN
     ```
 
-The release gate runs `make ai-eval` (retrieval hits and query rewrites must pass
-at least `AI_PASS_RATE`, default 90%) after the offline checks and tests; the
-Wrangler namespace format is verified by `deploy-built`.
+The release gate runs `make ai-eval` (searches, retrieval hits and query checks must
+pass at least `AI_PASS_RATE`, default 90%) after the offline checks and tests; the
+Wrangler instance format is verified by `deploy-built`.
 
 ### Automatic content updates in production CI
 
 Every push to `develop` validates code and builds the production site before
 `make ai-refresh` and deployment. Refresh builds the exact commit's corpus and
-compares its namespace with the live Worker's. Unchanged corpora
-skip embeddings/uploads; changed corpora are ingested and each accepted mutation
-must finish indexing. Both paths update `AI_CORPUS_NAMESPACE` in the runner's
-Wrangler configuration. The subsequent Worker deployment includes that setting;
-the runner does not commit the generated configuration back to Git.
+compares its instance id with the live Worker's. A matching instance that holds
+every item in the completed state is skipped; otherwise the instance is created or
+resumed and missing items are uploaded. Both paths write `AI_SEARCH_INSTANCE` (and
+`AI_PREVIOUS_SEARCH_INSTANCE`) into the runner's Wrangler configuration, which the
+Worker deployment includes; the runner does not commit it back to Git.
 
-The old deployment continues serving its corpus if ingestion, indexing, or
-deployment fails. Production jobs are serialized. Mutation readiness has a
-three-minute deadline per upload batch and fails explicitly rather than activating
-an unready namespace. Another writer advancing the same index past the expected
-mutation marker can cause a conservative timeout; avoid concurrent manual ingestion.
+The old deployment continues serving its instance if ingestion or deployment fails.
+Production jobs are serialized. Uploads do not retry and abort on the first failure.
 
 Model comparison and quality gates remain developer-run. Use `deploy-ai` for
 locally reviewed model/retrieval changes, or mirror the content refresh flow:
@@ -482,61 +446,36 @@ make ai-refresh
 make deploy
 ```
 
-#### One live version and corpus retention
+#### One live version and instance retention
 
 The site is a Cloudflare Worker with static assets: one live version, no deployment
 history to prune, and no rollback history. To roll back, redeploy an earlier commit.
-The live Worker records its corpus namespace (`AI_CORPUS_NAMESPACE`) and the commit it
-was built from (`DEPLOY_COMMIT`) as plain-text variables; refresh and deploy-skip read
-them with the Workers settings API.
+The live Worker records `AI_SEARCH_INSTANCE` and the commit it was built from
+(`DEPLOY_COMMIT`) as plain-text variables; refresh and deploy-skip read them with the
+Workers settings API.
 
-When a deployment happens, CI also runs `make cleanup-vectors`. A skipped deploy
-leaves nothing stale, so cleanup does not run. It retains the live namespace and
-one prior namespace, deleting only older versioned `corpus-*` namespaces,
-including undeployed evaluation candidates. Unversioned and foreign namespaces are
-untouched. Deletion sends 20 IDs per request (the Vectorize limit) and does not wait for
-Vectorize to process the deletions: the live Worker queries only its own namespace, so
-stale vectors are unreachable meanwhile, and a rerun removes any that remain. The live namespace
-is re-read before each deletion; if a deploy changes it mid-run, cleanup stops.
-It refuses to run when the live namespace cannot be determined.
+When a deployment happens, CI also runs `make cleanup-instances`. A skipped deploy
+leaves nothing stale, so cleanup does not run. It retains the live instance and the
+previous one, deleting only older `portfolio-*` instances, including undeployed
+evaluation candidates. Foreign instances are untouched. The live instance is
+re-read before each deletion; if a deploy changes it mid-run, cleanup stops. It
+refuses to run when the live instance cannot be determined.
 
 ```bash
-node scripts/cleanup_vectors.mjs --dry-run   # plan only; reads, no deletion
+node scripts/cleanup_instances.mjs --dry-run   # plan only; reads, no deletion
 ```
 
-The command needs Workers read and Vectorize read/write permissions. Maintenance calls
-use Cloudflare SDK 7 native retries (two retries per request, 30-second timeout per
-attempt, `Retry-After` honored). Paid embedding requests disable retries to avoid
-repeat inference charges. The first embedding failure aborts in-flight requests and
-prevents queued inference from starting; already-started inference may still incur
-charges. Mutation readiness has an end-to-end three-minute deadline.
+The command needs Workers read and AI Search read/write permissions. Maintenance
+calls use Cloudflare SDK native retries.
 
 Keep manual deployments and ingestion out of the serialized production
-refresh/deploy/cleanup window; the live-namespace check is not a distributed lock.
-Re-ingest a candidate if cleanup prunes it before your developer evaluation or
-deployment. The index must be dedicated to this project.
+refresh/deploy/cleanup window; the live-instance check is not a distributed lock.
+Re-ingest a candidate if cleanup prunes it before your evaluation or deployment.
+Use `make ai-refresh AI_REFRESH_FLAGS=--force` to rebuild a damaged instance. A
+manual rollback to an earlier commit must restore its instance/model configuration
+and re-ingest it if cleanup already pruned it.
 
-`ai-refresh` compares the computed corpus namespace with the live Worker's
-`AI_CORPUS_NAMESPACE`. Matching corpora skip paid embeddings and uploads; changed
-corpora are ingested and indexing must succeed before local `wrangler.toml` is
-updated. Both paths set the deployment namespace. Lookup failures stop refresh; a
-Worker that is not deployed yet, or has no namespace, requires ingestion. Use
-`make ai-refresh AI_REFRESH_FLAGS=--force` (or the CLI's `--force`) to rebuild a
-missing or damaged index explicitly; force bypasses the Worker lookup. The hash
-includes source files, embedding and chunking settings, including draft/front-matter
-changes. When a changed corpus is ingested, vectors are fetched from the live
-namespace with `getByIDs` and reused (re-upserted under new IDs) if the same
-source/index chunk has an identical embedding key (`ekey` metadata: model,
-dimensions and embedding text hash); only the rest are embedded. Reuse is
-best-effort: a lookup failure, `--force`, or a chunk that shifts index falls back to
-fresh embeddings. `ekey` is an unsigned hash, so anyone who can write to the index
-can plant a reusable vector; the index write token is already the trust boundary.
-The refresh output reports `reused` and `embedded` counts. Leaving
-`AI_CORPUS_NAMESPACE` unset is only a migration fallback. A manual rollback to an
-earlier commit must restore its namespace/model configuration and re-ingest it if
-cleanup already pruned it.
-
-Runtime retrieval outages return 503 instead of pretending no context was found.
+Runtime search outages return 503 instead of pretending no context was found.
 
 ### Operational protections and remaining limits
 
@@ -546,14 +485,13 @@ sensitive information.
 
 The public chat endpoint's CORS policy is not authentication or abuse prevention.
 There is no prompt-injection filter: the answer prompt only restricts the model to
-retrieved context, and the assistant has no tools. No calibrated relevance cutoff is implemented. Each chat turn has a 60-second
-deadline, and a client disconnect or the deadline aborts the rewrite, embedding
-and generation calls (Vectorize queries are not cancellable). `/api/chat` has a per-IP Workers Rate Limiting binding
+retrieved context, and its only tool is portfolio search. No calibrated relevance cutoff is implemented. Each chat turn has a 60-second
+deadline, and a client disconnect or the deadline aborts the search
+and generation calls. `/api/chat` has a per-IP Workers Rate Limiting binding
 (`CHAT_LIMITER`, 10 requests per 60 seconds, per Cloudflare location and
 approximate; 429 when exceeded). It limits request volume, not spend: configure
 AI Gateway spend limits and any WAF rules in Cloudflare, and do not infer they
-exist from this repository. The 20-character abstention check detects empty/short context, not
-whether evidence supports a claim. Quality evaluation remains developer-run,
+exist from this repository. The Quality evaluation remains developer-run,
 not an automatic production release gate.
 Generation accepts content deltas and aggregate usage, including the current Workers binding terminal usage summary after answer deltas. Response-only provider answers are no longer accepted. The widget's normalized response events and manually managed browser history remain unchanged.
 
@@ -618,13 +556,13 @@ Use the Makefile for common development tasks:
 | `make deploy`         | Build production assets and deploy the Worker with its static assets                     |
 | `make deploy-built`   | Deploy an existing validated production build without rebuilding                         |
 | `make deploy-ai`      | Validate and gate an AI corpus/model release before deployment                           |
-| `make ai-refresh`     | Rebuild and index the current corpus, then update Wrangler's namespace                   |
+| `make ai-refresh`     | Rebuild and index the current corpus, then set Wrangler's instance                       |
 
 Validation commands suppress recipe echo and stream tools' native output without
 filtering warnings or errors. Tests use Node's `spec` reporter; use
 `make test TEST_REPORTER=tap` for TAP output. JavaScript coverage includes unexecuted
 source files; reports are written to ignored `coverage/`. CI runs lint and
-coverage before paid embedding refresh. See [tests/README.md](tests/README.md)
+coverage before the paid corpus refresh. See [tests/README.md](tests/README.md)
 for scope, Node requirements, and report formats.
 
 Pull requests targeting `develop` run `make ci-check` without Cloudflare credentials
@@ -739,7 +677,7 @@ make audit-site
 
 The content audit writes reports to `reports/`; the link checker prints its
 results. These audit steps are currently commented out in the push workflow.
-CI runs unit tests, embedding refresh/indexing, and the production build/deployment. Developers run AI
+CI runs unit tests, corpus refresh/indexing, and the production build/deployment. Developers run AI
 corpus/fixture checks, model comparisons, and release gates locally.
 
 ### Go Module Management
@@ -829,7 +767,7 @@ make deploy
 ```
 
 `make deploy` also regenerates `public/_headers` (CSP and HSTS) and refuses to
-deploy unless `wrangler.toml` carries a corpus namespace, so run `make ai-refresh`
+deploy unless `wrangler.toml` carries an `AI_SEARCH_INSTANCE`, so run `make ai-refresh`
 first when the checkout has never indexed a corpus.
 
 Moving from Pages needs a one-time cutover. Until the custom domains move, the

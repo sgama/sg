@@ -152,9 +152,9 @@ function coverageOf(prompts, questions, corpus) {
     return prompts.map((query) => {
         const item = questions.find((entry) => entry.query === query);
         if (!item) return { query, status: 'unmapped' };
-        const text = corpus.chunks
-            .filter((chunk) => item.sources.includes(chunk.metadata.source))
-            .map((chunk) => chunk.text)
+        const text = corpus.items
+            .filter((entry) => item.sources.includes(entry.key))
+            .map((entry) => entry.text)
             .join('\n');
         return {
             query,

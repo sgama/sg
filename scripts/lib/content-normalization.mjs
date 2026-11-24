@@ -5,7 +5,6 @@ import remarkGfm from 'remark-gfm';
 import { raw } from 'hast-util-raw';
 import { toHast } from 'mdast-util-to-hast';
 import { toMdast } from 'hast-util-to-mdast';
-import { toString } from 'mdast-util-to-string';
 
 const processor = unified().use(remarkParse).use(remarkGfm).use(remarkStringify, { fences: true, bullet: '-', listItemIndent: 'one' });
 const omitted = new Set(['script', 'style', 'svg', 'button', 'form', 'iframe', 'nav', 'header', 'footer', 'template']);
@@ -179,32 +178,4 @@ export function normalizedDocument(content, { rejectUnclosedComments = false } =
  */
 export function ingestionText(content, options) {
     return processor.stringify(normalizedDocument(content, options)).trim();
-}
-
-/** @param {string} content */
-export function sourceSections(content) {
-    const tree = processor.parse(content);
-    /** @type {{ heading: string, text: string }[]} */
-    const sections = [];
-    let heading = '';
-    /** @type {import('mdast').RootContent[]} */
-    let children = [];
-    const flush = () => {
-        if (children.length) sections.push({ heading, text: processor.stringify({ type: 'root', children }).trim() });
-        children = [];
-    };
-    for (const node of tree.children) {
-        if (node.type === 'heading' && node.depth <= 2) {
-            flush();
-            heading = toString(node);
-        }
-        children.push(node);
-    }
-    flush();
-    return sections;
-}
-
-/** @param {string} content */
-export function hasEvidence(content) {
-    return processor.parse(content).children.some((node) => node.type !== 'heading' && node.type !== 'definition');
 }

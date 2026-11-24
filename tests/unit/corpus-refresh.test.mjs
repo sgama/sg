@@ -1,197 +1,123 @@
-import { integrityFixture } from '../helpers/corpus.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { AI_CONFIG } from '../../shared/ai/application.js';
 import { buildCorpus } from '../../scripts/lib/corpus.mjs';
-import { createMaintenanceClient, refreshCorpus, setCorpusNamespace } from '../../scripts/lib/corpus-deployment.mjs';
+import { createMaintenanceClient, ingestCorpus, refreshCorpus, setSearchInstance } from '../../scripts/lib/corpus-deployment.mjs';
+import { aiSearchMock } from '../helpers/ai-search.mjs';
 
-const namespace = `corpus-${'a'.repeat(56)}`;
-/** A stubbed `client.workers`: the live Worker's corpus namespace, or a 404 (not deployed) when undefined. */
-const live = (value) => ({
-    scripts: {
-        scriptAndVersionSettings: {
-            get: async () => {
-                if (value === undefined) throw Object.assign(new Error('Worker not found'), { status: 404 });
-                return { bindings: [{ type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: value }] };
-            },
-        },
-    },
-});
-const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[vectorize]]\nindex_name = "portfolio-index"\n';
+const instance = `portfolio-${'a'.repeat(12)}`;
+const config = '[ai]\nbinding = "AI"\n\n[vars]\nAI_MODEL = "glm"\n\n[[ai_search_namespaces]]\nbinding = "AI_SEARCH"\n';
+const fast = { intervalMs: 1, timeoutMs: 2000 };
 
-test('force refresh ingests even when the Worker lookup is unavailable', async (t) => {
-    const { root, configPath, client, wait, calls } = await refreshFixture(t);
-    client.workers.scripts.scriptAndVersionSettings.get = async () => {
-        throw new Error('Worker settings unavailable');
-    };
-    const forced = await refreshCorpus({ client, accountId: 'account', root, wait, force: true });
-    assert.equal(forced.skipped, false);
-    assert.deepEqual(calls, ['upsert', 'ready']);
-    // Activation after ingestion is the whole point: the config must name the namespace that was just built.
-    assert.ok((await fs.readFile(configPath, 'utf8')).includes(forced.namespace));
-});
-
-test('refresh records the namespace it replaces as previous, and keeps that record when the corpus is unchanged', async (t) => {
-    const { root, configPath, client, wait } = await refreshFixture(t);
-    const older = `corpus-${'d'.repeat(56)}`;
-    const deployed = (namespace, previous) => ({
-        scripts: {
-            scriptAndVersionSettings: {
-                get: async () => ({
-                    bindings: [
-                        { type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: namespace },
-                        { type: 'plain_text', name: 'AI_PREVIOUS_CORPUS_NAMESPACE', text: previous },
-                    ],
-                }),
-            },
-        },
-    });
-    client.workers = deployed(older, `corpus-${'e'.repeat(56)}`);
-    const changed = await refreshCorpus({ client, accountId: 'account', root, wait });
-    assert.ok((await fs.readFile(configPath, 'utf8')).includes(`AI_PREVIOUS_CORPUS_NAMESPACE = "${older}"`));
-    client.workers = deployed(changed.namespace, older);
-    const unchanged = await refreshCorpus({ client, accountId: 'account', root, wait });
-    assert.equal(unchanged.skipped, true);
-    assert.ok((await fs.readFile(configPath, 'utf8')).includes(`AI_PREVIOUS_CORPUS_NAMESPACE = "${older}"`));
-});
-
-async function refreshFixture(t) {
+async function refreshFixture(t, mockOptions) {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'sg-corpus-refresh-'));
     t.after(() => fs.rm(root, { recursive: true, force: true }));
     await fs.mkdir(path.join(root, 'content'));
     await fs.writeFile(path.join(root, 'content/page.md'), '---\ntitle: Test\n---\nCurrent content.');
     const configPath = path.join(root, 'wrangler.toml');
     await fs.writeFile(configPath, config);
-    const calls = [];
-    const client = {
-        workers: live(),
-        post: async () => ({ result: { data: [Array(AI_CONFIG.embedding.dimensions).fill(0.1)] } }),
-        vectorize: {
-            indexes: {
-                upsert: async () => {
-                    calls.push('upsert');
-                    return { mutationId: 'accepted' };
-                },
-            },
-        },
-    };
-    const wait = async (passedClient, accountId, mutationId) => {
-        assert.equal(passedClient, client);
-        assert.equal(accountId, 'account');
-        assert.equal(mutationId, 'accepted');
-        assert.equal(await fs.readFile(configPath, 'utf8'), config);
-        calls.push('ready');
-    };
-    return { root, configPath, client, calls, wait, accountId: 'account' };
+    const corpus = await buildCorpus({ root });
+    const mock = aiSearchMock(typeof mockOptions === 'function' ? mockOptions(corpus) : mockOptions);
+    const client = createMaintenanceClient('token', mock.fetchImpl);
+    const ingest = (c, accountId, built, options) => ingestCorpus(c, accountId, built, { ...options, ...fast });
+    return { root, configPath, corpus, mock, client, ingest };
 }
 
 test('a failed refresh step leaves the Wrangler configuration untouched', async (t) => {
-    const withActive = (client, value) => (client.workers = live(value));
-    for (const { name, arrange, wait, error } of [
-        {
-            name: 'embedding fails with no deployed Worker',
-            arrange: (client) => (client.post = async () => Promise.reject(new Error('embedding failed'))),
-            error: /embedding failed/,
-        },
-        {
-            name: 'embedding fails for a changed corpus (a different active namespace requires ingestion)',
-            arrange: (client) => {
-                withActive(client, namespace);
-                client.post = async () => Promise.reject(new Error('embedding failed'));
-            },
-            error: /embedding failed/,
-        },
-        {
-            name: 'indexing never becomes ready',
-            wait: async () => Promise.reject(new Error('not ready')),
-            error: /not ready/,
-        },
-        {
-            name: 'the Worker lookup fails',
-            arrange: (client) =>
-                (client.workers.scripts.scriptAndVersionSettings.get = async () => Promise.reject(new Error('Worker settings unavailable'))),
-            error: /Worker settings unavailable/,
-        },
-        { name: 'the active namespace is invalid', arrange: (client) => withActive(client, 'invalid'), error: /Invalid active corpus namespace/ },
+    for (const { name, options, ingest, error } of [
+        { name: 'ingestion fails', options: { vars: null }, ingest: async () => Promise.reject(new Error('ingest failed')), error: /ingest failed/ },
+        { name: 'the upload fails', options: (corpus) => ({ vars: null, failUploadKey: corpus.items[0].key }), error: /400|boom/ },
+        { name: 'the active instance is invalid', options: { vars: { AI_SEARCH_INSTANCE: 'invalid' } }, error: /Invalid active AI Search instance/ },
     ]) {
-        const f = await refreshFixture(t);
-        arrange?.(f.client);
-        await assert.rejects(refreshCorpus({ client: f.client, accountId: 'account', root: f.root, wait: wait ?? f.wait }), error, name);
+        const f = await refreshFixture(t, options);
+        await assert.rejects(refreshCorpus({ client: f.client, accountId: 'account', root: f.root, ingest: ingest ?? f.ingest }), error, name);
         assert.equal(await fs.readFile(f.configPath, 'utf8'), config, name);
     }
-});
-
-test('namespace activation only changes the Wrangler vars section and preserves all bindings', () => {
-    const previous = `corpus-${'b'.repeat(56)}`;
-    const updated = setCorpusNamespace(config, namespace, previous);
-    assert.equal(updated, config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\nAI_PREVIOUS_CORPUS_NAMESPACE = "${previous}"\n`));
-    assert.equal(setCorpusNamespace(updated, namespace, previous), updated);
-    const next = `corpus-${'c'.repeat(56)}`;
-    assert.ok(setCorpusNamespace(updated, next, previous).includes(next));
-    assert.equal(setCorpusNamespace(config, namespace), config.replace('[vars]\n', `[vars]\nAI_CORPUS_NAMESPACE = "${namespace}"\n`));
-    assert.throws(() => setCorpusNamespace(config, 'bad'), /Invalid corpus/);
-    assert.throws(() => setCorpusNamespace('[ai]\nbinding = "AI"', namespace), /vars/);
-    assert.throws(() => setCorpusNamespace(`[vars]\nAI_CORPUS_NAMESPACE = "a"\nAI_CORPUS_NAMESPACE = "b"\n`, namespace), /Duplicate/);
-});
-
-test('SDK transport reads the live Worker settings with the documented request', async (t) => {
-    const { root, configPath } = await refreshFixture(t);
-    const corpus = await buildCorpus({ root });
-    const requests = [];
-    const client = createMaintenanceClient('test-token', async (url) => {
-        const pathname = new URL(url).pathname;
-        requests.push(pathname);
-        assert.equal(pathname, '/client/v4/accounts/account/workers/scripts/sg/settings');
-        return Response.json({ success: true, result: { bindings: [{ type: 'plain_text', name: 'AI_CORPUS_NAMESPACE', text: corpus.namespace }] } });
-    });
-    const result = await refreshCorpus({ client, accountId: 'account', root });
-    assert.equal(result.skipped, true);
-    assert.equal(requests.length, 1);
-    assert.ok((await fs.readFile(configPath, 'utf8')).includes(corpus.namespace));
-});
-
-test('unchanged corpus skips all embeddings, uploads and readiness waits but sets namespace', async (t) => {
-    const { root, configPath, client } = await refreshFixture(t);
-    client.post = async () => {
-        assert.fail('Unexpected embedding request');
-    };
-    client.vectorize.indexes.upsert = async () => {
-        assert.fail('Unexpected upload');
-    };
-    const corpus = await buildCorpus({ root });
-    client.workers = live(corpus.namespace);
-    const reused = await refreshCorpus({
-        client,
-        accountId: 'account',
-        root,
-        wait: async () => {
-            assert.fail('Unchanged corpus must not wait for ingestion');
-        },
-    });
-    assert.equal(reused.skipped, true);
-    assert.deepEqual(reused.mutationIds, []);
-    assert.ok((await fs.readFile(configPath, 'utf8')).includes(corpus.namespace));
+    const f = await refreshFixture(t, { vars: null });
+    const broken = createMaintenanceClient('token', async () => Response.json({ success: false }, { status: 500 }));
+    await assert.rejects(refreshCorpus({ client: broken, accountId: 'account', root: f.root }));
+    assert.equal(await fs.readFile(f.configPath, 'utf8'), config);
 });
 
 test('concurrent configuration edits survive refresh without activation overwrite', async (t) => {
-    const { root, configPath, corpus } = await integrityFixture(t);
+    const { root, configPath, client } = await refreshFixture(t, { vars: null });
     const changed = '[vars]\nAI_MODEL = "gemma"\n';
-    const client = {
-        workers: live(),
-        post: async () => ({ result: { data: [Array(corpus.embedding.dimensions).fill(0.1)] } }),
-        vectorize: { indexes: { upsert: async () => ({ mutationId: 'accepted' }) } },
-    };
     await assert.rejects(
         refreshCorpus({
             client,
             accountId: 'account',
             root,
-            wait: async () => fs.writeFile(configPath, changed),
+            ingest: async (c, accountId, built) => {
+                await fs.writeFile(configPath, changed);
+                return { instance: built.instance, count: 1, uploaded: 1, reused: 0 };
+            },
         }),
         /configuration changed/,
     );
     assert.equal(await fs.readFile(configPath, 'utf8'), changed);
+});
+
+test('force refresh ingests even when the Worker lookup is unavailable', async (t) => {
+    const f = await refreshFixture(t, { vars: null });
+    const unavailable = createMaintenanceClient('token', async (url, init) =>
+        new URL(url).pathname.includes('/workers/') ? Response.json({ success: false }, { status: 500 }) : f.mock.fetchImpl(url, init),
+    );
+    const forced = await refreshCorpus({ client: unavailable, accountId: 'account', root: f.root, force: true, ingest: f.ingest });
+    assert.equal(forced.skipped, false);
+    assert.equal(forced.uploaded, 1);
+    assert.ok((await fs.readFile(f.configPath, 'utf8')).includes(`AI_SEARCH_INSTANCE = "${f.corpus.instance}"`));
+});
+
+test('instance activation only changes the Wrangler vars section and preserves all bindings', () => {
+    const previous = `portfolio-${'b'.repeat(12)}`;
+    const updated = setSearchInstance(config, instance, previous);
+    assert.equal(updated, config.replace('[vars]\n', `[vars]\nAI_SEARCH_INSTANCE = "${instance}"\nAI_PREVIOUS_SEARCH_INSTANCE = "${previous}"\n`));
+    assert.equal(setSearchInstance(updated, instance, previous), updated);
+    const next = `portfolio-${'c'.repeat(12)}`;
+    assert.ok(setSearchInstance(updated, next, previous).includes(next));
+    assert.equal(setSearchInstance(updated, next), updated.replace(instance, next).replace(`AI_PREVIOUS_SEARCH_INSTANCE = "${previous}"\n`, ''));
+    assert.equal(setSearchInstance(config, instance), config.replace('[vars]\n', `[vars]\nAI_SEARCH_INSTANCE = "${instance}"\n`));
+    assert.throws(() => setSearchInstance(config, 'bad'), /Invalid AI Search instance/);
+    assert.throws(() => setSearchInstance(config, instance, 'bad'), /Invalid previous/);
+    assert.throws(() => setSearchInstance('[ai]\nbinding = "AI"', instance), /vars/);
+    assert.throws(() => setSearchInstance(`[vars]\nAI_SEARCH_INSTANCE = "a"\nAI_SEARCH_INSTANCE = "b"\n`, instance), /Duplicate/);
+});
+
+test('refresh records the instance it replaces as previous, and keeps that record when the corpus is unchanged', async (t) => {
+    const older = `portfolio-${'d'.repeat(12)}`;
+    const f = await refreshFixture(t, { vars: { AI_SEARCH_INSTANCE: older, AI_PREVIOUS_SEARCH_INSTANCE: `portfolio-${'e'.repeat(12)}` } });
+    const changed = await refreshCorpus({ client: f.client, accountId: 'account', root: f.root, ingest: f.ingest });
+    assert.equal(changed.skipped, false);
+    assert.ok((await fs.readFile(f.configPath, 'utf8')).includes(`AI_PREVIOUS_SEARCH_INSTANCE = "${older}"`));
+    f.mock.vars = { AI_SEARCH_INSTANCE: changed.instance, AI_PREVIOUS_SEARCH_INSTANCE: older };
+    const unchanged = await refreshCorpus({ client: f.client, accountId: 'account', root: f.root, ingest: f.ingest });
+    assert.equal(unchanged.skipped, true);
+    assert.ok((await fs.readFile(f.configPath, 'utf8')).includes(`AI_PREVIOUS_SEARCH_INSTANCE = "${older}"`));
+});
+
+test('refresh skips a complete live instance but repairs a missing or incomplete one', async (t) => {
+    const f = await refreshFixture(t, (corpus) => ({
+        vars: { AI_SEARCH_INSTANCE: corpus.instance },
+        instances: { [corpus.instance]: corpus.items.map((item) => item.key) },
+    }));
+    const skipped = await refreshCorpus({
+        client: f.client,
+        accountId: 'account',
+        root: f.root,
+        ingest: async () => assert.fail('A complete live instance must not be ingested'),
+    });
+    assert.equal(skipped.skipped, true);
+    assert.deepEqual(f.mock.uploads, []);
+    assert.ok((await fs.readFile(f.configPath, 'utf8')).includes(f.corpus.instance));
+    for (const keys of [undefined, []]) {
+        const g = await refreshFixture(t, (corpus) => ({
+            vars: { AI_SEARCH_INSTANCE: corpus.instance },
+            instances: keys ? { [corpus.instance]: keys } : {},
+        }));
+        const repaired = await refreshCorpus({ client: g.client, accountId: 'account', root: g.root, ingest: g.ingest });
+        assert.equal(repaired.skipped, false);
+        assert.equal(g.mock.uploads.length, 1);
+    }
 });

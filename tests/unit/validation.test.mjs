@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import * as validationModule from '../../functions/_lib/validation.js';
 import { ChatRequestSchema } from '../../functions/_lib/validation.js';
 import { MAX_API_HISTORY_MESSAGES, MAX_API_HISTORY_MESSAGE_LENGTH, MAX_API_HISTORY_TOTAL_LENGTH } from '../../assets/js/chat/model/history.js';
 import { CONFIG } from '../../shared/ai/application.js';
-import { shouldAbstainForMissingContext } from '../../shared/ai/answer-policy.js';
 
 const { MAX_TURNS, MAX_CONTENT_LENGTH, MAX_TOTAL_LENGTH } = CONFIG.HISTORY;
 const MAX_QUERY_LENGTH = CONFIG.QUERY.MAX_LENGTH;
@@ -25,16 +23,6 @@ test('client history limits mirror the server CONFIG.HISTORY contract', () => {
     assert.equal(MAX_API_HISTORY_MESSAGES, MAX_TURNS);
     assert.equal(MAX_API_HISTORY_MESSAGE_LENGTH, MAX_CONTENT_LENGTH);
     assert.equal(MAX_API_HISTORY_TOTAL_LENGTH, MAX_TOTAL_LENGTH);
-});
-
-test('context abstention checks types, trimmed length and custom exact boundaries', () => {
-    for (const value of [undefined, null, 42, {}, [], '', '   ', 'x'.repeat(19)]) {
-        assert.equal(shouldAbstainForMissingContext(value), true);
-    }
-    assert.equal(shouldAbstainForMissingContext(`  ${'x'.repeat(20)}  `), false);
-    assert.equal(shouldAbstainForMissingContext('abc', 4), true);
-    assert.equal(shouldAbstainForMissingContext('abcd', 4), false);
-    assert.equal('shouldAbstainForMissingContext' in validationModule, false);
 });
 
 test('history validation rejects invalid turns, defaults to empty and strips unknown fields', () => {
