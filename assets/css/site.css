@@ -1441,3 +1441,85 @@
         }
     }
 }
+
+@layer animations {
+    @media (prefers-reduced-motion: no-preference) {
+        @view-transition {
+            navigation: auto;
+        }
+
+        ::view-transition-old(root) {
+            animation: 0.15s ease-in both vt-out;
+        }
+
+        ::view-transition-new(root) {
+            animation: 0.25s ease-out 0.05s both vt-in;
+        }
+
+        .main-menu {
+            view-transition-name: site-nav;
+        }
+
+        @keyframes vt-out {
+            to {
+                opacity: 0;
+            }
+        }
+
+        @keyframes vt-in {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+        }
+
+        @supports (animation-timeline: view()) {
+            .article-link--card {
+                animation: card-reveal linear both;
+                animation-timeline: view();
+                animation-range: entry 0% entry 35%;
+            }
+
+            @keyframes card-reveal {
+                from {
+                    opacity: 0;
+                    transform: translateY(24px);
+                }
+            }
+        }
+    }
+
+    /* Hover lift only where hover exists, so touch screens never stick in a hovered state. */
+    @media (hover: hover) {
+        .article-link--card {
+            transition:
+                transform var(--motion-fast) var(--ease-out),
+                box-shadow var(--motion-fast) var(--ease-out);
+        }
+
+        .article-link--card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-sm);
+        }
+    }
+
+    a,
+    button,
+    summary,
+    [role='button'] {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .article-link--card:active,
+    .chat-cta__chip:active {
+        transform: scale(0.97);
+        transition-duration: 0.1s;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .article-link--card {
+            transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    }
+}
