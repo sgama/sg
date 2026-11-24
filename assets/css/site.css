@@ -998,7 +998,6 @@
         background: var(--surface-1);
         border-radius: 1.25rem;
         border: 1px solid var(--surface-2);
-        animation: fadeIn var(--motion-slow) var(--ease-out) 0.15s both;
         text-align: center;
         contain: layout style;
     }
