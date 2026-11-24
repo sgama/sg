@@ -1,3 +1,7 @@
+/**
+ * Worker-side RAG pipeline: contextualize -> embed -> search -> expand sections -> assemble context -> generate -> stream.
+ * Owns Workers AI/Vectorize calls, metrics timing and retrieval caching. Must not hold prompt text or evidence logic (shared/ai).
+ */
 import { AI_CONFIG, CONFIG, generationInput, getModel, isValidEmbeddingVector, rewriteSearchQuery } from '../../shared/ai/application.js';
 import { buildMessages } from '../../shared/ai/prompts.js';
 import { retrieveEvidence } from '../../shared/ai/retrieval.js';
@@ -7,6 +11,10 @@ import { AppError, requireVectorizeBinding } from './worker-errors.js';
 import { isValidRetrievalCachePayload } from './retrieval-cache.js';
 
 /** @typedef {import('../../shared/ai/application.js').ChatMessage} ChatMessage */
+
+/** Keyed by the question as asked plus the history it is read in. */
+const retrievalCacheKey = (/** @type {string} */ query, /** @type {ChatMessage[]} */ history) =>
+    history.length ? `${query}\u0000${JSON.stringify(history)}` : query;
 
 export class AiService {
     /**
@@ -79,8 +87,8 @@ export class AiService {
     async retrieve(query, history = [], onProgress = async () => {}) {
         requireVectorizeBinding(this.vectorize);
 
-        // Keyed by the question as asked plus the history it is read in, so a hit skips the rewrite call too.
-        const cacheQuery = history.length ? `${query}\u0000${JSON.stringify(history)}` : query;
+        // A hit skips the rewrite call too.
+        const cacheQuery = retrievalCacheKey(query, history);
         const cached = this.retrievalStore ? await this.retrievalStore.get(this.namespace, cacheQuery) : null;
         if (isValidRetrievalCachePayload(cached)) {
             this.metrics.resetTiming('retrievalMs');
