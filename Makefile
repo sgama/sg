@@ -1,13 +1,14 @@
 SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
+MAKEFLAGS += --no-builtin-rules
 
-.PHONY: help check check-node check-env check-ns \
+.PHONY: help check check-node check-env check-ns csp-headers \
 	serve dev-ai build build-prod clean \
 	deps test test-layouts lint lint-fix typecheck format format-check typos lint-workflows install-actionlint coverage \
 	audit-content audit-urls audit-site audit-rag \
 	ai-plan ai-check ai-build ai-embeddings ai-refresh ai-eval ai-audit deploy-ai \
-	deploy deploy-built deploy-needed cleanup-vectors cutover-domains ci ci-check
+	deploy deploy-built deploy-needed cleanup-vectors cutover-domains ci-check
 
 ifneq (,$(wildcard .env))
 include .env
@@ -19,7 +20,6 @@ WORKER_NAME       ?= sg
 PUBLIC_DIR        ?= public
 DEV_PORT          ?= 8788
 REPORT_DIR        ?= reports
-AI_NAMESPACE      ?= $(shell $(NODE) scripts/generate_embeddings.mjs --check --manifest $(REPORT_DIR)/ai-corpus.json 2>/dev/null | $(NODE) -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).namespace)}catch{}})')
 AI_REFRESH_FLAGS  ?=
 AI_FIXTURE        ?= tests/fixtures/ai-eval.json
 AI_PASS_RATE      ?= 90
@@ -27,6 +27,8 @@ HUGO              ?= hugo
 HUGO_FLAGS        ?= --minify --cleanDestinationDir
 HUGO_SERVER_FLAGS ?=
 NODE              ?= node
+BUILD_SHA          = $(shell git rev-parse HEAD)
+UNIT_TESTS         = $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
 COVERAGE_REPORTERS ?= text-summary html lcov
 PRETTIER_FILES    := "assets/js/**/*.js" "functions/**/*.js" "shared/**/*.js" "scripts/**/*.mjs" "evals/**/*.mjs" "tests/**/*.mjs" "*.config.js" "assets/css/**/*.css" "*.{yml,yaml}" ".*.{yml,yaml}" "data/**/*.{yml,yaml}" ".github/**/*.{yml,yaml}"
 NPM               ?= npm
@@ -42,15 +44,12 @@ ACTIONLINT_ARCH   := $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/a
 ACTIONLINT_BIN_DIR ?= $(HOME)/.local/bin
 
 export WORKER_NAME PUBLIC_DIR REPORT_DIR
-export AI_NAMESPACE AI_REFRESH_FLAGS AI_FIXTURE AI_PASS_RATE
+export AI_REFRESH_FLAGS AI_FIXTURE AI_PASS_RATE
 export HUGO NODE
 
 # ── Guards ─────────────────────────────────────────────────────────────────────
-check: ## Verify hugo/node/npm (node 22+ required by wrangler)
+check: check-node ## Verify hugo/node/npm (node 22+ required by wrangler)
 	@command -v $(HUGO) >/dev/null || { echo "Missing hugo"; exit 1; }
-	@command -v $(NODE) >/dev/null || { echo "Missing node"; exit 1; }
-	@command -v $(NPM) >/dev/null || { echo "Missing npm"; exit 1; }
-	@$(NODE) -e 'if (Number(process.versions.node.split(".")[0]) < 22) { console.error("Node.js 22+ required"); process.exit(1); }'
 
 check-node: ## Verify node/npm (no Hugo required)
 	@command -v $(NODE) >/dev/null || { echo "Missing node"; exit 1; }
@@ -62,7 +61,7 @@ check-env: ## Verify Cloudflare credentials are set
 	@test -n "$${CLOUDFLARE_API_TOKEN:-}"  || (echo "Missing CLOUDFLARE_API_TOKEN"  && exit 1)
 
 check-ns:
-	@test -n "$$AI_NAMESPACE" || { echo "Set AI_NAMESPACE to the candidate namespace printed by make ai-plan"; exit 1; }
+	@test -n "$${AI_NAMESPACE:-}" || { echo "Set AI_NAMESPACE to the candidate namespace printed by make ai-plan"; exit 1; }
 
 # ── Help ───────────────────────────────────────────────────────────────────────
 help: ## Show available targets
@@ -72,17 +71,17 @@ help: ## Show available targets
 
 ##@ Development
 serve: check ## Start Hugo development server
-	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" $(HUGO) server $(HUGO_SERVER_FLAGS)
+	@HUGO_BUILD_SHA="$(BUILD_SHA)" $(HUGO) server $(HUGO_SERVER_FLAGS)
 
 dev-ai: check build ## Start local dev server with Cloudflare Workers AI
 	@$(WRANGLER) dev --assets "$(PUBLIC_DIR)" --port=$(DEV_PORT)
 
 ##@ Build
 build: check ## Build the site (development)
-	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
+	@HUGO_BUILD_SHA="$(BUILD_SHA)" $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 build-prod: check ## Build the site for production
-	@sha=$$(git rev-parse HEAD) && HUGO_BUILD_SHA="$$sha" HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
+	@HUGO_BUILD_SHA="$(BUILD_SHA)" HUGO_ENV=production NODE_ENV=production $(HUGO) $(HUGO_FLAGS) --destination "$(PUBLIC_DIR)"
 
 clean: ## Remove generated output within the repository's public build tree
 	@test -n "$$PUBLIC_DIR" || { echo "Refusing cleanup: PUBLIC_DIR is empty"; exit 1; }
@@ -105,7 +104,7 @@ deps: check-node ## Install Node dependencies from the lockfile (skipped when no
 
 ##@ Test & Audit
 test: check ## Run the complete offline unit suite
-	@$(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+	@$(UNIT_TESTS)
 
 test-layouts: check ## Build Hugo fixtures and validate schema, public index, preloads and theme settings
 	@$(NODE) --test --test-timeout=120000 --test-reporter=$(TEST_REPORTER) tests/integration/layouts.test.mjs
@@ -160,7 +159,7 @@ print-%: ## Print a Makefile variable (used by CI to read pinned versions)
 	@echo '$($*)'
 
 coverage: check-node ## Run offline tests with coverage (reports: COVERAGE_REPORTERS, default text-summary html lcov)
-	@$(NODE) node_modules/c8/bin/c8.js $(addprefix --reporter=,$(COVERAGE_REPORTERS)) $(NODE) --test --test-timeout=30000 --test-reporter=$(TEST_REPORTER) tests/unit/*.test.mjs
+	@$(NODE) node_modules/c8/bin/c8.js $(addprefix --reporter=,$(COVERAGE_REPORTERS)) $(UNIT_TESTS)
 
 audit-content: check-node ## Validate content front matter coverage (install dependencies first)
 	@REPORT_DIR="$(REPORT_DIR)" $(NODE) scripts/audit_content.mjs
@@ -233,9 +232,4 @@ csp-headers: check ## Generate public/_headers CSP from a fresh build (run after
 	@$(NODE) scripts/generate_csp.mjs
 
 ##@ CI
-ci-check: lint-workflows lint typecheck format-check coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j2 --output-sync=target)
-
-ci: ## Run checks, refresh embeddings and deploy the matching chat corpus
-	@$(MAKE) --no-print-directory --jobs=2 --output-sync=target ci-check audit-site
-	@$(MAKE) --no-print-directory ai-refresh
-	@$(MAKE) --no-print-directory deploy-built
+ci-check: lint-workflows lint typecheck format-check coverage ai-check ai-build build-prod test-layouts ## Run independent offline checks (use -j4 --output-sync=target)

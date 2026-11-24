@@ -18,9 +18,9 @@
         "type": "git",
         "url": "git+https://github.com/sgama/sg.git"
     },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "keywords": ["hugo", "cloudflare-workers", "rag", "portfolio"],
+    "author": "Samson Gama",
+    "license": "MIT",
     "engines": {
         "node": ">=22"
     },

@@ -647,8 +647,7 @@ instead took 14 seconds in CI and made parallel jobs race. The third holds
 content, layouts and assets, and restored from the closest previous entry so
 unchanged images are never reprocessed. A `hugo mod graph` step fetches the
 modules once before the parallel checks. All entries are saved after successful offline
-validation, before paid refresh or deployment. `make ci` remains a paid production workflow, not an offline
-check; use `make ci-check` for local validation.
+validation, before paid refresh or deployment.
 
 Install dependencies explicitly with `make deps` before checks; audits never
 install packages or change the lockfile. `npm run build` delegates to
@@ -656,11 +655,10 @@ install packages or change the lockfile. `npm run build` delegates to
 `make dev-ai` (port 8788; override with `DEV_PORT`).
 
 CI runs the independent offline checks together with
-`make -j4 --output-sync=target lint-workflows lint format-check ai-check coverage ai-build build-prod test-layouts`
-(public runners have four vCPUs); `make ci-check` runs the same checks locally. Target output
+`make -j4 --output-sync=target ci-check`
+(public runners have four vCPUs); the same target runs the checks locally. Target output
 stays grouped. Corpus refresh,
-deployment, and cleanup remain sequential. The paid `make ci` entry point also
-bounds its validation phase to two jobs.
+deployment, and cleanup remain sequential.
 
 Build targets honor `PUBLIC_DIR`. Cleanup accepts only the repository's `public`
 directory or descendants, rejects paths resolving outside that tree and tracked

@@ -11,13 +11,12 @@ test patterns. Keep general documentation there rather than duplicating it here.
   not install packages implicitly.
 - Validate relevant changes with focused tests, `make lint`, `make typecheck` (JSDoc types, checked by
   `tsc` in three environments: `tsconfig.json` Functions, `tsconfig.scripts.json`, `tsconfig.browser.json`) and, for Functions
-  changes, `make ai-build`. `make ci-check` is the broader offline validation.
+  changes, `make ai-build`. `make ci-check` is the broader offline validation (also what CI runs).
 - Keep test cases and nested suites alphabetized case-insensitively. Files use
   Node's default parallel execution; do not serialize them for output ordering.
 - Use installed Cloudflare SDK signatures and real-SDK/mock-fetch contract tests.
   Lightweight stubs alone can miss breaking SDK changes.
 - Do not run paid inference, deploy, or delete cloud resources without approval.
-  `make ci` is a paid production flow, not an offline check.
 
 ## Site and Hugo pitfalls
 
