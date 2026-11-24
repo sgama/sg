@@ -1,3 +1,6 @@
+/**
+ * Per-request timing and token/cost metrics. Must not touch the network.
+ */
 import { AI_CONFIG, estimateCost } from './application.js';
 
 /**

@@ -1,3 +1,7 @@
+/**
+ * Shared model registry, limits and query-rewrite helper over data/chat_ai.json.
+ * Must not perform I/O beyond the injected model runner.
+ */
 import chatAi from '../../data/chat_ai.json' with { type: 'json' };
 import { contextualizationMessages } from './prompts.js';
 

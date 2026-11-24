@@ -1,3 +1,6 @@
+/**
+ * Cloudflare SDK adapters for embedding and retrieval used by scripts and evals. Must not deploy.
+ */
 import Cloudflare from 'cloudflare';
 import { AI_CONFIG, getModel, isValidEmbeddingVector, rewriteSearchQuery } from '../../shared/ai/application.js';
 import { retrieveEvidence } from '../../shared/ai/retrieval.js';

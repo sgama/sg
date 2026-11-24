@@ -1,3 +1,6 @@
+/**
+ * Builds the RAG corpus (sections and chunks) from site content. Must not call paid APIs or Cloudflare.
+ */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { MarkdownTextSplitter } from '@langchain/textsplitters';

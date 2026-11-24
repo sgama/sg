@@ -1,3 +1,7 @@
+/**
+ * Hono chat HTTP app: request validation, SSE framing and error responses.
+ * Must not call models or Vectorize directly; that belongs to AiService.
+ */
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';

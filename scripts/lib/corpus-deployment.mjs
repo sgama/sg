@@ -1,3 +1,6 @@
+/**
+ * Embeds and uploads a corpus to Vectorize, and verifies it. Owns paid-call limits and mutation checks; keep them.
+ */
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';

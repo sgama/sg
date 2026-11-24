@@ -1,3 +1,7 @@
+/**
+ * Normalizes a Workers AI chat stream into the SSE events the browser consumes.
+ * Must not build prompts or decide whether to answer.
+ */
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { isDeadlineAbort } from './abort.js';
 
